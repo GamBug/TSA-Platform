@@ -256,3 +256,170 @@ Phase 02.75 acceptance: work starts against isolated output/held-out labels with
 - Required tests: A–J matrix in TEST_STRATEGY, including 500-draft workload under approved envelope, month-long provider-outage simulation, same-user/cross-user allocation, corrected version, publication during attempt and halfway recovery.
 - Priority P0 for research integration milestone, not a prerequisite for manually seeded web MVP; complexity M; risks: adapter drift, accidental publication, resource sharing.
 - Status: BLOCKED (both tracks and approval). Suggested implementer: integration engineer; independent reviewer: QA/security plus domain reviewer. Actual assignee: none.
+
+## Execution refinement — proposed agent-sized delivery cards
+
+The stable IDs above, including their status and recorded historical evidence, are preserved. They remain the outcome-level milestones and their listed acceptance remains required. The cards below are **PROPOSED** execution units: they do not authorize implementation, alter a contract, or replace a milestone. An accountable implementer may claim exactly one card only after its stated gate, owner authorization, and prerequisite cards have recorded acceptance evidence. A milestone may be completed only when all of its applicable child cards and its existing acceptance are complete.
+
+`LOW`, `MEDIUM`, and `HIGH` are suggested capability tiers, not assignments or approval. `LOW` is limited to isolated documentation, fixtures, configuration, or simple tests; `MEDIUM` covers bounded typed modules, APIs, and components; `HIGH` is reserved for transactions, concurrency, security, scoring, or cross-contract change. “Files” are future exclusive ownership reservations; one card must not edit another card's files without an explicit handoff.
+
+### Shared gates, tracks, and unresolved planning blockers
+
+| Gate / track | Cards allowed to start | Explicit blocker or exit condition |
+|---|---|---|
+| G0 — owner disposition | FOUND-003, RESEARCH-002, DATA-002, DATA-003, AI-003, FOUND-007 | FOUND-004 records the owner's disposition of ADR-001–008. Research/dataset planning is non-production and still needs lawful sources and named human reviewers. |
+| G1 — shared schema and controlled bridge | FOUND-002, FACTORY-002, AI-001, contract-dependent DATA-001/AUTH-001 preparation | Approved ADR-001–004 and ADR-007; FOUND-002 produces one versioned runtime contract source and fixtures. FOUND-007 must first resolve the documented shortage-code/ErrorResponse inconsistency. |
+| G2 — bank publication boundary | DATA-001, AUTH-001, BANK-001, BANK-002, ASSEMBLY-002, manual DATA-002 import | G1 plus approved identity/retention scope where required; rights, immutable versions, independent human review, equivalence and eligibility are demonstrably enforced. |
+| G3 — integration readiness | AI-002, FACTORY-003, INT-001/002, WEB-004, TEST-001/002, OPS-001 | AI-002 evaluation, G2 publication, and the attempt/scoring slice meet their own acceptance. Import receipt retry/conflict and all-or-none bundle behavior are demonstrated. |
+| Track A — AI Question Factory Research | RESEARCH-002 → AI-003 → AI-001 → AI-002 → FACTORY-002/003 → INT-001 | Never depends on a website runtime; live calls require ADR-005/006/008 disposition plus budget, provider, rights, retention and review-capacity authority. |
+| Track B — TSA Practice Web Engineering | DATA-002/003 → DATA-001 + AUTH-001 → BANK-001/002 → ASSEMBLY-001/002 → EXAM-001/002 + SCORE-001 → WEB-003/004 | Never calls or waits for an LLM. Only G2-published content can enter an assembly; shortage never triggers generation or silent reuse. |
+
+| Unresolved item | Must be resolved by | Blocks |
+|---|---|---|
+| `QUESTION_REUSE_POLICY` names `INVENTORY_SHORTAGE`, while the API names `INSUFFICIENT_UNSEEN_INVENTORY` / `INSUFFICIENT_ELIGIBLE_INVENTORY`; the generic `ErrorResponse.details` does not model the normative `StudentShortage` alternatives/blueprint fields. | FOUND-007 records an owner-approved, single error taxonomy and compatible response projection before FOUND-002 freezes schemas. | All `POST /attempts` consumers: ASSEMBLY-001/002, EXAM-001, WEB-003, contract fixtures. |
+| ADR-001–004, 007 and 008 mechanisms remain PROPOSED; ADR-004 H1–H3 and ADR-006 retention/identity boundaries are undecided. | Human owner through FOUND-004; contract changes need ADR impact analysis. | All implementation beyond scoped, explicitly authorized fixture experiments. |
+| Rights-cleared starter items, independent Vietnamese content reviewers, lawful held-out labels, provider/input permissions, budget/schedule, thresholds and reviewer capacity are unverified. | Human owner plus FOUND-003, DATA-002/003, RESEARCH-002/AI-003. | G2 publication, live factory dispatch, AI evaluation claims, pilot. |
+
+### Normalized assignment metadata for retained milestone cards
+
+The existing cards supply objective, prerequisites, file scope, deliverables, measurable acceptance and verification. This table adds the mandatory gate/track, cost-aware tier and risk classification without changing their statuses or evidence.
+
+| Task IDs | Gate / track | Suggested tier | Risk |
+|---|---|---:|---|
+| FOUND-003, RESEARCH-002 | G0 / Track A planning | LOW / MEDIUM | Medium — evidence, rights and label quality |
+| FOUND-002 | G1 / shared | MEDIUM | High — contract drift across all consumers |
+| DATA-001, AUTH-001 | G1–G2 / Track B | HIGH | High — integrity, authorization and migrations |
+| DATA-002 | G0–G2 / Track B | MEDIUM | High — correctness, rights and human review |
+| BANK-001 | G2 / Track B and bridge | HIGH | High — publication, provenance and withdrawal |
+| ASSEMBLY-001 | G2 / Track B | HIGH | High — allocation transaction and no-repeat |
+| EXAM-001, EXAM-002 | G2 / Track B | HIGH | High — timing, closure and recovery |
+| SCORE-001 | G2 / Track B | HIGH | High — immutable scoring/release correctness |
+| WEB-001, WEB-002 | G2–G3 / Track B | MEDIUM | Medium — safe DTO and accessible state UX |
+| TEST-001 | G3 / shared | HIGH | High — independent cross-module evidence |
+| OPS-001 | G3 / shared | HIGH | High — privacy, recovery and capacity |
+| AI-001 | G1 / Track A | MEDIUM | High — provider isolation, costs and untrusted output |
+| AI-002 | G3 / Track A | MEDIUM | High — correctness and evaluation validity |
+| FACTORY-001 | G1–G3 / Track A | HIGH | High — durable budgets, recovery and shared resources |
+| INT-001 | G3 / bridge | HIGH | High — publication boundary and integration drift |
+| CONTENT-001, RESEARCH-001 | later / separate | MEDIUM / HIGH | Medium / High — scope and research validity |
+
+### New proposed cards
+
+## FOUND-007 — Resolve attempt shortage and error-response contract consistency
+
+- Objective: reconcile the known shortage-code naming and `ErrorResponse`/`StudentShortage` shape conflict before any runtime schema or consumer is implemented; record the exact owner decision or remain blocked.
+- Prerequisites: G0 owner disposition for ADR-003/007/004; read API contracts and reuse policy. No application work.
+- Input specifications: `API_CONTRACTS.md` ErrorResponse, errors and creation-contract sections; `QUESTION_REUSE_POLICY.md` shortage semantics; `EXAM_ASSEMBLY_SPEC.md` diagnostics; ADR-003/004/007.
+- Files/modules: `docs/architecture/API_CONTRACTS.md` only; this backlog card is the task definition.
+- Expected deliverables: one consistent public error-code taxonomy, typed safe shortage details, HTTP status mapping, idempotency behavior for no-allocation retries, and a conflict/disposition note if the owner has not selected a policy.
+- Acceptance criteria: every shortage/reference uses the same codes; generic and specialized error schemas are structurally compatible; `SEARCH_EXHAUSTED`, `CONCURRENT_MODIFICATION`, validation and shortage have distinct status/meaning; no details expose question, group, history, key or candidate identifiers.
+- Required verification: static cross-document reference search; positive/negative JSON fixture design for all listed errors; owner decision evidence or an explicit BLOCKED record. Runtime tests are NOT RUN in this documentation task.
+- Suggested agent capability: MEDIUM (Terra). Risk: High — contract drift/security disclosure. Status: PROPOSED, blocked on G0 owner decision.
+
+## DATA-003 — Starter dataset manifest and publication preflight
+
+- Objective: make the DATA-002 starter inventory independently reviewable without combining authorship, import, or approval implementation.
+- Prerequisites: G0 lawful scope, named independent author and reviewer; no BANK-001 implementation required for manifest preparation.
+- Input specifications: QUESTION_SCHEMA, QUESTION_FACTORY_SPEC source/provenance rules, MVP scope, ADR-002/003.
+- Files/modules: `data/original/practice-mini-v1.manifest.json`, `data/taxonomy/practice-mini-v1.json`, `data/original/REVIEW_CHECKLIST.md`.
+- Expected deliverables: synthetic/original item manifest, source/rights attestations, taxonomy/bundle map, expected answer evidence, and reviewer checklist with explicit unknowns.
+- Acceptance criteria: every item has an origin/right/evidence reference; no protected research example is copied; all required mini-profile section/type counts are enumerable; reviewer and author identities are distinct; unverified claims are marked rather than inferred.
+- Required verification: deterministic manifest count/hash check; schema dry-run fixture once FOUND-002 exists; manual Vietnamese clarity, alternate-answer, rights and duplicate/equivalence review. Suggested agent capability: MEDIUM (Terra plus human content reviewers). Risk: High — content correctness/rights. Status: PROPOSED, blocked on lawful scope and reviewers.
+
+## AI-003 — Held-out evaluation dataset partition and leakage audit
+
+- Objective: prepare the Track A evaluation inputs and reproducible partition protocol before provider generation or quality claims.
+- Prerequisites: G0, rights-cleared sources and named independent labelers; RESEARCH-002 plan accepted by owner for its stated scope.
+- Input specifications: AI_QUESTION_PIPELINE evaluation requirements, QUESTION_FACTORY_SPEC evaluation partition rules, QUESTION_SCHEMA, ADR-005/008.
+- Files/modules: `data/evaluation/manifest.json`, `data/evaluation/labels.json`, `docs/research/AI_EVALUATION_PROTOCOL.md`.
+- Expected deliverables: frozen train/prompt/held-out partitions, label rubric/provenance, prohibited overlap rules, two-adapter comparison procedure and cost-recording template.
+- Acceptance criteria: held-out content cannot enter prompts or few-shot examples; each label has source/right/reviewer provenance; exact and semantic duplicate checks span partitions; protocol distinguishes measured results from assumptions and human publication from evaluation.
+- Required verification: deterministic split hash, overlap/near-duplicate audit, independent label sample audit, citation/rights audit; paid/live evaluation NOT RUN until authorized. Suggested agent capability: MEDIUM (Terra). Risk: High — leakage/correlated labels. Status: PROPOSED, blocked on lawful labels.
+
+## FACTORY-002 — Frozen batch planner and cost-cap persistence
+
+- Objective: implement the bounded, provider-free planning half of FACTORY-001 as a separate Track A unit.
+- Prerequisites: G1, AI-001 fixture contract, owner-approved synthetic/rights-cleared config; live schedule/budget remains separately authorized.
+- Input specifications: QUESTION_FACTORY_SPEC planning/config/lifecycle sections, AI pipeline contract, FOUND-002 generated fixtures, ADR-005/008.
+- Files/modules: `tools/question-factory/planner.ts`, `src/modules/generation/batch-plan.ts`, `tests/factory/planner.test.ts`.
+- Expected deliverables: version-pinned config validation, aggregate inventory snapshot, deterministic ranked plan, empty-plan reasons and atomic draft budget reservation interface; no provider dispatch.
+- Acceptance criteria: same config/snapshot/key yields one frozen plan; 500 requested candidates never exceeds candidate, validator, review or reserved-cost caps; pending work is not eligible stock; no per-student history enters planner inputs.
+- Required verification: fixture tests for overlapping quotas, bundle limits, zero deficit, missing rights, capacity/budget cap and duplicate schedule/manual identity. Suggested agent capability: MEDIUM (Terra). Risk: High — cost and privacy. Status: PROPOSED, blocked on G1 and assigned fixture scope.
+
+## FACTORY-003 — Resumable executor, restricted export and recovery
+
+- Objective: implement the provider-dispatch/recovery half of FACTORY-001 against the frozen planner and canonical package contract.
+- Prerequisites: FACTORY-002 accepted, AI-001 adapters accepted, G1; live dispatch additionally requires ADR-005/006/008 budget/provider/review authorization.
+- Input specifications: QUESTION_FACTORY_SPEC lifecycle/import/recovery scenarios, AI pipeline provider errors, FOUND-002 contracts, FACTORY-002 plan interface.
+- Files/modules: `tools/question-factory/executor.ts`, `tools/question-factory/export.ts`, `tests/factory/recovery.test.ts`.
+- Expected deliverables: fenced leases/checkpoints, durable reservation reconciliation, restricted `factory-package/1` export and typed pause/failure reports; no bank approval endpoint or student access.
+- Acceptance criteria: a matching retry reuses checkpoints; stale workers cannot overwrite final state; changed content under one producer item identity is rejected at import boundary; one failed bundle leaves no partial exported/importable unit; factory credentials cannot approve/publish/read student data.
+- Required verification: controlled fake-provider crash after response and before acknowledgement, timeout/uncertain-charge, cap exhaustion, stale lease, cancellation and provider replacement tests; independent security review before G3. Suggested agent capability: HIGH (Sol). Risk: High — money, recovery and privilege. Status: PROPOSED, blocked on FACTORY-002/AI-001/G1.
+
+## BANK-002 — Independent review, equivalence and publication command
+
+- Objective: split the human publication boundary from BANK-001 ingestion so a bounded implementation owns only workflow authorization and eligibility transitions.
+- Prerequisites: G2, DATA-001, AUTH-001 and BANK-001 validated immutable drafts/import receipt; named independent human review process.
+- Input specifications: QUESTION_FACTORY_SPEC controlled-publication section, QUESTION_REUSE_POLICY equivalence rules, API staff review contract, ADR-003/007.
+- Files/modules: `src/modules/bank/publication.ts`, `src/http/staff/reviews.ts`, `tests/integration/bank-publication.test.ts`.
+- Expected deliverables: exact-hash independent review decision, equivalence adjudication/audit, approval eligibility pointer and quarantine/revocation guard.
+- Acceptance criteria: author/factory operator self-approval fails; stale hash/new version cannot inherit approval; unresolved duplicate flags block approval; quarantine/revocation stops future eligibility; a canonical import receipt never asserts APPROVED.
+- Required verification: real-DB concurrent approve/withdraw serialization, workflow transition matrix, authorization/BOLA fixtures, equivalence merge/history preservation and safe error projection tests. Suggested agent capability: HIGH (Sol). Risk: High — rights and publication integrity. Status: PROPOSED, blocked on G2.
+
+## ASSEMBLY-002 — Per-student NEW_ONLY allocation transaction
+
+- Objective: isolate the concurrency-critical commit path from ASSEMBLY-001 selection/search.
+- Prerequisites: G2, DATA-001 allocation schema, BANK-002 eligible-bank guard, ADR-004/007 owner decisions, ASSEMBLY-001 validated manifest candidate interface.
+- Input specifications: QUESTION_REUSE_POLICY concurrency/history/shortage rules, EXAM_ASSEMBLY_SPEC sealing rules, API creation contract after FOUND-007, ADR-003/004/007.
+- Files/modules: `src/modules/assembly/allocation.ts`, `src/modules/assembly/creation-receipt.ts`, `tests/assembly/allocation-concurrency.test.ts`.
+- Expected deliverables: per-user lock/revision protocol, revalidation/replan boundary, atomic form+CREATED attempt+history+receipt commit and no-allocation typed outcomes.
+- Acceptance criteria: two same-user different-key NEW_ONLY successes have disjoint current identity/equivalence groups; same-key replay returns one receipt; rollback writes no history/form/attempt; different users may reuse stock; proven shortage and unknown search exhaustion remain distinct.
+- Required verification: two real PostgreSQL connections with barriers for winner orders, corrected-version/equivalence-merge fixtures, rollback injection, withdrawal/publication race and receipt retention replay. Suggested agent capability: HIGH (Sol). Risk: High — concurrency/data integrity. Status: PROPOSED, blocked on G2 and unresolved FOUND-007/ADR-007.
+
+## WEB-003 — Catalog, creation and explicit shortage UX
+
+- Objective: implement the bounded pre-attempt student flow without timers, answer persistence, scoring or duplicated assembly rules.
+- Prerequisites: FOUND-002 contract artifacts, ASSEMBLY-002 API acceptance, AUTH-001 candidate session, resolved FOUND-007 taxonomy.
+- Input specifications: API catalog/create/StudentShortage DTOs, QUESTION_REUSE_POLICY modes/shortage rules, MVP scope, accessibility requirements.
+- Files/modules: `src/app/(student)/catalog/page.tsx`, `src/components/student/attempt-create.tsx`, `tests/e2e/student-create.spec.ts`.
+- Expected deliverables: personalized default, explicit review/fixed consent, authenticated create/replay handling and safe shortage alternatives.
+- Acceptance criteria: omission selects PERSONALIZED_PRACTICE + NEW_ONLY; no automatic review/fixed/shorter fallback; shortage shows only safe contract fields; retry preserves the logical request semantics; network inspection contains no candidate IDs, keys, histories or provider call.
+- Required verification: browser fixtures for success, both shortage codes, search exhaustion, conflict/retry and keyboard/screen-reader flow; contract-negative parsing test. Suggested agent capability: MEDIUM (Terra). Risk: Medium — unsafe UX could bypass policy. Status: PROPOSED, blocked on ASSEMBLY-002.
+
+## WEB-004 — Attempt delivery, save state and released-result UX
+
+- Objective: implement the remaining student rendering journey against completed backend DTOs, with no business clock or scorer in the client.
+- Prerequisites: EXAM-001, EXAM-002, SCORE-001 and frozen student contracts; G3 for the integrated browser evidence.
+- Input specifications: API AttemptView/AnswerAck/Closure/Result, EXAM_ENGINE_SPEC, QUESTION_SCHEMA renderers, test strategy Q-06/Q-08/Q-09.
+- Files/modules: `src/app/(student)/attempt/[id]/page.tsx`, `src/components/student/attempt-session.tsx`, `tests/e2e/student-attempt.spec.ts`.
+- Expected deliverables: active-section renderer, server-time countdown, acknowledged autosave/conflict/retry UI, closure state and released-only result/history view.
+- Acceptance criteria: changing client clock/timezone cannot extend a deadline; an unacknowledged save is never shown as saved; future/private slots and keys/explanations are absent before release; results are labelled unofficial practice.
+- Required verification: browser multi-tab/offline/reconnect/expiry journeys, keyboard/zoom/screen-reader checks, response/hydration/bundle leakage scan and controlled-clock boundary tests. Suggested agent capability: MEDIUM (Terra). Risk: High — timing/key leakage. Status: PROPOSED, blocked on EXAM-002/SCORE-001.
+
+## TEST-002 — Independent critical-invariant and security regression harness
+
+- Objective: provide the cross-module, independently runnable critical test layer before pilot evidence, without claiming that task-local tests are sufficient.
+- Prerequisites: G3, stable module contracts and recorded unit/integration acceptance from DATA/BANK/ASSEMBLY/EXAM/SCORE/WEB cards.
+- Input specifications: TEST_STRATEGY Q-01–Q-16 and scenarios A–J, API contracts, factory/reuse policies, task-local fixtures.
+- Files/modules: `tests/critical/concurrency.spec.ts`, `tests/critical/security.spec.ts`, `tests/critical/scoring-and-integrity.spec.ts`.
+- Expected deliverables: barrier-driven real-DB race harness, state-machine/property regression suite and release evidence output referencing exact fixture/contract revisions.
+- Acceptance criteria: verifies allocation disjointness, idempotent closure, scoring goldens, immutable snapshots, publication/revocation guards, BOLA/key leakage and factory non-publication; failures retain a reproducible seed/trace.
+- Required verification: two-connection barriers rather than sleeps; controlled clock; HTTP/bundle scans; independently reviewed test cases and observed command/runtime results. Suggested agent capability: HIGH (Sol). Risk: High — false confidence in critical controls. Status: PROPOSED, blocked on G3.
+
+## INT-002 — Factory package import boundary proof
+
+- Objective: verify the narrow bridge independently of full exam UI: factory package receipt semantics, all-or-none import and draft-only publication boundary.
+- Prerequisites: G3, FACTORY-003, BANK-001 and BANK-002 acceptance; a human reviewer is available for the publication subset.
+- Input specifications: `factory-package/1` contract in QUESTION_FACTORY_SPEC, BANK-001 import rules, BANK-002 publication rules, TEST_STRATEGY Q-01/Q-02/Q-16.
+- Files/modules: `tests/integration/factory-import.spec.ts`, `tests/fixtures/factory-package.json`, `docs/quality/factory-import-evidence.md`.
+- Expected deliverables: repeated-import receipt proof, changed-key conflict proof, bundle rollback proof and independently reviewed subset evidence; factory remains stopped after export.
+- Acceptance criteria: identical package twice maps to one durable receipt; altered same key fails; malformed/incomplete bundle imports nothing; only a separately reviewed exact version becomes eligible; no factory credential can approve or access student data.
+- Required verification: real-DB transaction rollback, service-identity authorization negatives, receipt hash comparison and human-review evidence. Suggested agent capability: HIGH (Sol). Risk: High — bridge/publication corruption. Status: PROPOSED, blocked on G3.
+
+## Recommended dependency sequence after owner approval
+
+1. G0: FOUND-007, FOUND-003, RESEARCH-002, DATA-003 and AI-003 may proceed in parallel with separate owners.
+2. G1: FOUND-002 first; then AI-001, DATA-001 and AUTH-001. FACTORY-002 may use only the frozen fixture contracts.
+3. G2 Track B: DATA-002 → BANK-001 → BANK-002; ASSEMBLY-001 → ASSEMBLY-002; then EXAM-001, EXAM-002 and SCORE-001. WEB-003 can start after ASSEMBLY-002; WEB-004 follows attempt/score acceptance.
+4. Track A remains independent: AI-001 → AI-002 and FACTORY-002 → FACTORY-003. It does not block the manually seeded Technical MVP.
+5. G3: INT-002 supplies the narrow import proof, then INT-001 and TEST-002/TEST-001/OPS-001 produce integrated/pilot evidence. No pilot begins without recorded owner scope and critical verification results.
