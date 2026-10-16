@@ -11,10 +11,17 @@ All student attempt/result and staff-private responses use `Cache-Control: no-st
 ```typescript
 type UUID = string;
 type Instant = string;
+type SectionDeficit = {sectionId:string; missingCount:number};
+type AlternativeOption =
+  | {kind:"SHORTER_PROFILE"; blueprintVersionId:UUID; name:string}
+  | {kind:"REVIEW_MODE"; blueprintVersionId:UUID; requiresRepeatConsent:true}
+  | {kind:"WAIT_FOR_PUBLICATION"};
+type ErrorDetails = {field?:string; currentRevision?:number; currentAnswer?:ResponseValue;
+  retryAfterSeconds?:number; existingAttemptId?:UUID; assemblyRunId?:UUID;
+  blueprintVersionId?:UUID; reuseMode?:ReuseMode; sectionDeficits?:SectionDeficit[];
+  alternatives?:AlternativeOption[]};
 type ErrorResponse = {error:{code:string; message:string; requestId:string;
-  details?:{field?:string; currentRevision?:number; currentAnswer?:ResponseValue;
-    retryAfterSeconds?:number; existingAttemptId?:UUID; assemblyRunId?:UUID;
-    sectionDeficits?:{sectionId:string; missingCount:number}[]}}};
+  details:ErrorDetails}};
 type AttemptState = "CREATED"|"IN_PROGRESS"|"SUBMITTED"|"EXPIRED"|
   "GRADED"|"CANCELLED"|"INVALIDATED";
 type Closure = {attemptId:UUID; state:AttemptState;
@@ -27,13 +34,13 @@ type StudentSlot = {slotId:UUID; sectionId:string; ordinal:number;
   content:Block[]; stimulus:{id:UUID; content:Block[]}|null; interaction:Interaction};
 type AttemptView = {attemptId:UUID; state:AttemptState; formId:UUID;
   formMode:FormMode; reuseMode:ReuseMode; reusePolicyVersion:string;
-  serverNow:Instant; startedAt:Instant|null; deadlineAt:Instant|null;
+  serverNow:Instant; startBefore:Instant|null; startedAt:Instant|null; deadlineAt:Instant|null;
   activeSectionId:string|null;
   sections:{sectionId:string; startsAt:Instant|null; endsAt:Instant|null; count:number}[];
   slots:StudentSlot[]; answers:AnswerAck[]; closure:Closure};
 ```
 
-Before start/after closure, `slots` is empty (results have a separate route). During an attempt only the active section's slots and saved answers are returned; timing/count metadata for other sections contains no question content. Null untouched answers have logical revision 0 and need no stored row. API consumers must use current state, not assume a successful HTTP response means still IN_PROGRESS.
+For `CREATED`, `startBefore` is the server-authoritative exclusive deadline at which the reserved attempt may first start; it is the committed reservation deadline returned at creation and is never derived from the client clock. For every non-`CREATED` state it is `null`; `startedAt` and `deadlineAt` preserve the existing started-attempt timing semantics. Before start/after closure, `slots` is empty (results have a separate route). During an attempt only the active section's slots and saved answers are returned; timing/count metadata for other sections contains no question content. Null untouched answers have logical revision 0 and need no stored row. API consumers must use current state, not assume a successful HTTP response means still IN_PROGRESS.
 
 ## Student endpoints
 
@@ -100,6 +107,8 @@ type ReviewInput = {expectedRevision:number; contentHash:string;
   decision:"APPROVE"|"REJECT";
   rubric:{correctness:boolean; unambiguous:boolean; relevant:boolean;
     language:boolean; explanation:boolean; rights:boolean}; reason:string};
+// BlueprintConfig.sections[].id is an opaque, blueprint-local section-entry ID.
+// Quota.sectionId references that exact ID; neither is a Section enum value.
 type Quota = {sectionId:string; min:number; max:number} & (
   {dimension:"SKILL"; value:UUID} |
   {dimension:"COGNITIVE_LEVEL"; value:"M1"|"M2"|"M3"} |
@@ -134,7 +143,7 @@ Breaking changes require an ADR, impact list, migration/compatibility plan, upda
 
 Admission/fixed-retake/section uniqueness are proposed owner choices H1–H3 in ADR-004; strict personalized no-repeat is now an owner requirement under ADR-007. H1 applies to repeated fixed-form attempts, not as a substitute for per-user allocation locking. Implement their accepted version consistently across contracts and DB. New error mappings: 409 CONCURRENT_ATTEMPT_EXISTS (existingAttemptId belongs to caller only), FORM_NOT_OPEN; 410 FORM_UNAVAILABLE. Start on a never-started withdrawn/expired-admission/rights-blocked form commits CANCELLED then returns FORM_UNAVAILABLE. Already-started receipts replay without new admission, but effective holds still block restricted access. POST creation replay is the original receipt, not current state; GET reconciles lifecycle before display. Availability is finite/non-null and `[from,until)` at both create and first start; no required full-duration fit inside the admission window. Active timers may finish later.
 
-Blueprint schema validates Quota discriminators, taxonomy-version/node membership and uniqueness as defined in assembly. UUID format alone does not prove SKILL membership. Difficulty quotas use targetDifficulty, not predicted values. Unknown section IDs, duplicate section IDs/enums (proposed H3), duplicate quota tuples and invalid integer bounds fail with 422 VALIDATION_ERROR at creation.
+`BlueprintConfig.sections[].id` is the opaque, unique identifier of one blueprint section entry. `BlueprintConfig.sections[].section` is the domain `Section` enum used to select questions and appears on the sealed form section. Every `Quota.sectionId` must exactly reference an entry `id`; it never references the enum. The current one-entry-per-enum restriction is the proposed ADR-004 H3 behavior, not an approved contract: until owner disposition, implementations must preserve this proposal and cannot infer that repeated enum values are accepted. Blueprint validation rejects unknown or duplicate entry IDs, duplicate `(sectionId,dimension,value)` quota tuples, invalid integer bounds, and—only if H3 is approved—the duplicate enum values it prohibits. It also validates Quota discriminators and taxonomy-version/node membership as defined in assembly. UUID format alone does not prove SKILL membership. Difficulty quotas use targetDifficulty, not predicted values.
 
 POST `/assemblies` errors expose only code, requestId and optional assemblyRunId/sectionDeficits to EXAM_MANAGER. No question IDs, exact skill pool counts, sources, private content or manifest in error details; this projection is identical even if the caller also has BANK_MANAGER. BANK_MANAGER uses the separate audited diagnostics endpoint for stored candidate IDs/quota counts, never keys/explanations. Unknown/unauthorized runs return 404. EXAM_MANAGER deliberately sees selected question-version references via successful GET `/forms/{id}` for exam management; it does not imply permission to enumerate the eligible bank. Section aggregate disclosure is a conscious MVP trust policy, not protection against statistical inference from repeated authorized requests.
 
@@ -165,14 +174,10 @@ type CatalogEntry = {name:string; questionCount:number; durationSeconds:number;
     {mode:"PUBLISHED_FIXED"; formId:UUID; repeatsAllowed:true});
 type StudentShortage = {error:{code:
   "INSUFFICIENT_UNSEEN_INVENTORY"|"INSUFFICIENT_ELIGIBLE_INVENTORY";
-  requestId:string;
-  details:{blueprintVersionId:UUID; reuseMode:"NEW_ONLY"|"REVIEW_ALLOWED";
-    sectionDeficits:{sectionId:string; missingCount:number}[];
-    alternatives:(
-      {kind:"SHORTER_PROFILE"; blueprintVersionId:UUID; name:string} |
-      {kind:"REVIEW_MODE"; blueprintVersionId:UUID; requiresRepeatConsent:true} |
-      {kind:"WAIT_FOR_PUBLICATION"}
-    )[]}}};
+  message:string; requestId:string;
+  details:ErrorDetails & {blueprintVersionId:UUID;
+    reuseMode:"NEW_ONLY"|"REVIEW_ALLOWED";
+    sectionDeficits:SectionDeficit[]; alternatives:AlternativeOption[]}}};
 ```
 
 Normative `POST /attempts` examples use a new `Idempotency-Key` for each logical request. UUIDs below are illustrative opaque values.
@@ -183,13 +188,20 @@ Normative `POST /attempts` examples use a new `Idempotency-Key` for each logical
  reuseMode:"NEW_ONLY",reusePolicyVersion:"reuse/1",startBefore:"2026-10-16T10:15:00Z"}
 
 // 422: the request is feasible only by repeating this student's prior assignment.
-{error:{code:"INSUFFICIENT_UNSEEN_INVENTORY",requestId:"r1",details:{
+{error:{code:"INSUFFICIENT_UNSEEN_INVENTORY",message:"Not enough unseen eligible questions",
+ requestId:"r1",details:{
  blueprintVersionId:"b1",reuseMode:"NEW_ONLY",
- sectionDeficits:[{sectionId:"MATH",missingCount:2}],
+ sectionDeficits:[{sectionId:"section-math-1",missingCount:2}],
  alternatives:[{kind:"REVIEW_MODE",blueprintVersionId:"b1",requiresRepeatConsent:true}]}}}
 
+// 422: the authorized eligible bank cannot satisfy the offering, including review mode.
+{error:{code:"INSUFFICIENT_ELIGIBLE_INVENTORY",message:"Not enough eligible questions",
+ requestId:"r2",details:{blueprintVersionId:"b1",reuseMode:"REVIEW_ALLOWED",
+ sectionDeficits:[{sectionId:"section-math-1",missingCount:1}],
+ alternatives:[{kind:"SHORTER_PROFILE",blueprintVersionId:"b2",name:"Short practice"}]}}}
+
 // 403: an authenticated student cannot call a human publication command.
-{error:{code:"FORBIDDEN",message:"Insufficient role for this command",requestId:"r2"}}
+{error:{code:"FORBIDDEN",message:"Insufficient role for this command",requestId:"r3",details:{}}}
 ```
 
 Shortage is an explicit no-allocation response: no form, attempt, history or generation job committed. `INSUFFICIENT_UNSEEN_INVENTORY` applies only to a `NEW_ONLY` request when eligible stock cannot satisfy the blueprint after excluding the student's recorded stable identities and current canonical equivalence groups. `INSUFFICIENT_ELIGIBLE_INVENTORY` applies when the authorized eligible bank cannot satisfy the requested offering even without that per-student exclusion, including an allowed `REVIEW_ALLOWED` request. Empty `sectionDeficits` is allowed for a proved coupled-constraint shortage not attributable to one section; `SEARCH_EXHAUSTED` remains 503 when feasibility is unknown. Suggestions are authorized preexisting profiles/modes and must be explicitly selected in a new request/key; availability/feasibility rechecked. REVIEW_MODE is offered only when the offering permits it. Never expose eligible question/group IDs, histories or predicted publication date. Invalid profile/types return VALIDATION_ERROR; stale publication/history causes bounded replan then 409 CONCURRENT_MODIFICATION. Student retrying a shortage after publication may reuse the original key because no success receipt exists.
