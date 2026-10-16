@@ -40,7 +40,7 @@ Before start/after closure, `slots` is empty (results have a separate route). Du
 | Method/path | Request schema | Success schema / behavior |
 |---|---|---|
 | GET `/catalog` | cursor?, limit? | 200 `{items:CatalogEntry[],nextCursor:string|null}`; default entries are authorized personalized blueprint offerings; fixed forms separately labeled; no slots/keys or promise of sufficient unseen inventory |
-| POST `/attempts` | CreateAttempt + Idempotency-Key | 201 CreationReceipt after atomic allocation; 422 StudentShortage for insufficient eligible unseen inventory; same-key success replays; no AI call/job |
+| POST `/attempts` | CreateAttempt + Idempotency-Key | 201 CreationReceipt after atomic allocation; 422 `INSUFFICIENT_UNSEEN_INVENTORY` or `INSUFFICIENT_ELIGIBLE_INVENTORY` with StudentShortage; same-key success replays; no AI call/job |
 | POST `/attempts/{id}/start` | `{}` + key | 200 `{attemptId:UUID,startedAt:Instant,deadlineAt:Instant}` immutable start receipt; first start sets clock, retry never resets it; GET view for current section/state |
 | GET `/attempts/{id}` | none | 200 AttemptView; lazily expires/cancels as specified by engine, returns current server time; CANCELLED returns safe closure/reason, no slots |
 | PUT `/attempts/{id}/answers/{slotId}` | `{expectedRevision:number,value:ResponseValue}` + key | 200 AnswerAck; zero-based expectedRevision; belongs-to-form, active-section and time checks |
@@ -72,7 +72,7 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 | POST `/questions` | AUTHOR | QuestionDraft → 201 `{questionId:UUID,versionId:UUID,state:"DRAFT",contentHash:string}` |
 | POST `/questions/{id}/versions` | AUTHOR | `{parentVersionId:UUID,draft:QuestionDraft}` → same version result; immutable new revision |
 | POST `/question-versions/{id}/submit-review` | AUTHOR | `{expectedRevision:number}` → 200 `{versionId:UUID,state:"IN_REVIEW",revision:number}` after hard validators pass |
-| POST `/question-versions/{id}/reviews` | REVIEWER | ReviewInput → 201 `{reviewId:UUID,state:"APPROVED"|"REJECTED",revision:number}`; APPROVE atomically transitions state and eligible pointer |
+| POST `/question-versions/{id}/reviews` | REVIEWER (human, independent of the version's author/factory operator) | ReviewInput → 201 `{reviewId:UUID,state:"APPROVED"|"REJECTED",revision:number}`; APPROVE atomically transitions the exact reviewed version and eligible pointer after all bank gates |
 | POST `/question-versions/{id}/quarantine` | BANK_MANAGER | `{expectedRevision:number,reason:string}` → 200 `{state:"QUARANTINED",revision:number}`; immediate access hold, durable fan-out |
 | POST `/blueprints/{id}/versions` | EXAM_MANAGER | `{config:BlueprintConfig}` → 201 `{blueprintVersionId:UUID,contentHash:string}`; must pass configuration validation |
 | POST `/assemblies` | EXAM_MANAGER | `{mode:"PUBLISHED_FIXED",blueprintVersionId:UUID,seed?:number,availableFrom:Instant,availableUntil:Instant}` → 201 `{assemblyRunId:UUID,formId:UUID,state:"SEALED",seed:number,manifestHash:string}`; bounded synchronous MVP assembly |
@@ -118,11 +118,11 @@ type BlueprintConfig = {schemaVersion:"blueprint/1"; name:string; taxonomyVersio
   releasePolicy:"after-grade-v1"};
 ```
 
-Administrative asset/stimulus/bundle import is initially a validated internal import command, not an invented complete upload API. FOUND-002 must freeze additional transport schemas before parallel UI work. Generated drafts use a service-only command with run provenance, never spoof `origin` via a student/staff author route. Factory execution is an operator CLI/scheduler contract in [factory spec](../specifications/QUESTION_FACTORY_SPEC.md), not a student/web `/generation-jobs` dependency. A future staff batch dashboard may wrap that operator interface after contract review; no new HTTP generation route is required for MVP.
+Administrative asset/stimulus/bundle import is initially a validated internal import command, not an invented complete upload API. FOUND-002 must freeze additional transport schemas before parallel UI work. Generated drafts use a service-only command with run provenance, never spoof `origin` via a student/staff author route. Factory execution is an operator CLI/scheduler contract in [factory spec](../specifications/QUESTION_FACTORY_SPEC.md), not a student/web `/generation-jobs` dependency. Factory service credentials are not a principal accepted by these public HTTP routes: they can import drafts through the scoped internal command, but cannot invoke review, publication, attempt, grading or result commands. A future staff batch dashboard may wrap that operator interface after contract review; no new HTTP generation route is required for MVP.
 
 ## Errors, concurrency and compatibility
 
-400 malformed JSON; 401 unauthenticated; 403 denied function/CSRF; 404 unknown or unauthorized object; 409 REVISION_CONFLICT/IDEMPOTENCY_CONFLICT/ATTEMPT_CLOSED/SECTION_CLOSED/RESULT_NOT_READY/CONCURRENT_MODIFICATION; 410 CONTENT_WITHDRAWN; 413 payload too large; 422 VALIDATION_ERROR/INVENTORY_SHORTAGE/CONSTRAINT_CONFLICT/RIGHTS_BLOCKED/UNSUPPORTED_TYPE; 429 RATE_LIMITED with Retry-After; 503 TEMPORARILY_UNAVAILABLE/SEARCH_EXHAUSTED/TIMEOUT. SEARCH_EXHAUSTED details must explicitly avoid claiming infeasibility. Staff may retrieve richer assembly diagnostics; student errors never reveal bank candidates or keys.
+400 malformed JSON; 401 UNAUTHENTICATED; 403 FORBIDDEN/CSRF_FAILED; 404 unknown or unauthorized object; 409 REVISION_CONFLICT/IDEMPOTENCY_CONFLICT/ATTEMPT_CLOSED/SECTION_CLOSED/RESULT_NOT_READY/CONCURRENT_MODIFICATION; 410 CONTENT_WITHDRAWN; 413 payload too large; 422 VALIDATION_ERROR/INSUFFICIENT_UNSEEN_INVENTORY/INSUFFICIENT_ELIGIBLE_INVENTORY/CONSTRAINT_CONFLICT/RIGHTS_BLOCKED/UNSUPPORTED_TYPE; 429 RATE_LIMITED with Retry-After; 503 TEMPORARILY_UNAVAILABLE/SEARCH_EXHAUSTED/TIMEOUT. SEARCH_EXHAUSTED details must explicitly avoid claiming infeasibility. Staff may retrieve richer assembly diagnostics; student errors never reveal bank candidates or keys.
 
 All POST commands and answer PUT require Idempotency-Key (opaque 1–128 safe ASCII chars). Scope is actor+method+normalized route including target ID. Store canonical body hash, original status/body and side effects in one transaction. Same key/body replays; different body returns 409. Concurrent duplicate keys serialize through unique constraints. Failed validation creates no success record. Retry only network/429/503 failures with bounded backoff; do not blindly retry revision conflicts. Ownership is rechecked before replay, and withdrawal guards suppress replay of any now-restricted content. Start receipts contain no question payload, so replay cannot bypass current-section delivery; consumers GET the current view after a start receipt. A new start request on an already-started attempt returns the existing receipt; a never-started cancelled/withdrawn attempt returns 410.
 
@@ -163,9 +163,10 @@ type CatalogEntry = {name:string; questionCount:number; durationSeconds:number;
   availableFrom:Instant; availableUntil:Instant} & (
     {mode:"PERSONALIZED_PRACTICE"; blueprintVersionId:UUID; reviewAllowed:boolean} |
     {mode:"PUBLISHED_FIXED"; formId:UUID; repeatsAllowed:true});
-type StudentShortage = {error:{code:"INVENTORY_SHORTAGE"; requestId:string;
+type StudentShortage = {error:{code:
+  "INSUFFICIENT_UNSEEN_INVENTORY"|"INSUFFICIENT_ELIGIBLE_INVENTORY";
+  requestId:string;
   details:{blueprintVersionId:UUID; reuseMode:"NEW_ONLY"|"REVIEW_ALLOWED";
-    reason:"INSUFFICIENT_ELIGIBLE_INVENTORY"|"INSUFFICIENT_UNSEEN_INVENTORY";
     sectionDeficits:{sectionId:string; missingCount:number}[];
     alternatives:(
       {kind:"SHORTER_PROFILE"; blueprintVersionId:UUID; name:string} |
@@ -174,7 +175,24 @@ type StudentShortage = {error:{code:"INVENTORY_SHORTAGE"; requestId:string;
     )[]}}};
 ```
 
-Shortage is an explicit no-allocation response: no form, attempt, history or generation job committed. Empty sectionDeficits is allowed for a proved coupled-constraint shortage not attributable to a single section; SEARCH_EXHAUSTED remains 503 when feasibility is unknown. Suggestions are authorized preexisting profiles/modes and must be explicitly selected in a new request/key; availability/feasibility rechecked. REVIEW_MODE offered only when the offering permits it. Never expose eligible question/group IDs, histories or predicted publication date. Invalid profile/types return VALIDATION_ERROR; stale publication/history causes bounded replan then 409 CONCURRENT_MODIFICATION. Student retrying failed shortage after publication may reuse the original key because no success receipt existed.
+Normative `POST /attempts` examples use a new `Idempotency-Key` for each logical request. UUIDs below are illustrative opaque values.
+
+```typescript
+// 201: authenticated student, atomic personalized allocation succeeded.
+{attemptId:"a1",formId:"f1",state:"CREATED",formMode:"PERSONALIZED_PRACTICE",
+ reuseMode:"NEW_ONLY",reusePolicyVersion:"reuse/1",startBefore:"2026-10-16T10:15:00Z"}
+
+// 422: the request is feasible only by repeating this student's prior assignment.
+{error:{code:"INSUFFICIENT_UNSEEN_INVENTORY",requestId:"r1",details:{
+ blueprintVersionId:"b1",reuseMode:"NEW_ONLY",
+ sectionDeficits:[{sectionId:"MATH",missingCount:2}],
+ alternatives:[{kind:"REVIEW_MODE",blueprintVersionId:"b1",requiresRepeatConsent:true}]}}}
+
+// 403: an authenticated student cannot call a human publication command.
+{error:{code:"FORBIDDEN",message:"Insufficient role for this command",requestId:"r2"}}
+```
+
+Shortage is an explicit no-allocation response: no form, attempt, history or generation job committed. `INSUFFICIENT_UNSEEN_INVENTORY` applies only to a `NEW_ONLY` request when eligible stock cannot satisfy the blueprint after excluding the student's recorded stable identities and current canonical equivalence groups. `INSUFFICIENT_ELIGIBLE_INVENTORY` applies when the authorized eligible bank cannot satisfy the requested offering even without that per-student exclusion, including an allowed `REVIEW_ALLOWED` request. Empty `sectionDeficits` is allowed for a proved coupled-constraint shortage not attributable to one section; `SEARCH_EXHAUSTED` remains 503 when feasibility is unknown. Suggestions are authorized preexisting profiles/modes and must be explicitly selected in a new request/key; availability/feasibility rechecked. REVIEW_MODE is offered only when the offering permits it. Never expose eligible question/group IDs, histories or predicted publication date. Invalid profile/types return VALIDATION_ERROR; stale publication/history causes bounded replan then 409 CONCURRENT_MODIFICATION. Student retrying a shortage after publication may reuse the original key because no success receipt exists.
 
 On success, pin the immutable mode/reuse policy and show it on attempt/result/history. Extend history entries with formMode/reuseMode. Personal form ownership is server-enforced; students cannot request another personal formId or turn it into a fixed form. Fixed mode creation records all assigned identities in the same user history as personal mode; repeated fixed/review content is explicitly disclosed, not NEW_ONLY.
 
@@ -182,7 +200,7 @@ POST personal creation performs the [assembly transaction](../specifications/EXA
 
 Creation needs its own per-user rate budget (proposed 1 token/second, burst 2) using the existing shared bucket mechanism, with 429/Retry-After and no allocation. It is separate from save/submit buckets; cap bounded-search work/connections and avoid letting malicious creation deplete other users' capacity. No LLM/validation work is done on this path. General web/DB availability remains necessary, factory/provider availability does not.
 
-Staff import/publication uses current bank commands. Factory service credentials invoke scoped import with factory-package/1 receipts, not reviewer endpoints. The existing approve-review command atomically publishes the exact version/eligible pointer after all gates and equivalence decisions; the factory can never invoke it. Any optional batch HTTP wrapper would be operator-only and must preserve the independent executable interface.
+Staff import/publication uses current bank commands. Factory service credentials invoke scoped import with `factory-package/1` receipts, not reviewer endpoints. The existing approve-review command is a human REVIEWER action and atomically publishes the exact version/eligible pointer only after exact-hash validation, rights, resolved equivalence and independent-review checks; the factory can never invoke it. Any optional batch HTTP wrapper would be operator-only and must preserve the independent executable interface.
 
 Personalized manifests include sensitive history/exclusion sets: ordinary EXAM_MANAGER/BANK_MANAGER roles cannot read them through form/diagnostic endpoints. Student projections expose only their safe receipt/view/shortage. Administrative historical replay of a personal run requires an explicitly assigned, audited maintenance operation under approved data access policy, not a new broadly accessible endpoint. Fixed-run diagnostics keep existing role rules. Review approval additionally requires a recorded resolved reuse-equivalence decision for the exact identity; the bank rejects unresolved duplicate flags even if the submitted rubric is true.
 
