@@ -35,15 +35,30 @@ Browser → same-origin `/api/v1` → authentication/authorization → module co
 
 FOUND-002 also enforces deterministic regeneration/diff of committed API artifacts and producer/consumer fixture checks in CI, as specified in API contracts. The same PostgreSQL deployment stores the proposed shared save-rate buckets; no new service is needed. Attempt admission/cancellation, section validation and privacy limits follow the reconciled engine/assembly contracts, pending the explicit owner choices in ADR-004.
 
-## Two independent operational systems
+## Three logical components and runtime boundaries
 
-The owner's Phase 02.75 requirements replace the previous AI-later/shared-fixed-form default. Website and Question Factory share canonical question/1 contracts, bank commands and optionally PostgreSQL; they have separate entry points, credentials, resource budgets and queue-kind permissions. The website never requests LLM inference for assembly or examination. The factory may be off for a month: approved stock remains available, subject only to ordinary eligibility and a student's unseen inventory.
+The owner's Phase 02.75 requirements replace the previous AI-later/shared-fixed-form default. These are three logical components in one modular monolith repository, not three microservices or three databases. They share canonical `question/1` contracts and may initially share one PostgreSQL deployment. The Bank is the shared domain and durable publication boundary; its staff HTTP adapters may run in the same Node deployment as the Website, but use separate staff routes and authorization. The Factory has its own executable and scheduled/manual entry point. The Website has student HTTP routes and a separately running exam worker for durable exam jobs.
 
-Default flow: student → personalized allocation from approved bank → immutable form/attempt → existing engine/scorer. Fixed published mock exams are an explicit alternate mode. Per-student first-assignment history excludes stable identities and confirmed equivalents; global usage never consumes stock. Details: [reuse policy](../specifications/QUESTION_REUSE_POLICY.md), [assembly](../specifications/EXAM_ASSEMBLY_SPEC.md).
+| Component | Entry point and runtime | Permissions and dependency boundary |
+|---|---|---|
+| Scheduled Question Factory | OS scheduler or authorized operator invokes `tools/question-factory`; no student HTTP entry point | Scoped source and aggregate inventory reads; factory job kinds, generation runs, validation evidence and draft writes. Separate service identity, DB credentials/pool, provider credentials and resource limits. Cannot read student identity/history/answers or private exam snapshots, claim exam jobs, or approve/publish. Runs with fixture contracts without Website/OIDC. |
+| Review/publication Bank | Staff-only HTTP commands in the modular monolith; canonical bank module and PostgreSQL records | Human staff identity and role checks govern source rights, draft import, validation, independent review, approval and publication. The Factory's output remains ineligible until human approval. Exposes approved eligible versions and rights status to assembly; does not need provider calls. |
+| On-demand exam Website | Student HTTP request path plus independent exam worker process from the same codebase | Reads only approved eligible Bank content for allocation; writes sealed forms, attempts, assignment history and answers through domain commands. Exam worker claims only exam job kinds for expiry/grading/recovery. Student paths and worker have no provider credentials or draft-approval permission. |
 
-Factory flow: manual/scheduler command → inventory plan → bounded generation/verification/dedup → bank drafts → independent human review/publication. It can be run/tested without the website; planned interface/resources in [factory spec](../specifications/QUESTION_FACTORY_SPEC.md). Reuse jobs/validation/reviews rather than introducing a broker or a second question bank. Provider adapter credentials exist only in factory runtime. Aggregate inventory views exclude student identities/history.
+```text
+schedule/operator -> Factory process -> bounded generation/validation -> Bank drafts
+                       | scoped aggregate inventory read       |
+                       +------------------------------------> shared PostgreSQL
+human reviewer -> staff Bank commands -> review/approval -> published eligible versions
+student -> Website exam HTTP -> approved Bank read -> personal allocation + sealed form/attempt
+                                -> save/submit -> exam job -> exam worker -> practice result
+```
 
-The shared database is a common failure domain: separate factory/exam pools, job dispatch, bounded transactions and CPU/memory limits are required, with low-priority factory pause under measured contention. Scenario A requires concurrent load evidence, not an assumption that 500 drafts are free. Factory calls never hold examination/allocation/publication locks. Deployment separation is operational isolation within a modular monolith repository, not a new microservices estate.
+Factory production and publication are asynchronous with respect to student traffic. Catalog, create, start, save, submit, shortage, retry and grading paths never dispatch generation or wait for the Factory or provider. If the Factory or provider is unavailable for a month, students can still start and complete exams from previously approved eligible stock, subject to rights, blueprint feasibility and each student's unseen inventory. A shortage returns the defined error and explicit alternatives; it cannot trigger live generation. Fixed published mock exams remain an explicit alternate mode. Per-student first-assignment history excludes stable identities and confirmed equivalents; global usage never consumes stock. Details: [reuse policy](../specifications/QUESTION_REUSE_POLICY.md), [assembly](../specifications/EXAM_ASSEMBLY_SPEC.md).
+
+Reuse `src/modules/sources`, `bank`, `generation`, `jobs`, `assembly`, `attempts`, `scoring` and `audit` with their existing command boundaries. Reuse the Bank's canonical draft import, validation and review workflow and PostgreSQL job leases; do not add a second question bank, database, broker or Redis for this split. The planned Factory interface and resources are in [factory spec](../specifications/QUESTION_FACTORY_SPEC.md). Factory calls never hold examination, allocation or publication locks during provider work.
+
+The shared database remains a common failure and contention domain: separate factory/exam pools and job-kind allowlists, bounded transactions and CPU/memory limits are required, with low-priority factory pause under measured contention. Scenario A requires concurrent load evidence, not an assumption that 500 drafts are free. A PostgreSQL outage can interrupt exams; process separation alone cannot prevent that. This operational isolation preserves ADR-001's proposed Next.js/TypeScript modular monolith and PostgreSQL baseline.
 
 ## Infrastructure by stage
 
