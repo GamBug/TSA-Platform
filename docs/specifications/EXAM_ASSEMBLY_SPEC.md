@@ -1,0 +1,83 @@
+# Exam assembly specification
+
+Status: PROPOSED, ADR-003/004/007. Phase 02.75 personalized default replaces the previous shared-fixed-form-only assumptions. Authority for blueprint selection, reproducibility and form sealing. [Engine](EXAM_ENGINE_SPEC.md) owns delivery and scoring.
+
+## Blueprint contract
+
+An immutable blueprint version contains UUID identity/version/hash, name, profileKind INDEPENDENT_PRACTICE or PUBLIC_REFERENCE, source-evidence IDs where relevant, supported schema/types, ordered sections `{id, section, count, durationSeconds}`, skill minimum/maximum quotas, optional editor difficulty/cognitive quotas, maximum per source, excluded question identities, bundle policy and practice scoring/release policy versions. Total count equals section sum; durations are positive integer seconds. Each question counts once per slot and can satisfy multiple skill minima when tagged with several skills; this overlap is deliberate and must be explained in quota validation.
+
+Validate quota ranges, per-section totals, supported renderer/scorer types, maximum 200 questions and 6 hours per form (engineering limits, not official TSA rules). Contradictory quotas fail at configuration time where provable. A null difficulty label never satisfies a difficulty quota. The independent starter profile is defined only in [MVP](MVP_SCOPE.md). A public reference profile requires verified evidence; never silently substitute an independent profile.
+
+Shared stimulus bundles are immutable ordered lists of question version IDs under one stimulus version and one section. MVP permits standalone questions or ALL_OR_NONE bundles; any question with a stimulus must belong to exactly one eligible bundle in a given bank revision. Bundle size contributes its question count to quotas. Select and order the bundle as a unit; maintain internal order. Mixed-section bundles are invalid. All members must pass eligibility.
+
+## Eligibility and hard invariants
+
+At sealing, every selected version is APPROVED, not quarantined/retired, current for that question's eligible selection pointer, rights-valid for display for at least the form availability window plus maximum attempt duration, validated, compatible with the blueprint and supported by the renderer/scorer. Approval does not imply calibration; MVP permits explicitly uncalibrated public practice content.
+
+Hard constraints: exact section counts, mandatory skill/difficulty quotas, no repeated identity, no confirmed duplicate/enemy pairs, complete bundles, source limits and the selected reuse policy. Soft preferences: lower prior exposure, diverse topics and closer target difficulty when not a hard quota. Do not relax hard constraints without a new blueprint version and explicit owner/assessment-manager action. NEW_ONLY per-student exclusions are mandatory in the MVP, as defined in [reuse policy](QUESTION_REUSE_POLICY.md). Only explicit REVIEW_ALLOWED or FIXED_AS_PUBLISHED may repeat prior assignments. Global sealed-form usage is never a hard stock/exposure cap in these practice modes.
+
+MVP exposure means number of sealed forms containing a question identity, not student views. Increment at sealing once for analytics, never as a reservation of global stock; no automatic decrement on withdrawal. Actual starts are recorded separately for future usage analytics. This definition avoids pretending to provide high-stakes exposure control.
+
+## Algorithm and reproducibility
+
+1. Validate request, authenticated student (for personalized), mode, offering/blueprint and seed (unsigned 32-bit integer; generate server-side for student requests; authorized staff may specify one for fixed assembly). Student cannot supply another user ID or manipulate candidate exclusions.
+2. Capture a versioned manifest: sorted eligible version IDs/hashes, bundle membership, taxonomy/quota attributes, rights decision versions, duplicate/enemy edges, current reuse-group mapping, bank eligibility revision, global usage counters, and for personalized creation the student's allocation revision plus retained historical exclusion identity/group set. Retain the manifest itself, not only its hash. This is an administrative artifact, never a student response.
+3. Use a specified seeded PRNG and stable ordering, with versioned tie-breaking. Proposed `assembly-v1`: ascending lowercase UUID input, `xorshift32-v1` below, seeded Fisher–Yates bundle shuffle, constrained selection with bounded backtracking. Prefer most constrained unmet quota first; stable ties then seed order. FOUND-002 must freeze remaining search tie-breaking/canonicalization and complete manifest-to-slot golden fixtures before independent consumers implement the algorithm; PRNG vectors alone do not establish full assembly reproducibility.
+4. Proposed search limits: 50,000 visited nodes and 2,000 candidate bundles. Node count, not wall time, determines deterministic search exhaustion; infrastructure timeout is a distinct operational error. No valid complete solution → return diagnostic, no form.
+5. Commit using the allocation transaction below: recheck exact current history/rights/group/publication state, then atomically persist the sealed form, CREATED attempt, first-assignment history, manifest and success receipt. New fixed forms use the same snapshot-sealing path without a student; fixed assignments record history later at attempt creation. No global quota is consumed. Conflict replans with a new run/manifest under the original request key.
+
+Stored tuple `(blueprint version, manifest, algorithm version, seed, limits)` must replay identical slot ordering and content hashes. A seed alone against a changing bank is not reproducible. Historical replay verifies the historical decision and never authorizes new delivery of revoked content.
+
+Bank eligibility/rights/equivalence publication changes take the exclusive bank-publication transaction advisory lock; allocation/sealing takes its shared counterpart only for short final validation/commit. This replaces exclusive serialization of all seals and allows different users to allocate concurrently. Heavy search and factory calls never hold it. Publication cannot change the graph during final validation. Lock namespace/encoding is a frozen FOUND-002 contract. Bounded replan (3 attempts) returns CONCURRENT_MODIFICATION on persistent contention; no fallback to repeated items.
+
+## Outcomes and operational recovery
+
+Success returns SEALED form with immutable order and scoring inputs. Form availability metadata (availableFrom/availableUntil, withdrawnAt) is separate from content and audited. Sealed content never becomes editable. Assembly failure creates a diagnostic record, not a partial deliverable.
+
+Errors: INVENTORY_SHORTAGE (provable unmet eligible/unseen constraint, with safe section deficits when quantifiable), CONSTRAINT_CONFLICT (proven incompatibility), SEARCH_EXHAUSTED (no proof of infeasibility), UNSUPPORTED_TYPE, RIGHTS_BLOCKED, CONCURRENT_MODIFICATION and TIMEOUT. Staff diagnostics follow role limits; students receive an explicit safe shortage result and opt-in alternatives from the reuse policy, never candidate IDs or automatic generation. Remediation is more eligible content, corrected blueprint, or later better solver, never publishing invalid forms. Retrying a committed idempotency key returns the original form without exposure increments.
+
+## Alternatives
+
+Constrained random + bounded backtracking is small, inspectable and sufficient to exercise a modest bank. Pure greedy can dead-end and must not claim the inventory impossible. CP-SAT/MILP can handle intersecting quotas and quality objectives more effectively but adds runtime/dependency and reproducibility considerations; adopt only after measured v1 failure cases, licensing and deterministic configuration review. Solver timeout has the same non-proof semantics; any fallback must revalidate every hard invariant. Adaptive testing is a separate future product, not an inferred HUST feature.
+
+Verification: assembly invariant/property, golden replay, shortage/bundle/enemy fixtures and concurrent approval/rights/allocation tests in [test strategy](../quality/TEST_STRATEGY.md).
+
+## Reconciliation clarifications (PROPOSED, 2026-10-16)
+
+Blueprints pin one `taxonomyVersionId`; eligible questions must use that taxonomy version. Quota SKILL values reference a node of kind SKILL in that version, COGNITIVE_LEVEL values are M1/M2/M3, DIFFICULTY values are EASY/MEDIUM/HARD and match editor `difficulty.target` only (never AI prediction). Quotas use the discriminated API shape. Section IDs must exist and be unique; integer `0 <= min <= max <= section.count`; repeated `(sectionId,dimension,value)` quotas are rejected. Invalid/foreign taxonomy nodes fail creation with 422 VALIDATION_ERROR, not inventory shortage. No implicit taxonomy migration.
+
+Pending owner choice H3 in ADR-004: propose at most one entry for each section enum in MVP (one to three entries, unique IDs and enum values). This retains section practice without adding repeated-section scheduling. Future repeated types require an explicit versioned contract change. Store section enum on form_sections and enforce UNIQUE(form_id,section) if approved.
+
+Sealing must independently assert exact section count/duration equality to the pinned blueprint, positive integer durations, total duration <=21600 seconds, total slots <=200 and per-section slot counts. Abort the entire transaction on mismatch even if blueprint validation previously passed. This is a cross-row transaction assertion, not a normal SQL CHECK over other rows. DATA-001 and ASSEMBLY-001 own rejection/rollback fixtures; no new trigger framework is required.
+
+Exposure remains lifetime sealed-form count, including withdrawn forms, now analytics only. Withdrawal never proves nobody saw a form. If the projection is corrupt, an audited consistent-snapshot/watermark repair with idempotent catch-up recomputes from ALL sealed form_slots; record before/after/reason. Remove exposureCap from practice blueprint contracts: another student's allocations cannot make a question ineligible. Unseen-inventory shortage is addressed by the explicit alternatives in the reuse policy, never global-counter resets.
+
+Diagnostic disclosure is authoritative in [API contracts](../architecture/API_CONTRACTS.md): EXAM_MANAGER sees section-level deficits, not eligible pools/IDs, source details or manifests. Detailed diagnostics require BANK_MANAGER; neither role alone gains the other's commands. Counts are advisory for a captured manifest, never a promise about current stock.
+
+### xorshift32-v1 reference
+
+Initial unsigned 32-bit state = requested seed except seed 0 maps to **2463534242**. This is a project-chosen constant; no claim about historical attribution. Each output applies, in order: `x = uint32(x XOR (x << 13))`; `x = uint32(x XOR (x >>> 17))` (logical right shift); `x = uint32(x XOR (x << 5))`. Return updated x as unsigned decimal. No warm-up/discard. This is deterministic selection randomness, not cryptography or a fairness/calibration guarantee.
+
+| Seed | First five unsigned outputs |
+|---|---|
+| 0 | 723471715, 2497366906, 2064144800, 2008045182, 3532304609 |
+| 1 | 270369, 67634689, 2647435461, 307599695, 2398689233 |
+| 4294967295 | 253983, 4228382207, 1958451267, 4056713434, 2049502865 |
+
+Fisher–Yates visits i=n−1 down to 1; consume exactly one output u per i, choose `j=floor(u*(i+1)/4294967296)` using exact integer multiplication/division, swap positions i/j; n<=1 consumes no outputs. Canonical unit ordering uses bundle UUID for bundles, question-version UUID for singletons, then unit kind to break any collision. Do not use platform default random/sort. Vectors were cross-calculated with JS uint32 and BigInt arithmetic during reconciliation; application tests do not yet exist.
+
+## Personalized allocation transaction and form modes
+
+PERSONALIZED_PRACTICE is default: one new form and one attempt, owner fixed to authenticated student. PUBLISHED_FIXED is a staff-assembled shared form, explicitly chosen by students. Both use the same forms/sections/slots/private snapshots, scoring and delivery engine. Form mode/owner are immutable and included in the form hash; attempts persist reuseMode/policyVersion. A personalized form is never reused for a later attempt or made public.
+
+A visible blueprint_offering authorizes a pinned blueprint version and admission window. Proposed personal start reservation: 15 minutes; form availableFrom=commit time, availableUntil=min(offering end, commit time+startTTL). Rights must cover that interval plus total duration. Recheck at start. Cancelling an expired unstarted reservation retains assignment history. Full-duration-fit is not required inside admission window; fixed forms retain their separate published windows. Shorter alternatives reference other authorized offering versions, not mutations of this blueprint.
+
+1. Check authorization/rate limits. Resolve a retained idempotency receipt first. Otherwise capture bank inputs and the user's history/revision in a short consistent read snapshot; release reads before bounded search. Persist the actual historical exclusion set in the manifest, not only a revision number. Candidates whose current group intersects prior identities are removed; remove any bundle with an excluded member.
+2. After search, begin commit transaction. Ensure persistent student_allocation_state row exists; lock it FOR UPDATE. Recheck receipt (another same-key request may have committed), then acquire shared bank-publication advisory lock. Read current history/group/rights/eligible pointer and offering. Bank/history revision change requires a fresh manifest/replan, not a claim that the original seed still selects identically.
+3. Revalidate every hard constraint plus NEW_ONLY identity/group exclusions. Seal shared schema snapshots and insert personal form/availability + owned CREATED attempt. Insert first-history rows for each question, increment allocation revision, and persist success idempotency receipt in this transaction. Strict duplicate conflicts abort/replan. Any failure rolls back form, attempt and history together; no abandoned global reservation or partial student allocation.
+4. Fixed/review creation takes the same per-user lock and records every newly assigned identity; only these explicit modes may preserve an existing first-history row. For fixed mode, verify snapshot availability/rights and record assignments without reselection. Same-form active constraint H1 still applies to fixed attempts; it is not the strict no-repeat mechanism.
+5. Return safe receipt only after commit. No model call/job is enqueued by any creation branch. A second same-student distinct-key request sees the first's assignments even if its snapshot search started earlier. It either replans disjointly or returns shortage/contention. Different students use different locks and can obtain identical items.
+
+Lock order when combined: student allocation row → shared bank-publication lock → existing attempt row (only fixed stale-active reconciliation) → relevant availability row. New attempts have no existing row to lock. Start/access guards requiring publication consistency take shared bank lock before attempt then availability. Save/submit/expiry remain serialized on attempt; they do not mutate allocation history or acquire the user lock afterward. Publication takes exclusive bank lock, writes holds/revision, commits, and only then fans out attempt cancellations; never acquire user/attempt locks while holding exclusive publication lock. No process may reverse this order.
+
+Global usage projections must not serialize every user's creation behind a popular question row: compute counts from sealed forms or an asynchronous idempotent projection; store the ranking snapshot used by a run. The form/attempt/history transaction is authoritative, not availability of an analytics worker. A full replay uses captured bank/history/group/counter inputs, policy/algorithm versions and seed; replay is an administrative verification, not a new assignment of revoked/seen questions.
