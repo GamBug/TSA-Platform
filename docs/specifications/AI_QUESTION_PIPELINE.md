@@ -1,6 +1,6 @@
 # Dataset and AI question pipeline
 
-Status: PROPOSED, early Track A alongside the website Track B. Manual acquisition/import/review seeds the web MVP; factory research/prototype does not wait for website completion. ADR-005/008 govern providers and scheduled production; AI is never required for an attempt to be created, started or graded. [Factory spec](QUESTION_FACTORY_SPEC.md) owns execution, scheduling, inventory planning, budgets and import recovery. [Question schema](QUESTION_SCHEMA.md) owns canonical content and workflow states.
+Status: PROPOSED, early Track A alongside the website Track B. Manual acquisition/import/review seeds the web MVP; factory research/prototype does not wait for website completion. ADR-005/008 govern providers and scheduled production; AI is never required for an attempt to be created, started or graded. The [Factory spec](QUESTION_FACTORY_SPEC.md) owns scheduled or operator-initiated pre-generation, execution, inventory planning, budgets and import recovery; this specification owns candidate generation and the quality gates that follow it. [Question schema](QUESTION_SCHEMA.md) owns canonical content and workflow states.
 
 ## Lifecycle and gates
 
@@ -11,14 +11,16 @@ Status: PROPOSED, early Track A alongside the website Track B. Manual acquisitio
 | Normalize | `question/1` or stimulus draft, language, units, math, asset references | Invalid structure → NEEDS_REVISION; retain original reference and transformation trail |
 | Deduplicate | Exact fingerprint, candidate near-duplicate pairs and evidence | Exact conflicts block approval; heuristic flags go to reviewer; never auto-delete |
 | Classify | Taxonomy version, section, skills, cognitive claim, estimated difficulty | Unknown/unmapped → NEEDS_REVIEW; no fabricated tags to fill quotas |
-| Generate/augment (optional) | Generation specification, template/prompt version, provider response, new DRAFT version | Refusal/timeout/budget/schema errors → typed failure; original draft remains intact |
+| Generate/augment (optional) | Factory-planned work item, generation specification, template/prompt version, provider response, new DRAFT version | Refusal/timeout/budget/schema errors → typed failure; original draft remains intact |
 | Independently verify answer | Blind solve result, deterministic evidence where possible, critic provenance | Disagreement/unsupported answer → NEEDS_REVISION; no majority vote as proof |
-| Automated checks | Schema, key uniqueness, units, answer/explanation consistency, rights, dangerous content, similarity | FAIL blocks IN_REVIEW; INCONCLUSIVE requires explicit human evidence |
-| Human review | Exact version/hash, independent reviewer, rubric and reason | Reject immutable version or revise into a new draft; AI cannot approve |
-| Approved bank | APPROVED workflow + eligibility pointer + valid rights | New revocation/quarantine immediately blocks delivery/selection |
+| Automated checks | Machine verification of schema, key uniqueness, units, answer/explanation consistency, rights, dangerous content and similarity | FAIL blocks the review queue; INCONCLUSIVE requires explicit human evidence |
+| Human review | Queued exact version/hash, independent reviewer, rubric and reason | Reject immutable version or revise into a new draft; AI cannot approve |
+| Approved bank | Controlled publication after APPROVED workflow + eligibility pointer + valid rights | New revocation/quarantine immediately blocks delivery/selection |
 | Assembly | Frozen eligible manifest and sealed form | See [assembly](EXAM_ASSEMBLY_SPEC.md); no pipeline bypass |
 
 Imported/manual questions skip generation but not rights, validation or independent answer review. Original Vietnamese content is the initial dataset strategy. No existing third-party dataset is approved for production. Source rights must cover adaptation/generation/provider transfer separately from display. Record restrictions and expiry; retain attribution on display where required without disclosing private evidence.
+
+The Factory submits work only from its frozen inventory plan and may pause or complete without publication; a completed batch can therefore contain drafts waiting for machine verification or the human review queue. It never runs in response to a student route or shortage. The Factory specification defines batch states, retries and dispatch; this lifecycle defines the required gate sequence from an untrusted candidate to controlled bank publication.
 
 ## Provider-neutral contract
 
@@ -44,6 +46,8 @@ type ProviderError = {code:"RATE_LIMIT"|"TIMEOUT"|"REFUSAL"|"UNAVAILABLE"|
 ```
 
 Unknown candidate data is validated and mapped into domain drafts; provider SDK types and vendor response formats never become database question schema. Provider identifiers are opaque metadata, not domain enums. Hosted, self-hosted and deterministic-template adapters obey the same contract. Model credentials remain in secret storage. No student identities, responses or protected bank items are sent to providers by default.
+
+Adapter selection and model revisions are frozen in Factory configuration and evaluation evidence. Replacing an adapter must preserve this contract and does not change canonical bank or exam contracts.
 
 Use existing `jobs` for generation/validation leases and retries, with `factory_batches`, `factory_items`, `generation_runs` and durable `bank_import_receipts` as specified in [database](../architecture/DATABASE_DESIGN.md). Do not implement the earlier separate generation_jobs queue proposal. Runs retain provider/prompt/source provenance; import uniqueness is producer+batch+item+candidate ordinal plus hash, not merely run ID. Same-package retries reuse mappings; changed content under the same key fails. Raw outputs are restricted with retention limits. Shared database or exported factory-package/1 use the same canonical draft import/publication gate.
 
