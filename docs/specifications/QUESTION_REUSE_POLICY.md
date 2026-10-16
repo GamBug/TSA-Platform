@@ -18,6 +18,10 @@ Different users never exclude each other's assignments. Global sealed-form/start
 
 History records first assignment per `(userId, questionId)` for all three mode combinations. Each attempt's full assignment list is already represented by its immutable form_slots; no parallel per-answer forensic/event store. Repeated fixed/review assignments do not insert duplicate first-history rows. They still exclude that identity from subsequent NEW_ONLY practice. Existing attempts retain their mode and snapshot forever.
 
+For this policy, **assigned** means an identity occurs in a sealed form attached to that student's committed CREATED attempt. A published fixed form alone assigns nothing to a student; each student's fixed-form attempt assigns all its slots. **Rendered** means the server delivered a slot's public content for that attempt; it does not prove the student read it. **Answered** means the server accepted and persisted an answer for the slot; a cleared answer is still an accepted save, but neither a client edit nor an unacknowledged save proves persistence. **Seen** is informal student-facing language for content that may have been encountered, not a reliable database event or the NEW_ONLY exclusion rule. Assignment is deliberately broader than rendered, answered or demonstrably seen. Start alone does not add a second reservation; it uses the existing assignment.
+
+A new personalized attempt always creates a new form and cannot retake its old personal form. A fixed-form retake requires a new, explicit FIXED_AS_PUBLISHED attempt after the earlier attempt closes, subject to current admission and the proposed ADR-004 H1 one-active-attempt rule. A review attempt likewise requires explicit REVIEW_ALLOWED selection; an ordinary NEW_ONLY retry never turns into review. Neither retake nor review erases first-history entries or changes the mode of earlier attempts.
+
 ## Stable identities and substantially equivalent variants
 
 A corrected version of a question retains questionId, so changing version cannot reset student history. A cosmetic rewrite, reordered choices, paraphrase or mechanically substituted numbers with the same solution path normally belongs to the same confirmed reuse-equivalence group, even if authored as a new identity. A new identity is not permission to bypass repetition rules.
@@ -40,8 +44,33 @@ Propose compact history retained for the lifetime of the active account, indepen
 
 ## Shortage and explicit alternatives
 
+Unseen inventory is conditional on the current eligible bank, confirmed equivalence groups, rights, bundles and blueprint constraints. A catalog count or earlier successful attempt never guarantees that another NEW_ONLY form can be assembled: the bank can be too small, a group merge can reduce distinct stock, eligibility can change, and a competing same-student allocation can consume the remaining choices. A provable shortage returns no form, attempt or new history; a changed bank may justify a later fresh request but is not promised.
+
 NEW_ONLY returns INVENTORY_SHORTAGE when the eligible unseen pool is provably insufficient. Include requested blueprint/version, reuseMode, section-level deficits when provable, and safe alternatives: choose an already authorized shorter blueprint; explicitly choose REVIEW_ALLOWED; wait/retry after publication. Alternatives are suggestions, not automatic creations or proof of future feasibility. Each chosen alternative is a new explicit request/idempotency key. Do not weaken quotas, split bundles or repeat questions under the original policy.
 
 Bounded search failure without proof returns SEARCH_EXHAUSTED, not falsely asserted shortage. Concurrency conflicts use bounded replan and CONCURRENT_MODIFICATION when retries are exhausted. None triggers live AI or promises a publication date. Student diagnostics never include eligible question IDs, group IDs, private metadata or other students' history. Fixed form selection clearly warns that repeated questions are allowed; FIXED_AS_PUBLISHED is not labeled NEW_ONLY.
 
-Acceptance: two sequential strict attempts are disjoint by identity and known equivalence; corrected versions remain excluded; two simultaneous strict creations serialize to disjoint allocations or one explicit failure; another user may receive identical items; cancelled assignments remain excluded; review/fixed assignments affect subsequent strict history; exhaustion never silently repeats. See A–J mapping in [test strategy](../quality/TEST_STRATEGY.md).
+## Edge cases and expected outcomes
+
+| Case | Expected outcome |
+|---|---|
+| Students A and B each request a form containing Q1 | Both may receive Q1 if eligible for each individually; A's assignment never consumes B's stock. |
+| A requests another NEW_ONLY form after Q1 was assigned but never rendered or answered | Q1 and its currently confirmed equivalents are excluded. No start or view is required. |
+| A's CREATED personal attempt is abandoned, reaches start TTL, or is cancelled after withdrawal/admission close | Keep its Q1 assignment and first-history entry; a replacement NEW_ONLY request needs different stock or returns an explicit error. |
+| A's started attempt is invalidated or its form withdrawn for rights/correctness | Stop delivery under engine guards; preserve the historical assignment and immutable snapshot for permitted audit. Withdrawal does not assign the form to students who never created an attempt. |
+| A explicitly enters REVIEW_ALLOWED or creates/retakes PUBLISHED_FIXED containing Q1 | Repetition is allowed and labeled; insert first-history for previously absent identities only. A later NEW_ONLY attempt excludes every identity assigned there. |
+| Q1 version 2 amends Q1 version 1 | Same stable questionId remains excluded for A; the old form retains its version 1 snapshot. |
+| Q2 is later confirmed equivalent to A's historical Q1 | Current canonical group makes Q2 ineligible for A's future NEW_ONLY allocations. Earlier committed forms are not rewritten and cannot be claimed free of previously unknown equivalence. |
+| Two distinct-key NEW_ONLY requests for A overlap | Serialize final allocations under A's lock, revalidate the bank/group state, and commit disjoint sets or return a defined contention/shortage error. Neither request receives a partial form. |
+| A's eligible unseen pool cannot satisfy a section or bundle quota | Return INVENTORY_SHORTAGE only with proof; no automatic review/fixed fallback, quota weakening, or live generation. A search-limit hit returns SEARCH_EXHAUSTED. |
+| A committed create response is lost, then retried with the same key | Replay the committed receipt/form/attempt; do not allocate a second form or history. A rolled-back create leaves no assignment. |
+
+## Testable invariants and owner decisions
+
+1. For each committed NEW_ONLY attempt, no slot's stable identity or current confirmed reuse group intersects that student's assignment history immediately before its allocation transaction; every slot becomes historical in that same commit. Check after acquiring the per-user allocation lock and shared publication guard.
+2. Every student's first-history set is monotonic during ordinary operation across personal, review and fixed attempts, regardless of rendering, answers or terminal attempt state. Only an approved erasure/retention process may remove it; such removal changes the scope of any future no-repeat claim.
+3. No two slots in one form repeat a stable identity or confirmed conflicting group; bundles remain whole. Two different students may receive the same eligible identity, and global usage counters do not change eligibility.
+4. A rejected, rolled-back or unproven assembly commits no form, attempt, new history or success receipt. A committed create has one form/attempt/receipt outcome for its idempotency key. Concurrent same-student successful NEW_ONLY allocations are disjoint by the canonical groups known at commit time.
+5. A rendered or answered count cannot substitute for assignment history. Version correction and subsequent confirmed equivalence merges cannot reset future exclusions; historical snapshots remain unchanged.
+
+Owner approval is still required for three policy choices, not recorded here as approval: (1) ADR-007's assignment-at-CREATED strict NEW_ONLY rule, canonical equivalence adjudication/monotonic merges and explicit repeat modes; (2) ADR-006/007 account-lifetime compact history, erasure boundary and proposed 15-minute personal start TTL; (3) ADR-004 H1's one-active-fixed-attempt rule and fixed retake/admission behavior. The owner may choose alternatives only through coordinated ADR/specification changes with consumer, migration and test impact. Runtime concurrency, shortage and retention behavior remains REQUIRES_VERIFICATION; this document specifies expected outcomes, not executed proof. See A–J mapping in [test strategy](../quality/TEST_STRATEGY.md).
