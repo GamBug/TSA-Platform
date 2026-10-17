@@ -1,10 +1,10 @@
 # TASK QA-001R — Perform an independent cross-document regression audit
 
-**Objective:** Perform an independent cross-document regression audit  
-**Recommended agent:** Gemini Flash in Antigravity, or Codex Terra (read-only)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** BACKLOG-001R  
-**Allowed output:** `docs/reviews/LOW_COST_REVIEW_001.md`  
+**Objective:** Perform an independent cross-document regression audit
+**Recommended agent:** Gemini Flash in Antigravity, or Codex Terra (read-only)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** BACKLOG-001R
+**Allowed output:** `docs/reviews/LOW_COST_REVIEW_001.md`
 
 ## Prompt (paste into the indicated agent)
 

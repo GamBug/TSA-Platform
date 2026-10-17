@@ -1,10 +1,10 @@
 # TASK SCOPE-001R — Separate technical MVP, AI research demonstrator and final deliverable
 
-**Objective:** Separate technical MVP, AI research demonstrator and final deliverable  
-**Recommended agent:** Codex Terra (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** FACT-001; REUSE-001  
-**Allowed output:** `docs/specifications/MVP_SCOPE.md`  
+**Objective:** Separate technical MVP, AI research demonstrator and final deliverable
+**Recommended agent:** Codex Terra (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** FACT-001; REUSE-001
+**Allowed output:** `docs/specifications/MVP_SCOPE.md`
 
 ## Prompt (paste into the indicated agent)
 

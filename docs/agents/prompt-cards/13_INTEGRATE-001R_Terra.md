@@ -1,10 +1,10 @@
 # TASK INTEGRATE-001R — Consolidate plan-stage state after independent audit
 
-**Objective:** Consolidate plan-stage state after independent audit  
-**Recommended agent:** Codex Terra (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** QA-001R  
-**Allowed output:** `docs/agents/PROJECT_STATE.md`, `docs/agents/LAST_HANDOFF.md`, `docs/decisions/OPEN_DECISIONS.md`  
+**Objective:** Consolidate plan-stage state after independent audit
+**Recommended agent:** Codex Terra (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** QA-001R
+**Allowed output:** `docs/agents/PROJECT_STATE.md`, `docs/agents/LAST_HANDOFF.md`, `docs/decisions/OPEN_DECISIONS.md`
 
 ## Prompt (paste into the indicated agent)
 

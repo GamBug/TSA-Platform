@@ -1,10 +1,10 @@
 # TASK ARCH-001R — Clarify independent runtime boundaries in system architecture
 
-**Objective:** Clarify independent runtime boundaries in system architecture  
-**Recommended agent:** Codex Sol (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** FACT-001; REUSE-001  
-**Allowed output:** `docs/architecture/SYSTEM_ARCHITECTURE.md`  
+**Objective:** Clarify independent runtime boundaries in system architecture
+**Recommended agent:** Codex Sol (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** FACT-001; REUSE-001
+**Allowed output:** `docs/architecture/SYSTEM_ARCHITECTURE.md`
 
 ## Prompt (paste into the indicated agent)
 

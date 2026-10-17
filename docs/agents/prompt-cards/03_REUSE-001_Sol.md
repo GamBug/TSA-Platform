@@ -1,10 +1,10 @@
 # TASK REUSE-001 — Specify per-student question reuse and shortage policy
 
-**Objective:** Specify per-student question reuse and shortage policy  
-**Recommended agent:** Codex Sol (High)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** None (documentation only)  
-**Allowed output:** `docs/specifications/QUESTION_REUSE_POLICY.md`  
+**Objective:** Specify per-student question reuse and shortage policy
+**Recommended agent:** Codex Sol (High)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** None (documentation only)
+**Allowed output:** `docs/specifications/QUESTION_REUSE_POLICY.md`
 
 ## Prompt (paste into the indicated agent)
 

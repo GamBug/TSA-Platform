@@ -1,10 +1,10 @@
 # TASK ROADMAP-001R — Resequence existing implementation roadmap into two early tracks
 
-**Objective:** Resequence existing implementation roadmap into two early tracks  
-**Recommended agent:** Codex Terra (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** SCOPE-001R; API-001R  
-**Allowed output:** `docs/tasks/IMPLEMENTATION_ROADMAP.md`  
+**Objective:** Resequence existing implementation roadmap into two early tracks
+**Recommended agent:** Codex Terra (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** SCOPE-001R; API-001R
+**Allowed output:** `docs/tasks/IMPLEMENTATION_ROADMAP.md`
 
 ## Prompt (paste into the indicated agent)
 

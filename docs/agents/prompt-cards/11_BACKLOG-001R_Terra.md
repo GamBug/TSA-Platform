@@ -1,10 +1,10 @@
 # TASK BACKLOG-001R — Update task records into manageable agent-sized cards
 
-**Objective:** Update task records into manageable agent-sized cards  
-**Recommended agent:** Codex Terra (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** ROADMAP-001R  
-**Allowed output:** `docs/tasks/TASK_BACKLOG.md`  
+**Objective:** Update task records into manageable agent-sized cards
+**Recommended agent:** Codex Terra (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** ROADMAP-001R
+**Allowed output:** `docs/tasks/TASK_BACKLOG.md`
 
 ## Prompt (paste into the indicated agent)
 

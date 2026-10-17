@@ -1,10 +1,10 @@
 # TASK DATA-001R — Propose minimal relational schema changes for Factory and no-repeat
 
-**Objective:** Propose minimal relational schema changes for Factory and no-repeat  
-**Recommended agent:** Codex Sol (High)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** ASM-001R; ARCH-001R; PIPE-001  
-**Allowed output:** `docs/architecture/DATABASE_DESIGN.md`  
+**Objective:** Propose minimal relational schema changes for Factory and no-repeat
+**Recommended agent:** Codex Sol (High)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** ASM-001R; ARCH-001R; PIPE-001
+**Allowed output:** `docs/architecture/DATABASE_DESIGN.md`
 
 ## Prompt (paste into the indicated agent)
 

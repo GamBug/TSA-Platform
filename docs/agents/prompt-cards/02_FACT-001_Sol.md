@@ -1,10 +1,10 @@
 # TASK FACT-001 — Specify the standalone scheduled AI Question Factory
 
-**Objective:** Specify the standalone scheduled AI Question Factory  
-**Recommended agent:** Codex Sol (Medium/High)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** GOV-001 (optional, independent)  
-**Allowed output:** `docs/specifications/QUESTION_FACTORY_SPEC.md`  
+**Objective:** Specify the standalone scheduled AI Question Factory
+**Recommended agent:** Codex Sol (Medium/High)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** GOV-001 (optional, independent)
+**Allowed output:** `docs/specifications/QUESTION_FACTORY_SPEC.md`
 
 ## Prompt (paste into the indicated agent)
 

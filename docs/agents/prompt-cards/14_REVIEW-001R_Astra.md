@@ -1,10 +1,10 @@
 # TASK REVIEW-001R — Audit the final delta and issue focused next task cards
 
-**Objective:** Audit the final delta and issue focused next task cards  
-**Recommended agent:** Codex Astra (High, optional and scarce)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** INTEGRATE-001R  
-**Allowed output:**   
+**Objective:** Audit the final delta and issue focused next task cards
+**Recommended agent:** Codex Astra (High, optional and scarce)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** INTEGRATE-001R
+**Allowed output:**
 
 ## Prompt (paste into the indicated agent)
 

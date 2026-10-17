@@ -1,10 +1,10 @@
 # TASK API-001R — Align HTTP contracts with the proposed architecture
 
-**Objective:** Align HTTP contracts with the proposed architecture  
-**Recommended agent:** Codex Terra (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** DATA-001R  
-**Allowed output:** `docs/architecture/API_CONTRACTS.md`  
+**Objective:** Align HTTP contracts with the proposed architecture
+**Recommended agent:** Codex Terra (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** DATA-001R
+**Allowed output:** `docs/architecture/API_CONTRACTS.md`
 
 ## Prompt (paste into the indicated agent)
 

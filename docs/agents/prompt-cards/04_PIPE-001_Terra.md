@@ -1,10 +1,10 @@
 # TASK PIPE-001 — Align existing AI pipeline with the independent Factory spec
 
-**Objective:** Align existing AI pipeline with the independent Factory spec  
-**Recommended agent:** Codex Terra (Medium)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** FACT-001  
-**Allowed output:** `docs/specifications/AI_QUESTION_PIPELINE.md`  
+**Objective:** Align existing AI pipeline with the independent Factory spec
+**Recommended agent:** Codex Terra (Medium)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** FACT-001
+**Allowed output:** `docs/specifications/AI_QUESTION_PIPELINE.md`
 
 ## Prompt (paste into the indicated agent)
 

@@ -1,10 +1,10 @@
 # TASK GOV-001 — Establish economical English-only agent communication rules
 
-**Objective:** Establish economical English-only agent communication rules  
-**Recommended agent:** Codex Luna  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** None (documentation only)  
-**Allowed output:** `AGENTS.md`  
+**Objective:** Establish economical English-only agent communication rules
+**Recommended agent:** Codex Luna
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** None (documentation only)
+**Allowed output:** `AGENTS.md`
 
 ## Prompt (paste into the indicated agent)
 

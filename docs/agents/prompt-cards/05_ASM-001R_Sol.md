@@ -1,10 +1,10 @@
 # TASK ASM-001R — Align exam assembly with per-student no-repeat practice
 
-**Objective:** Align exam assembly with per-student no-repeat practice  
-**Recommended agent:** Codex Sol (High)  
-**Working directory:** `~/Documents/Projects/TSA-Platform`  
-**Depends on:** REUSE-001  
-**Allowed output:** `docs/specifications/EXAM_ASSEMBLY_SPEC.md`  
+**Objective:** Align exam assembly with per-student no-repeat practice
+**Recommended agent:** Codex Sol (High)
+**Working directory:** `~/Documents/Projects/TSA-Platform`
+**Depends on:** REUSE-001
+**Allowed output:** `docs/specifications/EXAM_ASSEMBLY_SPEC.md`
 
 ## Prompt (paste into the indicated agent)
 
