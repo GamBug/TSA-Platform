@@ -1,38 +1,36 @@
-# Latest handoff — FOUND-002 Slice 1
+# Latest handoff — FOUND-002 Slice 2
 
-Date: 2026-10-17 (Asia/Bangkok). Accountable implementer: Codex, TypeScript Contract Engineer. Status: Slice 1 COMPLETED; FOUND-002 remains IN_PROGRESS and G1 is not established.
+Date: 2026-10-17 (Asia/Bangkok). Accountable implementer: Codex, TypeScript Contract Engineer. Status: Slice 2 COMPLETED; FOUND-002 remains IN_PROGRESS and G1 is not established.
 
 ## Scope and repository state
 
-Authorized scope: the user's FOUND-002 Implementation Slice 1 assignment under the scoped G0 authorization in [OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md). Implement only executable `question/1` shared contracts, student-safe serialization and synthetic tests. No database, application routes, migrations, OpenAPI/client generation, provider calls or paid LLM calls.
+Authorized scope: the user's FOUND-002 Slice 2 implementation assignment under the scoped G0 authorization. Implement runtime API error contracts and synthetic tests in `packages/contracts`; no database, endpoint, migration, OpenAPI/client generation, provider call or paid LLM call.
 
-Starting state: `main` at `a835911`; five authorized G0 coordination-file edits were already uncommitted. Those edits were preserved. No commits were created.
+Starting state: `main` at `a835911`; the Slice 1 contracts package and its npm workspace/lockfile were uncommitted. Those changes were preserved. No commits were created.
 
 ## Outcome
 
-- Added a minimal npm workspace with pinned TypeScript `5.9.3`, Zod `4.1.12` and Node type declarations; [package-lock.json](../../package-lock.json) makes the installation reproducible.
-- Added [@tsa/contracts](../../packages/contracts/src/index.ts): strict `question/1` Zod schemas for identity/versioning, classifications, blocks, the three MVP interactions, private answer keys, response validation, provenance/rights-adjacent fields from the canonical content model, and engineering size/shape constraints.
-- Added a student projection allowlist. It serializes only question `content` and `interaction`; private keys, explanations, provenance, origin, hashes and authoring metadata are absent.
-- Added synthetic tests for valid questions and identity, missing fields, unsupported schema version, invalid enum/unknown field, malformed key, true/false coverage, malformed multi-choice responses and safe projection.
+- Added strict Zod schemas and inferred TypeScript types for the documented generic `ErrorResponse`, typed `StudentShortage`, section deficits, safe alternatives, validation/authentication/authorization responses, `CONCURRENT_ATTEMPT_EXISTS`, and `SEARCH_EXHAUSTED`.
+- Added the documented error-code-to-HTTP-status mapping and a strict union for endpoint error payloads. `serializeErrorResponse` validates allowlisted fields before JSON serialization.
+- Verified document consistency for the shortage contract: `INSUFFICIENT_ELIGIBLE_INVENTORY` and `INSUFFICIENT_UNSEEN_INVENTORY` are distinct 422 proved shortages with required safe fields; `SEARCH_EXHAUSTED` is a distinct 503 unproven-feasibility outcome.
+- Added synthetic fixtures for structural generic/specialized compatibility, required fields, malformed/unknown fields, shortage variants, search exhaustion, 409 active-attempt conflict, and safe serialization.
 
 ## Verification evidence
 
 | Executed command/check | Environment and date | Observed result | Limitations |
 |---|---|---|---|
-| `npm install` | Node `v24.18.0`, npm `11.16.0`, 2026-10-17 | Lockfile generated; production audit dependency installed | No application runtime installed |
-| `npm run typecheck` | Same | Exit 0 | Checks the contracts package only |
-| `npm test` | Same | Exit 0; synthetic contract test file passed | No API/database/browser tests |
-| `npm audit --omit=dev` | npm advisory service, 2026-10-17 | `found 0 vulnerabilities` | Advisory snapshot only |
+| `npm run typecheck` | Node `v24.18.0`, npm `11.16.0`, 2026-10-17 | Exit 0 | Checks the contracts package only |
+| `npm test` | Same | Exit 0; 2 synthetic contract test files passed | No HTTP/database/concurrency tests |
 | `git diff --check` | Git, 2026-10-17 | Exit 0 | No code review implied |
 
-Tests not executed: PostgreSQL, API/OpenAPI/client drift, CI, browser, security, concurrency, load, provider and live-AI tests; outside this slice or not implemented.
+Tests not executed: API integration, real PostgreSQL concurrency, browser/security/load, generated OpenAPI/client drift, CI, provider and live-AI tests; not implemented or outside this slice.
 
 Independent review: NOT PERFORMED.
 
 ## Continuation
 
-- Known issue/blocker: FOUND-007 must reconcile the public shortage/error taxonomy before the remaining FOUND-002 API contracts can be frozen. ADR-001/003 remain PROPOSED as whole decisions; this user-assigned implementation slice does not approve them.
-- Remaining work: all other FOUND-002 deliverables—API/OpenAPI/client artifacts, strict producer/consumer fixtures, renderer/PRNG/canonicalization fixtures, CI drift checks and development instructions. G1 remains unavailable.
-- Recommended next action: assign/complete FOUND-007, then continue FOUND-002 API contract and generated-artifact work against this schema source.
-- Ownership transfer: releases `package.json`, `package-lock.json`, `packages/contracts/**` and coordination-file updates; preserve the inherited uncommitted coordination edits. No commit was authorized.
-- State updates: backlog set to IN_PROGRESS with Slice 1 evidence; project state and this handoff updated by the accountable implementer.
+- Known issues / blockers: FOUND-007 remains recorded as PROPOSED in the backlog, but its documented shortage taxonomy is now internally reconciled across API, assembly and reuse specifications. ADR-001/003/007 remain PROPOSED as whole decisions; this slice does not approve them.
+- Remaining work: all other FOUND-002 deliverables—broader API/OpenAPI/client artifacts, strict producer/consumer fixtures, renderer/PRNG/canonicalization fixtures, CI drift checks and development instructions. G1 remains unavailable.
+- Recommended next action: implement the next bounded FOUND-002 shared-contract/API-artifact slice with deterministic generated-artifact drift checks.
+- Ownership transfer: releases `packages/contracts/**` and the coordinated status/handoff updates; preserve all uncommitted Slice 1–2 changes. No commit was authorized.
+- State updates: the FOUND-002 backlog record, project state and this handoff were updated by the accountable implementer; the task remains IN_PROGRESS.

@@ -172,6 +172,243 @@ export type AnswerKey = z.infer<typeof AnswerKeySchema>;
 export type ResponseValue = z.infer<typeof ResponseValueSchema>;
 export type StudentQuestion = z.infer<typeof StudentQuestionSchema>;
 
+/**
+ * Public API error contracts. These schemas deliberately model only allowlisted
+ * fields: error payloads must never be used to serialize caught exceptions or
+ * database/provider errors.
+ */
+export const ErrorCodeSchema = z.enum([
+  "UNAUTHENTICATED",
+  "FORBIDDEN",
+  "CSRF_FAILED",
+  "REVISION_CONFLICT",
+  "IDEMPOTENCY_CONFLICT",
+  "ATTEMPT_CLOSED",
+  "SECTION_CLOSED",
+  "RESULT_NOT_READY",
+  "CONCURRENT_MODIFICATION",
+  "CONCURRENT_ATTEMPT_EXISTS",
+  "CONTENT_WITHDRAWN",
+  "VALIDATION_ERROR",
+  "INSUFFICIENT_UNSEEN_INVENTORY",
+  "INSUFFICIENT_ELIGIBLE_INVENTORY",
+  "CONSTRAINT_CONFLICT",
+  "RIGHTS_BLOCKED",
+  "UNSUPPORTED_TYPE",
+  "RATE_LIMITED",
+  "TEMPORARILY_UNAVAILABLE",
+  "SEARCH_EXHAUSTED",
+  "TIMEOUT",
+]);
+
+export const ReuseModeSchema = z.enum(["NEW_ONLY", "REVIEW_ALLOWED", "FIXED_AS_PUBLISHED"]);
+
+export const SectionDeficitSchema = z
+  .object({
+    sectionId: NonEmptyString,
+    missingCount: z.number().int().positive(),
+  })
+  .strict();
+
+export const AlternativeOptionSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("SHORTER_PROFILE"), blueprintVersionId: CanonicalUuid, name: NonEmptyString }).strict(),
+  z
+    .object({ kind: z.literal("REVIEW_MODE"), blueprintVersionId: CanonicalUuid, requiresRepeatConsent: z.literal(true) })
+    .strict(),
+  z.object({ kind: z.literal("WAIT_FOR_PUBLICATION") }).strict(),
+]);
+
+export const ErrorDetailsSchema = z
+  .object({
+    field: NonEmptyString.optional(),
+    currentRevision: z.number().int().nonnegative().optional(),
+    currentAnswer: ResponseValueSchema.optional(),
+    retryAfterSeconds: z.number().int().positive().optional(),
+    existingAttemptId: CanonicalUuid.optional(),
+    assemblyRunId: CanonicalUuid.optional(),
+    blueprintVersionId: CanonicalUuid.optional(),
+    reuseMode: ReuseModeSchema.optional(),
+    sectionDeficits: z.array(SectionDeficitSchema).optional(),
+    alternatives: z.array(AlternativeOptionSchema).optional(),
+  })
+  .strict();
+
+const ErrorEnvelopeSchema = z
+  .object({
+    code: ErrorCodeSchema,
+    message: NonEmptyString.max(1_024),
+    requestId: NonEmptyString.max(256),
+    details: ErrorDetailsSchema,
+  })
+  .strict();
+
+/** Base structural shape shared by every documented JSON API error response. */
+export const ErrorResponseSchema = z.object({ error: ErrorEnvelopeSchema }).strict();
+
+export const StudentShortageDetailsSchema = ErrorDetailsSchema.extend({
+  blueprintVersionId: CanonicalUuid,
+  reuseMode: z.enum(["NEW_ONLY", "REVIEW_ALLOWED"]),
+  // An empty list is valid only when a proved coupled constraint has no single-section deficit.
+  sectionDeficits: z.array(SectionDeficitSchema),
+  alternatives: z.array(AlternativeOptionSchema),
+}).strict();
+
+export const StudentShortageSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.enum(["INSUFFICIENT_UNSEEN_INVENTORY", "INSUFFICIENT_ELIGIBLE_INVENTORY"]),
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        details: StudentShortageDetailsSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+const EmptyErrorDetailsSchema = z.object({}).strict();
+
+export const ValidationErrorResponseSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.literal("VALIDATION_ERROR"),
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        details: ErrorDetailsSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const AuthenticationErrorResponseSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.literal("UNAUTHENTICATED"),
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        details: EmptyErrorDetailsSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const AuthorizationErrorResponseSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.enum(["FORBIDDEN", "CSRF_FAILED"]),
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        details: EmptyErrorDetailsSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ConcurrentAttemptExistsResponseSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.literal("CONCURRENT_ATTEMPT_EXISTS"),
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        details: z.object({ existingAttemptId: CanonicalUuid }).strict(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const SearchExhaustedErrorResponseSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.literal("SEARCH_EXHAUSTED"),
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        // No deficits or alternatives: bounded search did not prove inventory infeasibility.
+        details: z
+          .object({
+            assemblyRunId: CanonicalUuid.optional(),
+            blueprintVersionId: CanonicalUuid.optional(),
+            reuseMode: ReuseModeSchema.optional(),
+          })
+          .strict(),
+      })
+      .strict(),
+  })
+  .strict();
+
+const OtherDocumentedErrorCodeSchema = ErrorCodeSchema.exclude([
+  "UNAUTHENTICATED",
+  "FORBIDDEN",
+  "CSRF_FAILED",
+  "CONCURRENT_ATTEMPT_EXISTS",
+  "VALIDATION_ERROR",
+  "INSUFFICIENT_UNSEEN_INVENTORY",
+  "INSUFFICIENT_ELIGIBLE_INVENTORY",
+  "SEARCH_EXHAUSTED",
+]);
+
+const OtherDocumentedErrorResponseSchema = z
+  .object({
+    error: z
+      .object({
+        code: OtherDocumentedErrorCodeSchema,
+        message: NonEmptyString.max(1_024),
+        requestId: NonEmptyString.max(256),
+        details: ErrorDetailsSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+/** Strict endpoint-response union; special error codes require their typed detail contracts. */
+export const DocumentedErrorResponseSchema = z.union([
+  StudentShortageSchema,
+  ValidationErrorResponseSchema,
+  AuthenticationErrorResponseSchema,
+  AuthorizationErrorResponseSchema,
+  ConcurrentAttemptExistsResponseSchema,
+  SearchExhaustedErrorResponseSchema,
+  OtherDocumentedErrorResponseSchema,
+]);
+
+export const ErrorHttpStatusByCode = {
+  UNAUTHENTICATED: 401,
+  FORBIDDEN: 403,
+  CSRF_FAILED: 403,
+  REVISION_CONFLICT: 409,
+  IDEMPOTENCY_CONFLICT: 409,
+  ATTEMPT_CLOSED: 409,
+  SECTION_CLOSED: 409,
+  RESULT_NOT_READY: 409,
+  CONCURRENT_MODIFICATION: 409,
+  CONCURRENT_ATTEMPT_EXISTS: 409,
+  CONTENT_WITHDRAWN: 410,
+  VALIDATION_ERROR: 422,
+  INSUFFICIENT_UNSEEN_INVENTORY: 422,
+  INSUFFICIENT_ELIGIBLE_INVENTORY: 422,
+  CONSTRAINT_CONFLICT: 422,
+  RIGHTS_BLOCKED: 422,
+  UNSUPPORTED_TYPE: 422,
+  RATE_LIMITED: 429,
+  TEMPORARILY_UNAVAILABLE: 503,
+  SEARCH_EXHAUSTED: 503,
+  TIMEOUT: 503,
+} as const satisfies Record<z.infer<typeof ErrorCodeSchema>, 401 | 403 | 409 | 410 | 422 | 429 | 503>;
+
+export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
+export type StudentShortage = z.infer<typeof StudentShortageSchema>;
+export type DocumentedErrorResponse = z.infer<typeof DocumentedErrorResponseSchema>;
+export type ConcurrentAttemptExistsResponse = z.infer<typeof ConcurrentAttemptExistsResponseSchema>;
+
+/** Parses and serializes only a strict, documented response shape. */
+export function serializeErrorResponse(response: unknown): string {
+  return JSON.stringify(DocumentedErrorResponseSchema.parse(response));
+}
+
 type IssueReporter = (path: PropertyKey[], message: string) => void;
 
 /** Produces the only question-content projection permitted in student-facing DTOs. */
