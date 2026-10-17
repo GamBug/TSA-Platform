@@ -41,7 +41,7 @@ All future paths below are proposed ownership scopes, not existing files. Before
 - Prerequisites: FOUND-001. Files: read all architecture/spec contracts; assigned reviewer writes review findings in docs/decisions/OPEN_DECISIONS.md through coordinated integrator, or provides read-only review for integrator.
 - Deliverables: actionable findings with severity, affected files and resolution; durable human decision evidence. Acceptance: each blocking finding resolved or explicitly deferred with impact; current ADR-001–008 have owner disposition; implementation gate unambiguous.
 - Required tests: document consistency/links, scenario walkthrough for submit/save/expiry, snapshot mutation and rights withdrawal; no runtime claims.
-- Priority P0; complexity M; risks: reviewer approval mistaken for owner authorization. Status: BLOCKED on owner decision. Independent review portion: Antigravity's [review](../reviews/ARCHITECTURE_REVIEW_001.md), dated 2026-10-16, received. Reconciliation tracked in FOUND-005. Remaining accountable decision role: human owner; no agent is assigned authority to approve. Acceptance additionally requires owner disposition of current ADR-004 H1–H3 (H1 fixed only), ADR-007/008 and affected revised scopes.
+- Priority P0; complexity M; risks: reviewer approval mistaken for owner authorization. Status: BLOCKED on owner decision. Independent review portion: Antigravity's [review](../reviews/ARCHITECTURE_REVIEW_001.md), dated 2026-10-16, received. Reconciliation tracked in FOUND-005. Remaining accountable decision role: human owner; no agent is assigned authority to approve. Acceptance additionally requires owner disposition of current ADR-004 H2–H3, ADR-007/008 and affected revised scopes; H1 is approved globally across all modes, while ADR-004 remains PROPOSED as a whole.
 
 ## FOUND-003 — Official evidence/profile validation
 
@@ -65,7 +65,7 @@ Reconciliation acceptance (HI-04/CR-02): requires FOUND-005/006 completion and F
 
 Phase 02.75 acceptance: stable question history PK(user,question), allocation revision row, canonical singleton/merged equivalence groups, bank eligibility revision, offering windows, personal owner/one-attempt constraints and fixed-mode compatibility. Two-connection strict allocations cannot overlap; corrected versions stay excluded. Factory migration files are separately reserved by FACTORY-001.
 
-Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-selected H1/H3 uniqueness, cancellation constraints, blueprint taxonomy FK, lifecycle-pinned idempotency records and shared save buckets. Tests require two-connection create races, stale-active cleanup, cancellation/start ordering, cleanup after pending grading and transaction rollback on invalid sealed aggregates. These are requirements, not tests executed in Phase 02.5.
+Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved global H1 uniqueness, cancellation constraints, blueprint taxonomy FK, lifecycle-pinned idempotency records and shared save buckets; keep proposed H3 uniqueness gated on the owner's unresolved decision. Tests require two-connection create races, stale-active cleanup, cancellation/start ordering, cleanup after pending grading and transaction rollback on invalid sealed aggregates. These are requirements, not tests executed in Phase 02.5.
 
 - Objective/scope: implement MVP tables, constraints, immutable triggers, reviewed migrations and test fixtures; include per-user history/equivalence/offerings; coordinate factory migrations with FACTORY-001 rather than duplicate ownership.
 - Prerequisites: FOUND-002, G1. Files: db/**, src/modules database adapters, tests/integration/database/**.
@@ -109,7 +109,7 @@ Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publ
 
 Phase 02.75 acceptance: atomic personal form+attempt+history+receipt; allocation user lock then shared bank guard, revision recheck and bounded replans; review/fixed assignments also write history. Tests C–H include same-user different-blueprint races, corrected versions, equivalence merges, rollback, shortage versus unknown search exhaustion, TTL abandonment and explicit alternatives.
 
-Reconciliation acceptance (CR-02/HI-02/05/MD-01/02/03): test all three unsigned PRNG vectors and shuffle order; reject wrong-dimension values, foreign taxonomy, repeated sections/quotas under approved H3. Inject sealing mismatch after valid blueprint validation and assert rollback. Global usage is analytics only; withdrawal never resets assignments and replay never assigns twice. Role diagnostics tests exclude private candidate pools from EXAM_MANAGER errors. Owner H3 choice is a prerequisite, not an implementation assumption.
+Reconciliation acceptance (CR-02/HI-02/05/MD-01/02/03): test all three unsigned PRNG vectors and shuffle order; reject wrong-dimension values, foreign taxonomy, repeated sections/quotas under the eventual owner-approved H3 rules. Inject sealing mismatch after valid blueprint validation and assert rollback. Global usage is analytics only; withdrawal never resets assignments and replay never assigns twice. Role diagnostics tests exclude private candidate pools from EXAM_MANAGER errors. Owner H3 choice is a prerequisite, not an implementation assumption.
 
 - Objective/scope: blueprint validation, manifest capture, bounded selection, personalized snapshot sealing and assignment history.
 - Prerequisites: BANK-001, DATA-002 accepted inventory, G1. Files: src/modules/assembly/**, assembly HTTP adapters, tests/assembly/**.
@@ -119,9 +119,9 @@ Reconciliation acceptance (CR-02/HI-02/05/MD-01/02/03): test all three unsigned 
 
 ## EXAM-001 — Attempt start, delivery and persisted answers
 
-Phase 02.75 acceptance: H1 applies to fixed forms only; personal form has one owner/attempt. No reselection at start; all assigned slots persist in history after cancellation/expiry/invalidation. Test USER_CREATE throttling independently of saves/submission and retry after receipt expiry without repetition.
+Phase 02.75 acceptance: owner-approved H1 applies globally across all modes, with at most one active CREATED/IN_PROGRESS attempt per student; personal forms have one owner/attempt. No reselection at start; all assigned slots persist in history after cancellation/expiry/invalidation. Test USER_CREATE throttling independently of saves/submission and retry after receipt expiry without repetition.
 
-Reconciliation acceptance (CR-01/HI-01/03/MD-04/05): owner H1/H2 choices must be recorded. Test distinct-key concurrent create, same-key replay, closed-attempt retake, not-open/exact-close admission, late admitted completion, CREATED lazy cancellation, long-lived creation receipt and post-retention retry. Exercise both rate buckets across two server instances; 429 has Retry-After, no save/receipt mutation, preserves client pending edits, and does not throttle submit via the save bucket.
+Reconciliation acceptance (CR-01/HI-01/03/MD-04/05): owner-approved H1 and unresolved H2/H3 choices must be recorded. Test distinct-key concurrent create, same-key replay, closed-attempt retake, not-open/exact-close admission, late admitted completion, CREATED lazy cancellation, long-lived creation receipt and post-retention retry. Exercise both rate buckets across two server instances; 429 has Retry-After, no save/receipt mutation, preserves client pending edits, and does not throttle submit via the save bucket.
 
 - Objective/scope: create/start attempt, fixed section clocks, safe delivery, revisioned autosave/resume.
 - Prerequisites: ASSEMBLY-001, AUTH-001. Files: src/modules/attempts/** (start/read/save), student HTTP adapters, tests/integration/attempts/**.
@@ -279,7 +279,7 @@ The stable IDs above, including their status and recorded historical evidence, a
 | Unresolved item | Must be resolved by | Blocks |
 |---|---|---|
 | `QUESTION_REUSE_POLICY` names `INVENTORY_SHORTAGE`, while the API names `INSUFFICIENT_UNSEEN_INVENTORY` / `INSUFFICIENT_ELIGIBLE_INVENTORY`; the generic `ErrorResponse.details` does not model the normative `StudentShortage` alternatives/blueprint fields. | FOUND-007 records an owner-approved, single error taxonomy and compatible response projection before FOUND-002 freezes schemas. | All `POST /attempts` consumers: ASSEMBLY-001/002, EXAM-001, WEB-003, contract fixtures. |
-| ADR-001–004, 007 and 008 mechanisms remain PROPOSED; ADR-004 H1–H3 and ADR-006 retention/identity boundaries are undecided. | Human owner through FOUND-004; contract changes need ADR impact analysis. | All implementation beyond scoped, explicitly authorized fixture experiments. |
+| ADR-001–004, 007 and 008 mechanisms remain PROPOSED; ADR-004 remains PROPOSED as a whole, with H1 approved globally across all modes, while H2–H3 and ADR-006 retention/identity boundaries remain undecided. | Human owner through FOUND-004; contract changes need ADR impact analysis. | All implementation beyond scoped, explicitly authorized fixture experiments. |
 | Rights-cleared starter items, independent Vietnamese content reviewers, lawful held-out labels, provider/input permissions, budget/schedule, thresholds and reviewer capacity are unverified. | Human owner plus FOUND-003, DATA-002/003, RESEARCH-002/AI-003. | G2 publication, live factory dispatch, AI evaluation claims, pilot. |
 
 ### Normalized assignment metadata for retained milestone cards
