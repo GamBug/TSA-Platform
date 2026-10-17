@@ -13,6 +13,7 @@ const Instant = z.string().refine(
 
 export const SectionSchema = z.enum(["MATH", "READING", "SCIENCE"]);
 export const CognitiveLevelSchema = z.enum(["M1", "M2", "M3"]);
+export const InteractionTypeSchema = z.enum(["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TRUE_FALSE_GROUP"]);
 
 export const BlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text"), text: z.string().min(1).max(20_000) }).strict(),
@@ -173,6 +174,99 @@ export type ResponseValue = z.infer<typeof ResponseValueSchema>;
 export type StudentQuestion = z.infer<typeof StudentQuestionSchema>;
 
 /**
+ * Blueprint section IDs are local opaque entries, deliberately distinct from
+ * the TSA domain enum carried by `section`.
+ */
+export const BlueprintSectionSchema = z
+  .object({
+    id: NonEmptyString,
+    section: SectionSchema,
+    count: z.number().int().positive().max(200),
+    durationSeconds: z.number().int().positive().max(21_600),
+  })
+  .strict();
+
+export const QuotaSchema = z.discriminatedUnion("dimension", [
+  z.object({ sectionId: NonEmptyString, min: z.number().int().nonnegative(), max: z.number().int().nonnegative(), dimension: z.literal("SKILL"), value: CanonicalUuid }).strict(),
+  z.object({ sectionId: NonEmptyString, min: z.number().int().nonnegative(), max: z.number().int().nonnegative(), dimension: z.literal("COGNITIVE_LEVEL"), value: CognitiveLevelSchema }).strict(),
+  z.object({ sectionId: NonEmptyString, min: z.number().int().nonnegative(), max: z.number().int().nonnegative(), dimension: z.literal("DIFFICULTY"), value: z.enum(["EASY", "MEDIUM", "HARD"]) }).strict(),
+]);
+
+/** Generic immutable blueprint configuration; future approved profiles may have multiple sections. */
+export const BlueprintConfigSchema = z
+  .object({
+    schemaVersion: z.literal("blueprint/1"),
+    name: NonEmptyString,
+    taxonomyVersionId: CanonicalUuid,
+    profileKind: z.enum(["INDEPENDENT_PRACTICE", "PUBLIC_REFERENCE"]),
+    evidenceIds: z.array(NonEmptyString),
+    sections: z.array(BlueprintSectionSchema).min(1),
+    allowedTypes: z.array(InteractionTypeSchema).min(1),
+    quotas: z.array(QuotaSchema),
+    maxPerSource: z.number().int().positive().nullable(),
+    excludedQuestionIds: z.array(CanonicalUuid),
+    bundlePolicy: z.literal("ALL_OR_NONE"),
+    scoringPolicy: z.literal("practice-binary-v1"),
+    releasePolicy: z.literal("after-grade-v1"),
+  })
+  .strict()
+  .superRefine((blueprint, context) => {
+    const sectionIds = blueprint.sections.map((section) => section.id);
+    if (new Set(sectionIds).size !== sectionIds.length) {
+      context.addIssue({ code: "custom", path: ["sections"], message: "Blueprint section entry IDs must be unique" });
+    }
+    if (blueprint.sections.reduce((total, section) => total + section.count, 0) > 200) {
+      context.addIssue({ code: "custom", path: ["sections"], message: "Blueprint must not exceed 200 questions" });
+    }
+    if (blueprint.sections.reduce((total, section) => total + section.durationSeconds, 0) > 21_600) {
+      context.addIssue({ code: "custom", path: ["sections"], message: "Blueprint must not exceed six hours" });
+    }
+    if (new Set(blueprint.allowedTypes).size !== blueprint.allowedTypes.length) {
+      context.addIssue({ code: "custom", path: ["allowedTypes"], message: "Allowed interaction types must be unique" });
+    }
+    if (new Set(blueprint.excludedQuestionIds).size !== blueprint.excludedQuestionIds.length) {
+      context.addIssue({ code: "custom", path: ["excludedQuestionIds"], message: "Excluded question IDs must be unique" });
+    }
+
+    const countsBySectionId = new Map(blueprint.sections.map((section) => [section.id, section.count]));
+    const quotaKeys = new Set<string>();
+    for (const [index, quota] of blueprint.quotas.entries()) {
+      const count = countsBySectionId.get(quota.sectionId);
+      if (count === undefined) {
+        context.addIssue({ code: "custom", path: ["quotas", index, "sectionId"], message: "Quota sectionId must reference a blueprint section entry ID" });
+      } else if (quota.min > quota.max || quota.max > count) {
+        context.addIssue({ code: "custom", path: ["quotas", index], message: "Quota bounds must satisfy 0 <= min <= max <= section count" });
+      }
+      const quotaKey = `${quota.sectionId}\u0000${quota.dimension}\u0000${quota.value}`;
+      if (quotaKeys.has(quotaKey)) {
+        context.addIssue({ code: "custom", path: ["quotas", index], message: "Duplicate section/dimension/value quota" });
+      }
+      quotaKeys.add(quotaKey);
+    }
+  });
+
+/** Owner-approved MVP profile guard layered over the generic multi-section blueprint schema. */
+export const MvpBlueprintConfigSchema = BlueprintConfigSchema.superRefine((blueprint, context) => {
+  if (blueprint.profileKind !== "INDEPENDENT_PRACTICE") {
+    context.addIssue({ code: "custom", path: ["profileKind"], message: "MVP profiles must be independent practice" });
+  }
+  if (blueprint.sections.length !== 1) {
+    context.addIssue({ code: "custom", path: ["sections"], message: "An MVP profile must contain exactly one domain section" });
+    return;
+  }
+  const section = blueprint.sections[0]!;
+  const expectedCount = { MATH: 4, READING: 2, SCIENCE: 4 } as const;
+  if (section.count !== expectedCount[section.section]) {
+    context.addIssue({ code: "custom", path: ["sections", 0, "count"], message: "MVP domain profile has an incorrect question count" });
+  }
+});
+
+export type BlueprintConfig = z.infer<typeof BlueprintConfigSchema>;
+export type MvpBlueprintConfig = z.infer<typeof MvpBlueprintConfigSchema>;
+export type BlueprintSection = z.infer<typeof BlueprintSectionSchema>;
+export type Quota = z.infer<typeof QuotaSchema>;
+
+/**
  * Public API error contracts. These schemas deliberately model only allowlisted
  * fields: error payloads must never be used to serialize caught exceptions or
  * database/provider errors.
@@ -202,6 +296,149 @@ export const ErrorCodeSchema = z.enum([
 ]);
 
 export const ReuseModeSchema = z.enum(["NEW_ONLY", "REVIEW_ALLOWED", "FIXED_AS_PUBLISHED"]);
+export const FormModeSchema = z.enum(["PERSONALIZED_PRACTICE", "PUBLISHED_FIXED"]);
+export const AttemptStateSchema = z.enum(["CREATED", "IN_PROGRESS", "SUBMITTED", "EXPIRED", "GRADED", "CANCELLED", "INVALIDATED"]);
+
+const ReusePolicyVersionSchema = z.literal("reuse/1");
+export const ClosureSchema = z
+  .object({
+    attemptId: CanonicalUuid,
+    state: AttemptStateSchema,
+    terminalReason: z.enum(["EXPLICIT_SUBMIT", "DEADLINE"]).nullable(),
+    cancellationReason: z.enum(["FORM_WITHDRAWN", "RIGHTS_BLOCKED", "ADMISSION_CLOSED", "START_TTL_EXPIRED"]).nullable(),
+    closedAt: Instant.nullable(),
+    gradingStatus: z.enum(["PENDING", "RUNNING", "SUCCEEDED", "FAILED_RETRYABLE", "FAILED_FINAL"]).nullable(),
+  })
+  .strict();
+
+export const StudentSlotSchema = z
+  .object({
+    slotId: CanonicalUuid,
+    sectionId: NonEmptyString,
+    ordinal: z.number().int().positive(),
+    stimulus: z.object({ id: CanonicalUuid, content: BlocksSchema }).strict().nullable(),
+    ...StudentQuestionSchema.shape,
+  })
+  .strict();
+
+export const AttemptSectionSchema = z
+  .object({
+    sectionId: NonEmptyString,
+    section: SectionSchema,
+    startsAt: Instant.nullable(),
+    endsAt: Instant.nullable(),
+    count: z.number().int().positive(),
+  })
+  .strict();
+
+export const AnswerAckSchema = z
+  .object({
+    slotId: CanonicalUuid,
+    value: ResponseValueSchema,
+    revision: z.number().int().positive(),
+    savedAt: Instant,
+  })
+  .strict();
+
+/** The persisted successful creation response; timestamp calculation is server/database work, not DTO work. */
+export const CreationReceiptSchema = z
+  .object({
+    attemptId: CanonicalUuid,
+    formId: CanonicalUuid,
+    state: z.literal("CREATED"),
+    domain: SectionSchema,
+    formMode: FormModeSchema,
+    reuseMode: ReuseModeSchema,
+    reusePolicyVersion: ReusePolicyVersionSchema,
+    startBefore: Instant,
+  })
+  .strict()
+  .superRefine(validateFormModeReuseMode);
+
+/**
+ * Student attempt view. This is intentionally an MVP one-domain test view,
+ * never a continuous MATH → READING → SCIENCE examination flow.
+ */
+export const AttemptViewSchema = z
+  .object({
+    attemptId: CanonicalUuid,
+    state: AttemptStateSchema,
+    formId: CanonicalUuid,
+    domain: SectionSchema,
+    formMode: FormModeSchema,
+    reuseMode: ReuseModeSchema,
+    reusePolicyVersion: ReusePolicyVersionSchema,
+    serverNow: Instant,
+    startBefore: Instant.nullable(),
+    startedAt: Instant.nullable(),
+    deadlineAt: Instant.nullable(),
+    activeSectionId: NonEmptyString.nullable(),
+    sections: z.array(AttemptSectionSchema).length(1),
+    slots: z.array(StudentSlotSchema),
+    answers: z.array(AnswerAckSchema),
+    closure: ClosureSchema,
+  })
+  .strict()
+  .superRefine((view, context) => {
+    validateFormModeReuseMode(view, context);
+    const section = view.sections[0]!;
+    if (section.section !== view.domain) {
+      context.addIssue({ code: "custom", path: ["sections", 0, "section"], message: "MVP section domain must equal attempt domain" });
+    }
+    if (view.closure.attemptId !== view.attemptId || view.closure.state !== view.state) {
+      context.addIssue({ code: "custom", path: ["closure"], message: "Closure must identify this attempt and its current state" });
+    }
+    if (view.state === "CREATED") {
+      if (view.startBefore === null) {
+        context.addIssue({ code: "custom", path: ["startBefore"], message: "CREATED attempts require a persisted start deadline" });
+      }
+      if (view.startedAt !== null || view.deadlineAt !== null || view.activeSectionId !== null || view.slots.length !== 0 || view.answers.length !== 0) {
+        context.addIssue({ code: "custom", message: "CREATED attempts have no started clock, active section, slots, or answers" });
+      }
+      return;
+    }
+
+    if (view.startBefore !== null) {
+      context.addIssue({ code: "custom", path: ["startBefore"], message: "Only CREATED attempt views expose startBefore" });
+    }
+    if (view.state === "IN_PROGRESS") {
+      if (view.startedAt === null || view.deadlineAt === null || view.activeSectionId !== section.sectionId) {
+        context.addIssue({ code: "custom", message: "IN_PROGRESS attempts require started/deadline timestamps and the single active section" });
+      }
+      if (view.slots.length !== section.count) {
+        context.addIssue({ code: "custom", path: ["slots"], message: "IN_PROGRESS slots must match the active section count" });
+      }
+    } else if (view.slots.length !== 0 || view.answers.length !== 0 || view.activeSectionId !== null) {
+      context.addIssue({ code: "custom", message: "Non-active attempt views do not expose slots, answers, or an active section" });
+    }
+
+    const slotIds = new Set(view.slots.map((slot) => slot.slotId));
+    if (slotIds.size !== view.slots.length) {
+      context.addIssue({ code: "custom", path: ["slots"], message: "Slot IDs must be unique" });
+    }
+    const ordinals = new Set(view.slots.map((slot) => slot.ordinal));
+    if (ordinals.size !== view.slots.length) {
+      context.addIssue({ code: "custom", path: ["slots"], message: "Slot ordinals must be unique" });
+    }
+    const answerSlotIds = new Set<string>();
+    for (const [index, answer] of view.answers.entries()) {
+      if (answerSlotIds.has(answer.slotId) || !slotIds.has(answer.slotId)) {
+        context.addIssue({ code: "custom", path: ["answers", index, "slotId"], message: "Each answer must acknowledge one delivered slot" });
+      }
+      answerSlotIds.add(answer.slotId);
+      const slot = view.slots.find((candidate) => candidate.slotId === answer.slotId);
+      if (slot !== undefined && answer.value.type !== slot.interaction.type) {
+        context.addIssue({ code: "custom", path: ["answers", index, "value", "type"], message: "Answer type must match its slot interaction" });
+      }
+    }
+  });
+
+export type CreationReceipt = z.infer<typeof CreationReceiptSchema>;
+export type StudentSlot = z.infer<typeof StudentSlotSchema>;
+export type AttemptView = z.infer<typeof AttemptViewSchema>;
+export type Closure = z.infer<typeof ClosureSchema>;
+export type AttemptSection = z.infer<typeof AttemptSectionSchema>;
+export type AnswerAck = z.infer<typeof AnswerAckSchema>;
 
 export const SectionDeficitSchema = z
   .object({
@@ -410,6 +647,18 @@ export function serializeErrorResponse(response: unknown): string {
 }
 
 type IssueReporter = (path: PropertyKey[], message: string) => void;
+
+function validateFormModeReuseMode(
+  value: { formMode: z.infer<typeof FormModeSchema>; reuseMode: z.infer<typeof ReuseModeSchema> },
+  context: z.RefinementCtx,
+): void {
+  const valid =
+    (value.formMode === "PERSONALIZED_PRACTICE" && (value.reuseMode === "NEW_ONLY" || value.reuseMode === "REVIEW_ALLOWED")) ||
+    (value.formMode === "PUBLISHED_FIXED" && value.reuseMode === "FIXED_AS_PUBLISHED");
+  if (!valid) {
+    context.addIssue({ code: "custom", path: ["reuseMode"], message: "Reuse mode is not valid for form mode" });
+  }
+}
 
 /** Produces the only question-content projection permitted in student-facing DTOs. */
 export function toStudentQuestion(question: QuestionVersion): StudentQuestion {

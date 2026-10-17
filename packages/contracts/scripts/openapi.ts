@@ -15,6 +15,9 @@ const contracts = await import("../src/index.ts");
 export function generateStudentContractsOpenApi(): Record<string, unknown> {
   const registry = new OpenAPIRegistry();
   registry.register("StudentQuestion", contracts.StudentQuestionSchema);
+  registry.register("StudentSlot", contracts.StudentSlotSchema);
+  registry.register("CreationReceipt", contracts.CreationReceiptSchema);
+  registry.register("AttemptView", contracts.AttemptViewSchema);
   registry.register("ResponseValue", contracts.ResponseValueSchema);
   registry.register("ErrorResponse", contracts.ErrorResponseSchema);
   registry.register("StudentShortage", contracts.StudentShortageSchema);
