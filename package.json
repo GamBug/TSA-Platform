@@ -6,6 +6,8 @@
     "packages/*"
   ],
   "scripts": {
+    "contracts:check": "node --experimental-strip-types packages/contracts/scripts/check-openapi.ts",
+    "contracts:generate": "node --experimental-strip-types packages/contracts/scripts/generate-openapi.ts",
     "typecheck": "tsc -p packages/contracts/tsconfig.json --noEmit",
     "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts"
   },
