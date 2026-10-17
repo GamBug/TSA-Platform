@@ -1,6 +1,6 @@
 # API contracts
 
-Status: PROPOSED `api/v1`, ADR-003. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. No generated client or executable schema exists yet. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
+Status: PROPOSED `api/v1`, ADR-003, except the owner-approved ADR-004 H1 create-conflict policy. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. No generated client or executable schema exists yet. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
 
 ## Transport and access
 
@@ -22,11 +22,13 @@ type ErrorDetails = {field?:string; currentRevision?:number; currentAnswer?:Resp
   alternatives?:AlternativeOption[]};
 type ErrorResponse = {error:{code:string; message:string; requestId:string;
   details:ErrorDetails}};
+type ConcurrentAttemptExists = {error:{code:"CONCURRENT_ATTEMPT_EXISTS";
+  message:string; requestId:string; details:{existingAttemptId:UUID}}};
 type AttemptState = "CREATED"|"IN_PROGRESS"|"SUBMITTED"|"EXPIRED"|
   "GRADED"|"CANCELLED"|"INVALIDATED";
 type Closure = {attemptId:UUID; state:AttemptState;
   terminalReason:"EXPLICIT_SUBMIT"|"DEADLINE"|null;
-  cancellationReason:"FORM_WITHDRAWN"|"RIGHTS_BLOCKED"|"ADMISSION_CLOSED"|null;
+  cancellationReason:"FORM_WITHDRAWN"|"RIGHTS_BLOCKED"|"ADMISSION_CLOSED"|"START_TTL_EXPIRED"|null;
   closedAt:Instant|null; gradingStatus:"PENDING"|"RUNNING"|"SUCCEEDED"|
     "FAILED_RETRYABLE"|"FAILED_FINAL"|null};
 type AnswerAck = {slotId:UUID; value:ResponseValue; revision:number; savedAt:Instant};
@@ -47,7 +49,7 @@ For `CREATED`, `startBefore` is the server-authoritative exclusive deadline at w
 | Method/path | Request schema | Success schema / behavior |
 |---|---|---|
 | GET `/catalog` | cursor?, limit? | 200 `{items:CatalogEntry[],nextCursor:string|null}`; default entries are authorized personalized blueprint offerings; fixed forms separately labeled; no slots/keys or promise of sufficient unseen inventory |
-| POST `/attempts` | CreateAttempt + Idempotency-Key | 201 CreationReceipt after atomic allocation; 422 `INSUFFICIENT_UNSEEN_INVENTORY` or `INSUFFICIENT_ELIGIBLE_INVENTORY` with StudentShortage; same-key success replays; no AI call/job |
+| POST `/attempts` | CreateAttempt + Idempotency-Key | 201 CreationReceipt after atomic allocation; 409 `CONCURRENT_ATTEMPT_EXISTS` with ConcurrentAttemptExists for a different creation request while this student has an active attempt in either mode; 422 `INSUFFICIENT_UNSEEN_INVENTORY` or `INSUFFICIENT_ELIGIBLE_INVENTORY` with StudentShortage; same-key success replays; no AI call/job |
 | POST `/attempts/{id}/start` | `{}` + key | 200 `{attemptId:UUID,startedAt:Instant,deadlineAt:Instant}` immutable start receipt; first start sets clock, retry never resets it; GET view for current section/state |
 | GET `/attempts/{id}` | none | 200 AttemptView; lazily expires/cancels as specified by engine, returns current server time; CANCELLED returns safe closure/reason, no slots |
 | PUT `/attempts/{id}/answers/{slotId}` | `{expectedRevision:number,value:ResponseValue}` + key | 200 AnswerAck; zero-based expectedRevision; belongs-to-form, active-section and time checks |
@@ -131,7 +133,7 @@ Administrative asset/stimulus/bundle import is initially a validated internal im
 
 ## Errors, concurrency and compatibility
 
-400 malformed JSON; 401 UNAUTHENTICATED; 403 FORBIDDEN/CSRF_FAILED; 404 unknown or unauthorized object; 409 REVISION_CONFLICT/IDEMPOTENCY_CONFLICT/ATTEMPT_CLOSED/SECTION_CLOSED/RESULT_NOT_READY/CONCURRENT_MODIFICATION; 410 CONTENT_WITHDRAWN; 413 payload too large; 422 VALIDATION_ERROR/INSUFFICIENT_UNSEEN_INVENTORY/INSUFFICIENT_ELIGIBLE_INVENTORY/CONSTRAINT_CONFLICT/RIGHTS_BLOCKED/UNSUPPORTED_TYPE; 429 RATE_LIMITED with Retry-After; 503 TEMPORARILY_UNAVAILABLE/SEARCH_EXHAUSTED/TIMEOUT. SEARCH_EXHAUSTED details must explicitly avoid claiming infeasibility. Staff may retrieve richer assembly diagnostics; student errors never reveal bank candidates or keys.
+400 malformed JSON; 401 UNAUTHENTICATED; 403 FORBIDDEN/CSRF_FAILED; 404 unknown or unauthorized object; 409 REVISION_CONFLICT/IDEMPOTENCY_CONFLICT/ATTEMPT_CLOSED/SECTION_CLOSED/RESULT_NOT_READY/CONCURRENT_MODIFICATION/CONCURRENT_ATTEMPT_EXISTS; 410 CONTENT_WITHDRAWN; 413 payload too large; 422 VALIDATION_ERROR/INSUFFICIENT_UNSEEN_INVENTORY/INSUFFICIENT_ELIGIBLE_INVENTORY/CONSTRAINT_CONFLICT/RIGHTS_BLOCKED/UNSUPPORTED_TYPE; 429 RATE_LIMITED with Retry-After; 503 TEMPORARILY_UNAVAILABLE/SEARCH_EXHAUSTED/TIMEOUT. SEARCH_EXHAUSTED details must explicitly avoid claiming infeasibility. Staff may retrieve richer assembly diagnostics; student errors never reveal bank candidates or keys.
 
 All POST commands and answer PUT require Idempotency-Key (opaque 1–128 safe ASCII chars). Scope is actor+method+normalized route including target ID. Store canonical body hash, original status/body and side effects in one transaction. Same key/body replays; different body returns 409. Concurrent duplicate keys serialize through unique constraints. Failed validation creates no success record. Retry only network/429/503 failures with bounded backoff; do not blindly retry revision conflicts. Ownership is rechecked before replay, and withdrawal guards suppress replay of any now-restricted content. Start receipts contain no question payload, so replay cannot bypass current-section delivery; consumers GET the current view after a start receipt. A new start request on an already-started attempt returns the existing receipt; a never-started cancelled/withdrawn attempt returns 410.
 
@@ -139,9 +141,9 @@ Guarantee replay within the retention window in [database](DATABASE_DESIGN.md); 
 
 Breaking changes require an ADR, impact list, migration/compatibility plan, updated schemas and contract tests before merging consumers. Additive optional fields may remain v1 only if strict validators/clients are updated in a coordinated release. Question schema version and scoring policy version are independent of HTTP v1; old frozen artifacts must remain readable and scoreable.
 
-## Reconciliation constraints (PROPOSED)
+## Reconciliation constraints (ADR-004 H1 approved; other choices PROPOSED)
 
-Admission/fixed-retake/section uniqueness are proposed owner choices H1–H3 in ADR-004; strict personalized no-repeat is now an owner requirement under ADR-007. H1 applies to repeated fixed-form attempts, not as a substitute for per-user allocation locking. Implement their accepted version consistently across contracts and DB. New error mappings: 409 CONCURRENT_ATTEMPT_EXISTS (existingAttemptId belongs to caller only), FORM_NOT_OPEN; 410 FORM_UNAVAILABLE. Start on a never-started withdrawn/expired-admission/rights-blocked form commits CANCELLED then returns FORM_UNAVAILABLE. Already-started receipts replay without new admission, but effective holds still block restricted access. POST creation replay is the original receipt, not current state; GET reconciles lifecycle before display. Availability is finite/non-null and `[from,until)` at both create and first start; no required full-duration fit inside the admission window. Active timers may finish later.
+ADR-004 H1 is owner-approved: one CREATED/IN_PROGRESS attempt per student across PERSONALIZED_PRACTICE and PUBLISHED_FIXED. H2 admission and H3 section uniqueness remain proposed. H1 supplements the per-user allocation lock and immutable assignment history. For a new, different-key creation request, reconcile an elapsed IN_PROGRESS attempt or a CREATED attempt past its committed `startBefore` before deciding conflict; a valid active attempt returns 409 CONCURRENT_ATTEMPT_EXISTS. Its typed `existingAttemptId` identifies only the authenticated student's attempt, which the student may GET and resume when its state permits. Authenticate and scope the existing-attempt lookup by session user before returning any ID; never disclose another user's attempt. If the named `uq_one_active_attempt_per_user` index rejects a racing insert, roll back the attempted creation, recheck the caller's active attempt and return the same 409 projection. A matching committed creation key/body replays the original 201 receipt before active-conflict handling, even if its attempt is now closed; a changed body under that key remains 409 IDEMPOTENCY_CONFLICT. A new attempt after closure still needs current admission/rights checks. Other proposed error mappings remain 409 FORM_NOT_OPEN and 410 FORM_UNAVAILABLE. Start on a never-started withdrawn/expired-admission/rights-blocked form commits CANCELLED then returns FORM_UNAVAILABLE. Already-started receipts replay without new admission, but effective holds still block restricted access. GET reconciles lifecycle before display. Proposed H2 availability is finite/non-null and `[from,until)` at both create and first start; no required full-duration fit inside the admission window. Active timers may finish later.
 
 `BlueprintConfig.sections[].id` is the opaque, unique identifier of one blueprint section entry. `BlueprintConfig.sections[].section` is the domain `Section` enum used to select questions and appears on the sealed form section. Every `Quota.sectionId` must exactly reference an entry `id`; it never references the enum. The current one-entry-per-enum restriction is the proposed ADR-004 H3 behavior, not an approved contract: until owner disposition, implementations must preserve this proposal and cannot infer that repeated enum values are accepted. Blueprint validation rejects unknown or duplicate entry IDs, duplicate `(sectionId,dimension,value)` quota tuples, invalid integer bounds, and—only if H3 is approved—the duplicate enum values it prohibits. It also validates Quota discriminators and taxonomy-version/node membership as defined in assembly. UUID format alone does not prove SKILL membership. Difficulty quotas use targetDifficulty, not predicted values.
 
@@ -187,6 +189,10 @@ Normative `POST /attempts` examples use a new `Idempotency-Key` for each logical
 {attemptId:"a1",formId:"f1",state:"CREATED",formMode:"PERSONALIZED_PRACTICE",
  reuseMode:"NEW_ONLY",reusePolicyVersion:"reuse/1",startBefore:"2026-10-16T10:15:00Z"}
 
+// 409: a different creation request finds this student's active attempt, in either mode.
+{error:{code:"CONCURRENT_ATTEMPT_EXISTS",message:"An active attempt already exists",
+ requestId:"r4",details:{existingAttemptId:"a1"}}}
+
 // 422: the request is feasible only by repeating this student's prior assignment.
 {error:{code:"INSUFFICIENT_UNSEEN_INVENTORY",message:"Not enough unseen eligible questions",
  requestId:"r1",details:{
@@ -208,7 +214,7 @@ Shortage is an explicit no-allocation response: no form, attempt, history or gen
 
 On success, pin the immutable mode/reuse policy and show it on attempt/result/history. Extend history entries with formMode/reuseMode. Personal form ownership is server-enforced; students cannot request another personal formId or turn it into a fixed form. Fixed mode creation records all assigned identities in the same user history as personal mode; repeated fixed/review content is explicitly disclosed, not NEW_ONLY.
 
-POST personal creation performs the [assembly transaction](../specifications/EXAM_ASSEMBLY_SPEC.md). A duplicate success key never allocates again. Different keys serialize final allocation per user across all profiles and modes. If two valid NEW_ONLY requests both succeed their assigned identity/equivalence sets are disjoint. Concurrent same-form fixed requests additionally obey H1. Owner history checks happen even after idempotency retention expires; they do not depend on old response bodies.
+POST personal creation performs the [assembly transaction](../specifications/EXAM_ASSEMBLY_SPEC.md). A duplicate success key never allocates again. Different keys serialize final allocation per user across all profiles and modes; while any valid active attempt remains, the later request receives CONCURRENT_ATTEMPT_EXISTS with no new form or assignment. A later NEW_ONLY attempt after closure still excludes every prior stable identity/current confirmed equivalent. Owner history checks happen even after idempotency retention expires; they do not depend on old response bodies.
 
 Creation needs its own per-user rate budget (proposed 1 token/second, burst 2) using the existing shared bucket mechanism, with 429/Retry-After and no allocation. It is separate from save/submit buckets; cap bounded-search work/connections and avoid letting malicious creation deplete other users' capacity. No LLM/validation work is done on this path. General web/DB availability remains necessary, factory/provider availability does not.
 
