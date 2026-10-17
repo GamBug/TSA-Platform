@@ -1,12 +1,29 @@
 # Architectural decisions and open questions
 
-Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions; ADR-004 H1, H2, H3, the MVP Start TTL and non-retroactive ordinary admission-schedule edits have separate, scoped HUMAN OWNER approvals. Independent review by Antigravity is documented in [ARCHITECTURE_REVIEW_001](../reviews/ARCHITECTURE_REVIEW_001.md); Codex's disposition and changes are in [REVIEW_RESOLUTION_001](../reviews/REVIEW_RESOLUTION_001.md). Neither review is owner approval. Phase 02.75 authorizes documentation refinement only.
+Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions; ADR-004 H1, H2, H3, the MVP Start TTL and non-retroactive ordinary admission-schedule edits have separate, scoped HUMAN OWNER approvals. Independent review by Antigravity is documented in [ARCHITECTURE_REVIEW_001](../reviews/ARCHITECTURE_REVIEW_001.md); Codex's disposition and changes are in [REVIEW_RESOLUTION_001](../reviews/REVIEW_RESOLUTION_001.md). Neither review is owner approval. Phase 02.75 remains documentation-only by default; the scoped G0 implementation authorization below is the explicit owner authorization for development work and does not authorize paid LLM API calls, production readiness or unresolved ADR changes.
 
 ## Lightweight process
 
 Keep significant decisions here until size warrants individual `ADR-NNN-title.md` files in this directory. Each ADR records problem, alternatives, tradeoffs, choice, consequences, migration/rollback and status. Trivial internal naming does not require an ADR. Human approval must record approver, date, exact ADR revision/content scope, conditions and a durable reference or a faithfully recorded owner instruction. If the instruction originated in chat, copy its actionable approval wording into this record; do not depend on chat accessibility. An independent agent review is advice, never owner approval.
 
 States: DRAFT → PROPOSED → APPROVED → SUPERSEDED. A rejected proposal remains DRAFT with rejection reason or is superseded by a new proposal. Reopening an approved contract requires impact analysis listing affected modules, database/data migration, consumers, tests, rollout and rollback. Do not silently edit approved semantics. Approval applies only to named revision/scope, not later edits. No new infrastructure merely because it appears in research.
+
+## G0 — Scoped implementation authorization
+
+- Status: AUTHORIZED SCOPE ONLY; this is not approval of any ADR, production readiness, deployment, real-user collection or a downstream gate.
+- Approval identity: human project owner.
+- Date: 2026-10-17 (Asia/Bangkok).
+- Durable evidence: the owner's TASK FOUND-004 instruction in this session, recorded here so the authorization does not depend on chat availability.
+- Exact owner authorization:
+
+  > The human project owner explicitly authorizes development and implementation of TSA-Platform.
+  >
+  > Paid LLM API calls are prohibited until separately authorized by the owner.
+
+- Permitted scope: frontend, backend and database development; automated tests and local development; local LLM inference; free-tier LLM API usage only when it causes no charges; Question Factory development and evaluation; TSA dataset research and preparation; and preparation for real-user testing and deployment.
+- AI-provider spending condition: no paid LLM API request, billable retry, overage or other chargeable LLM API use is authorized by this record. A separate owner authorization is required before any paid LLM API call.
+- Conditions preserved: copyright and content licensing, personal-data protection and consent, security and release-readiness checks, human question-publication approval, AI validation and human approval, and all existing unresolved ADR technical decisions remain in force.
+- Gate effect: this records the owner-authorized G0 implementation scope. Task-specific accountable ownership, approved contract boundaries and G1–G3 evidence remain required; no production-readiness or release claim follows from this record.
 
 ## ADR-001 — Transactional application stack
 
@@ -88,6 +105,7 @@ Scoped approval (non-retroactive ordinary admission-schedule edits): APPROVED BY
 
 | Question | Proposed direction / missing input | Owner / task |
 |---|---|---|
+| Record scoped G0 implementation authorization? | RECORDED 2026-10-17: development and implementation are authorized within the scope and conditions above; paid LLM API calls remain prohibited until separately authorized. This is not approval of any ADR or production readiness. | Human owner / FOUND-004 |
 | Approve initial technical/scope baseline? | ADR-001–004 plus ADR-007 as a coherent website bundle; ADR-005/008 for factory; document changes before dependent coding | Human owner / FOUND-004 |
 | Who writes and independently reviews Vietnamese content? | Two distinct human actors; availability unknown | Human owner / DATA-002 |
 | Enable a full TSA reference profile later? | Verify original structure image and newer official guidance; sufficient approved inventory | Human owner / FOUND-003, CONTENT-001 |
@@ -96,7 +114,7 @@ Scoped approval (non-retroactive ordinary admission-schedule edits): APPROVED BY
 | Approve retention and incident invalidation policy? | Review proposed windows, withdrawal and erasure consequences | Human owner / OPS-001 |
 | Which AI provider/model, input permissions and quality targets? | Evaluate early in independent Track A; no vendor preference approved | Human owner / AI-001/002 |
 
-FOUND-004 has an independent review artifact but remains incomplete until the owner records a disposition. FOUND-005 owns reconciliation, not architectural approval. No approval is inferred from the reviewer's APPROVE_WITH_CHANGES recommendation.
+FOUND-004 has an independent review artifact and now has a scoped G0 implementation authorization record. Its broader owner disposition remains incomplete for unresolved ADR mechanisms, provider/data/budget/retention/rights/reviewer inputs and any other listed conditions. FOUND-005 owns reconciliation, not architectural approval. No approval is inferred from the reviewer's APPROVE_WITH_CHANGES recommendation.
 
 ## Phase 02.5 history and continuing owner choices
 

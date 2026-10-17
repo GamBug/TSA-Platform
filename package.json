@@ -1,0 +1,16 @@
+{
+  "name": "tsa-platform",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p packages/contracts/tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  }
+}
