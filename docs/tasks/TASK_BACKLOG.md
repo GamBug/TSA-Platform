@@ -15,7 +15,7 @@ Historical Phase 02.5 update: 2026-10-16. FOUND-005 is assigned to Codex by the 
 ## FOUND-005 — Architecture review reconciliation
 
 - Objective/scope: disposition every finding in ARCHITECTURE_REVIEW_001; reconcile justified contract changes without application code or scope expansion.
-- Prerequisites: FOUND-001 and independent review artifact under FOUND-004; no architecture approval required for this documentation assignment.
+- Prerequisites: FOUND-001 and an independent review artifact. The artifact informs FOUND-004 but does not require FOUND-004 milestone completion or owner disposition; no architecture approval was required for this historical documentation assignment.
 - Files: docs/reviews/REVIEW_RESOLUTION_001.md; relevant architecture/engine/assembly/quality/backlog/decision documents; PROJECT_STATE and LAST_HANDOFF. Original review and research read-only. Codex owns these shared-file updates for this task.
 - Deliverables: finding-to-disposition traceability, proposed corrected contracts, aligned acceptance/tests and approval queue. Acceptance: all 15 numbered findings and unnumbered actionable comments addressed; immutable input hashes preserved; no false approval/runtime claims.
 - Required verification: documentation checker, finding coverage, PRNG reference-vector calculations, manual API/DB/state/pipeline consistency review, protected-input hash audit and patch/Git file-scope inspection.
@@ -38,7 +38,7 @@ All future paths below are proposed ownership scopes, not existing files. Before
 ## FOUND-004 — Independent review and human baseline approval
 
 - Objective/scope: review ADR-001–008, identify conflicts and record owner's approval/conditions; do not implement.
-- Prerequisites: FOUND-001. Files: read all architecture/spec contracts; assigned reviewer writes review findings in docs/decisions/OPEN_DECISIONS.md through coordinated integrator, or provides read-only review for integrator.
+- Prerequisites: FOUND-001 and the current refinement evidence from FOUND-006. Files: read all architecture/spec contracts; assigned reviewer writes review findings in docs/decisions/OPEN_DECISIONS.md through coordinated integrator, or provides read-only review for integrator.
 - Deliverables: actionable findings with severity, affected files and resolution; durable human decision evidence. Acceptance: each blocking finding resolved or explicitly deferred with impact; current ADR-001–008 have owner disposition; implementation gate unambiguous.
 - Required tests: document consistency/links, scenario walkthrough for submit/save/expiry, snapshot mutation and rights withdrawal; no runtime claims.
 - Priority P0; complexity M; risks: reviewer approval mistaken for owner authorization. Status: BLOCKED on owner decision. Independent review portion: Antigravity's [review](../reviews/ARCHITECTURE_REVIEW_001.md), dated 2026-10-16, received. Reconciliation tracked in FOUND-005. Remaining accountable decision role: human owner; no agent is assigned authority to approve. Acceptance additionally requires owner disposition of current ADR-004 H2–H3, ADR-007/008 and affected revised scopes; H1 is approved globally across all modes, while ADR-004 remains PROPOSED as a whole.
@@ -53,13 +53,13 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
-Reconciliation acceptance (HI-04/CR-02): requires FOUND-005/006 completion and FOUND-004 owner disposition in addition to G1. One runtime schema source; CI regenerates committed OpenAPI/client artifacts and fails on content drift; producer/consumer positive and negative fixtures are required. A changed response or stale generated file must fail; an optional field passes only after coordinated regeneration and strict-consumer checks. Pin the documented PRNG vectors plus complete search/canonicalization fixtures before parallel consumers.
+Reconciliation acceptance (HI-04/CR-02): starts only after G0, whose owner disposition reviews the completed FOUND-005/006 evidence. FOUND-002's accepted deliverables establish G1; G1 is not a prerequisite of FOUND-002. One runtime schema source; CI regenerates committed OpenAPI/client artifacts and fails on content drift; producer/consumer positive and negative fixtures are required. A changed response or stale generated file must fail; an optional field passes only after coordinated regeneration and strict-consumer checks. Pin the documented PRNG vectors plus complete search/canonicalization fixtures before parallel consumers.
 
 - Objective/scope: initialize approved stack, schemas/client artifacts, CI and development run instructions; freeze renderer/PRNG/canonicalization behavior with fixtures.
-- Prerequisites: FOUND-004, G1, owner implementation assignment. Files: package manifests, src/contracts/**, src/app skeleton, tests/contract/**, CI config, approved development docs; no bank/attempt features yet.
+- Prerequisites: G0 and owner implementation assignment. Files: package manifests, src/contracts/**, src/app skeleton, tests/contract/**, CI config, approved development docs; no bank/attempt features yet.
 - Deliverables: pinned supported versions, runtime validators/OpenAPI/student-safe types, reproducible local/CI entry points. Acceptance: a fresh checkout installs/builds from lockfile; question/blueprint/API examples validate; private types cannot import into student bundle; all commands documented.
 - Required tests: typecheck/build, strict schema fixtures, unknown-field/type rejection, generated contract drift checks. Required version/license/advisory review recorded.
-- Priority P0; complexity M; risks: library/version compatibility, over-scaffolding. Status: BLOCKED (G1). Suggested implementer: full-stack foundation engineer; review: independent architecture/security reviewer. Actual assignee: none.
+- Priority P0; complexity M; risks: library/version compatibility, over-scaffolding. Status: BLOCKED (G0/owner assignment). Suggested implementer: full-stack foundation engineer; review: independent architecture/security reviewer. Actual assignee: none.
 
 ## DATA-001 — Relational integrity foundation
 
@@ -79,9 +79,11 @@ Phase 02.75 acceptance: factory service cannot read student histories/attempts o
 
 Reconciliation acceptance (HI-05/MD-05): role-test diagnostic projections and new BANK_MANAGER diagnostics read; EXAM_MANAGER alone cannot enumerate manifest/candidate pools. Own-object authorization occurs before save-bucket creation; unauthorized IDs create no buckets. Coordinate shared throttling contract with EXAM-001 and DB schema from DATA-001.
 
-- Objective/scope: OIDC/session adapter, role policies and own-object checks; local stub only if explicitly approved.
-- Prerequisites: FOUND-002, DATA-001, G2 for production configuration. Files: src/modules/identity/**, auth HTTP adapters, tests/security/auth/**.
-- Deliverables: secure sessions, CSRF/origin checks, roles, staff MFA integration and negative fixtures. Acceptance: users cannot inspect others' attempts; authors cannot self-approve; disabled sessions/roles enforced server-side.
+- Objective/scope: OIDC/session adapter, role policies and own-object checks; local synthetic-data stub only if explicitly approved.
+- Development prerequisites: G0, FOUND-002, DATA-001 and explicit owner-scoped approval for a local synthetic-data stub. G2 and production provider configuration are not prerequisites for this authorized local development path. Files: src/modules/identity/**, auth HTTP adapters, tests/security/auth/**.
+- Production configuration prerequisites: G2, the completed ADR-006 data-flow/provider review, and separate owner authorization for real-user deployment. These do not authorize production deployment merely because local development acceptance exists.
+- Deliverables: secure sessions, CSRF/origin checks, roles, staff MFA integration and negative fixtures. Development acceptance: users cannot inspect others' attempts; authors cannot self-approve; disabled sessions/roles enforced server-side. Production acceptance additionally requires the approved production issuer, audience, redirects, data flow and deployment controls.
+- Lifecycle interpretation: G2 consumes the accepted local AUTH-001 security/authorization evidence. The post-G2 production-configuration sub-acceptance is not a prerequisite to complete AUTH-001 in the task/gate graph and cannot create a G2 cycle.
 - Required tests: cookie/session invalidation, issuer/audience/redirect validation, CSRF, role escalation, BOLA and object-property access. Stub must be impossible to enable in production.
 - Priority P0; complexity M; risks: provider/data policy unknown. Status: BLOCKED (foundation and identity decision). Suggested implementer: backend/security engineer; review: independent security reviewer. Actual assignee: none.
 
@@ -100,7 +102,7 @@ Phase 02.75 acceptance: demonstrate two disjoint mini-profile attempts for one s
 Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publication, current-group joins preserve prior history after merge; late-equivalence incident recorded without rewriting snapshots. Canonical factory imports verify hash/receipt atomically, reject changed content under same key and never inherit APPROVED from a package.
 
 - Objective/scope: source/rights registration, validated question/stimulus/bundle import, versions, workflow and exact/flagged duplicate checks.
-- Prerequisites: DATA-001, AUTH-001 and frozen contracts. Files: src/modules/sources/**, src/modules/bank/**, staff bank HTTP adapters, tests/integration/bank/**.
+- Prerequisites: DATA-001, AUTH-001 and G1 frozen contracts. Files: src/modules/sources/**, src/modules/bank/**, staff bank HTTP adapters, tests/integration/bank/**.
 - Deliverables: import dry-run/report, author/review commands, approval/quarantine audit and eligibility pointer. Acceptance: edits create versions; no approval carryover/self-approval; rights/validator failures block publication; holds immediately affect delivery checks.
 - Required tests: workflow transitions, duplicate fingerprints, stale revision/approval hash, source revocation, concurrent approve/withdraw and asset sanitization.
 - Priority P0; complexity L; risks: approval bypass, unsafe content, rights race. Status: BLOCKED (DATA-001/AUTH-001). Suggested implementer: bank/backend engineer; review: domain/security reviewer. Actual assignee: none.
@@ -269,12 +271,30 @@ The stable IDs above, including their status and recorded historical evidence, a
 
 | Lifecycle gate / track | Dependency ordering | Verifiable exit evidence or blocker |
 |---|---|---|
-| G0 — architecture readiness | FOUND-006 → FOUND-004; FOUND-003 source verification and RESEARCH-002 research planning may be assigned early. | Owner dispositions distinguish approved implementation authority from unresolved ADR-001–008; provider, budget, rights, retention and reviewer-capacity limits remain explicit where undecided. |
-| G1 — shared contract readiness | After implementation authorization, FOUND-002 freezes compatible consumer contracts before BANK-001, AI-001 or FACTORY-001 rely on them. | Versioned canonical schema, provenance/rights/equivalence/workflow terms, `factory-package/1` semantics, draft-only import boundary, jobs/job-kind and safe DTO/API fixtures support independently executable factory and web/bank consumers without a live provider. |
-| G2 — controlled publication readiness | DATA-001 + AUTH-001 → BANK-001. It follows G1 for production integration; lawful manually authored seed content may be prepared in parallel. | Rights evidence, immutable versions, validation/review/equivalence records, human-only approval and eligible-bank publication are demonstrably separate from draft creation. Factory credentials cannot approve or publish. |
-| G3 — integration readiness | A2 factory prototype (FACTORY-001, including FACTORY-002/003), AI-002, G2, and the technical-MVP attempt/scoring slice each meet their own exit criteria before integration evidence is recorded. | Controlled import accepts the same valid package twice as one durable receipt, rejects changed content under the same identity, and imports no partial stimulus bundle. A human-approved subset becomes eligible bank stock without changing factory, assembly or exam contracts. |
+| G0 — architecture readiness | FOUND-006 → FOUND-004 → G0. FOUND-003 source verification and RESEARCH-002 research planning may be assigned early, but no implementation starts until G0 passes. | Human owner records scoped implementation authorization while unresolved ADR/provider/budget/rights/retention/reviewer-capacity limits remain explicit. No gate is currently passed. |
+| G1 — shared contract readiness | G0 → FOUND-002 → G1. FOUND-007 is a completion contribution to FOUND-002, not a prerequisite for starting its scoped foundation work. | Accepted FOUND-002 evidence freezes the versioned canonical schema, provenance/rights/equivalence/workflow terms, `factory-package/1` semantics, draft-only import boundary, jobs/job-kind and safe DTO/API fixtures. G1 is established by FOUND-002; it never gates FOUND-002 itself. |
+| G2 — controlled publication readiness | G1, DATA-001 and AUTH-001 permit BANK-001 ingestion and BANK-002 review/publication work. Verified BANK-001 ingestion **and** BANK-002 publication evidence establish G2. | Exact-version rights, immutable-version, validation, review/equivalence and human-only approval evidence proves that an eligible-bank publication is separate from draft creation. Factory credentials cannot approve or publish. G2 does not gate either producer. |
+| G3 — integration readiness | FACTORY-001 (including FACTORY-002/003), AI-002, G2, the technical-MVP assembly/attempt/scoring evidence, and INT-002 controlled-import proof → G3 → INT-001. | INT-002 demonstrates idempotent same-package receipt, changed-identity rejection and all-or-none bundle import before G3 passes. A human-approved subset becomes eligible bank stock without changing factory, assembly or exam contracts. G3 does not gate any of its producers. |
 | Track A — AI Question Factory Research | RESEARCH-002 → AI-003; G1 → AI-001 → AI-002 and FACTORY-001 (FACTORY-002 → FACTORY-003) → INT-002 controlled-import proof → G3 integration readiness → INT-001 | Never depends on a website runtime. Live calls require ADR-FACTORY and ADR-OPS approval plus budget, provider/data-rights, retention and review-capacity authorization. |
 | Track B — TSA Practice Web Engineering | DATA-002/003 → DATA-001 + AUTH-001 → BANK-001/002 → ASSEMBLY-001/002 → EXAM-001/002 + SCORE-001 → WEB-003/004 | Never calls or waits for an LLM. Only G2-published content can enter an assembly; shortage never triggers generation or silent reuse. |
+
+### Parent milestones and execution-card completion
+
+The retained cards are outcome-level milestones; the later cards are bounded execution units. A child may start once its own stated prerequisites and authorization are satisfied. A child never waits for the parent milestone to be marked complete when that child supplies the parent's completion evidence. Conversely, a parent is not complete merely because a child begins: it requires the listed child acceptances **and** its own original acceptance criteria.
+
+| Parent milestone | Completion-contributing execution cards | Start/completion boundary that prevents a cycle |
+|---|---|---|
+| FOUND-002 | FOUND-007 | FOUND-002 starts after G0; FOUND-007's accepted taxonomy reconciliation is required before FOUND-002 freezes the G1 contract. |
+| DATA-002 | DATA-003 | DATA-003 prepares auditable manifest evidence; DATA-002 still requires its original authored-inventory and review acceptance. |
+| AI-002 | AI-003 | AI-003 supplies the held-out partition/leakage evidence; it may run under its direct research prerequisites before AI-002 completes. |
+| FACTORY-001 | FACTORY-002, FACTORY-003 | FACTORY-002/003 implement the planner/executor evidence; FACTORY-001 is not a prerequisite of either child. |
+| BANK-001 | BANK-002 | BANK-001's accepted ingestion evidence may be handed to BANK-002 before the BANK-001 outcome milestone is complete. BANK-002's accepted independent review/publication evidence then completes the parent outcome and jointly establishes G2. |
+| ASSEMBLY-001 | ASSEMBLY-002 | ASSEMBLY-002 may consume the accepted manifest-candidate interface, not full parent completion; its transaction acceptance completes the milestone. |
+| WEB-001 | WEB-003, WEB-004 | Each child follows its direct backend/contract prerequisites; their accepted catalog and delivery evidence, plus WEB-001's original acceptance, completes the vertical slice. |
+| TEST-001 | TEST-002 | TEST-002 supplies independent critical-invariant evidence after G3; TEST-001 retains its broader pilot matrix and does not block TEST-002. |
+| INT-001 | INT-002 | INT-002 is the narrow bridge proof before G3. It contributes the evidence that permits G3; only then can INT-001 begin its full integration outcome. |
+
+The phrases “accepted ingestion evidence” and “accepted manifest-candidate interface” are bounded internal deliverables, not parent-milestone completion states. They remain prose/acceptance requirements rather than additional lifecycle nodes; this distinction is included in the dependency-validation exclusions below.
 
 | Unresolved item | Must be resolved by | Blocks |
 |---|---|---|
@@ -361,12 +381,12 @@ The existing cards supply objective, prerequisites, file scope, deliverables, me
 ## BANK-002 — Independent review, equivalence and publication command
 
 - Objective: split the human publication boundary from BANK-001 ingestion so a bounded implementation owns only workflow authorization and eligibility transitions.
-- Prerequisites: G2, DATA-001, AUTH-001 and BANK-001 validated immutable drafts/import receipt; named independent human review process.
+- Prerequisites: DATA-001, AUTH-001, G1 and BANK-001's accepted ingestion evidence (validated immutable drafts/import receipt), plus a named independent human review process. This is not a prerequisite on BANK-001 milestone completion, and BANK-002 does not require G2: BANK-001 ingestion and BANK-002 publication evidence jointly establish G2.
 - Input specifications: QUESTION_FACTORY_SPEC controlled-publication section, QUESTION_REUSE_POLICY equivalence rules, API staff review contract, ADR-003/007.
 - Files/modules: `src/modules/bank/publication.ts`, `src/http/staff/reviews.ts`, `tests/integration/bank-publication.test.ts`.
 - Expected deliverables: exact-hash independent review decision, equivalence adjudication/audit, approval eligibility pointer and quarantine/revocation guard.
 - Acceptance criteria: author/factory operator self-approval fails; stale hash/new version cannot inherit approval; unresolved duplicate flags block approval; quarantine/revocation stops future eligibility; a canonical import receipt never asserts APPROVED.
-- Required verification: real-DB concurrent approve/withdraw serialization, workflow transition matrix, authorization/BOLA fixtures, equivalence merge/history preservation and safe error projection tests. Suggested agent capability: HIGH (Sol). Risk: High — rights and publication integrity. Status: PROPOSED, blocked on G2.
+- Required verification: real-DB concurrent approve/withdraw serialization, workflow transition matrix, authorization/BOLA fixtures, equivalence merge/history preservation and safe error projection tests. Suggested agent capability: HIGH (Sol). Risk: High — rights and publication integrity. Status: PROPOSED, blocked on DATA-001/AUTH-001, BANK-001 ingestion evidence and named review process.
 
 ## ASSEMBLY-002 — Per-student NEW_ONLY allocation transaction
 
@@ -411,7 +431,7 @@ The existing cards supply objective, prerequisites, file scope, deliverables, me
 ## INT-002 — Factory package import boundary proof
 
 - Objective: verify the narrow bridge independently of full exam UI: factory package receipt semantics, all-or-none import and draft-only publication boundary.
-- Prerequisites: FACTORY-003, BANK-001 and BANK-002 acceptance, G2 controlled publication readiness, and a human reviewer for the publication subset. This proof supplies the controlled-import evidence needed to establish integration readiness.
+- Prerequisites: FACTORY-003, BANK-001 ingestion evidence, BANK-002 acceptance, G2 controlled publication readiness, and a human reviewer for the publication subset. This proof supplies the controlled-import evidence required before G3 can pass; INT-001 starts only after G3.
 - Input specifications: `factory-package/1` contract in QUESTION_FACTORY_SPEC, BANK-001 import rules, BANK-002 publication rules, TEST_STRATEGY Q-01/Q-02/Q-16.
 - Files/modules: `tests/integration/factory-import.spec.ts`, `tests/fixtures/factory-package.json`, `docs/quality/factory-import-evidence.md`.
 - Expected deliverables: repeated-import receipt proof, changed-key conflict proof, bundle rollback proof and independently reviewed subset evidence; factory remains stopped after export.
@@ -420,8 +440,8 @@ The existing cards supply objective, prerequisites, file scope, deliverables, me
 
 ## Recommended dependency sequence after owner approval
 
-1. G0: FOUND-007, FOUND-003, RESEARCH-002, DATA-003 and AI-003 may proceed in parallel with separate owners.
-2. G1: FOUND-002 first; then AI-001, DATA-001 and AUTH-001. FACTORY-002 may use only the frozen fixture contracts.
-3. G2 Track B: DATA-002 → BANK-001 → BANK-002; ASSEMBLY-001 → ASSEMBLY-002; then EXAM-001, EXAM-002 and SCORE-001. WEB-003 can start after ASSEMBLY-002; WEB-004 follows attempt/score acceptance.
+1. Before G0: FOUND-003 and RESEARCH-002 may undertake only their explicitly authorized planning/evidence work with separate owners. After G0 passes, FOUND-007, DATA-003, AI-003 and FOUND-002 may start; FOUND-007 must be accepted before FOUND-002 freezes the G1 contracts.
+2. G1: FOUND-002 establishes G1; then AI-001, DATA-001 and the authorized AUTH-001 local-development path may proceed. FACTORY-002 may use only the frozen fixture contracts.
+3. G2 Track B: DATA-002 preparation and BANK-001 ingestion may proceed after their actual prerequisites. BANK-002 independently supplies the review/publication evidence; verified BANK-001 plus BANK-002 evidence establishes G2. ASSEMBLY-001 → ASSEMBLY-002; then EXAM-001, EXAM-002 and SCORE-001. WEB-003 can start after ASSEMBLY-002; WEB-004 follows attempt/score acceptance.
 4. Track A remains independent: AI-001 → AI-002 and FACTORY-002 → FACTORY-003. It does not block the manually seeded Technical MVP.
 5. G3: INT-002 supplies the narrow import proof, then INT-001 and TEST-002/TEST-001/OPS-001 produce integrated/pilot evidence. No pilot begins without recorded owner scope and critical verification results.
