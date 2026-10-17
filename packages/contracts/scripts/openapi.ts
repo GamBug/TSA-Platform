@@ -18,6 +18,11 @@ export function generateStudentContractsOpenApi(): Record<string, unknown> {
   registry.register("StudentSlot", contracts.StudentSlotSchema);
   registry.register("CreationReceipt", contracts.CreationReceiptSchema);
   registry.register("AttemptView", contracts.AttemptViewSchema);
+  registry.register("AnswerSubmissionRequest", contracts.AnswerSubmissionRequestSchema);
+  registry.register("AnswerAck", contracts.AnswerAckSchema);
+  registry.register("ResultView", contracts.ResultViewSchema);
+  registry.register("AttemptHistoryItem", contracts.AttemptHistoryItemSchema);
+  registry.register("AttemptHistoryPage", contracts.AttemptHistoryPageSchema);
   registry.register("ResponseValue", contracts.ResponseValueSchema);
   registry.register("ErrorResponse", contracts.ErrorResponseSchema);
   registry.register("StudentShortage", contracts.StudentShortageSchema);
