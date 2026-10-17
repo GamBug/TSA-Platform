@@ -20,3 +20,28 @@ unless the assignment requires it.
 - Follow [test strategy](docs/quality/TEST_STRATEGY.md); record executed commands and observed results. Missing tests are not passing tests.
 - On material state changes, coordinate updates to backlog, project state and [latest handoff](docs/agents/LAST_HANDOFF.md). Use the [template](docs/agents/HANDOFF_TEMPLATE.md). Essential knowledge must live here, not only in chat.
 - This is unofficial practice. Do not assert HUST affiliation, official scoring equivalence, content reuse permission, or unverified examination rules.
+
+## Communication Language
+
+English is mandatory for all AI coding agents.
+
+This requirement applies to:
+- Progress messages
+- Final reports
+- Technical explanations
+- Code comments
+- Documentation
+- Git commit messages
+- Handoff notes
+
+Do not respond in Vietnamese, regardless of:
+- The user's interface language
+- The operating system locale
+- Languages used in previous conversations
+- Languages appearing in repository documents
+
+If a task prompt does not specify a language,
+default to English.
+
+This rule does not require translating historical
+documents or modifying existing text unnecessarily.
