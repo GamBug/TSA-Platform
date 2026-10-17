@@ -2,6 +2,409 @@
   "components": {
     "parameters": {},
     "schemas": {
+      "AnswerAck": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "savedAt": {
+            "type": "string"
+          },
+          "slotId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "optionId": {
+                    "minLength": 1,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "type": {
+                    "enum": [
+                      "SINGLE_CHOICE"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "optionId"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "optionIds": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "enum": [
+                      "MULTIPLE_CHOICE"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "optionIds"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "TRUE_FALSE_GROUP"
+                    ],
+                    "type": "string"
+                  },
+                  "values": {
+                    "additionalProperties": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "type",
+                  "values"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slotId",
+          "value",
+          "revision",
+          "savedAt"
+        ],
+        "type": "object"
+      },
+      "AnswerSubmissionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedRevision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "optionId": {
+                    "minLength": 1,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "type": {
+                    "enum": [
+                      "SINGLE_CHOICE"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "optionId"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "optionIds": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "enum": [
+                      "MULTIPLE_CHOICE"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "optionIds"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "TRUE_FALSE_GROUP"
+                    ],
+                    "type": "string"
+                  },
+                  "values": {
+                    "additionalProperties": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "type",
+                  "values"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "value"
+        ],
+        "type": "object"
+      },
+      "AttemptHistoryItem": {
+        "additionalProperties": false,
+        "properties": {
+          "attemptId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "closedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "domain": {
+            "enum": [
+              "MATH",
+              "READING",
+              "SCIENCE"
+            ],
+            "type": "string"
+          },
+          "formId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "formMode": {
+            "enum": [
+              "PERSONALIZED_PRACTICE",
+              "PUBLISHED_FIXED"
+            ],
+            "type": "string"
+          },
+          "reuseMode": {
+            "enum": [
+              "NEW_ONLY",
+              "REVIEW_ALLOWED",
+              "FIXED_AS_PUBLISHED"
+            ],
+            "type": "string"
+          },
+          "score": {
+            "additionalProperties": false,
+            "properties": {
+              "correctCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "percentage": {
+                "pattern": "^(?:0|[1-9]\\d?|100)\\.\\d{2}$",
+                "type": "string"
+              },
+              "totalCount": {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "correctCount",
+              "totalCount",
+              "percentage"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "CREATED",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "EXPIRED",
+              "GRADED",
+              "CANCELLED",
+              "INVALIDATED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "attemptId",
+          "formId",
+          "domain",
+          "formMode",
+          "reuseMode",
+          "state",
+          "startedAt",
+          "closedAt",
+          "score"
+        ],
+        "type": "object"
+      },
+      "AttemptHistoryPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attemptId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "closedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "domain": {
+                  "enum": [
+                    "MATH",
+                    "READING",
+                    "SCIENCE"
+                  ],
+                  "type": "string"
+                },
+                "formId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "formMode": {
+                  "enum": [
+                    "PERSONALIZED_PRACTICE",
+                    "PUBLISHED_FIXED"
+                  ],
+                  "type": "string"
+                },
+                "reuseMode": {
+                  "enum": [
+                    "NEW_ONLY",
+                    "REVIEW_ALLOWED",
+                    "FIXED_AS_PUBLISHED"
+                  ],
+                  "type": "string"
+                },
+                "score": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "correctCount": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "percentage": {
+                      "pattern": "^(?:0|[1-9]\\d?|100)\\.\\d{2}$",
+                      "type": "string"
+                    },
+                    "totalCount": {
+                      "exclusiveMinimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "correctCount",
+                    "totalCount",
+                    "percentage"
+                  ],
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "startedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "state": {
+                  "enum": [
+                    "CREATED",
+                    "IN_PROGRESS",
+                    "SUBMITTED",
+                    "EXPIRED",
+                    "GRADED",
+                    "CANCELLED",
+                    "INVALIDATED"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "attemptId",
+                "formId",
+                "domain",
+                "formMode",
+                "reuseMode",
+                "state",
+                "startedAt",
+                "closedAt",
+                "score"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
       "AttemptView": {
         "additionalProperties": false,
         "properties": {
@@ -2629,6 +3032,119 @@
             "type": "object"
           }
         ]
+      },
+      "ResultView": {
+        "additionalProperties": false,
+        "properties": {
+          "attemptId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "correctCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "domain": {
+            "enum": [
+              "MATH",
+              "READING",
+              "SCIENCE"
+            ],
+            "type": "string"
+          },
+          "formMode": {
+            "enum": [
+              "PERSONALIZED_PRACTICE",
+              "PUBLISHED_FIXED"
+            ],
+            "type": "string"
+          },
+          "percentage": {
+            "pattern": "^(?:0|[1-9]\\d?|100)\\.\\d{2}$",
+            "type": "string"
+          },
+          "policyVersion": {
+            "enum": [
+              "practice-binary-v1"
+            ],
+            "type": "string"
+          },
+          "releasedAt": {
+            "type": "string"
+          },
+          "reuseMode": {
+            "enum": [
+              "NEW_ONLY",
+              "REVIEW_ALLOWED",
+              "FIXED_AS_PUBLISHED"
+            ],
+            "type": "string"
+          },
+          "scoreLabel": {
+            "enum": [
+              "UNOFFICIAL_PRACTICE"
+            ],
+            "type": "string"
+          },
+          "scoreRunId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "correctCount": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "section": {
+                  "enum": [
+                    "MATH",
+                    "READING",
+                    "SCIENCE"
+                  ],
+                  "type": "string"
+                },
+                "sectionId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "totalCount": {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "sectionId",
+                "section",
+                "correctCount",
+                "totalCount"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "totalCount": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attemptId",
+          "scoreRunId",
+          "domain",
+          "formMode",
+          "reuseMode",
+          "policyVersion",
+          "scoreLabel",
+          "correctCount",
+          "totalCount",
+          "percentage",
+          "sections",
+          "releasedAt"
+        ],
+        "type": "object"
       },
       "SearchExhaustedErrorResponse": {
         "additionalProperties": false,

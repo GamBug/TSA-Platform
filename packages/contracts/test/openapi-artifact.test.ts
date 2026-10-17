@@ -18,6 +18,13 @@ describe("student-safe OpenAPI artifact", () => {
     assert.equal(document.openapi, "3.1.0");
     assert.deepEqual(document.paths, {});
     assert.ok(document.components?.schemas?.StudentQuestion);
+    assert.ok(document.components?.schemas?.StudentSlot);
+    assert.ok(document.components?.schemas?.CreationReceipt);
+    assert.ok(document.components?.schemas?.AttemptView);
+    assert.ok(document.components?.schemas?.AnswerSubmissionRequest);
+    assert.ok(document.components?.schemas?.AnswerAck);
+    assert.ok(document.components?.schemas?.ResultView);
+    assert.ok(document.components?.schemas?.AttemptHistoryPage);
     assert.ok(document.components?.schemas?.DocumentedErrorResponse);
   });
 

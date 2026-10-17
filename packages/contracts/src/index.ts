@@ -440,6 +440,143 @@ export type Closure = z.infer<typeof ClosureSchema>;
 export type AttemptSection = z.infer<typeof AttemptSectionSchema>;
 export type AnswerAck = z.infer<typeof AnswerAckSchema>;
 
+/** The documented body for PUT /attempts/{id}/answers/{slotId}. The slot is route identity, never a canonical question ID. */
+export const AnswerSubmissionRequestSchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    value: ResponseValueSchema,
+  })
+  .strict();
+
+export type AnswerSubmissionRequest = z.infer<typeof AnswerSubmissionRequestSchema>;
+
+const PracticeScoreSchema = z
+  .object({
+    correctCount: z.number().int().nonnegative(),
+    totalCount: z.number().int().positive(),
+    percentage: z.string().regex(/^(?:0|[1-9]\d?|100)\.\d{2}$/, "Expected a 0.00 to 100.00 percentage"),
+  })
+  .strict()
+  .superRefine((score, context) => {
+    if (score.correctCount > score.totalCount) {
+      context.addIssue({ code: "custom", path: ["correctCount"], message: "Correct count must not exceed total count" });
+    }
+  });
+
+export const ResultSectionTotalSchema = z
+  .object({
+    sectionId: NonEmptyString,
+    section: SectionSchema,
+    correctCount: z.number().int().nonnegative(),
+    totalCount: z.number().int().positive(),
+  })
+  .strict()
+  .superRefine((section, context) => {
+    if (section.correctCount > section.totalCount) {
+      context.addIssue({ code: "custom", path: ["correctCount"], message: "Correct count must not exceed total count" });
+    }
+  });
+
+/**
+ * Student-safe released practice-score projection. It deliberately omits
+ * per-item keys, explanations, question versions, and authoring data.
+ */
+export const ResultViewSchema = z
+  .object({
+    attemptId: CanonicalUuid,
+    scoreRunId: CanonicalUuid,
+    domain: SectionSchema,
+    formMode: FormModeSchema,
+    reuseMode: ReuseModeSchema,
+    policyVersion: z.literal("practice-binary-v1"),
+    scoreLabel: z.literal("UNOFFICIAL_PRACTICE"),
+    ...PracticeScoreSchema.shape,
+    sections: z.array(ResultSectionTotalSchema).length(1),
+    releasedAt: Instant,
+  })
+  .strict()
+  .superRefine((result, context) => {
+    validateFormModeReuseMode(result, context);
+    const section = result.sections[0]!;
+    if (section.section !== result.domain) {
+      context.addIssue({ code: "custom", path: ["sections", 0, "section"], message: "MVP result section must equal result domain" });
+    }
+    if (section.correctCount !== result.correctCount || section.totalCount !== result.totalCount) {
+      context.addIssue({ code: "custom", path: ["sections", 0], message: "MVP section totals must equal result totals" });
+    }
+  });
+
+export const ReleasedReviewItemSchema = z
+  .object({
+    slotId: CanonicalUuid,
+    earned: z.union([z.literal(0), z.literal(1)]),
+    response: ResponseValueSchema.nullable(),
+    question: StudentSlotSchema,
+    correctAnswer: AnswerKeySchema,
+    explanation: BlocksSchema,
+  })
+  .strict()
+  .superRefine((item, context) => {
+    if (item.slotId !== item.question.slotId) {
+      context.addIssue({ code: "custom", path: ["question", "slotId"], message: "Review question must identify its item slot" });
+    }
+    validateAnswerKey(item.question.interaction, item.correctAnswer, (path, message) =>
+      context.addIssue({ code: "custom", path: ["correctAnswer", ...path], message }), []);
+    if (item.response !== null) {
+      validateResponse(item.question.interaction, item.response, (path, message) =>
+        context.addIssue({ code: "custom", path: ["response", ...path], message }), []);
+    }
+  });
+
+/**
+ * The documented released-only Result projection. This separate schema is the
+ * only student-facing DTO in this package that can carry keys/explanations.
+ */
+export const AuthorizedReleasedReviewSchema = ResultViewSchema.safeExtend({
+  items: z.array(ReleasedReviewItemSchema),
+})
+  .strict()
+  .superRefine((review, context) => {
+    if (review.items.length !== review.totalCount) {
+      context.addIssue({ code: "custom", path: ["items"], message: "Released review items must match total count" });
+    }
+    const slotIds = new Set(review.items.map((item) => item.slotId));
+    if (slotIds.size !== review.items.length) {
+      context.addIssue({ code: "custom", path: ["items"], message: "Released review item slot IDs must be unique" });
+    }
+  });
+
+export const AttemptHistoryItemSchema = z
+  .object({
+    attemptId: CanonicalUuid,
+    formId: CanonicalUuid,
+    domain: SectionSchema,
+    formMode: FormModeSchema,
+    reuseMode: ReuseModeSchema,
+    state: AttemptStateSchema,
+    startedAt: Instant.nullable(),
+    closedAt: Instant.nullable(),
+    score: PracticeScoreSchema.nullable(),
+  })
+  .strict()
+  .superRefine((item, context) => validateFormModeReuseMode(item, context));
+
+/** The documented GET /attempts caller-owned page; no user, slots, answers, keys, or explanations are accepted. */
+export const AttemptHistoryPageSchema = z
+  .object({
+    items: z.array(AttemptHistoryItemSchema),
+    nextCursor: z.string().min(1).nullable(),
+  })
+  .strict();
+
+export type PracticeScore = z.infer<typeof PracticeScoreSchema>;
+export type ResultSectionTotal = z.infer<typeof ResultSectionTotalSchema>;
+export type ResultView = z.infer<typeof ResultViewSchema>;
+export type ReleasedReviewItem = z.infer<typeof ReleasedReviewItemSchema>;
+export type AuthorizedReleasedReview = z.infer<typeof AuthorizedReleasedReviewSchema>;
+export type AttemptHistoryItem = z.infer<typeof AttemptHistoryItemSchema>;
+export type AttemptHistoryPage = z.infer<typeof AttemptHistoryPageSchema>;
+
 export const SectionDeficitSchema = z
   .object({
     sectionId: NonEmptyString,
