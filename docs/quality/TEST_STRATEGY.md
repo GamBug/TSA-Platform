@@ -82,12 +82,13 @@ Restore a database and matching assets into an isolated environment; verify form
 
 Phase 02.5 additions: [resolution](../reviews/REVIEW_RESOLUTION_001.md) maps each finding to regression requirements. Q-17 is the owner-approved H1 global active-attempt suite above: same-key replay, distinct-key conflict, cross-mode conflict, durable stale finalization, closure retake and NEW_ONLY history exclusion. Q-18 verifies owner-approved H2 admission boundaries, lazy/swept CREATED cancellation and no running-clock truncation; Q-19 verifies owner-approved MVP H3 one-domain form validation, typed quotas/taxonomy and aggregate sealing rollback while preserving future generic multi-section storage; Q-20 verifies lifecycle-pinned idempotency cleanup; Q-21 verifies shared save rate limits, retry behavior and authorization order; Q-22 verifies role-specific diagnostics and CI contract-drift failure. These augment Q-01–Q-16 and are NOT RUN. WEB-001 adds section-warning/timezone cases; SCORE-001 adds exact tie rounding. No full forensic answer history is expected; global usage is analytics, not a capacity gate.
 
-Check all 21 required foundation/refinement documents are present and nonempty, all local Markdown file links resolve, code fences balance, IDs are unique, task references/ADR prerequisites resolve, no decision is falsely approved, and research hash is unchanged. Manually trace question→approval→manifest→snapshot→attempt→score→release for matching field/state semantics. Inspect Git/untracked file scope; no application code, dependency or commit should be introduced. Record exact results in LAST_HANDOFF; these checks do not demonstrate runtime correctness.
+Check all 21 required foundation/refinement documents are present and nonempty, all tracked Markdown file links resolve, code fences balance, IDs are unique, task references/ADR prerequisites resolve, no decision is falsely approved, and research hash is unchanged. Manually trace question→approval→manifest→snapshot→attempt→score→release for matching field/state semantics. Inspect Git/untracked file scope separately; these checks do not demonstrate runtime correctness.
 
-Reproduce the Phase 01 static check from repository root with `sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node`. This embedded checker is documentation verification only; it creates no files. Its fixed counts/hash describe this handoff, not permanent limits for later phases.
+Reproduce the Phase 01 static check from repository root with `sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node`. The checker prefers Git-tracked discovery and, in restricted runners, falls back to a filtered workspace walk that never enters `.git`, dependencies, generated-output or temporary build directories. This embedded checker is documentation verification only; it creates no files. Its fixed counts/hash describe this handoff, not permanent limits for later phases.
 
 ```javascript
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
+const {execFileSync} = require('child_process');
 const required = ['README.md','AGENTS.md',
   ...['SYSTEM_ARCHITECTURE','DATABASE_DESIGN','API_CONTRACTS'].map(x=>`docs/architecture/${x}.md`),
   ...['MVP_SCOPE','QUESTION_SCHEMA','EXAM_ENGINE_SPEC','EXAM_ASSEMBLY_SPEC','AI_QUESTION_PIPELINE','QUESTION_FACTORY_SPEC','QUESTION_REUSE_POLICY'].map(x=>`docs/specifications/${x}.md`),
@@ -95,11 +96,23 @@ const required = ['README.md','AGENTS.md',
   'docs/decisions/OPEN_DECISIONS.md',
   ...['AGENT_ONBOARDING','PROJECT_STATE','HANDOFF_PROTOCOL','HANDOFF_TEMPLATE','LAST_HANDOFF'].map(x=>`docs/agents/${x}.md`),
   'docs/quality/TEST_STRATEGY.md'];
-const files=[]; function walk(d) { for(const e of fs.readdirSync(d,{withFileTypes:true})) {
-  if(e.name==='.git') continue; const p=path.join(d,e.name);
-  if(e.isDirectory()) walk(p); else files.push(p);
-}} walk('.');
+const ignoredDirectories = new Set(['.git','.next','.parcel-cache','.turbo','build','coverage','dist','node_modules','out','target','temp','tmp']);
+const sourceExtensions = new Set(['.cjs','.css','.cts','.go','.html','.java','.js','.jsx','.json','.kt','.mjs','.mts','.php','.py','.rb','.rs','.scss','.sh','.sql','.ts','.tsx','.vue','.yaml','.yml']);
 const errors=[], warnings=[]; let links=0;
+let files=[];
+try {
+  files=execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean)
+    .filter(p=>!p.split('/').some(segment=>ignoredDirectories.has(segment)));
+} catch {
+  function walkWorkspace(d) {
+    for(const e of fs.readdirSync(d,{withFileTypes:true})) {
+      if(ignoredDirectories.has(e.name)) continue;
+      const p=path.join(d,e.name);
+      if(e.isDirectory()) walkWorkspace(p); else files.push(p);
+    }
+  }
+  walkWorkspace('.');
+}
 for(const p of required) if(!fs.existsSync(p)||!fs.readFileSync(p,'utf8').trim()) errors.push(`Missing/empty: ${p}`);
 const backlog=fs.readFileSync('docs/tasks/TASK_BACKLOG.md','utf8');
 const ids=[...backlog.matchAll(/^## ([A-Z]+-\d+) /gm)].map(m=>m[1]);
@@ -122,8 +135,11 @@ const hash=crypto.createHash('sha256').update(fs.readFileSync('docs/research/TSA
 if(hash!=='97a5bbe5844626043a5aa92bef7813a1fdbe1ba7d0d65e2bce3970f4c0dd2284') errors.push('Research changed');
 const reviewPath='docs/reviews/ARCHITECTURE_REVIEW_001.md';
 if(!fs.existsSync(reviewPath)||crypto.createHash('sha256').update(fs.readFileSync(reviewPath)).digest('hex')!=='d78a114027d3441967a2a7756d1a44bf6c6e46a80d537c027a3265ce2669ee34') errors.push('Review input missing/changed');
-const unexpected=files.filter(p=>!p.endsWith('.md')&&p!=='.gitignore');
-if(unexpected.length) errors.push(`Unexpected phase files: ${unexpected.join(', ')}`);
+const unexpected=files.filter(p=>{
+  if(p.endsWith('.md')||p==='.gitignore') return false;
+  return !sourceExtensions.has(path.extname(p).toLowerCase());
+});
+if(unexpected.length) errors.push(`Unsupported tracked artifacts: ${unexpected.join(', ')}`);
 const decisions=fs.readFileSync('docs/decisions/OPEN_DECISIONS.md','utf8');
 if((decisions.match(/^- Status: PROPOSED; approval: none; revision: [1-9]\d*/gm)||[]).length!==8) errors.push('Review ADR status count');
 console.log(JSON.stringify({required:required.length,markdown:files.filter(p=>p.endsWith('.md')).length,links,tasks:ids.length,hash,warnings,errors},null,2));
