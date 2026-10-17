@@ -174,6 +174,191 @@ export type ResponseValue = z.infer<typeof ResponseValueSchema>;
 export type StudentQuestion = z.infer<typeof StudentQuestionSchema>;
 
 /**
+ * Internal Question Factory contracts.  These are deliberately not registered
+ * in the student OpenAPI document: the factory is an independent authoring
+ * system and its outputs remain drafts until Bank review.
+ */
+export const GenerationRequestSchema = z
+  .object({
+    specificationVersion: z.literal("generation/1"),
+    requestId: NonEmptyString,
+    sourceVersionIds: z.array(NonEmptyString),
+    taxonomyVersionId: NonEmptyString,
+    section: SectionSchema,
+    skillIds: z.array(NonEmptyString),
+    interactionType: InteractionTypeSchema,
+    cognitiveLevel: CognitiveLevelSchema.nullable(),
+    language: z.literal("vi-VN"),
+    count: z.number().int().positive(),
+    promptTemplateVersion: NonEmptyString,
+    outputSchemaVersion: z.literal("question/1"),
+    seed: z.number().int().nullable(),
+    budget: z
+      .object({
+        maxInputTokens: z.number().int().nonnegative(),
+        maxOutputTokens: z.number().int().nonnegative(),
+        maxCostMicros: z.number().int().nonnegative(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProviderUsageSchema = z
+  .object({
+    inputTokens: z.number().int().nonnegative(),
+    outputTokens: z.number().int().nonnegative(),
+    costMicros: z.number().int().nonnegative().nullable(),
+  })
+  .strict();
+
+export const ProviderResultSchema = z
+  .object({
+    candidates: z.array(z.unknown()),
+    providerRunRef: z.string().nullable(),
+    modelRevision: NonEmptyString,
+    usage: ProviderUsageSchema,
+    finishReason: z.enum(["COMPLETE", "TRUNCATED", "REFUSED"]),
+  })
+  .strict();
+
+export const ProviderErrorSchema = z
+  .object({
+    code: z.enum(["RATE_LIMIT", "TIMEOUT", "REFUSAL", "UNAVAILABLE", "INVALID_OUTPUT", "BUDGET_EXCEEDED"]),
+    retryable: z.boolean(),
+  })
+  .strict();
+
+export const FactoryBatchStateSchema = z.enum(["PLANNED", "RUNNING", "COMPLETED", "COMPLETED_WITH_FAILURES", "PAUSED", "CANCELLED"]);
+export const FactoryPauseReasonSchema = z.enum(["BUDGET", "CAPACITY", "PROVIDER", "OPERATOR"]);
+export const FactoryJobStateSchema = z.enum(["QUEUED", "RUNNING", "SUCCEEDED", "FAILED_RETRYABLE", "FAILED_FINAL", "CANCELLED"]);
+
+/** A lifecycle projection; PAUSED alone may carry one of the documented pause reasons. */
+export const FactoryBatchStatusSchema = z
+  .object({
+    state: FactoryBatchStateSchema,
+    pauseReason: FactoryPauseReasonSchema.nullable(),
+  })
+  .strict()
+  .superRefine((status, context) => {
+    if (status.state === "PAUSED" && status.pauseReason === null) {
+      context.addIssue({ code: "custom", path: ["pauseReason"], message: "Paused batches require a documented pause reason" });
+    }
+    if (status.state !== "PAUSED" && status.pauseReason !== null) {
+      context.addIssue({ code: "custom", path: ["pauseReason"], message: "Only paused batches may carry a pause reason" });
+    }
+  });
+
+export const MachineValidationOutcomeSchema = z.enum(["PASS", "FAIL", "INCONCLUSIVE"]);
+export const MachineValidationEvidenceSchema = z
+  .object({
+    validatorKind: NonEmptyString,
+    validatorVersion: NonEmptyString,
+    inputHash: NonEmptyString,
+    outcome: MachineValidationOutcomeSchema,
+    evidencePointer: NonEmptyString,
+    at: Instant,
+    actor: NonEmptyString,
+  })
+  .strict();
+
+/** Provider-neutral, restricted run evidence carried with a portable draft. */
+export const FactoryRunMetadataSchema = z
+  .object({
+    generationRunId: CanonicalUuid.nullable(),
+    providerRunRef: z.string().nullable(),
+    adapterRevision: NonEmptyString,
+    modelRevision: NonEmptyString,
+    promptTemplateVersion: NonEmptyString,
+    inputHash: NonEmptyString,
+    responseHash: NonEmptyString,
+    sourceVersionIds: z.array(NonEmptyString),
+    seed: z.number().int().nullable(),
+    usage: ProviderUsageSchema,
+  })
+  .strict();
+
+/** Exact provenance required by the canonical question schema for each exported candidate. */
+export const FactoryCandidateProvenanceSchema = z
+  .object({
+    sourceVersionId: NonEmptyString,
+    origin: z.enum(["MANUAL", "IMPORTED", "GENERATED", "AUGMENTED"]),
+    sourceSpan: z.string().nullable(),
+    transformation: NonEmptyString,
+    creator: NonEmptyString,
+    rightsEvidence: NonEmptyString,
+  })
+  .strict();
+
+export const FactoryCandidateSchema = z
+  .object({
+    itemKey: NonEmptyString,
+    candidateOrdinal: z.number().int().nonnegative(),
+    contentHash: NonEmptyString,
+    question: QuestionVersionSchema,
+    provenance: z.array(FactoryCandidateProvenanceSchema).min(1),
+    run: FactoryRunMetadataSchema,
+    validations: z.array(MachineValidationEvidenceSchema).min(1),
+  })
+  .strict()
+  .superRefine((candidate, context) => {
+    if (candidate.question.origin !== "GENERATED") {
+      context.addIssue({ code: "custom", path: ["question", "origin"], message: "Factory candidates must be generated drafts" });
+    }
+    if (candidate.question.contentHash !== candidate.contentHash) {
+      context.addIssue({ code: "custom", path: ["contentHash"], message: "Candidate content hash must match question/1 contentHash" });
+    }
+  });
+
+/**
+ * Restricted Factory-to-Bank transport. It intentionally has no workflow or
+ * approval field: import always creates a DRAFT and Bank review is separate.
+ */
+export const FactoryPackageSchema = z
+  .object({
+    schemaVersion: z.literal("factory-package/1"),
+    producerNamespace: NonEmptyString,
+    batchKey: NonEmptyString,
+    candidates: z.array(FactoryCandidateSchema).min(1),
+  })
+  .strict()
+  .superRefine((factoryPackage, context) => {
+    const keys = new Set<string>();
+    for (const [index, candidate] of factoryPackage.candidates.entries()) {
+      const key = `${candidate.itemKey}\u0000${candidate.candidateOrdinal}`;
+      if (keys.has(key)) {
+        context.addIssue({ code: "custom", path: ["candidates", index], message: "Factory package candidate identity must be unique" });
+      }
+      keys.add(key);
+    }
+  });
+
+/** Durable Bank import receipt, not an HTTP idempotency cache or publication acknowledgement. */
+export const BankImportReceiptSchema = z
+  .object({
+    producerNamespace: NonEmptyString,
+    batchKey: NonEmptyString,
+    itemKey: NonEmptyString,
+    candidateOrdinal: z.number().int().nonnegative(),
+    inputHash: NonEmptyString,
+    questionId: CanonicalUuid,
+    questionVersionId: CanonicalUuid,
+    generationRunId: CanonicalUuid.nullable(),
+    workflowState: z.literal("DRAFT"),
+  })
+  .strict();
+
+export type GenerationRequest = z.infer<typeof GenerationRequestSchema>;
+export type ProviderResult = z.infer<typeof ProviderResultSchema>;
+export type ProviderError = z.infer<typeof ProviderErrorSchema>;
+export type FactoryBatchStatus = z.infer<typeof FactoryBatchStatusSchema>;
+export type MachineValidationEvidence = z.infer<typeof MachineValidationEvidenceSchema>;
+export type FactoryRunMetadata = z.infer<typeof FactoryRunMetadataSchema>;
+export type FactoryCandidateProvenance = z.infer<typeof FactoryCandidateProvenanceSchema>;
+export type FactoryCandidate = z.infer<typeof FactoryCandidateSchema>;
+export type FactoryPackage = z.infer<typeof FactoryPackageSchema>;
+export type BankImportReceipt = z.infer<typeof BankImportReceiptSchema>;
+
+/**
  * Blueprint section IDs are local opaque entries, deliberately distinct from
  * the TSA domain enum carried by `section`.
  */

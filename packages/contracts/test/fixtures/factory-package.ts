@@ -1,0 +1,95 @@
+import type { BankImportReceipt, FactoryPackage } from "../../src/index.ts";
+
+export const factoryPackageFixture: FactoryPackage = {
+  schemaVersion: "factory-package/1",
+  producerNamespace: "synthetic.factory",
+  batchKey: "manual:synthetic-2026-10-17",
+  candidates: [
+    {
+      itemKey: "synthetic-item-001",
+      candidateOrdinal: 0,
+      contentHash: "sha256:synthetic-factory-question",
+      question: {
+        schemaVersion: "question/1",
+        id: "11111111-1111-4111-8111-111111111111",
+        questionId: "22222222-2222-4222-8222-222222222222",
+        versionNo: 1,
+        parentVersionId: null,
+        language: "vi-VN",
+        section: "MATH",
+        taxonomyVersionId: "33333333-3333-4333-8333-333333333333",
+        domainId: "synthetic-algebra",
+        skillIds: ["synthetic-linear-equations"],
+        subskillIds: ["synthetic-one-variable"],
+        cognitiveLevel: "M2",
+        difficulty: { target: "MEDIUM", predicted: null, empiricalStudyId: null },
+        content: [{ type: "text", text: "Synthetic fixture: solve x + 2 = 5." }],
+        stimulusVersionId: null,
+        interaction: {
+          type: "SINGLE_CHOICE",
+          options: [
+            { id: "a", content: [{ type: "text", text: "2" }] },
+            { id: "b", content: [{ type: "text", text: "3" }] },
+          ],
+        },
+        private: {
+          answerKey: { type: "SINGLE_CHOICE", optionId: "b" },
+          explanation: [{ type: "text", text: "Synthetic fixture explanation." }],
+          evidenceRefs: ["synthetic-evidence-1"],
+          scoringPolicy: "practice-binary-v1",
+        },
+        origin: "GENERATED",
+        provenanceIds: ["synthetic-provenance-1"],
+        generationRunId: "44444444-4444-4444-8444-444444444444",
+        createdBy: "synthetic-factory-service",
+        createdAt: "2026-10-17T08:00:00Z",
+        contentHash: "sha256:synthetic-factory-question",
+      },
+      provenance: [
+        {
+          sourceVersionId: "synthetic-source-version-1",
+          origin: "GENERATED",
+          sourceSpan: null,
+          transformation: "synthetic fixture generation",
+          creator: "synthetic-factory-service",
+          rightsEvidence: "synthetic-rights-attestation-1",
+        },
+      ],
+      run: {
+        generationRunId: "44444444-4444-4444-8444-444444444444",
+        providerRunRef: "synthetic-run-1",
+        adapterRevision: "synthetic-adapter/1",
+        modelRevision: "synthetic-model/1",
+        promptTemplateVersion: "synthetic-template/1",
+        inputHash: "sha256:synthetic-input",
+        responseHash: "sha256:synthetic-response",
+        sourceVersionIds: ["synthetic-source-version-1"],
+        seed: 7,
+        usage: { inputTokens: 10, outputTokens: 20, costMicros: 0 },
+      },
+      validations: [
+        {
+          validatorKind: "schema",
+          validatorVersion: "synthetic-validator/1",
+          inputHash: "sha256:synthetic-factory-question",
+          outcome: "PASS",
+          evidencePointer: "synthetic-evidence://validator/1",
+          at: "2026-10-17T08:01:00Z",
+          actor: "synthetic-validator",
+        },
+      ],
+    },
+  ],
+};
+
+export const bankImportReceiptFixture: BankImportReceipt = {
+  producerNamespace: factoryPackageFixture.producerNamespace,
+  batchKey: factoryPackageFixture.batchKey,
+  itemKey: factoryPackageFixture.candidates[0]!.itemKey,
+  candidateOrdinal: factoryPackageFixture.candidates[0]!.candidateOrdinal,
+  inputHash: factoryPackageFixture.candidates[0]!.contentHash,
+  questionId: factoryPackageFixture.candidates[0]!.question.questionId,
+  questionVersionId: factoryPackageFixture.candidates[0]!.question.id,
+  generationRunId: factoryPackageFixture.candidates[0]!.run.generationRunId,
+  workflowState: "DRAFT",
+};
