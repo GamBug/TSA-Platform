@@ -1,0 +1,40 @@
+name: Contract verification
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: TypeScript contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run contract tests
+        run: npm test
+
+      - name: Verify generated OpenAPI artifact
+        run: npm run contracts:check
+
+      - name: Verify documentation
+        run: npm run docs:check
+
+      - name: Check whitespace errors
+        run: git diff --check

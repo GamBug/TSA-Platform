@@ -2,7 +2,7 @@
 
 An independent educational practice platform inspired by the publicly documented HUST TSA assessment. Not affiliated with, endorsed by, or an official service of Hanoi University of Science and Technology. Practice scores must not be presented as official TSA scores.
 
-Phase 02.75 refines architecture and collaboration documentation only. There is no application, dependency installation, runnable test suite, or approved technical baseline yet. All technical proposals await the human owner's review.
+Phase 02.75 preserves the architecture and collaboration documentation. The scoped G0 authorization permits the current shared-contract foundation only; no production application baseline or downstream gate is approved.
 
 ## Start here
 
@@ -21,3 +21,17 @@ The proposed first slice is a small, legally usable, human-reviewed question ban
 The repository is the persistent source of truth. Owner approval records establish decisions; specifications own domain behavior; architecture documents own technical boundaries and contracts; the backlog owns task status; project state and handoffs provide navigation and evidence. Research is evidence, not operational instructions or an approved specification. If documents conflict, record the conflict and resolve the authoritative document before dependent implementation.
 
 Do not infer approval from the existence of a document. No provider-specific instructions are needed. Do not initialize the application until the relevant decisions and task assignment are approved. There are no install/run commands to execute in this phase.
+
+## Shared contract verification
+
+The current executable scope is the TypeScript shared-contract package. Use Node.js `24.18.0` and npm `11.16.0`, then run the following from a clean checkout:
+
+```bash
+npm ci
+npm run typecheck
+npm test
+npm run contracts:check
+npm run docs:check
+```
+
+`contracts:check` compares the committed student-safe OpenAPI artifact with the runtime schemas and does not write files. Regenerate that artifact only as a deliberate coordinated change with `npm run contracts:generate`, then rerun the verification commands. These shared-package checks do not establish service, database, browser, security, or release readiness.
