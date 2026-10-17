@@ -28,7 +28,7 @@ Do not label the mini profile a full TSA simulation or an official TSA assessmen
 
 1. A browser-backed, real-PostgreSQL run completes one `practice-mini-v1` 10-question form (4/2/4), including the configured section timing, reconnect, duplicate-submit handling, practice result and explanation release. Record the test fixture, command/environment and resulting attempt/form identifiers or equivalent retained evidence.
 2. The demonstrated form contains only vetted seed versions with authorized provenance, frozen content, validator evidence and independent human approval. No generated item is auto-approved or required for this milestone.
-3. Default creation is `PERSONALIZED_PRACTICE` + `NEW_ONLY`. A real-database same-student allocation test, including a CREATED-but-unstarted prior attempt and concurrent creation requests, shows disjoint stable identities/equivalence groups or the documented explicit shortage/contention outcome. A different student may receive the same eligible item.
+3. Default creation is `PERSONALIZED_PRACTICE` + `NEW_ONLY`. A real-database same-student test verifies that a same-key retry replays its original result, while a different-key concurrent request returns `409 CONCURRENT_ATTEMPT_EXISTS` while either a personalized or fixed attempt is CREATED/IN_PROGRESS and writes no allocation history. After closure, a later NEW_ONLY attempt excludes prior stable identities/current canonical equivalents. A different student may receive the same eligible item.
 4. A shortage demonstration returns an explicit error or an explicitly chosen authorized alternative; it never silently repeats a question, weakens the blueprint or invokes live AI.
 5. Sealed forms and scoring inputs remain unchanged after a later bank-version change; a cross-student access attempt and pre-release key/explanation attempt are denied.
 6. The result identifies raw correct count, total and practice percentage, and the interface/fixture documentation identifies the mini-exam as independent practice rather than an official or equivalent TSA simulation.
@@ -65,7 +65,7 @@ The final integrated university deliverable is a demonstration of the complete c
 
 Track A starts source/taxonomy/evaluation research and the AI Research Demonstrator early; Track B builds the vetted seed bank and Technical MVP. The website first slice does not wait for AI yield, and the AI demonstrator does not wait for the website. [Factory spec](QUESTION_FACTORY_SPEC.md) defines manual/weekly operation, bounded deficit-driven production and recovery. Milestone 3 joins the tracks through canonical draft import, independent approval and subsequent personalized exams while factory/provider are offline.
 
-Additional MVP acceptance: NEW_ONLY exclusions include CREATED assignments from every mode; concurrent same-student allocations cannot overlap in NEW_ONLY; different students can receive the same questions. All original quality/timing/immutability invariants remain. [Reuse policy](QUESTION_REUSE_POLICY.md) owns exceptions and retention. No-repeat is not POST_MVP.
+Additional MVP acceptance: NEW_ONLY exclusions include CREATED assignments from every mode; concurrent same-student distinct-key creations leave at most one global active attempt, and the rejected request writes no allocation history; different students can receive the same questions. All original quality/timing/immutability invariants remain. [Reuse policy](QUESTION_REUSE_POLICY.md) owns exceptions and retention. No-repeat is not POST_MVP.
 
 ## Later scope
 

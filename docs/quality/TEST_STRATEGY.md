@@ -28,7 +28,7 @@ CI should run static/type/build/schema checks, unit tests and isolated DB integr
 | Q-12 Recoverable grading | Kill worker after claim, after score transaction, before acknowledgement; lease recovery and repeat processing produce one immutable score and release | EXAM-002, SCORE-001 |
 | Q-13 Safe rendering and sources | Script/HTML/TeX abuse, foreign URLs, wrong MIME, oversized bodies blocked; image permissions match question/explanation gate | BANK-001, WEB-001 |
 | Q-14 Revocation immediately stops access | Rights/quarantine commit precedes next delivery; fan-out delay cannot leak content; starts blocked, active/results invalidated via guard | BANK-001, EXAM-002 |
-| Q-15 Assignment allocation atomic | Same-user concurrent NEW_ONLY commits have disjoint identity/equivalence sets; cross-user reuse succeeds; rollback writes no history; retry does not allocate twice | ASSEMBLY-001 |
+| Q-15 Assignment allocation atomic | A successful create atomically seals/assigns all slots at CREATED; allocation rollback writes no form, attempt, history or receipt; cross-user reuse succeeds | ASSEMBLY-001 |
 | Q-16 AI cannot publish | Service identity denied approval and private student access; malformed/injected output and forbidden source blocked; approved draft requires independent human evidence | AI-001/002 |
 
 ## State-machine and concurrency scenarios
@@ -36,6 +36,17 @@ CI should run static/type/build/schema checks, unit tests and isolated DB integr
 Generate legal and illegal sequences over create/start/save/read/submit/expire/grade/invalidate with a controlled server clock; assert allowed transitions and frozen answer sets after closure. Test clock just before, at and after each section/overall deadline. Include a request waiting on the lock across deadline (transaction-start time must not grant access), repeated starts, unstarted withdrawal, early whole-exam submit, no-pause resume and no future-section payload.
 
 Use two real database connections and barriers to force race order; test both possible winners rather than probabilistic sleeps. Exercise same idempotency key concurrency, distinct keys on same answer revision, multiple workers, source revocation versus sealing and rights change versus result access. Assert commit/rollback side effects including assignment history, receipts, jobs and audit events. Avoid tests that merely mirror internal implementation functions.
+
+### Global active-attempt creation suite (H1, NOT RUN)
+
+| Separate test | Required setup and expected outcome | Owning tasks |
+|---|---|---|
+| Same-key retry | Lose the first successful creation response, then repeat the identical key and fingerprint. Replay the original form/attempt/receipt exactly; do not allocate another form, history row or manifest. A changed fingerprint under that key is an idempotency conflict. | ASSEMBLY-001, EXAM-001 |
+| Different-key simultaneous requests | Use real PostgreSQL barriers for two same-student creation requests with distinct keys. One request may commit an active attempt; the other returns `409 CONCURRENT_ATTEMPT_EXISTS` and creates no form, attempt, history, manifest or success receipt. Run both winner orders. | DATA-001, ASSEMBLY-001, EXAM-001 |
+| Cross-mode active conflict | With a valid CREATED or IN_PROGRESS personalized attempt, request fixed/review creation; repeat in the reverse direction. Each distinct-key request returns `409 CONCURRENT_ATTEMPT_EXISTS` for its owner and cannot bypass the global constraint. | DATA-001, ASSEMBLY-001, EXAM-001 |
+| Stale-attempt expiration | In both modes, exercise stale CREATED cancellation by the applicable start-TTL/availability guard and elapsed IN_PROGRESS expiry through the request path and worker path. Their system finalization is idempotent, retains CREATED assignment history, and remains committed when a fault injected after finalization makes the subsequent allocation fail. | DATA-001, EXAM-001, EXAM-002 |
+| Sequential attempt after closure | After the prior attempt leaves CREATED/IN_PROGRESS, including SUBMITTED/EXPIRED pending grading and terminal closures, a new request may pass H1 subject to current admission. A later personalized NEW_ONLY success receives a new form, while a later fixed/review creation follows its explicit repeat policy. | ASSEMBLY-001, EXAM-001 |
+| NEW_ONLY after completed attempt | Complete a personalized NEW_ONLY attempt, then create another after closure. The later manifest excludes every prior stable identity and current canonical equivalent, including assignments made at CREATED before the prior attempt was viewed or completed. | ASSEMBLY-001, WEB-001 |
 
 ## Bank/assembly fixtures and AI evaluation
 
@@ -55,7 +66,7 @@ Restore a database and matching assets into an isolated environment; verify form
 
 ## Phase 01 documentation verification
 
-Phase 02.5 additions: [resolution](../reviews/REVIEW_RESOLUTION_001.md) maps each finding to regression requirements. Q-17 verifies one active fixed-form attempt per owner, distinct-key race and retake after closure (pending H1 approval); Q-18 verifies admission boundaries, lazy/swept CREATED cancellation and no running-clock truncation (pending H2); Q-19 verifies typed quotas/taxonomy/section uniqueness and aggregate sealing rollback (pending H3); Q-20 verifies lifecycle-pinned idempotency cleanup; Q-21 verifies shared save rate limits, retry behavior and authorization order; Q-22 verifies role-specific diagnostics and CI contract-drift failure. These augment Q-01–Q-16 and are NOT RUN. WEB-001 adds section-warning/timezone cases; SCORE-001 adds exact tie rounding. No full forensic answer history is expected; global usage is analytics, not a capacity gate.
+Phase 02.5 additions: [resolution](../reviews/REVIEW_RESOLUTION_001.md) maps each finding to regression requirements. Q-17 is the owner-approved H1 global active-attempt suite above: same-key replay, distinct-key conflict, cross-mode conflict, durable stale finalization, closure retake and NEW_ONLY history exclusion. Q-18 verifies admission boundaries, lazy/swept CREATED cancellation and no running-clock truncation (pending H2); Q-19 verifies typed quotas/taxonomy/section uniqueness and aggregate sealing rollback (pending H3); Q-20 verifies lifecycle-pinned idempotency cleanup; Q-21 verifies shared save rate limits, retry behavior and authorization order; Q-22 verifies role-specific diagnostics and CI contract-drift failure. These augment Q-01–Q-16 and are NOT RUN. WEB-001 adds section-warning/timezone cases; SCORE-001 adds exact tie rounding. No full forensic answer history is expected; global usage is analytics, not a capacity gate.
 
 Check all 21 required foundation/refinement documents are present and nonempty, all local Markdown file links resolve, code fences balance, IDs are unique, task references/ADR prerequisites resolve, no decision is falsely approved, and research hash is unchanged. Manually trace question→approval→manifest→snapshot→attempt→score→release for matching field/state semantics. Inspect Git/untracked file scope; no application code, dependency or commit should be introduced. Record exact results in LAST_HANDOFF; these checks do not demonstrate runtime correctness.
 
@@ -114,11 +125,11 @@ These are future runtime tests, not evidence from documentation checks. [Factory
 | A — 500 drafts alongside exams | Bounded batch of 500 candidates under an approved budget/review envelope; simultaneous start/save/submit workload stays within owner-approved latency/error/DB limits; separate pools and executor allowlists enforced | FACTORY-001, OPS-001, INT-001 |
 | B — Provider unavailable one month | Advance controlled scheduler clock through a month of failures, no live paid calls needed; approved-bank exams still complete, retries/cost bounded | FACTORY-001, INT-001 |
 | C — Cross-student reuse | Two users can receive same eligible identity; global analytics cannot consume it | ASSEMBLY-001 |
-| D — Same-student no repeat | Two NEW_ONLY attempts, including unstarted first allocation, have disjoint stable IDs/equivalence groups | ASSEMBLY-001, WEB-001 |
+| D — Same-student no repeat | After the first attempt closes, a later NEW_ONLY attempt has disjoint stable IDs/equivalence groups, including identities assigned to an unstarted first allocation | ASSEMBLY-001, WEB-001 |
 | E — Exhaustion | Explicit inventory shortage; no side effects or silent fallback; shorter authorized profile/review opt-in revalidated; bounded unknown search returns distinct error | ASSEMBLY-001, WEB-001 |
 | F — Corrected version | Approve v2 after student received v1; stable ID remains excluded; merged equivalent variants also excluded | BANK-001, ASSEMBLY-001 |
 | G — Publication during exam | Publish while attempt active; snapshot/key/score hashes unchanged | BANK-001, EXAM-001, SCORE-001 |
-| H — Concurrent creation | Real PostgreSQL barriers on same-user different-key/profile requests; both successes disjoint or loser replan/shortage, never overlap; failures rollback history; same-key replay returns one allocation | DATA-001, ASSEMBLY-001 |
+| H — Concurrent creation | Real PostgreSQL barriers on same-user distinct-key/profile and cross-mode requests; one active attempt may commit and the loser returns `409 CONCURRENT_ATTEMPT_EXISTS` with no allocation side effects. Test same-key replay separately. | DATA-001, ASSEMBLY-001, EXAM-001 |
 | I — Halfway batch failure | Kill after committed unit, raw response persistence, import commit and before acknowledgment; resume reuses checkpoint/receipt; altered same-key hash fails; bundle all-or-none; unknown provider cost stays reserved | FACTORY-001, BANK-001 |
 | J — Provider replacement | Contract/evaluation fixtures through second adapter; same canonical publication and unchanged exam engine; no student request calls provider | AI-001/002, INT-001 |
 
