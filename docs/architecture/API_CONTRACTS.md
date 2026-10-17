@@ -1,6 +1,6 @@
 # API contracts
 
-Status: PROPOSED `api/v1`, ADR-003, except the owner-approved ADR-004 H1 create-conflict policy. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. No generated client or executable schema exists yet. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
+Status: PROPOSED `api/v1`, ADR-003, except owner-approved ADR-004 H1 create-conflict, H2 admission and H3 one-domain MVP policy. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. No generated client or executable schema exists yet. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
 
 ## Transport and access
 
@@ -35,40 +35,40 @@ type AnswerAck = {slotId:UUID; value:ResponseValue; revision:number; savedAt:Ins
 type StudentSlot = {slotId:UUID; sectionId:string; ordinal:number;
   content:Block[]; stimulus:{id:UUID; content:Block[]}|null; interaction:Interaction};
 type AttemptView = {attemptId:UUID; state:AttemptState; formId:UUID;
-  formMode:FormMode; reuseMode:ReuseMode; reusePolicyVersion:string;
+  domain:Section; formMode:FormMode; reuseMode:ReuseMode; reusePolicyVersion:string;
   serverNow:Instant; startBefore:Instant|null; startedAt:Instant|null; deadlineAt:Instant|null;
   activeSectionId:string|null;
-  sections:{sectionId:string; startsAt:Instant|null; endsAt:Instant|null; count:number}[];
+  sections:{sectionId:string; section:Section; startsAt:Instant|null; endsAt:Instant|null; count:number}[];
   slots:StudentSlot[]; answers:AnswerAck[]; closure:Closure};
 ```
 
-For `CREATED`, `startBefore` is the server-authoritative exclusive deadline at which the reserved attempt may first start; it is the committed reservation deadline returned at creation and is never derived from the client clock. For every non-`CREATED` state it is `null`; `startedAt` and `deadlineAt` preserve the existing started-attempt timing semantics. Before start/after closure, `slots` is empty (results have a separate route). During an attempt only the active section's slots and saved answers are returned; timing/count metadata for other sections contains no question content. Null untouched answers have logical revision 0 and need no stored row. API consumers must use current state, not assume a successful HTTP response means still IN_PROGRESS.
+For `CREATED`, `startBefore` is the server-authoritative exclusive deadline at which the reserved attempt may first start; it is the committed reservation deadline returned at creation and is never derived from the client clock. Its TTL value remains proposed. For every non-`CREATED` state it is `null`; `startedAt` and `deadlineAt` preserve the existing started-attempt timing semantics. MVP `sections` has exactly one entry, whose `section` equals `domain`; its `sectionId` is the opaque blueprint entry ID. Before start/after closure, `slots` is empty (results have a separate route). During an attempt only that section's slots and saved answers are returned. Null untouched answers have logical revision 0 and need no stored row. API consumers must use current state, not assume a successful HTTP response means still IN_PROGRESS.
 
 ## Student endpoints
 
 | Method/path | Request schema | Success schema / behavior |
 |---|---|---|
-| GET `/catalog` | cursor?, limit? | 200 `{items:CatalogEntry[],nextCursor:string|null}`; default entries are authorized personalized blueprint offerings; fixed forms separately labeled; no slots/keys or promise of sufficient unseen inventory |
+| GET `/catalog` | cursor?, limit? | 200 `{items:CatalogEntry[],nextCursor:string|null}`; each MVP entry identifies one MATH, READING or SCIENCE test and its own question count, duration and admission interval; fixed forms separately labeled; no slots/keys or promise of sufficient unseen inventory |
 | POST `/attempts` | CreateAttempt + Idempotency-Key | 201 CreationReceipt after atomic allocation; 409 `CONCURRENT_ATTEMPT_EXISTS` with ConcurrentAttemptExists for a different creation request while this student has an active attempt in either mode; 422 `INSUFFICIENT_UNSEEN_INVENTORY` or `INSUFFICIENT_ELIGIBLE_INVENTORY` with StudentShortage; same-key success replays; no AI call/job |
 | POST `/attempts/{id}/start` | `{}` + key | 200 `{attemptId:UUID,startedAt:Instant,deadlineAt:Instant}` immutable start receipt; first start sets clock, retry never resets it; GET view for current section/state |
 | GET `/attempts/{id}` | none | 200 AttemptView; lazily expires/cancels as specified by engine, returns current server time; CANCELLED returns safe closure/reason, no slots |
 | PUT `/attempts/{id}/answers/{slotId}` | `{expectedRevision:number,value:ResponseValue}` + key | 200 AnswerAck; zero-based expectedRevision; belongs-to-form, active-section and time checks |
 | POST `/attempts/{id}/submit` | `{}` + key | 200 Closure; persists closure and job atomically; no bundled answer write |
 | GET `/attempts/{id}/result` | none | 200 Result below if released; 409 RESULT_NOT_READY for ungraded/held; invalidated returns 410 CONTENT_WITHDRAWN without private fields |
-| GET `/attempts` | cursor?, limit? | 200 `{items:{attemptId:UUID,formId:UUID,formMode:FormMode,reuseMode:ReuseMode,state:AttemptState,startedAt:Instant|null,closedAt:Instant|null,score:{correctCount:number,totalCount:number,percentage:string}|null}[],nextCursor:string|null}`; only caller's history |
+| GET `/attempts` | cursor?, limit? | 200 `{items:{attemptId:UUID,formId:UUID,domain:Section,formMode:FormMode,reuseMode:ReuseMode,state:AttemptState,startedAt:Instant|null,closedAt:Instant|null,score:{correctCount:number,totalCount:number,percentage:string}|null}[],nextCursor:string|null}`; one entry per domain-test attempt, only caller's history |
 | GET `/attempts/{id}/assets/{assetVersionId}` | purpose `question` or `explanation` | authorized image bytes; membership + section/release check; no arbitrary source URL proxy |
 
 ```typescript
-type Result = {attemptId:UUID; scoreRunId:UUID; formMode:FormMode; reuseMode:ReuseMode;
+type Result = {attemptId:UUID; scoreRunId:UUID; domain:Section; formMode:FormMode; reuseMode:ReuseMode;
   policyVersion:"practice-binary-v1";
   scoreLabel:"UNOFFICIAL_PRACTICE"; correctCount:number; totalCount:number;
-  percentage:string; sections:{sectionId:string; correctCount:number; totalCount:number}[];
+  percentage:string; sections:{sectionId:string; section:Section; correctCount:number; totalCount:number}[];
   items:{slotId:UUID; earned:0|1; response:ResponseValue|null;
     question:StudentSlot; correctAnswer:AnswerKey; explanation:Block[]}[];
   releasedAt:Instant};
 ```
 
-The Result type is a separate released-only DTO; never reuse it for active delivery. The endpoint is for the owner only and checks the entire attempt state and withdrawal holds before loading private snapshots.
+The Result type is a separate released-only DTO; never reuse it for active delivery. Its MVP `sections` array has exactly one entry matching `domain`; no endpoint calculates a combined or official TSA score from domain mini-tests. The endpoint is for the owner only and checks the entire attempt state and withdrawal holds before loading private snapshots.
 
 ## Staff endpoints
 
@@ -129,6 +129,8 @@ type BlueprintConfig = {schemaVersion:"blueprint/1"; name:string; taxonomyVersio
   releasePolicy:"after-grade-v1"};
 ```
 
+MVP blueprint validation requires exactly one `sections` entry and one domain enum (MATH, READING or SCIENCE) per offered practice test; published fixed forms in MVP follow the same rule. The generic `sections` array remains available for future separately approved multi-section profiles. `sections[].id` stays opaque and distinct from `sections[].section`.
+
 Administrative asset/stimulus/bundle import is initially a validated internal import command, not an invented complete upload API. FOUND-002 must freeze additional transport schemas before parallel UI work. Generated drafts use a service-only command with run provenance, never spoof `origin` via a student/staff author route. Factory execution is an operator CLI/scheduler contract in [factory spec](../specifications/QUESTION_FACTORY_SPEC.md), not a student/web `/generation-jobs` dependency. Factory service credentials are not a principal accepted by these public HTTP routes: they can import drafts through the scoped internal command, but cannot invoke review, publication, attempt, grading or result commands. A future staff batch dashboard may wrap that operator interface after contract review; no new HTTP generation route is required for MVP.
 
 ## Errors, concurrency and compatibility
@@ -141,11 +143,11 @@ Guarantee replay within the retention window in [database](DATABASE_DESIGN.md); 
 
 Breaking changes require an ADR, impact list, migration/compatibility plan, updated schemas and contract tests before merging consumers. Additive optional fields may remain v1 only if strict validators/clients are updated in a coordinated release. Question schema version and scoring policy version are independent of HTTP v1; old frozen artifacts must remain readable and scoreable.
 
-## Reconciliation constraints (ADR-004 H1 approved; other choices PROPOSED)
+## Reconciliation constraints (ADR-004 H1/H2/H3 scoped approvals; remainder PROPOSED)
 
-ADR-004 H1 is owner-approved: one CREATED/IN_PROGRESS attempt per student across PERSONALIZED_PRACTICE and PUBLISHED_FIXED. H2 admission and H3 section uniqueness remain proposed. H1 supplements the per-user allocation lock and immutable assignment history. For a new, different-key creation request, reconcile an elapsed IN_PROGRESS attempt or a CREATED attempt past its committed `startBefore` before deciding conflict; a valid active attempt returns 409 CONCURRENT_ATTEMPT_EXISTS. Its typed `existingAttemptId` identifies only the authenticated student's attempt, which the student may GET and resume when its state permits. Authenticate and scope the existing-attempt lookup by session user before returning any ID; never disclose another user's attempt. If the named `uq_one_active_attempt_per_user` index rejects a racing insert, roll back the attempted creation, recheck the caller's active attempt and return the same 409 projection. A matching committed creation key/body replays the original 201 receipt before active-conflict handling, even if its attempt is now closed; a changed body under that key remains 409 IDEMPOTENCY_CONFLICT. A new attempt after closure still needs current admission/rights checks. Other proposed error mappings remain 409 FORM_NOT_OPEN and 410 FORM_UNAVAILABLE. Start on a never-started withdrawn/expired-admission/rights-blocked form commits CANCELLED then returns FORM_UNAVAILABLE. Already-started receipts replay without new admission, but effective holds still block restricted access. GET reconciles lifecycle before display. Proposed H2 availability is finite/non-null and `[from,until)` at both create and first start; no required full-duration fit inside the admission window. Active timers may finish later.
+ADR-004 H1 is owner-approved: one CREATED/IN_PROGRESS attempt per student across PERSONALIZED_PRACTICE and PUBLISHED_FIXED, including across domains. H2 admission and MVP H3 one-section tests are also owner-approved. H1 supplements the per-user allocation lock and immutable assignment history. For a new, different-key creation request, reconcile an elapsed IN_PROGRESS attempt or a CREATED attempt past its committed `startBefore` before deciding conflict; a valid active attempt returns 409 CONCURRENT_ATTEMPT_EXISTS. Its typed `existingAttemptId` identifies only the authenticated student's attempt, which the student may GET and resume when its state permits. Authenticate and scope the existing-attempt lookup by session user before returning any ID; never disclose another user's attempt. If the named `uq_one_active_attempt_per_user` index rejects a racing insert, roll back the attempted creation, recheck the caller's active attempt and return the same 409 projection. A matching committed creation key/body replays the original 201 receipt before active-conflict handling, even if its attempt is now closed; a changed body under that key remains 409 IDEMPOTENCY_CONFLICT. A new domain attempt after closure still needs current admission/rights checks. Error mappings remain 409 FORM_NOT_OPEN and 410 FORM_UNAVAILABLE. Start on a never-started withdrawn/expired-admission/rights-blocked form commits CANCELLED then returns FORM_UNAVAILABLE. Already-started receipts replay without new admission, but effective holds still block restricted access. GET reconciles lifecycle before display. H2 availability is finite/non-null and `[from,until)` at both create and first start; no required full-duration fit inside the admission window. The admitted domain timer may finish later; rights withdrawal and security invalidation remain enforceable.
 
-`BlueprintConfig.sections[].id` is the opaque, unique identifier of one blueprint section entry. `BlueprintConfig.sections[].section` is the domain `Section` enum used to select questions and appears on the sealed form section. Every `Quota.sectionId` must exactly reference an entry `id`; it never references the enum. The current one-entry-per-enum restriction is the proposed ADR-004 H3 behavior, not an approved contract: until owner disposition, implementations must preserve this proposal and cannot infer that repeated enum values are accepted. Blueprint validation rejects unknown or duplicate entry IDs, duplicate `(sectionId,dimension,value)` quota tuples, invalid integer bounds, and—only if H3 is approved—the duplicate enum values it prohibits. It also validates Quota discriminators and taxonomy-version/node membership as defined in assembly. UUID format alone does not prove SKILL membership. Difficulty quotas use targetDifficulty, not predicted values.
+`BlueprintConfig.sections[].id` is the opaque, unique identifier of one blueprint section entry. `BlueprintConfig.sections[].section` is the domain `Section` enum used to select questions and appears on the sealed form section. Every `Quota.sectionId` must exactly reference an entry `id`; it never references the enum. H3 requires exactly one entry in every MVP test blueprint; it does not permanently restrict the generic database to one section. Blueprint validation rejects unknown or duplicate entry IDs, duplicate `(sectionId,dimension,value)` quota tuples and invalid integer bounds. It also validates Quota discriminators and taxonomy-version/node membership as defined in assembly. UUID format alone does not prove SKILL membership. Difficulty quotas use targetDifficulty, not predicted values. Future multi-section scheduling and database constraints require a separate approval and versioned contract.
 
 POST `/assemblies` errors expose only code, requestId and optional assemblyRunId/sectionDeficits to EXAM_MANAGER. No question IDs, exact skill pool counts, sources, private content or manifest in error details; this projection is identical even if the caller also has BANK_MANAGER. BANK_MANAGER uses the separate audited diagnostics endpoint for stored candidate IDs/quota counts, never keys/explanations. Unknown/unauthorized runs return 404. EXAM_MANAGER deliberately sees selected question-version references via successful GET `/forms/{id}` for exam management; it does not imply permission to enumerate the eligible bank. Section aggregate disclosure is a conscious MVP trust policy, not protection against statistical inference from repeated authorized requests.
 
@@ -167,9 +169,9 @@ type CreateAttempt =
   | {mode:"PUBLISHED_FIXED"; formId:UUID;
      reuseMode:"FIXED_AS_PUBLISHED"; acknowledgeRepeats:true};
 type CreationReceipt = {attemptId:UUID; formId:UUID; state:"CREATED";
-  formMode:FormMode; reuseMode:ReuseMode; reusePolicyVersion:"reuse/1";
+  domain:Section; formMode:FormMode; reuseMode:ReuseMode; reusePolicyVersion:"reuse/1";
   startBefore:Instant};
-type CatalogEntry = {name:string; questionCount:number; durationSeconds:number;
+type CatalogEntry = {name:string; domain:Section; questionCount:number; durationSeconds:number;
   profileKind:"INDEPENDENT_PRACTICE"|"PUBLIC_REFERENCE";
   availableFrom:Instant; availableUntil:Instant} & (
     {mode:"PERSONALIZED_PRACTICE"; blueprintVersionId:UUID; reviewAllowed:boolean} |
@@ -186,7 +188,7 @@ Normative `POST /attempts` examples use a new `Idempotency-Key` for each logical
 
 ```typescript
 // 201: authenticated student, atomic personalized allocation succeeded.
-{attemptId:"a1",formId:"f1",state:"CREATED",formMode:"PERSONALIZED_PRACTICE",
+{attemptId:"a1",formId:"f1",state:"CREATED",domain:"MATH",formMode:"PERSONALIZED_PRACTICE",
  reuseMode:"NEW_ONLY",reusePolicyVersion:"reuse/1",startBefore:"2026-10-16T10:15:00Z"}
 
 // 409: a different creation request finds this student's active attempt, in either mode.
