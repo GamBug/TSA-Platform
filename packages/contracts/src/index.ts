@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export { ASSEMBLY_RANDOM_VERSION, createXorshift32V1, shuffleAssemblyUnitsV1 } from "./assembly-random.ts";
+
 const MAX_QUESTION_BYTES = 256 * 1024;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;

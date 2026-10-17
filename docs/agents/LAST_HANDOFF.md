@@ -1,39 +1,40 @@
-# Latest handoff — FOUND-002 Slice 5
+# Latest handoff — FOUND-002 Slice 6
 
-Date: 2026-10-17 (Asia/Bangkok). Accountable implementer: Codex, TypeScript Contract Engineer. Status: Slice 5 COMPLETED; FOUND-002 remains IN_PROGRESS and G1 is not established.
+Date: 2026-10-17 (Asia/Bangkok). Accountable implementer: Codex, Deterministic Systems and Contract Engineer. Status: Slice 6 COMPLETED; FOUND-002 remains IN_PROGRESS and G1 is NOT ESTABLISHED.
 
 ## Scope and repository state
 
-Authorized scope: the user's FOUND-002 Slice 5 implementation assignment under the scoped G0 authorization. Implement internal Factory-to-Bank runtime contracts, synthetic fixtures and tests in `packages/contracts`; no endpoints, database migrations/permissions, provider calls, UI, bank storage or paid LLM call.
+Authorized scope: the owner's FOUND-002 Slice 6 assignment under scoped G0 implementation authorization. Primary files: `packages/contracts/`; coordinated backlog, project state and handoff updates only. Starting state: `main` at `0dbc7ae`, with an existing uncommitted `AGENTS.md` edit preserved. No commit was created. No external AI call, dependency installation, HTTP endpoint, migration or renderer was added. Independent review: NOT PERFORMED.
 
-Starting state: `main` at `a835911`; uncommitted Slice 1–4B contract/tooling work was preserved, including the existing `packages/contracts/scripts/openapi.ts` student-component registration change. No commits were created.
+## Specification audit and outcome
 
-## Outcome
+| Contract area | Status | Evidence and action |
+|---|---|---|
+| Canonicalization | Partially specified | `QUESTION_SCHEMA.md` requires lowercase UUIDs and a versioned canonical serialization, but defines no immutable-field byte layout, object/array ordering, Unicode or whitespace normalization, number formatting or hash-input encoding. Existing schema rejects uppercase UUIDs; Slice 6 tests field-order-insensitive parsing and unchanged content. No content canonicalizer was invented. |
+| Stable hashing/content identity | Partially specified | `QUESTION_SCHEMA.md` requires immutable fields including private key/explanation and referenced IDs/hashes, excluding workflow/events; `QUESTION_FACTORY_SPEC.md` requires versioned algorithm/hash evidence and import key/hash conflict semantics. Digest algorithm, encoding, self-referential `contentHash` exclusion, reference-hash representation and duplicate fingerprint normalization are not specified. Fixture hash strings are synthetic labels, not computed digests. |
+| PRNG and unit shuffle | Fully specified for the isolated reference; ADR-004 remains PROPOSED | `EXAM_ASSEMBLY_SPEC.md` lines 67–77 define uint32 seed range, zero mapping to 2463534242, xorshift steps, three published five-output vectors and exact integer Fisher–Yates indexing. Added versioned pure helper and executable goldens. It shuffles caller-supplied order and makes no production assembly or full replay claim. |
+| Deterministic question ordering | Partially specified | Ascending lowercase UUID unit input and UUID source per unit are stated, but unit-kind collision ordering, bundle internal-order wire shape, search/soft-rank ties, node counting and final slot order are not fully pinned. Canonical unit sorting, search and manifest-to-slot goldens were deferred. |
+| Renderer-compatible fixtures | Fully specified for `question/1` shape; partial for visual behavior | Synthetic text, math, table and image blocks plus SINGLE_CHOICE, MULTIPLE_CHOICE and TRUE_FALSE_GROUP validate through shared schemas. Malformed tables/images/keys/responses fail. This tests structures, not browser rendering, TeX safety, asset authorization or visual output. |
+| Factory-to-Bank serialization | Fully specified for existing strict subset; partial for full export | JSON package → `factory-package/1` validation → `question/1` validation → draft receipt validation is executable. Full stimulus/assets and resolved config transport lack field-level schemas. Schema validation is not an actual import transaction or rights/approval decision. |
 
-- Added strict internal-only `generation/1` provider request/result/error and provider-usage contracts, plus documented Factory batch/job states and valid PAUSED reason pairing.
-- Added strict machine-validation evidence and provider-neutral Factory run metadata for exact inputs, source references, prompt/model/adapter lineage, usage and hashes.
-- Added draft-only `factory-package/1` validation: generated `question/1` candidate, mandatory provenance, run and validation evidence, matching content hash, and unique `(itemKey, candidateOrdinal)` identities. The package carries no workflow/approval field.
-- Added durable Bank import-receipt parsing for the documented external identity/hash mapping. Its only accepted workflow projection is `DRAFT`.
-- Added deterministic, entirely synthetic Factory producer package and Bank consumer receipt fixtures, with negative boundary coverage. Factory schemas are not registered in the public student OpenAPI artifact.
+Synthetic fixtures also validate one-domain `blueprint/1`, CREATED AttemptView, ResultView and StudentSlot. Public slot and result schemas reject private/authoring fields; Factory export has no workflow field and Bank receipt accepts only DRAFT. Public projection retains content and interaction while excluding the private key/explanation. No provider credentials or real student data appear in fixtures.
 
 ## Verification evidence
 
 | Executed command/check | Environment and date | Observed result | Limitations |
 |---|---|---|---|
-| `npm run typecheck` | Node `v24.18.0`, npm `11.16.0`, 2026-10-17 | Exit 0 | Static TypeScript validation only |
-| Initial `npm test` before artifact regeneration | Same | Exit 1; OpenAPI artifact drift test correctly detected new registered components | Expected ordering effect; no source-test failure |
-| `npm test` | Same | Exit 0; 6 synthetic contract test files passed | No HTTP/database/browser/concurrency/provider tests |
-| `npm run contracts:check` | Same | Exit 0; student OpenAPI artifact matches runtime schemas | Internal Factory schemas deliberately have no public artifact |
+| `npm run typecheck` | Node `v24.18.0`, npm `11.16.0`, 2026-10-17 | Exit 0 | Static TypeScript only |
+| `npm test` | Same | Exit 0; 8 contract test files passed | Shared-package tests only; no service interoperability or visual rendering |
+| `npm run contracts:check` | Same | Exit 0; OpenAPI artifact matches runtime schemas | Components-only drift check; no public DTO shape changed |
 | `git diff --check` | Git, 2026-10-17 | Exit 0 | Whitespace check only |
+| `sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md \| sed '1d;$d' \| node` | Same | Exit 0; 21 required docs, 185 links, 36 tasks, zero errors; one preserved historical whitespace warning | Static documentation consistency only |
 
-Tests not executed: HTTP, database transaction/permission, publication, live provider, paid LLM, browser, scoring and end-to-end tests are outside this slice.
-Independent review: NOT PERFORMED.
+The first final `npm test` run exited 1 because a negative UUID fixture used an all-digit UUID that remained unchanged under uppercase conversion. The fixture was corrected to contain uppercase hex letters; the full suite then exited 0. No generation command was changed or run. Tests not executed: HTTP, database transactions, real Factory/Bank services, browser rendering, provider calls, paid LLM, concurrency, release gates and cross-language reproducibility. These remain outside Slice 6.
 
 ## Continuation
 
-- Known issues / blockers: `factory-package/1` documentation names stimulus/assets, full resolved `factory-config/1`, inventory-plan data, detailed budget reservations/reconciliation, retry/fencing checkpoints and evaluation/report payloads but gives no complete field-level transport shapes. They remain deferred rather than inferred. Proposed ADR-005/008, provider/data-rights/budget/retention/reviewer decisions remain unresolved.
-- Remaining work: broader FOUND-002 schema/API artifacts, frozen renderer/PRNG/canonicalization fixtures, CI and development-run documentation, then endpoint-backed client-generation assessment only after endpoint contracts exist.
-- Recommended next action: assign a bounded documented fixture/canonicalization or remaining public DTO slice; obtain an owner-approved field-level package/config contract before extending Factory export beyond this strict draft subset.
-- Ownership transfer: releases `packages/contracts/**` and coordinated state updates; preserve all uncommitted changes. No commit was authorized.
-- State updates: backlog, project state and this handoff record updated by the accountable implementer; no decision record changed.
-- Recovery notes: rerun `npm run typecheck`, `npm test`, `npm run contracts:check` and `git diff --check`; do not add Factory schemas to the student OpenAPI allowlist or introduce an approval workflow field without a separate approved contract.
+- Remaining FOUND-002 acceptance gaps: owner-reviewed canonicalization/hash and full ordering/search contracts; computed hash and manifest-to-slot fixtures; complete Factory stimulus/assets/config schemas; endpoint-backed client generation; CI and development-run instructions; fresh-checkout and import-boundary evidence. Proposed ADR-003/004/005/007/008 mechanisms are not approved as whole decisions.
+- Recommended next task: obtain an explicit field-level content/hash and assembly ordering/search contract with impact/migration review, then add golden content identity and full replay vectors in a bounded FOUND-002 slice.
+- Ownership transfer: releases `packages/contracts/**` and coordinated state files after this handoff. Preserve the unrelated `AGENTS.md` edit and all existing work. No reviewer or next implementer is assigned.
+- State updates: backlog and project state updated by this accountable implementer; no decision or architectural specification was changed.
+- Recovery: run `npm run typecheck`, `npm test`, `npm run contracts:check`, `git diff --check` and the embedded documentation checker. Do not treat synthetic fixture hashes as validated content hashes or shuffle output as a full assembly algorithm.
