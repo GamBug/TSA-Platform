@@ -72,3 +72,70 @@ When the owner approves, make a minimal record in `OPEN_DECISIONS.md` and only n
 - **Recommended smallest next step:** owner decision or one tightly scoped task, with clear owner/file boundaries.
 - **Ready-to-paste agent prompt:** only when owner wants to assign work.
 - **Handoff update:** only if actual new evidence or owner decisions justify it.
+
+## 8. Project-local Codex dispatch controls
+
+Owner-authorized setup scope, 2026-10-18: project-local orchestration configuration
+and narrow operating documentation only. Application work, migrations, contract
+changes, backlog status changes and gate advancement are not authorized by setup.
+Later rollout/pilot/autopilot examples are templates, not current assignments.
+
+`.codex/config.toml` selects Sol 6.1 / Medium for coordination and Luna / Low as
+the subagent default. `.codex/agents/*.toml` declares `tsa_scout` (Luna / Low),
+`tsa_builder` (Luna / Medium), `tsa_complex_builder` (Terra / Medium), and
+`tsa_reviewer` (Sol 6.1 / Medium). Confirm actual model access and routing before
+dispatch; catalog presence is not execution proof or a quota guarantee. No Astra
+role, paid API orchestration, automatic model fallback or nested delegation.
+
+The configured limit is **two open spawned-agent threads**, excluding the
+coordinator. Default to **one writing implementer**. Two writers require explicitly
+approved isolated worktrees and proven disjoint ownership; this setup grants no
+such assignment. Close completed native agent threads before replacing them.
+Other runtimes may expose different limits/tools; observe this project's lower
+limit manually when its configuration is not loaded.
+
+Use sections 1–6 and HANDOFF_PROTOCOL as authority, not role-file descriptions.
+Every dispatch prompt must contain objective, exact source paths, prerequisites
+and authorization, actual platform/model/effort and reason, reserved/forbidden
+files, positive/negative behavior, test commands, stop conditions and handoff.
+For model overrides requiring isolated context, use `fork_turns="none"`; give the
+worker only the task inputs. The coordinator serializes shared contracts,
+migrations and backlog/state/handoff/decision updates. A role never owns files
+merely because its name suggests responsibility.
+
+Before writes, record HEAD, branch, dirty-file ownership and reservations; use a
+feature branch or isolated worktree, preserve owner changes and never implement
+on `main`. No commits, merges, pushes, releases, new service accounts, secrets or
+real student data without the relevant explicit authorization. A later owner-
+approved batch may authorize local feature-branch commits only within that batch.
+Unresolved product/architecture/rights/privacy/cost choices go to the owner under
+section 5; PROPOSED ADRs and passing tests do not approve them.
+
+Project defaults request workspace-write, restricted network and approval on
+request. Custom agents inherit the parent's effective permissions: read-only role
+instructions are behavioral, not a separate sandbox. Active sessions/CLI flags
+can override project defaults. Inspect effective permissions before dispatch;
+never enable full access, disable approvals or bypass a denied operation to make
+a task pass. If required isolation/routing cannot be verified, stop dependent
+work and report the exact limitation; do not claim this file enforces OS isolation.
+A writing pilot requires a fresh session with verified workspace-write and
+approval on request. The setup probe found that non-interactive `codex exec`
+forces approval `never`; do not use that path for a writing pilot. The setup
+session itself had pre-existing full-access/never overrides, not project defaults.
+
+Run task-level checks and, for relevant implementation changes, `npm run typecheck`,
+`npm test`, `npm run contracts:check`, `npm run docs:check`, and `git diff --check`
+under pinned Node 24.18.0/npm 11.16.0. Record exact PASS/FAIL/NOT RUN and environment;
+no dependency installation or wider check is implied by a read-only assignment.
+Two consecutive failed repairs on one problem require STOP and root-cause analysis.
+Also stop for scope/HEAD/ownership drift, failed quality gates, unresolved decisions,
+ambiguous rights, permission escalation, uncertain model routing or exhausted quota.
+
+Use HANDOFF_TEMPLATE and section 6 for durable handoff; identify what was genuinely
+delegated, actual model evidence, changed paths, checks, risks and next authorization.
+If native custom-role routing is unavailable, use an explicitly model-selected,
+isolated-context session with the corresponding role instructions pasted in its
+task prompt. If that is unavailable too, the owner opens a separate subscription
+client session and pastes the same complete prompt. Confirm its model and return
+its real output/diff; report manual dispatch, never simulated review or automatic
+role loading. Do not launch a paid API runner as a fallback.

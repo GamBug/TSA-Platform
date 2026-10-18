@@ -98,6 +98,12 @@ const required = ['README.md','AGENTS.md',
   'docs/quality/TEST_STRATEGY.md'];
 const ignoredDirectories = new Set(['.git','.next','.parcel-cache','.turbo','build','coverage','dist','node_modules','out','target','temp','tmp']);
 const sourceExtensions = new Set(['.cjs','.css','.cts','.go','.html','.java','.js','.jsx','.json','.kt','.mjs','.mts','.php','.py','.rb','.rs','.scss','.sh','.sql','.ts','.tsx','.vue','.yaml','.yml']);
+const approvedCodexConfigs = new Set([
+  '.codex/config.toml',
+  '.codex/agents/tsa_scout.toml',
+  '.codex/agents/tsa_builder.toml',
+  '.codex/agents/tsa_complex_builder.toml',
+  '.codex/agents/tsa_reviewer.toml']);
 const errors=[], warnings=[]; let links=0;
 let files=[];
 try {
@@ -136,7 +142,7 @@ if(hash!=='97a5bbe5844626043a5aa92bef7813a1fdbe1ba7d0d65e2bce3970f4c0dd2284') er
 const reviewPath='docs/reviews/ARCHITECTURE_REVIEW_001.md';
 if(!fs.existsSync(reviewPath)||crypto.createHash('sha256').update(fs.readFileSync(reviewPath)).digest('hex')!=='d78a114027d3441967a2a7756d1a44bf6c6e46a80d537c027a3265ce2669ee34') errors.push('Review input missing/changed');
 const unexpected=files.filter(p=>{
-  if(p.endsWith('.md')||p==='.gitignore') return false;
+  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)) return false;
   return !sourceExtensions.has(path.extname(p).toLowerCase());
 });
 if(unexpected.length) errors.push(`Unsupported tracked artifacts: ${unexpected.join(', ')}`);

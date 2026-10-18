@@ -1,5 +1,108 @@
 # TSA-Platform — Orchestrator Handoff Baton
 
+## Current baton — orchestration setup, 2026-10-18
+
+Owner authorization: "Proceed to ORCHESTRATOR SETUP ONLY"; project-scoped Codex
+configuration and narrow operating documentation. No implementation pilot,
+application feature, migration, contract change, backlog status change, gate
+transition, commit, push or merge was authorized. Later rollout stages in the
+owner's message are future templates, not active assignments.
+
+- **Verified base:** `main` at `a4dda015d0af3aa1953d47b761a93761dedfa2ad`.
+  Setup branch: `chore/codex-orchestrator-setup`, same HEAD, no commit.
+  Owner's pre-existing dirty `AGENTS.md` is byte-for-byte preserved.
+- **Setup-owned paths:** `.codex/config.toml`, four `.codex/agents/*.toml`, section 8
+  of ORCHESTRATION_PROTOCOL, this current-baton section and the LAST_HANDOFF pointer.
+  No other writer or task is reserved. Main's branch reference is unchanged.
+- **Authority:** existing AGENTS/protocol/decision precedence is unchanged; dispatch
+  controls extend [ORCHESTRATION_PROTOCOL section 8](ORCHESTRATION_PROTOCOL.md#8-project-local-codex-dispatch-controls).
+  Backlog, decisions, PROJECT_STATE and user-level Codex config were hash-checked
+  unchanged. FOUND-002 remains IN_PROGRESS; G1 NOT ESTABLISHED; DATA-001 BLOCKED.
+
+### Verified capability and permission evidence
+
+Codex CLI and running app-server: **0.163.0**. `codex debug models` catalog lists
+`gpt-6-luna`, `gpt-5.6-terra`, and `gpt-6.1-sol`, with Low/Medium/High among their
+supported efforts. Authentication diagnostics report ChatGPT login, no stored API
+key; OPENAI_API_KEY was absent. No API-key runner or paid API was used. Catalog
+presence is not proof of quota or an execution test for every model.
+
+| Route | Configuration | Execution evidence |
+|---|---|---|
+| Coordinator | Sol 6.1 / Medium | Native validation parent recorded this model/effort |
+| `tsa_scout` | Luna / Low | Custom role spawned and completed; runtime metadata verified |
+| `tsa_builder` | Luna / Medium | TOML parsed; model catalog confirms ID; role execution NOT RUN |
+| `tsa_complex_builder` | Terra / Medium | CLI catalog confirms `gpt-5.6-terra`; execution NOT RUN; current outer spawn tool does not list Terra |
+| `tsa_reviewer` | Sol 6.1 / Medium | TOML parsed; model catalog confirms ID; independent review NOT RUN |
+
+`codex --strict-config doctor --json` passed configuration loading. App-server
+`initialize` + `config/read` with cwd/includeLayers verified an enabled project
+layer and effective Sol/Medium, workspace-write, network disabled and approval
+on request. The project layer contains a two-spawned-thread limit and Luna/Low
+default. No global config, project trust or managed permission policy was changed.
+
+**Permission limitation:** the active setup session already had full-access/never
+overrides. Project defaults do not retrofit it. The read-only CLI probe requested
+approval on request, but `codex exec` recorded **never** for its parent and child;
+both retained a **read-only** sandbox. No full-access setting or approval bypass
+was added. A writing pilot must run in a fresh verified workspace-write/on-request
+session, not this overridden session or the tested non-interactive exec path.
+Read-only custom-role instructions alone are behavioral, not OS isolation.
+
+### Genuine delegation proof
+
+- Native parent thread: `01a14f83-a73d-73e0-8be8-360d54df80a3`.
+- One child: `01a14f83-fce6-7743-b30a-611db35a939a`, task
+  `/root/stage2_scout_validation`; spawn used `agent_type="tsa_scout"`,
+  `fork_turns="none"`, without a model override.
+- Child source metadata records `agent_role="tsa_scout"`, depth 1, that parent;
+  turn context records **gpt-6-luna / low**, read-only. This is runtime evidence,
+  not the child's model self-report. No nested or additional child was created.
+- Child findings: no root build script (`package.json` scripts); OpenAPI has
+  **18 schemas / zero paths** (`student-contracts.openapi.json` lines 4/5182).
+  It inspected with `rg`, `nl`, `sed` and Python JSON parsing. Initial `python`
+  was unavailable; retry with `python3` produced the counts. No build/tests ran
+  inside the child. One handoff clarification reused the same child.
+- Repository file hashes before/after delegation: **zero changed/new/deleted files**,
+  excluding Git internals and pre-existing dependencies. Parent/child performed no
+  edits. Child completed; explicit thread-close capability was unavailable.
+- Usage from local final token events: parent 163,650 input (143,744 cached),
+  1,564 output; child 84,714 input (47,872 cached), 1,632 output. These are cumulative
+  per-turn token counters, not unique context size, plan credits or a cost estimate.
+  Relative usage: MEDIUM due to harness/context overhead despite a tiny task.
+
+Local proof locations (not required for successor context): parent/child rollout
+JSONL files under `~/.codex/sessions/2026/10/18/`, named with the thread IDs above;
+sanitized probe summaries in `/tmp/tsa-setup-config-proof.json` and
+`/tmp/tsa-setup-delegation-proof.json`. No full transcript is copied into the repo.
+
+### Verification and next authorization
+
+TOML parsing: all five files PASS. Strict configuration load and effective project
+layer: PASS. Custom scout routing/read-only task and no-file-change comparison:
+PASS. Inspection-only probe corrections: `--strict-config` is unsupported on
+`codex debug`; rerun without it passed. A temporary RPC reporting script initially
+assumed an optional `disabledReason` field; reading it as optional fixed reporting.
+Neither issue required changing the project settings or application.
+
+Final checks on Node **v24.18.0** / npm **11.16.0**: `npm run typecheck`, `npm test`
+(**42 cases / eight suites**, zero failed/skipped), `npm run contracts:check`,
+`npm run docs:check` (21 required docs, 187 links, 36 tasks, zero errors; preserved
+historical whitespace warning), and `git diff --check`: **PASS**, exit 0 each.
+Protected-file hashes matched. No clean install, hosted CI, DB/browser test or gate
+acceptance is implied. Refer to LAST_HANDOFF for historical contract verification,
+not native role-routing proof. Independent implementation review: NOT PERFORMED.
+
+**Next proposed pilot:** one FOUND-002 executable shared-contract build and emitted
+JS smoke test, preserving existing schemas/exports, no dependencies or application
+features. Owner must accept setup and explicitly assign the single pilot with its
+file allowlist/tests; use a separate feature branch/worktree and a fresh verified
+permission session. No pilot is queued. If native custom roles cannot be selected
+by the chosen client, use section 8's explicitly model-selected/manual fallback and
+report the limitation. No Astra, paid fallback or automatic gate advancement.
+
+## Historical baton — 2026-10-17 (verify before reuse)
+
 **Prepared:** 2026-10-17 (Asia/Ho_Chi_Minh)
 **Outgoing coordinator:** ChatGPT web conversation (long context; user requests handoff to Codex 6.1 Sol)
 **Incoming coordinator:** Codex 6.1 Sol, or any later replacement

@@ -1,5 +1,9 @@
 # Latest handoff — FOUND-002 Slice 7
 
+Operational update, 2026-10-18: project-local Codex setup and its genuine read-only
+delegation evidence are recorded in the [current orchestrator baton](ORCHESTRATOR_HANDOFF.md#current-baton--orchestration-setup-2026-10-18).
+This does not change the task/gate status or historical Slice 7 evidence below.
+
 Date: 2026-10-17 (Asia/Bangkok). Accountable implementer: Codex, TypeScript Build and Integration Engineer. Status: Slice 7 COMPLETED; FOUND-002 remains IN_PROGRESS and G1 is NOT ESTABLISHED.
 
 ## Scope and repository state

@@ -1,0 +1,15 @@
+# Project defaults for new sessions; active thread/CLI overrides can supersede them.
+# Authority and dispatch rules: docs/agents/ORCHESTRATION_PROTOCOL.md, section 8.
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 2
+default_subagent_model = "gpt-6-luna"
+default_subagent_reasoning_effort = "low"
