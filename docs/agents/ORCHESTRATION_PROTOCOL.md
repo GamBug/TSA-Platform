@@ -80,12 +80,26 @@ and narrow operating documentation only. Application work, migrations, contract
 changes, backlog status changes and gate advancement are not authorized by setup.
 Later rollout/pilot/autopilot examples are templates, not current assignments.
 
-`.codex/config.toml` selects Sol 6.1 / Medium for coordination and Luna / Low as
-the subagent default. `.codex/agents/*.toml` declares `tsa_scout` (Luna / Low),
-`tsa_builder` (Luna / Medium), `tsa_complex_builder` (Terra / Medium), and
+`.codex/config.toml` selects Sol 6.1 / Medium for coordination and Luna / XHigh as
+the subagent default. `.codex/agents/*.toml` declares `tsa_scout` (Luna / XHigh),
+`tsa_builder` (Luna / XHigh), `tsa_complex_builder` (Terra / Medium), and
 `tsa_reviewer` (Sol 6.1 / Medium). Confirm actual model access and routing before
 dispatch; catalog presence is not execution proof or a quota guarantee. No Astra
 role, paid API orchestration, automatic model fallback or nested delegation.
+
+Owner policy update, 2026-10-18: use Luna / XHigh for normal discovery,
+implementation, debugging and test development. Escalate to Terra only for a
+demonstrated complexity or capability reason, recorded in the dispatch prompt.
+Use Sol / Medium for coordination and integration review, with the read-only
+reviewer reserved for independent review. Never select a more expensive model
+merely because it is available. Astra requires explicit owner approval before
+any invocation; this configuration defines no Astra role. Do not repeatedly retry
+the same unsuccessful approach; diagnose the cause before changing the approach.
+
+Explicit `model` and `model_reasoning_effort` in a custom-role file take precedence
+over spawn values and `[agents]` defaults. Keep both fields explicit so the Terra
+and Sol specialist roles retain Medium instead of inheriting Luna's XHigh default.
+See the [official custom-agent precedence documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents).
 
 The configured limit is **two open spawned-agent threads**, excluding the
 coordinator. Default to **one writing implementer**. Two writers require explicitly

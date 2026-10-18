@@ -1,5 +1,43 @@
 # TSA-Platform — Orchestrator Handoff Baton
 
+## Current policy update — Luna XHigh, 2026-10-18
+
+Owner instruction: "CONFIGURATION UPDATE — LUNA XHIGH DEFAULT" authorizes this
+configuration/documentation update and one local commit; no push, merge, agent
+spawn or Stage 3 work. Coordinator/implementer: Codex Sol 6.1 / Medium for the
+bounded configuration and integration checks. Starting branch:
+`chore/codex-orchestrator-setup`, HEAD `8407bea5c26ba97e7b2d7086aa933fa6f331bdff`;
+only the owner's preserved `AGENTS.md` was dirty. That commit finalized Stage 2,
+including the exact-path documentation-checker repair.
+
+Current configuration: coordinator Sol 6.1 / Medium; default worker, `tsa_scout`
+and `tsa_builder` Luna / XHigh; `tsa_complex_builder` Terra / Medium;
+`tsa_reviewer` Sol 6.1 / Medium. Explicit custom-role model/effort settings take
+precedence over spawn/default settings. Normal discovery, implementation,
+debugging and test development use Luna / XHigh. Terra requires a demonstrated
+complexity/capability reason; Sol handles coordination and integration review.
+Astra requires explicit owner approval; no Astra role is configured. Do not
+select more expensive models merely for availability or repeat a failed approach.
+See [dispatch controls](ORCHESTRATION_PROTOCOL.md#8-project-local-codex-dispatch-controls).
+
+Verification on Codex 0.163.0: all five TOML files parse; only the three intended
+reasoning values changed. `codex --strict-config doctor --json` passed (exit 0).
+App-server `initialize` + `config/read` with cwd/includeLayers confirmed the enabled
+project layer and effective Sol/Medium, Luna/XHigh defaults, workspace-write,
+approval on request and network disabled. Explicit role fields were checked
+against official precedence rules; Terra/Sol overrides remain Medium. The local
+model catalog lists Luna XHigh support; quota and XHigh role execution are NOT
+VERIFIED. No runtime delegation test was run. Final documentation/whitespace
+check results are recorded in this configuration commit's message.
+
+The Stage 2 record below preserves historical Low/Medium routing evidence; it
+does not prove XHigh role execution. No agents were spawned for this update.
+The active session has owner-supplied full-access/never overrides; project
+workspace-write/on-request/network-disabled defaults remain unchanged. A Stage 3
+writing pilot still requires a fresh verified workspace-write/on-request session
+and an explicit owner assignment. Product decisions, backlog and PROJECT_STATE
+remain unchanged; FOUND-002 is IN_PROGRESS, G1 NOT ESTABLISHED, DATA-001 BLOCKED.
+
 ## Current baton — orchestration setup, 2026-10-18
 
 Owner authorization: "Proceed to ORCHESTRATOR SETUP ONLY"; project-scoped Codex
