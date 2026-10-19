@@ -8,6 +8,7 @@ const studentErrorMessages = {
   SESSION_REQUIRED: "Phiên demo chưa sẵn sàng. Hãy tải lại trang để bắt đầu phiên mới.",
   NOT_FOUND: "Không tìm thấy phiên demo này. Hãy tải lại trang để bắt đầu phiên mới.",
   ATTEMPT_CLOSED: "Phiên demo đã kết thúc nên không thể thay đổi lựa chọn.",
+  REVIEW_NOT_AVAILABLE: "Phần ôn tập chỉ mở sau khi phiên demo đã được chấm.",
   INTERNAL_ERROR: "Máy chủ demo chưa thể hoàn tất yêu cầu. Hãy thử lại.",
 };
 
@@ -62,6 +63,11 @@ export async function startDemo(domain = "MATH") {
 export async function readAttempt(attemptId) {
   requireSession();
   return request(`/mock/attempts/${encodeURIComponent(attemptId)}`);
+}
+
+export async function readReview(attemptId) {
+  requireSession();
+  return request(`/mock/attempts/${encodeURIComponent(attemptId)}/review`);
 }
 
 export async function saveAnswer(attemptId, slotId, optionId) {

@@ -7,8 +7,8 @@ Updated 2026-10-19. This is current navigation; task status lives in
 
 | Topic | Verified current position |
 |---|---|
-| Immediate priority | Owner Track B-first directive (~85% website / ~15% lightweight research). WEB-B0 isolated Vietnamese mock prototype COMPLETED for the first slice on `feat/track-b-b0-prototype`, base `81ef8aa`; G1 is accepted; real integrated website tasks retain their remaining prerequisites. |
-| Engineering checkpoint | Runnable B0 on `feat/track-b-b0-prototype`, uncommitted base `81ef8aa`, gate disposition `27350b3`; `npm run dev:b0` serves loopback 4173. Nine B0 Node tests + actual Chromium desktop/mobile journey pass. Contract checkpoints and final G1 audit remain in Git/audit records. |
+| Immediate priority | Owner Track B-first directive (~85% website / ~15% lightweight research). WEB-B0 and WEB-B0.1 COMPLETED for their mock slices on `feat/track-b-b0-prototype`, base `81ef8aa`; G1 is accepted; real integrated website tasks retain their remaining prerequisites. |
+| Engineering checkpoint | Runnable B0 on `feat/track-b-b0-prototype`, B0 checkpoint `237da9c`, gate disposition `27350b3`; B0.1 follows separately; `npm run dev:b0` serves loopback 4173. Eleven B0.1 Node tests + expanded Chromium clear/resume/released-review desktop/mobile journey pass. Contract checkpoints and final G1 audit remain in Git/audit records. |
 | Gates | FOUND-002 COMPLETED; G1 ACCEPTED by owner 2026-10-19 (`0e67485` / audit `81ef8aa`). DATA-001 foundation gate satisfied; affected proposed DB mechanisms still require disposition. Bounded FOUND-007 taxonomy reconciliation is accepted; database allocation remains later work. |
 | Architecture | Independent draft-only Question Factory → human-controlled Question Bank → Practice Website. Student requests never require LLM inference. Human review/publication is distinct from validated draft transport. |
 | MVP | Independent MATH-4, READING-2 and SCIENCE-4 practice tests; no automatic domain chaining or official aggregate score. Seed target remains 12/6/12 vetted items. |

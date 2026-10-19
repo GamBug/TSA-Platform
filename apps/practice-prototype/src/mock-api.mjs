@@ -3,10 +3,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import {
   cancelMockAttempt,
   createMockAttempt,
+  expireIfNeeded,
   saveMockAnswer,
   submitMockAttempt,
   toPublicAttempt,
 } from "./exam-engine.mjs";
+import { privateQuestionFixture, REPEATED_FIXTURE_NOTICE } from "./private-question-fixture.mjs";
 
 const MAX_JSON_BYTES = 16 * 1024;
 const SESSION_COOKIE = "practice_demo_session";
@@ -72,6 +74,20 @@ function strictObject(value, keys) {
 function safeSessionSnapshot(session, now) {
   const attempt = session.activeAttemptId === null ? null : session.attempts.get(session.activeAttemptId) ?? null;
   return { attempt: attempt === null ? null : toPublicAttempt(attempt, now) };
+}
+
+function toPublicReview(attempt) {
+  return {
+    attemptId: attempt.attemptId,
+    label: "ÔN TẬP ĐÁP ÁN CỦA PHIÊN DEMO ĐÃ KHÉP LẠI",
+    repeatNotice: REPEATED_FIXTURE_NOTICE,
+    slots: attempt.slots.map(({ slotId, ordinal }) => ({
+      slotId,
+      ordinal,
+      correctOptionId: privateQuestionFixture.private.answerKey.optionId,
+      explanation: structuredClone(privateQuestionFixture.private.explanation),
+    })),
+  };
 }
 
 export function createMockApiService({ now = () => Date.now(), makeSessionId = () => randomBytes(32).toString("base64url"), makeAttemptId = randomUUID } = {}) {
@@ -144,13 +160,19 @@ export function createMockApiService({ now = () => Date.now(), makeSessionId = (
         return json(201, { attempt: toPublicAttempt(attempt, now()), resumed: false });
       }
 
-      const attemptRoute = /^\/mock\/attempts\/([0-9a-f-]+)(?:\/(answers\/([0-9a-f-]+)|submit|cancel))?$/.exec(pathname);
+      const attemptRoute = /^\/mock\/attempts\/([0-9a-f-]+)(?:\/(answers\/([0-9a-f-]+)|submit|cancel|review))?$/.exec(pathname);
       if (attemptRoute === null) return error(404, "NOT_FOUND", "Demo route not found.");
       const attempt = findOwnedAttempt(session, attemptRoute[1]);
       if (attempt === null) return error(404, "NOT_FOUND", "Demo attempt not found.");
 
       const suffix = attemptRoute[2] ?? "";
       if (suffix === "" && method === "GET") return json(200, { attempt: toPublicAttempt(attempt, now()) });
+
+      if (suffix === "review" && method === "GET") {
+        expireIfNeeded(attempt, now());
+        if (attempt.state !== "GRADED") return error(409, "REVIEW_NOT_AVAILABLE", "Review is available only after this demo attempt is graded.");
+        return json(200, { review: toPublicReview(attempt) });
+      }
 
       if (suffix.startsWith("answers/") && method === "PUT") {
         let value;
@@ -168,7 +190,10 @@ export function createMockApiService({ now = () => Date.now(), makeSessionId = (
         const result = saveMockAnswer(attempt, slotId, value.optionId, now());
         if (result.unknownSlot || result.unknownOption) return error(422, "VALIDATION_ERROR", "Answer does not match a demo question.");
         if (result.closed) return error(409, "ATTEMPT_CLOSED", "This demo attempt is closed.");
-        return json(200, { attempt: toPublicAttempt(attempt, now()), message: "Đã ghi nhớ trong phiên demo" });
+        return json(200, {
+          attempt: toPublicAttempt(attempt, now()),
+          message: value.optionId === null ? "Đã xóa lựa chọn trong phiên demo" : "Đã ghi nhớ trong phiên demo",
+        });
       }
 
       if (suffix === "submit" && method === "POST") {

@@ -65,6 +65,11 @@ describe("isolated mock API and in-memory exam session", () => {
     assert.deepEqual(first.slots.map((slot) => slot.content), Array.from({ length: 4 }, () => first.slots[0].content));
     assert.doesNotMatch(started.body, /answerKey|explanation|Subtract 2 from each side|"optionId":"b"/);
 
+    const saved = await harness.call(`/mock/attempts/${first.attemptId}/answers/${first.slots[0].slotId}`, {
+      method: "PUT", cookie, body: { optionId: "b" },
+    });
+    assert.equal(JSON.parse(saved.body).attempt.answeredCount, 1);
+
     harness.setNow(startTime + 85_000);
     const resumed = await harness.call("/mock/attempts", { method: "POST", cookie, body: { domain: "MATH" } });
     assert.equal(resumed.status, 200);
@@ -74,6 +79,13 @@ describe("isolated mock API and in-memory exam session", () => {
     assert.equal(second.startedAt, first.startedAt);
     assert.equal(second.deadlineAt, first.deadlineAt);
     assert.equal(Date.parse(second.serverNow), startTime + 85_000);
+
+    const reloaded = await harness.call("/mock/session", { method: "POST", cookie });
+    const restored = JSON.parse(reloaded.body).attempt;
+    assert.equal(restored.attemptId, first.attemptId);
+    assert.equal(restored.deadlineAt, first.deadlineAt);
+    assert.deepEqual(restored.answers, [{ slotId: first.slots[0].slotId, optionId: "b" }]);
+    assert.doesNotMatch(reloaded.body, /answerKey|explanation|Subtract 2 from each side/);
   });
 
   it("rejects malformed JSON, unknown request fields, unsupported domains, bad slots/options, and cross-session IDs", async () => {
@@ -175,6 +187,71 @@ describe("isolated mock API and in-memory exam session", () => {
     assert.equal(closed.result.correctCount, 1);
     const lateWrite = await harness.call(`/mock/attempts/${attempt.attemptId}/answers/${attempt.slots[1].slotId}`, { method: "PUT", cookie, body: { optionId: "a" } });
     assert.equal(lateWrite.status, 409);
+  });
+
+  it("clears an acknowledged answer and updates the public answered count", async () => {
+    const harness = createHarness();
+    const { cookie } = await harness.openSession();
+    const started = await harness.call("/mock/attempts", { method: "POST", cookie, body: { domain: "MATH" } });
+    const attempt = JSON.parse(started.body).attempt;
+    const slotId = attempt.slots[0].slotId;
+    const saved = await harness.call(`/mock/attempts/${attempt.attemptId}/answers/${slotId}`, {
+      method: "PUT", cookie, body: { optionId: "a" },
+    });
+    assert.equal(JSON.parse(saved.body).attempt.answeredCount, 1);
+
+    const cleared = await harness.call(`/mock/attempts/${attempt.attemptId}/answers/${slotId}`, {
+      method: "PUT", cookie, body: { optionId: null },
+    });
+    const publicAttempt = JSON.parse(cleared.body).attempt;
+    assert.equal(publicAttempt.answeredCount, 0);
+    assert.deepEqual(publicAttempt.answers, []);
+    assert.equal(JSON.parse(cleared.body).message, "Đã xóa lựa chọn trong phiên demo");
+    assert.doesNotMatch(cleared.body, /answerKey|explanation|Subtract 2 from each side/);
+  });
+
+  it("releases a separate explicit review only to the owning session after grading", async () => {
+    const harness = createHarness();
+    const owner = await harness.openSession();
+    const other = await harness.openSession();
+    const started = await harness.call("/mock/attempts", { method: "POST", cookie: owner.cookie, body: { domain: "MATH" } });
+    const attempt = JSON.parse(started.body).attempt;
+    const reviewPath = `/mock/attempts/${attempt.attemptId}/review`;
+
+    assert.equal((await harness.call(reviewPath)).status, 401);
+    assert.equal((await harness.call(reviewPath, { cookie: owner.cookie })).status, 409);
+    assert.equal((await harness.call(reviewPath, { cookie: other.cookie })).status, 404);
+    assert.equal((await harness.call(`/mock/attempts/${attemptIds[2]}/review`, { cookie: owner.cookie })).status, 404);
+
+    const cancelled = await harness.call(`/mock/attempts/${attempt.attemptId}/cancel`, {
+      method: "POST", cookie: owner.cookie, body: {},
+    });
+    assert.equal(JSON.parse(cancelled.body).attempt.state, "CANCELLED");
+    assert.equal((await harness.call(reviewPath, { cookie: owner.cookie })).status, 409);
+
+    const next = await harness.call("/mock/attempts", { method: "POST", cookie: owner.cookie, body: { domain: "MATH" } });
+    const gradedAttempt = JSON.parse(next.body).attempt;
+    const gradedPath = `/mock/attempts/${gradedAttempt.attemptId}`;
+    await harness.call(`${gradedPath}/submit`, { method: "POST", cookie: owner.cookie, body: {} });
+
+    const scoreOnly = await harness.call(gradedPath, { cookie: owner.cookie });
+    assert.equal(scoreOnly.status, 200);
+    assert.equal(Object.hasOwn(JSON.parse(scoreOnly.body).attempt, "result"), true);
+    assert.doesNotMatch(scoreOnly.body, /correctOptionId|explanation|Subtract 2 from each side|answerKey/);
+    assert.equal((await harness.call(`${gradedPath}/review`, { cookie: other.cookie })).status, 404);
+
+    const released = await harness.call(`${gradedPath}/review`, { cookie: owner.cookie });
+    assert.equal(released.status, 200);
+    const { review } = JSON.parse(released.body);
+    assert.deepEqual(Object.keys(review).sort(), ["attemptId", "label", "repeatNotice", "slots"]);
+    assert.match(review.label, /PHIÊN DEMO ĐÃ KHÉP LẠI/);
+    assert.equal(review.repeatNotice, "4 vị trí lặp lại cùng dữ liệu kiểm thử; không phải đề TSA/học liệu đã duyệt");
+    assert.equal(review.slots.length, 4);
+    assert.deepEqual(Object.keys(review.slots[0]).sort(), ["correctOptionId", "explanation", "ordinal", "slotId"]);
+    assert.equal(review.slots[0].correctOptionId, "b");
+    assert.deepEqual(review.slots[0].explanation, [{ type: "text", text: "Subtract 2 from each side." }]);
+    assert.equal(Object.hasOwn(review, "result"), false);
+    assert.equal(Object.hasOwn(review.slots[0], "answerKey"), false);
   });
 
   it("confirms cancellation, rejects later writes, and permits an explicit new attempt after cancellation", async () => {

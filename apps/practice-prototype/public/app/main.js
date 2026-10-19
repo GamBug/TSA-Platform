@@ -7,6 +7,8 @@ const domainNames = { MATH: "Toán học", READING: "Đọc hiểu", SCIENCE: "K
 const state = {
   catalog: [],
   attempt: null,
+  review: null,
+  resumeNotice: "",
   currentIndex: 0,
   savingSlotId: null,
   busy: false,
@@ -115,6 +117,8 @@ function clearAttemptState() {
   state.currentIndex = 0;
   state.savingSlotId = null;
   state.busy = false;
+  state.review = null;
+  state.resumeNotice = "";
 }
 
 function acceptAttempt(attempt) {
@@ -133,6 +137,14 @@ function acceptAttempt(attempt) {
   }
   clearAttemptState();
   renderCatalog();
+}
+
+function resumeNotice() {
+  if (!state.resumeNotice) return null;
+  const notice = element("p", "resume-notice", state.resumeNotice);
+  notice.dataset.testid = "resume-notice";
+  notice.setAttribute("role", "status");
+  return notice;
 }
 
 function header() {
@@ -235,6 +247,8 @@ async function startDemo() {
   try {
     const response = await api.startDemo("MATH");
     state.busy = false;
+    state.resumeNotice = response.resumed ? "Đã tiếp tục phiên demo" : "";
+    state.review = null;
     state.currentIndex = 0;
     acceptAttempt(response.attempt);
   } catch (error) {
@@ -259,7 +273,7 @@ function renderOptions(question, saving) {
     input.checked = selectedOption(question.slotId) === option.id;
     input.disabled = saving || state.busy;
     input.dataset.testid = `option-${option.id}`;
-    input.addEventListener("change", () => { void saveSelectedOption(question.slotId, option.id); });
+    input.addEventListener("change", () => { void saveSelectedOption(question.slotId, option.id, `option-${option.id}`); });
     const letter = element("span", "option-letter", option.id.toUpperCase());
     const text = element("span", "option-text", option.content.map((block) => block.text ?? "").join(" "));
     label.append(input, letter, text);
@@ -275,14 +289,14 @@ function updateSaveStatus(message, kind = "") {
   row.replaceChildren(element("span", "save-dot"), element("span", "", message));
 }
 
-async function saveSelectedOption(slotId, optionId) {
+async function saveSelectedOption(slotId, optionId, restoreFocusTestId) {
   if (state.busy || state.savingSlotId !== null) return;
   state.savingSlotId = slotId;
   const attemptId = state.attempt.attemptId;
   const options = app.querySelectorAll("input[type='radio']");
   for (const input of options) input.disabled = true;
   for (const control of app.querySelectorAll(
-    ".question-nav button, [data-testid='question-prev'], [data-testid='question-next'], [data-testid='submit-open'], [data-testid='cancel-open']",
+    ".question-nav button, [data-testid='question-prev'], [data-testid='question-next'], [data-testid='submit-open'], [data-testid='cancel-open'], [data-testid='clear-answer']",
   )) control.disabled = true;
   updateSaveStatus("Đang ghi nhớ lựa chọn…");
   try {
@@ -297,13 +311,14 @@ async function saveSelectedOption(slotId, optionId) {
     renderExam();
     updateSaveStatus(response.message, "saved");
     announce(response.message);
+    app.querySelector(`[data-testid='${restoreFocusTestId}']`)?.focus();
   } catch (error) {
     if (state.attempt?.attemptId !== attemptId || state.attempt.state !== "IN_PROGRESS") return;
     state.savingSlotId = null;
     renderExam();
     updateSaveStatus(error.message || "Lựa chọn chưa được ghi nhận.", "error");
     announce(error.message || "Lựa chọn chưa được ghi nhận.");
-    app.querySelector("#question-title")?.focus();
+    app.querySelector(`[data-testid='${restoreFocusTestId}']`)?.focus();
   }
 }
 
@@ -313,7 +328,7 @@ function appendDialog(parent, { id, title, body, cancelTestId, cancelText, confi
   dialog.setAttribute("aria-labelledby", `${id}-title`);
   const heading = element("h2", "", title);
   heading.id = `${id}-title`;
-  dialog.append(heading, element("p", "", body));
+  dialog.append(heading, typeof body === "string" ? element("p", "", body) : body);
   const error = element("p", "dialog-error");
   error.dataset.testid = `${id}-error`;
   error.setAttribute("role", "status");
@@ -346,6 +361,8 @@ function renderExam() {
   if (state.attempt === null) return;
   const fragment = document.createDocumentFragment();
   fragment.append(header());
+  const restored = resumeNotice();
+  if (restored) fragment.append(restored);
   const examHeader = element("div", "exam-header");
   const examTitle = element("div", "exam-title");
   examTitle.append(element("p", "eyebrow", "PHIÊN LUYỆN TẬP ĐỘC LẬP"));
@@ -407,6 +424,13 @@ function renderExam() {
   saveRow.setAttribute("role", "status");
   saveRow.setAttribute("aria-live", "polite");
   card.append(saveRow);
+  const selected = selectedOption(question.slotId);
+  const clear = actionButton("Xóa lựa chọn", "clear-answer", () => {
+    if (selected !== null) void saveSelectedOption(question.slotId, null, `option-${selected}`);
+  }, "text-button clear-answer");
+  clear.disabled = selected === null || state.busy || state.savingSlotId !== null;
+  clear.setAttribute("aria-label", "Xóa lựa chọn đã ghi nhận cho vị trí hiện tại");
+  card.append(clear);
   layout.append(sidebar, card);
   fragment.append(layout);
 
@@ -425,10 +449,21 @@ function renderExam() {
   fragment.append(footer, footerNote());
 
   const answered = state.attempt.answeredCount;
+  const summary = element("div", "submit-summary");
+  summary.append(element("p", "", `Đã trả lời ${answered} trên ${state.attempt.slots.length} vị trí. Vị trí còn trống sẽ được tính là sai trong kết quả minh họa.`));
+  const summaryList = element("ul", "submit-summary-list");
+  for (const slot of state.attempt.slots) {
+    const hasAnswer = selectedOption(slot.slotId) !== null;
+    const item = element("li", hasAnswer ? "answered" : "unanswered");
+    item.append(element("strong", "", `Vị trí ${slot.ordinal}`));
+    item.append(element("span", "", hasAnswer ? "Đã trả lời" : "Chưa trả lời"));
+    summaryList.append(item);
+  }
+  summary.append(summaryList);
   appendDialog(fragment, {
     id: "submit-dialog",
     title: "Nộp bài luyện tập?",
-    body: `Bạn đã trả lời ${answered} trên ${state.attempt.slots.length} vị trí. Vị trí còn trống sẽ được tính là sai trong kết quả minh họa.`,
+    body: summary,
     cancelTestId: "submit-cancel",
     cancelText: "Tiếp tục làm",
     confirmTestId: "submit-confirm",
@@ -489,11 +524,16 @@ function renderResult(result) {
   clearTimer();
   const fragment = document.createDocumentFragment();
   fragment.append(header());
+  const restored = resumeNotice();
+  if (restored) fragment.append(restored);
   const card = element("section", "result-card");
   card.dataset.testid = "result";
   card.append(element("span", "result-mark", "✓"));
   card.append(element("p", "eyebrow", "PHIÊN DEMO ĐÃ KHÉP LẠI"));
-  card.append(element("h1", "", "Bạn đã hoàn thành."));
+  const title = element("h1", "", "Bạn đã hoàn thành.");
+  title.id = "result-title";
+  title.tabIndex = -1;
+  card.append(title);
   card.append(element("p", "", result.label));
   const score = element("div", "result-score");
   score.append(element("strong", "score-number", `${result.correctCount}/${result.totalCount}`));
@@ -503,15 +543,78 @@ function renderResult(result) {
   score.append(scoreCopy);
   card.append(score);
   card.append(element("p", "result-note", "Đây là phép chấm kiểm thử cho bốn vị trí lặp lại. Kết quả không phải điểm TSA chính thức và không đại diện cho năng lực ở một đề thi thực tế."));
+  card.append(actionButton("Ôn tập đáp án", "review-open", () => { void openReview(); }, "button secondary"));
   card.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button"));
   fragment.append(card, footerNote());
   app.replaceChildren(fragment);
   announce(`Kết quả minh họa: ${result.correctCount} trên ${result.totalCount}.`);
 }
 
+async function openReview() {
+  if (state.busy || state.attempt?.state !== "GRADED") return;
+  state.busy = true;
+  const trigger = app.querySelector("[data-testid='review-open']");
+  if (trigger) trigger.disabled = true;
+  try {
+    const response = await api.readReview(state.attempt.attemptId);
+    state.review = response.review;
+    state.busy = false;
+    renderReview();
+    app.querySelector("#review-title")?.focus();
+  } catch (error) {
+    state.busy = false;
+    if (trigger?.isConnected) trigger.disabled = false;
+    showMessage(error.message || "Chưa mở được phần ôn tập.");
+  }
+}
+
+function renderReview() {
+  if (state.attempt === null) return renderCatalog();
+  if (state.attempt.state !== "GRADED" || state.review === null) return renderResult(state.attempt.result);
+  const fragment = document.createDocumentFragment();
+  fragment.append(header());
+  const restored = resumeNotice();
+  if (restored) fragment.append(restored);
+  const card = element("section", "review-card");
+  card.dataset.testid = "review";
+  card.append(element("p", "eyebrow", state.review.label));
+  const title = element("h1", "", "Ôn tập sau khi bài demo đã được chấm.");
+  title.id = "review-title";
+  title.tabIndex = -1;
+  card.append(title, element("p", "repeat-alert", state.review.repeatNotice));
+  card.append(element("p", "review-disclaimer", "Đáp án và lời giải chỉ được hiển thị sau khi phiên demo đã khép lại. Đây vẫn là dữ liệu kiểm thử lặp lại."));
+
+  for (const released of state.review.slots) {
+    const sourceSlot = state.attempt.slots.find((slot) => slot.slotId === released.slotId);
+    if (!sourceSlot || sourceSlot.ordinal !== released.ordinal) continue;
+    const item = element("article", "review-item");
+    item.append(element("p", "question-kicker", `VỊ TRÍ ${released.ordinal} / ${state.attempt.slots.length}`));
+    item.append(element("h2", "", sourceSlot.content.map((block) => block.text ?? "").join(" ")));
+    const options = element("ul", "review-options");
+    for (const option of sourceSlot.interaction.options) {
+      const optionRow = element("li", option.id === released.correctOptionId ? "correct" : "");
+      optionRow.append(element("span", "option-letter", option.id.toUpperCase()));
+      optionRow.append(element("span", "", option.content.map((block) => block.text ?? "").join(" ")));
+      if (option.id === released.correctOptionId) optionRow.append(element("strong", "review-correct", "Đáp án đúng"));
+      options.append(optionRow);
+    }
+    item.append(options);
+    item.append(element("p", "review-explanation", released.explanation.map((block) => block.text ?? "").join(" ")));
+    card.append(item);
+  }
+
+  card.append(actionButton("Quay lại kết quả", "back-score", () => {
+    state.review = null;
+    renderResult(state.attempt.result);
+    app.querySelector("#result-title")?.focus();
+  }, "button"));
+  fragment.append(card, footerNote());
+  app.replaceChildren(fragment);
+}
+
 function renderFatal(error) {
   clearTimer();
-  const card = element("main", "screen-error");
+  const card = element("section", "screen-error");
   card.append(element("p", "eyebrow", "PHIÊN DEMO"));
   card.append(element("h1", "", "Chưa mở được bài luyện tập."));
   card.append(element("p", "", error?.message || "Hãy kiểm tra máy chủ demo cục bộ rồi tải lại trang."));
@@ -526,6 +629,7 @@ async function initialize() {
     const data = await api.loadCatalog();
     state.catalog = data.domains;
     if (session.attempt?.state === "IN_PROGRESS" || session.attempt?.state === "GRADED") {
+      state.resumeNotice = "Đã tiếp tục phiên demo";
       acceptAttempt(session.attempt);
     } else {
       renderLanding();

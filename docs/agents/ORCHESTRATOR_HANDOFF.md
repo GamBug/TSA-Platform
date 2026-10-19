@@ -8,17 +8,17 @@ G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
 
-## Current baton — Track B B0 delivered, 2026-10-19
+## Current baton — Track B B0.1 verified, 2026-10-19
 
 Owner prioritizes Track B (~85%) over lightweight Track A (~15%). Existing B0
 and same-app B0.1 continuation are explicitly authorized; G1 accepted in `27350b3`. Branch `feat/track-b-b0-prototype`,
-HEAD/base `81ef8aa`; B0 code/entrypoints/records uncommitted. Owner AGENTS.md bytes
+gate `27350b3`, B0 `237da9c`; B0.1 checkpoint follows its verified handoff. Owner AGENTS.md bytes
 preserved. Local B0 checkpoint commits are now explicitly authorized, separately from gate
 recording; no push/merge/deployment or paid API. G2/G3 remain unestablished.
 
 Runnable Vietnamese prototype: `npm run dev:b0` → http://127.0.0.1:4173.
 Repeated synthetic MATH fixture only, visibly mock; no approved seed, real identity,
-DB, NEW_ONLY or integrated scoring claim. Nine Node tests, actual Chromium
+DB, NEW_ONLY or integrated scoring claim. Eleven B0.1 Node tests, clear/resume/released-review and actual Chromium
 pointer/keyboard/save-error/mobile journey and existing 106 contract/11 emitted
 regressions pass. One reused Luna / XHigh writer; Sol / Medium independent review,
 browser verification and integration; reservations released. See

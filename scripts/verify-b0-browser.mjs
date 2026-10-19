@@ -41,7 +41,12 @@ async function evaluate(expression) {
   return out.result.value;
 }
 async function waitFor(expression, label) {
-  for (let i = 0; i < 80; i++) { if (await evaluate(expression)) return; await delay(50); }
+  for (let i = 0; i < 80; i++) {
+    try { if (await evaluate(expression)) return; } catch (error) {
+      if (!/context.*(destroyed|not found)|Cannot find context/i.test(error.message)) throw error;
+    }
+    await delay(50);
+  }
   throw new Error(`Timed out: ${label}`);
 }
 const selector = id => `[data-testid="${id}"]`;
@@ -112,6 +117,27 @@ try {
   assert.equal(await evaluate(`${query('question-next')}.disabled`), true, 'navigation blocked during pending save');
   await evaluate('window.fetch = window.__b0Fetch; window.__b0ReleaseSave()');
   await waitFor(`${query('save-status')}?.textContent.includes('Đã')`, 'mock save acknowledgement');
+  await click('clear-answer');
+  await waitFor(`${query('answered-count')}?.textContent.includes('0/4')`, 'clear acknowledged and answered count reset');
+  assert.equal(await evaluate(`${query('option-b')}.checked`), false, 'cleared answer is unselected');
+  await click('option-b');
+  await waitFor(`${query('save-status')}?.textContent.includes('Đã')`, 'answer restored before resume');
+  const sessionBefore = await evaluate(`fetch('/mock/session', {method:'POST'}).then(r=>r.json())`);
+  const attemptId = sessionBefore.attempt.attemptId;
+  const activeReview = await evaluate(`fetch('/mock/attempts/${attemptId}/review').then(async r=>({status:r.status,body:await r.text()}))`);
+  assert.equal(activeReview.status, 409, 'review denied before closure');
+  assert.doesNotMatch(activeReview.body, /"answerKey"|"correctOptionId"|"explanation"|Subtract 2 from each side/);
+  await delay(100);
+  for (const response of responses.splice(0)) {
+    const body = await command('Network.getResponseBody', { requestId: response.requestId });
+    assert.doesNotMatch(body.body, /"answerKey"|"correctOptionId"|"explanation"|Subtract 2 from each side/);
+  }
+  await command('Page.reload', {ignoreCache:true});
+  await waitFor(`Boolean(${query('resume-notice')} && ${query('timer')})`, 'explicit resumed-session notice');
+  assert.equal(await evaluate(`${query('option-b')}.checked`), true, 'acknowledged answer survives reload');
+  const sessionAfter = await evaluate(`fetch('/mock/session', {method:'POST'}).then(r=>r.json())`);
+  assert.equal(sessionAfter.attempt.attemptId, attemptId);
+  assert.equal(sessionAfter.attempt.deadlineAt, sessionBefore.attempt.deadlineAt, 'reload does not extend deadline');
   await click('question-next');
   await command('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   await click('option-a');
@@ -145,6 +171,16 @@ try {
   await click('submit-open'); await click('submit-confirm');
   await waitFor(`Boolean(${query('result')})`, 'demonstration result');
   assert.match(await evaluate(`${query('result')}.textContent`), /25[,.]00|25\s*%/);
+  await click('review-open');
+  await waitFor(`Boolean(${query('review')})`, 'explicit post-closure review');
+  assert.match(await evaluate(`${query('review')}.textContent`), /Subtract 2 from each side\./);
+  await noOverflow(); await screenshot('review-desktop');
+  await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+  await noOverflow(); await screenshot('review-mobile');
+  await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+  await click('back-score');
+  await waitFor(`Boolean(${query('result')})`, 'return from review to separate score');
+  report.checks.push('clear answer; immutable reload/resume; active review denied; post-closure explanation on separate review screen');
   await screenshot('result-desktop');
   await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
   await noOverflow(); await screenshot('result-mobile');

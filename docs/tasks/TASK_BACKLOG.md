@@ -216,6 +216,25 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
 - Required tests: set-order property tests, incomplete true/false, empty/all-correct fixtures, 1/3 rounding, repeat job, immutable historical score, pre/post-release leakage checks.
 - Priority P0; complexity M; risks: accidental partial credit or official score implications. Status: BLOCKED (EXAM-001). Suggested implementer: scoring/backend engineer; review: independent mathematical/domain reviewer. Actual assignee: none.
 
+## WEB-B0.1 — Polish the existing demonstration
+
+- COMPLETED for B0.1, independently verified 2026-10-19. Base `237da9c`; G1 accepted
+  separately in `27350b3`. One reused native tsa_builder, Codex Luna / XHigh owns
+  only `apps/practice-prototype/**`. Sol / Medium owns browser harness/shared records
+  and independent review. Owner AGENTS.md unchanged/reserved.
+- Same frontend and repeated existing synthetic content: clear a saved answer,
+  keyboard/focus polish, explicit in-memory reload/resume feedback, submission
+  summary, and separately requested post-closure synthetic answer/explanation review.
+  Score-only response remains separate; private data withheld until owned GRADED
+  session; no public fixture secrets or claims of production auth/approved stock.
+- Acceptance: positive/negative unit tests and actual browser clear/reload/timer,
+  keyboard, submit/review/release denial, cross-session and mobile evidence. No
+  dependencies/contracts/product semantics changed. Local commits authorized.
+- Verified: 11 nested tests; actual Chromium desktop/mobile clear/reload/resume,
+  active review denial, post-grade explanation/back-score, delayed/offline saves,
+  no external page requests or pre-release private response fields. Worker ownership
+  released. Eight screenshots/report regenerate with `npm run test:b0:browser`.
+
 ## WEB-B0 — Isolated interactive visual prototype
 
 - Status: COMPLETED for the assigned B0 slice, 2026-10-19; separate from blocked
