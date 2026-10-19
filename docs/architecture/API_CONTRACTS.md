@@ -1,6 +1,6 @@
 # API contracts
 
-Status: PROPOSED `api/v1`, ADR-003, except owner-approved ADR-004 H1 create-conflict, H2 admission, H3 one-domain MVP policy, Start TTL, and non-retroactive ordinary admission-schedule edits. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. No generated client or executable schema exists yet. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
+Status: PROPOSED `api/v1`, ADR-003, except owner-approved ADR-004 H1 create-conflict, H2 admission, H3 one-domain MVP policy, Start TTL, and non-retroactive ordinary admission-schedule edits. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. FOUND-002 now supplies runtime validators and generated operation types/OpenAPI; see the scoped Stage 4B addendum below. Mutation services and deployed authentication remain later work. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
 
 ## Transport and access
 
@@ -225,3 +225,83 @@ Staff import/publication uses current bank commands. Factory service credentials
 Personalized manifests include sensitive history/exclusion sets: ordinary EXAM_MANAGER/BANK_MANAGER roles cannot read them through form/diagnostic endpoints. Student projections expose only their safe receipt/view/shortage. Administrative historical replay of a personal run requires an explicitly assigned, audited maintenance operation under approved data access policy, not a new broadly accessible endpoint. Fixed-run diagnostics keep existing role rules. Review approval additionally requires a recorded resolved reuse-equivalence decision for the exact identity; the bank rejects unresolved duplicate flags even if the submitted rubric is true.
 
 Offering management is initially an EXAM_MANAGER-only validated internal command: `{blueprintVersionId,enabled,availableFrom,availableUntil,startTtlSeconds:600,reviewEnabled,expectedRevision}`; validate the approved immutable blueprint, finite interval and the required TTL value of exactly 600 seconds; update under publication lock and audit. Missing or invalid TTL configuration rejects activation and attempt creation; it cannot silently permit unlimited start time. The committed rule is `min(created_at + 600 seconds, applicable_admission_end_at_creation)`, stored atomically with the attempt and never recomputed on replay. No student may activate arbitrary blueprints. A future staff HTTP adapter must freeze its transport before independent implementation.
+
+## Stage 4B scoped consumer and egress contract — routes/1
+
+Owner D5/D6 approval (2026-10-19) preserves all nine student routes above and
+all approved timing/reuse rules. Add strict runtime schemas for CatalogEntry/page,
+CreateAttempt, empty Start/Submit body, StartReceipt, UUID path params, bounded
+pagination and asset purpose; reuse existing DTOs for all other bodies. Preserve
+omitted PERSONALIZED_PRACTICE/NEW_ONLY defaults; REVIEW_ALLOWED and fixed requests
+require acknowledgeRepeats:true. Idempotency-Key remains required for mutations.
+Generate committed TypeScript operation maps (method/path/params/query/body/success
+and error types) directly from the runtime registry, not handwritten client copies.
+The original root package remains backward compatible; new subpaths are student,
+released-review and internal. Student exports are an explicit public allowlist;
+private/Factory/identity/assembly schemas and AnswerKey are not student exports.
+Released-review adds only authorized result/item/key types to its own entry.
+
+Student OpenAPI contains the eight non-result operations and public components.
+Released-review OpenAPI contains GET /attempts/{id}/result and its released-only
+components. Asset response is binary image bytes, never a JSON object key/proxy.
+Generate and non-mutatingly check both OpenAPI artifacts and the two operation-map
+artifacts together; a missing/changed artifact fails. Existing question/1 and
+factory-package/1 readers remain valid. Any artifact evolution is coordinated
+with strict consumer tests; historical fixture behavior is retained.
+
+A framework-independent actual HTTP Request->Response handler covers existing
+GET attempt-view and released-result paths with injected server auth/read models;
+this is a reusable boundary adapter, not a deployed application/database service.
+Never accept user identity, roles, state, release or holds from request data.
+Authenticate, read access metadata, return indistinguishable 404 for missing or
+non-owner attempts, and reject withdrawn/INVALIDATED content with 410 before
+loading private snapshots. Result loading requires GRADED and releaseAuthorized;
+otherwise return 409 RESULT_NOT_READY. Recheck access after loading, including a
+server revision token covering state/release/withdrawal; changed revision fails
+closed with 503 and no payload. Backend transaction/lock enforcement remains
+later implementation, not proven by this adapter's synthetic tests.
+
+Project only the explicit AttemptView/StudentSlot/AnswerAck/Closure or authorized
+review fields, including nested objects, then validate before serializing. DTO
+attemptId must equal the requested ID. Reject malformed nested data rather than
+serialize it. Every response is application/json, no-store, nosniff; no raw error,
+provider/provenance data, HTML/hydration or private inactive slots. Use existing
+error types; new strict route-only transport error codes MALFORMED_JSON (400),
+NOT_FOUND (404), PAYLOAD_TOO_LARGE (413) describe already documented statuses,
+without changing the existing root ErrorCode enum. No unauthorized result loader
+call or response/log side channel is allowed. Injected failures become a generic
+503 response; no exception text is returned. This adapter does not implement
+mutation state machines, sessions/CSRF, asset serving or production authorization.
+
+Acceptance uses real Request/Response egress plus loopback HTTP integration with
+synthetic loaders: foreign/unknown, held/ungraded/withdrawn and racing revision
+requests expose no private data and do not load private content unnecessarily;
+authorized released review includes exactly the permitted fields. Enforce student
+consumer import restrictions in CI and compile negative imports against student
+subpath; keeping internal root compatibility must not become a student escape.
+
+Additional route-only documented error mappings are FORM_NOT_OPEN (409) and
+FORM_UNAVAILABLE (410); existing root ErrorCode remains unchanged for compatibility.
+The idempotency key alphabet is printable non-space ASCII U+0021–U+007E, 1..128
+characters; values remain opaque and are never evaluated or used as identity.
+Attempt-view egress must also match DTO state to the server access-guard state;
+a stale active DTO cannot expose slots after the server reports closure. The
+final guard/revision must still match before any response body is emitted.
+
+Registry headers describe selected normalized contractual headers, not every
+standard HTTP header/cookie. Cookie authentication and mutation CSRF/Origin rules
+above remain binding; this batch freezes no new session-cookie/token transport.
+New route query cursors are opaque nonempty strings bounded to 1,024 characters;
+wire pagination limits are decimal strings 1..100, with parsed internal numbers.
+Generated operation requests infer schema input types, response bodies infer output
+types, and response-header maps include the required positive-seconds Retry-After
+on 429. Existing safe optional error details and public component names remain
+compatible. Generated type artifacts pin their corresponding OpenAPI digest.
+
+The server access record is `{attemptId,ownerId,state,withdrawn,releaseAuthorized,
+revision}`; revision is an opaque nonempty token covering access changes. Capture
+an immutable primitive snapshot before awaiting loaders; do not let a loader mutate
+the snapshot used for the final comparison. Malformed path/query input returns the
+documented 422 validation envelope. Attempt answers may reference only delivered
+slot option/statement IDs; unknown nested response keys/IDs fail closed. Preserve
+existing partial-answer behavior and do not invent a new minimum-selection rule.

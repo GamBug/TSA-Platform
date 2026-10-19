@@ -34,11 +34,37 @@ npm run test:consumers
 npm run typecheck
 npm test
 npm run contracts:check
+npm run contracts:consumer-check
 npm run docs:check
 ```
 
 `build` emits JavaScript and declarations from the shared contracts into the ignored `packages/contracts/dist` directory. `test:built` runs the emitted JavaScript with ordinary Node.js, checking runtime schema acceptance and rejection plus an exported deterministic helper. This smoke test covers only the package's emitted runtime modules; it does not establish an endpoint, client SDK, browser bundle, service integration or release readiness.
 
-`test:consumers` starts separate synthetic Factory producer and Bank consumer Node processes that exchange serialized JSON against the emitted schemas, then compiles a strict TypeScript consumer against the emitted declarations. It checks the current draft receipt, safe student projection, and rejection of malformed, approval-like, unknown, and hypothetical optional fields by today's strict contracts. This is package-local evidence only: it does not exercise real services or transport, a generated client, a browser bundle or browser security, and it does not establish private-type import isolation. Optional fields require a coordinated contract and consumer update.
+`test:consumers` checks independent synthetic producer/consumer JSON transport,
+strict emitted declarations, and the Stage 4B identity, Factory v2, assembly and
+HTTP modules with ordinary Node.js. Student and released-review consumers compile
+separately; negative imports/private fields must fail. Existing root and Factory v1
+consumers remain compatible. Optional fields require coordinated regeneration and
+strict-consumer verification.
 
-`contracts:check` compares the committed student-safe OpenAPI artifact with the runtime schemas and does not write files. Regenerate that artifact only as a deliberate coordinated change with `npm run contracts:generate`, then rerun the verification commands. These shared-package checks do not establish service, database, browser, security, or release readiness.
+Use `@tsa/contracts/student` for ordinary student DTOs,
+`@tsa/contracts/released-review` for authorized released-review shapes, and
+`@tsa/contracts/internal` for trusted server/Factory contracts. The original root
+entry stays available for compatibility. Types and export names do not authorize
+data access. The Request/Response adapter covers only the existing attempt-view
+and released-result GETs with injected server authentication/read models. Tests
+exercise actual loopback HTTP, ownership/release gates, nested minimization and
+revision races; no deployed authentication, database transaction or asset/mutation
+service is supplied.
+
+`contracts:check` non-mutatingly compares two OpenAPI documents and two generated
+operation maps to the runtime registry. Run `npm run contracts:generate` for a
+coordinated change, then rerun verification. The student artifact retains the 18
+legacy public component schemas and adds eight operations; released review is a
+separate one-operation document. `contracts:consumer-check` enforces a static
+import policy over `test/fixtures/stage4b/student-consumer`, including local escape,
+private root/type imports and computed loaders. New application consumer roots
+must be registered before integration; there is no application/browser bundle to
+validate yet. This source policy is not a JavaScript sandbox or proof of production
+security. Hosted CI, database/publication concurrency and live-provider evidence
+remain outside these local shared-contract checks.

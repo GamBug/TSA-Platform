@@ -7,6 +7,18 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./student": {
+      "types": "./src/student.ts",
+      "default": "./src/student.ts"
+    },
+    "./released-review": {
+      "types": "./src/released-review.ts",
+      "default": "./src/released-review.ts"
+    },
+    "./internal": {
+      "types": "./src/internal.ts",
+      "default": "./src/internal.ts"
     }
   },
   "dependencies": {
