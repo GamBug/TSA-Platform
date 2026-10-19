@@ -125,25 +125,48 @@ approved batch may authorize local feature-branch commits only within that batch
 Unresolved product/architecture/rights/privacy/cost choices go to the owner under
 section 5; PROPOSED ADRs and passing tests do not approve them.
 
-Project defaults request workspace-write, restricted network and approval on
-request. Custom agents inherit the parent's effective permissions: read-only role
-instructions are behavioral, not a separate sandbox. Active sessions/CLI flags
-can override project defaults. Inspect effective permissions before dispatch;
-never enable full access, disable approvals or bypass a denied operation to make
-a task pass. If required isolation/routing cannot be verified, stop dependent
-work and report the exact limitation; do not claim this file enforces OS isolation.
-A writing pilot requires a fresh session with verified workspace-write and
-approval on request. The setup probe found that non-interactive `codex exec`
-forces approval `never`; do not use that path for a writing pilot. The setup
-session itself had pre-existing full-access/never overrides, not project defaults.
+### Owner-trust execution policy — 2026-10-18
+
+Approval: human project owner, 2026-10-18, "OWNER DIRECTIVE — FULL ACCESS TRUST
+POLICY". When the owner deliberately selects Full Access, that is intentional
+execution authorization, not a permission mismatch. Two modes are valid:
+
+| Mode | Effective settings | Execution rule |
+|---|---|---|
+| Trusted autonomous | `danger-full-access`, `approval_policy=never` | Accepted when explicitly selected by the owner; execute assigned work without redundant permission checks or confirmations. |
+| Controlled | `workspace-write`, `approval_policy=on-request` | Accepted for restricted sessions; respect sandbox and approval boundaries. |
+
+Do not stop, downgrade access or request a restricted session merely because the
+owner selected Full Access / never. Do not silently escalate a restricted session
+or bypass a denied operation. Actual runtime and higher-priority controls remain
+binding; this policy does not change security settings. Project defaults remain
+workspace-write/on-request with restricted network. Custom agents inherit parent
+permissions; read-only role instructions are behavioral, not a separate sandbox.
+Record actual mode and model routing as evidence, not repeated approval gates.
+
+Within an assigned task, the orchestrator may plan, delegate to configured workers,
+edit relevant files, run tools/tests, diagnose and repair failures, independently
+verify output, and maintain progress/handoffs without approval of routine choices.
+Full Access does not authorize product changes, sensitive-information exposure,
+unrelated destructive operations, unapproved Astra or prohibited Git operations.
+Task scope and explicit exclusions remain binding in either mode.
+
+This permanent policy supersedes the former fresh workspace-write/on-request
+requirement for writing pilots. Historical probes describe their sessions only.
+The concise owner approval record is in
+[decisions](../decisions/OPEN_DECISIONS.md#owner-trust-execution-policy--2026-10-18).
 
 Run task-level checks and, for relevant implementation changes, `npm run typecheck`,
 `npm test`, `npm run contracts:check`, `npm run docs:check`, and `git diff --check`
 under pinned Node 24.18.0/npm 11.16.0. Record exact PASS/FAIL/NOT RUN and environment;
 no dependency installation or wider check is implied by a read-only assignment.
-Two consecutive failed repairs on one problem require STOP and root-cause analysis.
-Also stop for scope/HEAD/ownership drift, failed quality gates, unresolved decisions,
-ambiguous rights, permission escalation, uncertain model routing or exhausted quota.
+Diagnose repeated failed repairs before retrying; repair routine implementation
+and quality-check failures within the approved scope. Stop only for a decision
+materially changing approved scope, an explicitly prohibited operation, an
+unrecoverable technical blocker, a critical security/data-integrity risk, or
+completion of the approved pilot. Resolve recoverable ownership, routing or tool
+issues within the assignment; do not silently substitute models or claim missing
+verification passed. Full Access by itself is not a stop condition.
 
 Use HANDOFF_TEMPLATE and section 6 for durable handoff; identify what was genuinely
 delegated, actual model evidence, changed paths, checks, risks and next authorization.

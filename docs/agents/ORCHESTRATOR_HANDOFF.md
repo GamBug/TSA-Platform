@@ -1,5 +1,13 @@
 # TSA-Platform — Orchestrator Handoff Baton
 
+## Execution-policy update — 2026-10-19
+
+The human owner's permanent
+[owner-trust execution policy](ORCHESTRATION_PROTOCOL.md#owner-trust-execution-policy--2026-10-18)
+supersedes historical restricted-session-only pilot instructions below.
+Historical setup/runtime evidence remains unchanged. See
+[latest handoff](LAST_HANDOFF.md) for current implementation and task status.
+
 ## Current policy update — Luna XHigh, 2026-10-18
 
 Owner instruction: "CONFIGURATION UPDATE — LUNA XHIGH DEFAULT" authorizes this

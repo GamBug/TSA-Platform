@@ -25,6 +25,16 @@ States: DRAFT → PROPOSED → APPROVED → SUPERSEDED. A rejected proposal rema
 - Conditions preserved: copyright and content licensing, personal-data protection and consent, security and release-readiness checks, human question-publication approval, AI validation and human approval, and all existing unresolved ADR technical decisions remain in force.
 - Gate effect: this records the owner-authorized G0 implementation scope. Task-specific accountable ownership, approved contract boundaries and G1–G3 evidence remain required; no production-readiness or release claim follows from this record.
 
+### Owner-trust execution policy — 2026-10-18
+
+- Human project owner approval, 2026-10-18: "OWNER DIRECTIVE — FULL ACCESS TRUST
+  POLICY"; "Full Access is NOT a permission mismatch. It is an intentional
+  execution authorization."
+- Permanent execution policy is owned by the existing
+  [orchestration protocol](../agents/ORCHESTRATION_PROTOCOL.md#owner-trust-execution-policy--2026-10-18).
+  This supersedes the restricted-session-only writing-pilot precondition;
+  task scope and explicit prohibitions remain binding. No product/ADR approval.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.
