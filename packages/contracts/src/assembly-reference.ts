@@ -547,7 +547,7 @@ export function replanAssemblyReference(
   for (const [index, attempt] of attempts.entries()) {
     last = runAssemblyReference(attempt.manifest);
     totalVisitedNodes += last.visitedNodes;
-    if (last.status === "FAILURE" || !attempt.contended) return { result: last, attempts: index + 1, totalVisitedNodes };
+    if (!attempt.contended) return { result: last, attempts: index + 1, totalVisitedNodes };
   }
   if (attempts.length < maxAttempts) fail("Contended replans require one supplied manifest per maxAttempts attempt");
   const final = last!;

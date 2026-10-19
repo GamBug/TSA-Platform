@@ -215,3 +215,10 @@ behavior is verified by the committed boundary/oracle/stress fixtures; measured
 local timing is in LAST_HANDOFF. These measurements do not establish production
 SLOs or database contention performance. Future budget changes must be explicit
 manifest/version decisions, never silently change a stored replay.
+
+In the pure contention simulation, `contended:true` means the snapshot is known
+invalid before accepting its result, whether search succeeded or failed. Discard
+that result and require the next fresh manifest; never return a stale shortage.
+An uncontended result can be returned immediately. Three invalidated snapshots
+end in CONCURRENT_MODIFICATION without slots; incomplete supplied retry evidence
+is rejected. This models the existing stale-before-classification rule only.

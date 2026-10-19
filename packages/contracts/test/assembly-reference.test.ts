@@ -388,6 +388,37 @@ describe("assembly/1 executable reference", () => {
     assert.throws(() => replanAssemblyReference([{ manifest: manifests[0], contended: true }], 3), /one supplied manifest per maxAttempts/);
   });
 
+  it("discards a contended shortage before classifying it and uses the fresh snapshot", () => {
+    const unavailable = makeManifest({
+      blueprint: makeBlueprint({ count: 2 }),
+      units: [makeUnit(91)],
+      bankRevision: "snapshot-before-contention",
+    });
+    const fresh = makeManifest({ bankRevision: "snapshot-after-contention" });
+    const outcome = replanAssemblyReference([
+      { manifest: unavailable, contended: true },
+      { manifest: fresh, contended: false },
+    ], 3);
+
+    assert.equal(outcome.attempts, 2);
+    assert.equal(outcome.result.status, "SUCCESS");
+    assert.equal(outcome.result.manifestHash, runAssemblyReference(fresh).manifestHash);
+  });
+
+  it("returns concurrency failure after three contended shortages instead of stale shortage", () => {
+    const shortages = [0, 1, 2].map((index) => makeManifest({
+      blueprint: makeBlueprint({ count: 2 }),
+      units: [makeUnit(92 + index)],
+      bankRevision: `snapshot-short-${index}`,
+    }));
+    const outcome = replanAssemblyReference(shortages.map((manifest) => ({ manifest, contended: true })), 3);
+
+    assert.equal(outcome.attempts, 3);
+    assert.equal(outcome.result.status, "FAILURE");
+    if (outcome.result.status === "FAILURE") assert.equal(outcome.result.code, "CONCURRENT_MODIFICATION");
+    assert.deepEqual(outcome.result.slots, []);
+  });
+
   it("rejects strict-shape, hash, edge, rights, identity and unsafe-number mutations", () => {
     const valid = makeManifest({ units: [makeUnit(71)] });
     assert.throws(() => parseAssemblyManifest({ ...valid, surprise: true }), /unknown|unrecognized/i);
