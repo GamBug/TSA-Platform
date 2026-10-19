@@ -143,6 +143,24 @@ these boundaries; existing blocked WEB integration cards remain blocked.
   B0 implementation. No push, merge to main, deployment, paid external API or
   unauthorized semantic change. G2/G3 remain NOT ESTABLISHED.
 
+## DATA-001 / AUTH-001 — Scoped local Track B approval, 2026-10-19
+
+Human project owner, "OWNER APPROVAL — DATA-001 AND AUTH-001": explicitly approves
+PostgreSQL with reviewed SQL migrations and server-only data access; applicable
+ADR-001/003 boundaries for local Track B include relational integrity, immutable
+versions/snapshots, private-data separation, transactional idempotency/concurrency.
+Preserve existing frontend and G1 contracts; defer unnecessary ORM/frameworks.
+Authorize local synthetic-only identity/role adapter, impossible to activate in
+production, with server-side ownership/roles/session invalidation/CSRF tests.
+
+Execution: autonomously implement/review/test/repair/commit DATA-001, AUTH-001 and
+subsequently eligible Bank/exam work; Luna / XHigh default, Sol / Medium integration
+and independent verification, Terra only for demonstrated complexity. This scoped
+approval supersedes prior blocks on these database choices/local stub; it does not
+approve whole unrelated ADRs, human content approval, missing evidence or G2/G3.
+Synthetic integration fixtures remain distinct from rights-cleared inventory.
+No owner AGENTS edits, push/merge, deployment, paid external API or Astra.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.
