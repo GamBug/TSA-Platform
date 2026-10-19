@@ -1,5 +1,13 @@
 # Final G1 acceptance audit
 
+Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
+implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
+[final audit](G1_ACCEPTANCE_AUDIT.md) is satisfied. Scoped owner record:
+[OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md#g1--owner-acceptance-and-bounded-track-b-execution-2026-10-19).
+G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
+statements below describe historical checkpoints, superseded by this disposition.
+
+
 Date: 2026-10-19, Asia/Bangkok. Accountable auditor: Codex Sol 6.1 / Medium.
 Owner authority: FINAL G1 ACCEPTANCE AUDIT, recorded in
 [OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md#final-g1-acceptance-audit-authorization--2026-10-19).

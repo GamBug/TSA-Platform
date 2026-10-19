@@ -96,6 +96,32 @@ records execution scope only, not owner G1 acceptance, whole-ADR approval or mis
 evidence approval. Preserve owner AGENTS.md; no push/merge, deployment, paid external
 API, automatic gate advancement or unnecessary orchestration restructuring.
 
+## G1 — Owner acceptance and bounded Track B execution, 2026-10-19
+
+- Disposition: ACCEPTED by the human project owner, conditional on the mandatory
+  final-audit evidence; that condition is satisfied. FOUND-002 is COMPLETED.
+- Durable instruction: "OWNER DECISION — G1 ACCEPTANCE AND TRACK B EXECUTION":
+  "I approve G1 acceptance, subject to the mandatory acceptance evidence established
+  by the final G1 audit." Authorizes recording/committing this disposition locally.
+- Accepted implementation: `0e67485ab7bd5e4873dbe74cdb903b995193e40b`; audit/evidence
+  baseline `81ef8aa96ae53a63186c44eae8ccb6cb1c9b173b`,
+  [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md). Existing mandatory criteria PASS:
+  fresh pinned install/build, 106 contract/11 emitted tests, schema/drift/private
+  boundaries, deterministic vectors and dated dependency/license/advisory evidence.
+  Current accepted contract tree and lockfile remain unchanged from audited code.
+- Scope: existing G1 shared contracts and bounded FOUND-007 reconciliation only.
+  Hosted CI remains unobserved; DB/auth/publication/provider/production evidence
+  remains outside G1. No unrelated whole ADR or later gate is approved.
+- Next batch additionally authorized: finalize existing B0, improve the same app
+  to B0.1, prepare/execute eligible G2 prerequisites, and progress toward B1 within
+  existing dependencies. Local logical commits permitted; one Luna / XHigh writer,
+  Sol / Medium coordination/review; Terra only if justified, no Astra. After B0.1
+  verification prioritize the earliest eligible database/backend slice. Existing
+  unresolved architecture/local-stub/content-review approvals are not invented.
+- Preserve owner AGENTS.md and uncommitted B0; keep gate recording separate from
+  B0 implementation. No push, merge to main, deployment, paid external API or
+  unauthorized semantic change. G2/G3 remain NOT ESTABLISHED.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.

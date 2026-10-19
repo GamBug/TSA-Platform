@@ -1,5 +1,13 @@
 # Implementation roadmap
 
+Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
+implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
+[final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) is satisfied. Scoped owner record:
+[OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md#g1--owner-acceptance-and-bounded-track-b-execution-2026-10-19).
+G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
+statements below describe historical checkpoints, superseded by this disposition.
+
+
 Status: **PROPOSED** Phase 02.75 sequencing. Scoped G0 implementation authorization is recorded in [decisions](../decisions/OPEN_DECISIONS.md) on 2026-10-17; this roadmap is not an ADR approval or production-readiness record. [Backlog](TASK_BACKLOG.md) owns task status; decisions owns approval records. The three product stages below are independently demonstrable and may advance in parallel. Exit evidence is future evidence to be recorded by the accountable task owner, not work completed by this roadmap.
 
 ## Active Stage 4B contract batch — 2026-10-19
@@ -15,7 +23,7 @@ No whole ADR, missing evidence, production readiness or G1 advancement is implie
 | D4 Factory v2 | D2; full source/rights/assets/ancestry, atomic DRAFT-only receipts, v1 compatibility | Accepted `d65e08b` |
 | D3 assembly/replay | D2; manifest/slot goldens, exhaustive oracle, measured caps and replay failures | Accepted `8a09b92`, repair `3af1b34` |
 | D5/D6 routes and boundaries | Existing approved DTOs; separate consumer entries, generated route types/OpenAPI, actual owner/release HTTP egress | Accepted `a6ec4ad` |
-| Integration evidence | All above; full required suite, generated drift and consumer restriction checks | Local suite PASS; owner disposition pending, G1 NOT ESTABLISHED |
+| Integration evidence | All above; full required suite, generated drift and consumer restriction checks | Local suite PASS; G1 ACCEPTED by owner 2026-10-19 |
 
 Luna / XHigh implemented the batch; Sol / Medium owns technical specification,
 independent review, integration and shared records. Coordinator completed bounded
@@ -66,7 +74,7 @@ The MVP has independent one-domain practice tests: MATH has 4 questions, READING
 | G2 — Bank publication boundary | G1 plus DATA-001/AUTH-001 permit BANK-001 ingestion and BANK-002 independent review/publication. Verified BANK-001 ingestion **and** BANK-002 publication evidence → G2. | Exact-version rights, immutable versions, validation/review/equivalence records, human-only approval and eligible-bank publication are demonstrably separate from draft creation. G2 does not gate either producer; factory credentials cannot approve or publish. |
 | G3 — Integration readiness | FACTORY-001 (including FACTORY-002/003), AI-002, G2, technical-MVP assembly/attempt/scoring evidence, and INT-002 controlled-import proof → G3 → INT-001. | Before G3 passes, INT-002 accepts the same package twice as one durable receipt, rejects changed content under the same identity, and imports no partial stimulus bundle. A human-approved subset becomes eligible bank stock without changing the factory, assembly or exam contracts. |
 
-G1 defines interfaces, not a second production store or a requirement to deploy the website. G2 is the sole path from any manual or factory draft to selectable stock. G3 is an evidence gate, not a prerequisite of INT-002 or any other task that supplies its evidence. No gate converts a PROPOSED ADR into approval. No downstream gate is currently passed; the G0 authorization is an owner scope record, not implementation or release evidence.
+G1 defines interfaces, not a second production store or a requirement to deploy the website. G2 is the sole path from any manual or factory draft to selectable stock. G3 is an evidence gate, not a prerequisite of INT-002 or any other task that supplies its evidence. No gate converts a PROPOSED ADR into approval. G1 is owner-accepted; G2/G3 remain unestablished; the G0 authorization is an owner scope record, not implementation or release evidence.
 
 ## Lifecycle dependency validation model
 

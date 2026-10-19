@@ -53,6 +53,14 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
+Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
+implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
+[final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) is satisfied. Scoped owner record:
+[OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md#g1--owner-acceptance-and-bounded-track-b-execution-2026-10-19).
+G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
+statements below describe historical checkpoints, superseded by this disposition.
+
+
 Final G1 acceptance audit COMPLETED, 2026-10-19; recommendation READY FOR OWNER
 ACCEPTANCE, not gate approval. Audited code `0e67485`: Luna / XHigh repaired the
 missing shared job-kind contract; Sol / Medium independently reviewed the actual
@@ -114,7 +122,7 @@ Reconciliation acceptance (HI-04/CR-02): starts only after G0, whose owner dispo
 - Prerequisites: G0 and owner implementation assignment. Files: package manifests, src/contracts/**, src/app skeleton, tests/contract/**, CI config, approved development docs; no bank/attempt features yet.
 - Deliverables: pinned supported versions, runtime validators/OpenAPI/student-safe types, reproducible local/CI entry points. Acceptance: a fresh checkout installs/builds from lockfile; question/blueprint/API examples validate; private types cannot import into student bundle; all commands documented.
 - Required tests: typecheck/build, strict schema fixtures, unknown-field/type rejection, generated contract drift checks. Required version/license/advisory review recorded.
-- Priority P0; complexity M; risks: contract drift and confusing reference evidence with deployed enforcement. Status: IN_PROGRESS pending owner acceptance/G1 disposition; authorized D1–D6 engineering is complete. Earlier Slices 1–7 and Stage 3/4A evidence remain in Git (`84ddff3`/`8beb0ff` handoffs). Current executable scope, tests and remaining evidence limits are in the latest handoff. Implementer: native tsa_builder Luna / XHigh; accountable coordinator/reviewer and bounded integration repairer: Sol 6.1 / Medium. No production application, database migration, provider or publication implementation is claimed.
+- Priority P0; complexity M; risks: contract drift and confusing reference evidence with deployed enforcement. Status: COMPLETED under explicit owner G1 acceptance, 2026-10-19; accepted implementation `0e67485`, final audit `81ef8aa`; existing contract acceptance only. Earlier Slices 1–7 and Stage 3/4A evidence remain in Git (`84ddff3`/`8beb0ff` handoffs). Current executable scope, tests and remaining evidence limits are in the latest handoff. Implementer: native tsa_builder Luna / XHigh; accountable coordinator/reviewer and bounded integration repairer: Sol 6.1 / Medium. No production application, database migration, provider or publication implementation is claimed.
 
 ## DATA-001 — Relational integrity foundation
 
@@ -126,7 +134,7 @@ Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved gl
 - Prerequisites: FOUND-002, G1. Files: db/**, src/modules database adapters, tests/integration/database/**.
 - Deliverables: schema/migrations and seeded synthetic fixtures. Acceptance: cross-form answers, mismatched version links, immutable edits and duplicate score/job writes rejected; schema upgrade preserves history.
 - Required tests: fresh migration and populated upgrade, FK/check/unique failures, rollback compatibility, real PostgreSQL concurrency/lock ordering and transaction rollback.
-- Priority P0; complexity L; risks: JSON/relational drift, irreversible migrations. Status: BLOCKED (FOUND-002). Suggested implementer: database engineer; review: backend/data-integrity reviewer. Actual assignee: none.
+- Priority P0; complexity L; risks: JSON/relational drift, irreversible migrations. Status: BLOCKED only on affected proposed ADR-001/003 mechanisms; FOUND-002/G1 prerequisites now satisfied. Bounded preparation is owner-authorized; migration implementation must not choose unresolved architecture. Suggested implementer: database engineer; review: backend/data-integrity reviewer. Actual assignee: none.
 
 ## AUTH-001 — Identity and authorization
 
