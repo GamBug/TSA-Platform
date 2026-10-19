@@ -2,7 +2,7 @@
 
 An independent educational practice platform inspired by the publicly documented HUST TSA assessment. Not affiliated with, endorsed by, or an official service of Hanoi University of Science and Technology. Practice scores must not be presented as official TSA scores.
 
-Phase 02.75 preserves the architecture and collaboration documentation. The scoped G0 authorization permits the current shared-contract foundation only; no production application baseline or downstream gate is approved.
+G1 is accepted. Track B is the current priority: the local B0.1 website runs with clearly labeled mock services; owner-approved PostgreSQL and synthetic-only local identity work is in progress. G2/G3 and production deployment remain unaccepted. See project state for executed evidence.
 
 ## Start here
 
@@ -25,7 +25,7 @@ Do not infer approval from the existence of a document. No provider-specific ins
 ## Local interactive website prototype (B0)
 
 The owner-authorized B0 is a Vietnamese interface with isolated mock services,
-independent of pending G1 acceptance and blocked integrated website tasks.
+independent of the remaining integrated website prerequisites.
 With pinned Node.js 24.18.0/npm 11.16.0, run from this repository root:
 
 ```bash

@@ -75,3 +75,37 @@ guarantee. No automatic upgrade is recommended from this limited evidence.
 - No clean install or artifact tarball-integrity reproduction in this review;
   previous Slice 7 clean-lockfile evidence is retained. Refresh advisories before
   release or any dependency change. No production authorization follows.
+
+## Track B PostgreSQL driver increment — 2026-10-19
+
+Owner-approved DATA-001 adds exact `pg@8.23.1`, without an ORM. The seven
+previously locked external package versions remain unchanged. The following
+14 additions were checked against installed metadata and license text; Node
+24.18.0 satisfies every declared engine range. README hashes cover the whole
+file containing the complete license where no standalone license is shipped.
+
+| Package | Version | License | Installed license evidence (SHA-256) |
+| --- | --- | --- | --- |
+| pg | 8.23.1 | MIT | `LICENSE`: `192b8f5c96900f04a1271dec39688655d7416c1c6ea84a508e18b50d2b6751f3` |
+| pg-cloudflare | 1.4.1 | MIT | `LICENSE`: `192b8f5c96900f04a1271dec39688655d7416c1c6ea84a508e18b50d2b6751f3` |
+| pg-connection-string | 2.14.1 | MIT | `LICENSE`: `2244b5486c4427001b6756a87b9a297d427c111dcc3ba64a097492a8979c23d0` |
+| pg-int8 | 1.0.1 | ISC | `LICENSE`: `4e8e87ccdfc7e4b47fd89015f78468aa53b6bf43ab6e6e12d43e8f55294911de` |
+| pg-pool | 3.14.0 | MIT | `LICENSE`: `4f15ee7fc2a72082859d7e0d12dfa4bcdd70b1c744ad3850d07780730ac08557` |
+| pg-protocol | 1.16.1 | MIT | `LICENSE`: `192b8f5c96900f04a1271dec39688655d7416c1c6ea84a508e18b50d2b6751f3` |
+| pg-types | 2.2.0 | MIT | `README.md (includes full MIT license)`: `ecda9bca71d3f0cee4e600d1dd2bef336213f39ef2e8fca6a1a1c1c8723f643a` |
+| pgpass | 1.0.5 | MIT | `README.md (includes full MIT license)`: `62549909404b5a0dcb2b4b74c9a930baf8095dbcfa1543c4ffc79378acd22b57` |
+| postgres-array | 2.0.0 | MIT | `license`: `f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393` |
+| postgres-bytea | 1.0.1 | MIT | `license`: `f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393` |
+| postgres-date | 1.0.7 | MIT | `license`: `f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393` |
+| postgres-interval | 1.2.0 | MIT | `license`: `f057f36739d53d228a746de4440c1e0c644ecde06d6beab45337d39c9d12a393` |
+| split2 | 4.2.0 | ISC | `LICENSE`: `c372ef2fa1dfcb124ed807609751e75e3a009f108c5724916b489288fcb88a0c` |
+| xtend | 4.0.2 | MIT | `LICENSE`: `82e67379203d5794e7c44549847d8d64ae6904591381682360470898bd306821` |
+
+Coordinator executed `npm install --save-exact --ignore-scripts pg@8.23.1
+--cache /tmp/tsa-track-b-pg-npm-cache`, then `npm ls --all --json` and
+`npm audit --json --ignore-scripts --cache /tmp/tsa-track-b-pg-npm-cache`.
+All exited zero; the audit reported zero vulnerabilities across 24 dependency
+entries. These are registry findings at query time, not a security guarantee.
+Lockfile integrity records pin the installed graph. `pg` declares Node >=16.
+No paid API was used. Runtime transaction and parameterized-query behavior is
+verified separately by DATA-001 tests; installation alone is not acceptance.

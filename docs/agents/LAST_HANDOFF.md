@@ -1,3 +1,35 @@
+# Latest handoff — DATA/AUTH implementation in progress
+
+2026-10-19, Asia/Bangkok. Owner scoped DATA-001/AUTH-001 approval is recorded in
+[decisions](../decisions/OPEN_DECISIONS.md#data-001--auth-001--scoped-local-track-b-approval-2026-10-19).
+G1 remains ACCEPTED; G2/G3 unchanged. Branch `feat/track-b-data-auth`, base
+`446277f`. Owner AGENTS.md hash remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`; excluded from commits.
+
+First checkpoint: Luna/XHigh implemented bank-core migration001, parameterized
+pool/transaction adapter, checksum/advisory-lock migration runner and disposable
+PostgreSQL18.6 harness/tests. Sol/Medium independently reviewed actual code and
+required SQL syntax, territory-array, privilege-ordering, storage-bound,
+connection-disposal, hash-FK and populated-upgrade/cleanup repairs. Final
+`npm run test:db:foundation`: 17 reported tests PASS, zero failures/skips. Actual
+PostgreSQL fresh/reapply/upgrade/rollback/immutability/private-role evidence is
+recorded in DATABASE_DESIGN. This is partial DATA-001, not complete acceptance.
+
+Root pg8.23.1 is exact-pinned; 14 added packages/license texts checked, previous
+seven versions unchanged, npm audit zero registry advisories at query time. See
+existing dependency review increment. No ORM/framework, accepted-contract or
+frontend change. Typecheck/build/emitted smoke, contract/emitted consumer/B0 tests,
+drift/import/docs/diff pass. Restricted subprocess/socket runner failed; managed
+permitted rerun produced actual nested passing tests, not a clean restricted-CI claim.
+
+Continue with reviewed migration002 for forms/attempt/history/jobs and real
+concurrency/rollback checks, then AUTH-001 local synthetic-only adapter, then
+eligible Bank ingestion. One writer at a time; default Luna/XHigh, Sol/Medium
+independent review/integration. No Astra/Terra, push/merge/deployment/paid API.
+Existing frontend remains `npm run dev:b0` at http://127.0.0.1:4173, explicitly mock.
+Human review/publication and lawful inventory remain separate prerequisites.
+
+## Previous accepted checkpoint (historical; scope blocks superseded above)
+
 # Latest handoff — G1 accepted / Track B bounded batch verified
 
 2026-10-19, Asia/Bangkok. Owner: G1 ACCEPTANCE AND TRACK B EXECUTION;

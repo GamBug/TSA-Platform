@@ -1,5 +1,10 @@
 # Relational database design
 
+Scoped owner approval, 2026-10-19: PostgreSQL/reviewed SQL, relational integrity,
+immutable versions/snapshots, private separation and transaction safety for local
+Track B are approved in OPEN_DECISIONS. The historical PROPOSED labels below do
+not override that scoped approval; unrelated ADR scope remains proposed.
+
 Status: PROPOSED, ADR-003, except the owner-approved ADR-004 H1 global active-attempt constraint, H2 admission semantics and H3 one-domain MVP tests. PostgreSQL logical specification, not executable migrations. Domain authority: [questions](../specifications/QUESTION_SCHEMA.md), [assembly](../specifications/EXAM_ASSEMBLY_SPEC.md), [attempts](../specifications/EXAM_ENGINE_SPEC.md). Factory tables are implemented by early Track A (AI-001/FACTORY-001), independently of website completion; no speculative psychometric tables are required in MVP.
 
 ## Conventions
@@ -214,3 +219,23 @@ This envelope is not the complete jobs persistence row. Leases, fencing tokens,
 attempt counters, timing, retries, transactions and grants remain DATA-001,
 AUTH-001, EXAM-002 and FACTORY task work. This technical encoding changes no
 approved product behavior, existing root schema, public route or dependency.
+
+## DATA-001 bank-core checkpoint — 2026-10-19
+
+Migration `001_bank_core.sql` and `src/modules/database/{pool,migrate}.mjs`
+implement the first local PostgreSQL foundation. Coordinator independently ran
+`npm run test:db:foundation` against PostgreSQL18.6: 17 reported tests PASS,
+zero failures/skips. Evidence covers fresh/reapplied/checksummed migrations,
+numeric order, additive populated upgrade, failed-DDL rollback, composite bank
+FKs, immutable content/evidence, private-schema and Factory role restrictions,
+parameterized queries and broken-connection disposal. The disposable harness
+uses a private Unix socket with TCP disabled. These are actual DB tests, not
+contract-only assertions. Runtime remains Node24.18.0/npm11.16.0.
+
+Run `DATABASE_URL='<owner-controlled PostgreSQL DSN>' npm run db:migrate` only
+with separate migration credentials; no automatic rollback or destructive reset
+is provided. Application credentials must be restricted role members, never the
+migration superuser. Stored JSON guards are coarse storage bounds; Bank commands
+must apply the frozen question/1 validator and serialized-byte limit. No
+publication eligibility or complete DATA-001 acceptance follows from this slice.
+Forms/attempts/history/jobs, real allocation races and local AUTH follow next.

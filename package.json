@@ -22,10 +22,15 @@
     "test:consumers": "node --test packages/contracts/test/emitted-consumers.test.mjs packages/contracts/test/stage4b-built.test.mjs",
     "contracts:consumer-check": "node --experimental-strip-types packages/contracts/scripts/check-consumer-boundaries.ts",
     "typecheck": "tsc -p packages/contracts/tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts"
+    "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts",
+    "db:migrate": "node src/modules/database/migrate.mjs",
+    "test:db:foundation": "node --test tests/integration/database/foundation/*.test.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
     "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "pg": "8.23.1"
   }
 }

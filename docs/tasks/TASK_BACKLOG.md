@@ -126,6 +126,27 @@ Reconciliation acceptance (HI-04/CR-02): starts only after G0, whose owner dispo
 
 ## DATA-001 — Relational integrity foundation
 
+Local Track B implementation IN_PROGRESS under explicit scoped owner DATA/AUTH
+approval, 2026-10-19; G1 already accepted. Branch `feat/track-b-data-auth`, base
+`446277f`; starting dirty file owner AGENTS.md only (preserved). Accountable
+implementer reused native tsa_builder, Codex Luna / XHigh; Sol / Medium owns root
+entrypoints/dependencies/shared records and independently reviews/tests. First
+bounded bank-core slice reserves `db/migrations/001_bank_core.sql`,
+`src/modules/database/**` and `tests/integration/database/foundation/**`; no other
+writer. Later attempt/schema slice follows reviewed core. Approved mechanisms
+supersede earlier ADR-001/003 implementation blocks within this local scope.
+No application/gate/task acceptance is inferred from partial schema tests.
+
+Bank-core checkpoint independently verified on PostgreSQL18.6: 17 reported tests
+PASS (fresh/reapply/checksum/order/upgrade/rollback, same-identity/taxonomy/rights/
+hash FKs, immutable content/evidence, private/Factory role boundaries, parameter
+queries and helper cleanup/missing-binary negatives). Migration001, server-only
+pool/runner and tests are implementation evidence; DATA-001 remains IN_PROGRESS
+until form/attempt/history/job and concurrency acceptance. Existing build/contract/
+consumer/B0 regressions pass; restricted subprocess/socket failures required a
+permitted rerun and were not counted as passing tests.
+
+
 Bounded approved-invariant preflight COMPLETED (partial prerequisite evidence only),
 2026-10-19, under the owner
 Track B batch after B0.1 verification/commit `06849d0`. One reused native
@@ -144,8 +165,9 @@ the winner remained uncommitted. Coordinator independently ran the final probe:
 concurrent distinct-user success, terminal/rollback/deadline/immutability boundaries;
 private cluster/socket/process cleanup verified. Missing-binary negative exits
 nonzero with a clear diagnostic, never a skipped PASS. Worker ownership released.
-DATA-001 remains incomplete and blocked on affected proposed mechanisms for its
-full production migration scope; no application start/auth/migration acceptance.
+At this historical preflight checkpoint, full migration scope was blocked. The
+scoped owner DATA/AUTH approval above now authorizes local implementation; this
+preflight alone still proves no application start/auth/migration acceptance.
 
 
 Phase 02.75 acceptance: stable question history PK(user,question), allocation revision row, canonical singleton/merged equivalence groups, bank eligibility revision, offering windows, personal owner/one-attempt constraints and fixed-mode compatibility. Two-connection strict allocations cannot overlap; corrected versions stay excluded. Factory migration files are separately reserved by FACTORY-001.
@@ -156,7 +178,7 @@ Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved gl
 - Prerequisites: FOUND-002, G1. Files: db/**, src/modules database adapters, tests/integration/database/**.
 - Deliverables: schema/migrations and seeded synthetic fixtures. Acceptance: cross-form answers, mismatched version links, immutable edits and duplicate score/job writes rejected; schema upgrade preserves history.
 - Required tests: fresh migration and populated upgrade, FK/check/unique failures, rollback compatibility, real PostgreSQL concurrency/lock ordering and transaction rollback.
-- Priority P0; complexity L; risks: JSON/relational drift, irreversible migrations. Status: BLOCKED only on affected proposed ADR-001/003 mechanisms; FOUND-002/G1 prerequisites now satisfied. Bounded preparation is owner-authorized; migration implementation must not choose unresolved architecture. Suggested implementer: database engineer; review: backend/data-integrity reviewer. Actual assignee: none.
+- Priority P0; complexity L; risks: JSON/relational drift, irreversible migrations. Status: IN_PROGRESS under the scoped 2026-10-19 DATA/AUTH approval; FOUND-002/G1 prerequisites satisfied. Partial bank-core acceptance above; remaining schema/concurrency evidence required. Suggested implementer: database engineer; review: backend/data-integrity reviewer. Actual assignee: none.
 
 ## AUTH-001 — Identity and authorization
 
