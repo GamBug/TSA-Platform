@@ -239,3 +239,23 @@ migration superuser. Stored JSON guards are coarse storage bounds; Bank commands
 must apply the frozen question/1 validator and serialized-byte limit. No
 publication eligibility or complete DATA-001 acceptance follows from this slice.
 Forms/attempts/history/jobs, real allocation races and local AUTH follow next.
+
+## DATA-001 local relational acceptance — 2026-10-19
+
+Migration002 adds form/attempt/history/score/job/receipt storage and integrity
+guards. Sol independently ran `npm run test:db:foundation`: 34 reported tests
+PASS on PostgreSQL18.6, zero skips/failures. Actual lock barriers cover both
+H1 mode winners, concurrent distinct users, winner rollback, cancel/start and
+stable-history serialization. Valid seals/grades and atomic negative cases,
+600/capped immutable deadlines after ordinary edits, pending-grade receipt pin,
+expired-reservation cleanup and populated001→002 preservation pass. Coarse
+storage bounds do not replace frozen contract validation at command boundaries.
+
+Child composition must commit with its immutable parent; additive upgrade leaves
+unknown legacy xid/original timestamp NULL rather than inventing evidence. Exam
+RLS reads require live job/executor/fencing context; this is read scoping, not
+authentication or a lease-claim worker. No real allocation/cleanup HTTP service,
+rights fan-out, grading worker or deployed DB guarantee follows from fixture
+transactions. Those remain their owning tasks. DATA-001 local schema/adapter
+acceptance unlocks the explicitly approved AUTH-001 local development path;
+G2/G3 remain unchanged. Owner AGENTS.md and all accepted contracts preserved.

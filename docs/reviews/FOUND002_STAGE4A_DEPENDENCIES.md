@@ -109,3 +109,12 @@ entries. These are registry findings at query time, not a security guarantee.
 Lockfile integrity records pin the installed graph. `pg` declares Node >=16.
 No paid API was used. Runtime transaction and parameterized-query behavior is
 verified separately by DATA-001 tests; installation alone is not acceptance.
+
+Clean-install reproduction: coordinator archived committed `7885331` to an
+isolated temporary directory, then ran `npm ci --ignore-scripts --cache
+/tmp/tsa-track-b-pg-npm-cache`, `npm run build`, `npm run test:built`, and
+`npm ls --all --depth=1` with pinned Node24.18.0/npm11.16.0. All exited zero;
+22 installed entries, 24 audited entries, zero registry advisories. The optional
+`pg-native` peer is absent; this implementation uses the tested JavaScript driver.
+No toolchain upgrade was applied. This verifies the dependency/build increment,
+not subsequent uncommitted application behavior or hosted CI.

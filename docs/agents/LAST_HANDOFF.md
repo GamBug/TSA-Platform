@@ -5,14 +5,18 @@
 G1 remains ACCEPTED; G2/G3 unchanged. Branch `feat/track-b-data-auth`, base
 `446277f`. Owner AGENTS.md hash remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`; excluded from commits.
 
-First checkpoint: Luna/XHigh implemented bank-core migration001, parameterized
-pool/transaction adapter, checksum/advisory-lock migration runner and disposable
-PostgreSQL18.6 harness/tests. Sol/Medium independently reviewed actual code and
-required SQL syntax, territory-array, privilege-ordering, storage-bound,
-connection-disposal, hash-FK and populated-upgrade/cleanup repairs. Final
-`npm run test:db:foundation`: 17 reported tests PASS, zero failures/skips. Actual
-PostgreSQL fresh/reapply/upgrade/rollback/immutability/private-role evidence is
-recorded in DATABASE_DESIGN. This is partial DATA-001, not complete acceptance.
+DATA-001 local foundation accepted: bank core `7885331`, followed by migration002
+and its exam fixtures/tests. Luna/XHigh implemented; Sol/Medium independently
+reviewed actual code and required bounded SQL, null-check, snapshot/aggregate,
+clock-after-lock, role/RLS, immutable-child and fixture-isolation repairs.
+Final `npm run test:db:foundation`: 34 reported tests PASS on PostgreSQL18.6,
+zero failures/skips. Fresh/populated upgrade, FK/unique/immutable failures,
+sealing/grading rollback, private-role boundaries, both H1 mode winner barriers,
+distinct users/rollback, cancel/start and stable-history serialization, immutable
+600/capped deadlines and receipt/history preservation after expired cleanup pass.
+This accepts schema/adapter and fixture transaction mechanisms, not allocation,
+cleanup or grading services, rights fan-out or deployment. Unknown legacy lexical
+timestamps/xids remain NULL; no original identity evidence fabricated.
 
 Root pg8.23.1 is exact-pinned; 14 added packages/license texts checked, previous
 seven versions unchanged, npm audit zero registry advisories at query time. See
@@ -21,8 +25,7 @@ frontend change. Typecheck/build/emitted smoke, contract/emitted consumer/B0 tes
 drift/import/docs/diff pass. Restricted subprocess/socket runner failed; managed
 permitted rerun produced actual nested passing tests, not a clean restricted-CI claim.
 
-Continue with reviewed migration002 for forms/attempt/history/jobs and real
-concurrency/rollback checks, then AUTH-001 local synthetic-only adapter, then
+Continue with AUTH-001 local synthetic-only adapter, then
 eligible Bank ingestion. One writer at a time; default Luna/XHigh, Sol/Medium
 independent review/integration. No Astra/Terra, push/merge/deployment/paid API.
 Existing frontend remains `npm run dev:b0` at http://127.0.0.1:4173, explicitly mock.

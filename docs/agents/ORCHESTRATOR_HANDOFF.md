@@ -8,6 +8,16 @@ G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
 
+## Active baton — DATA/AUTH execution, 2026-10-19
+
+Owner scoped local DATA-001/AUTH-001 approval is recorded in `7364882`;
+bank-core foundation and independently verified PostgreSQL evidence in `7885331`.
+Branch `feat/track-b-data-auth`, base `446277f`. DATA-001 local foundation is accepted after migration002 and 34 real-PG tests;
+synthetic-only local authorization and eligible Bank ingestion follow. Use [latest handoff](LAST_HANDOFF.md) and backlog
+for reservations and observed tests. Prior decision blocks below are historical,
+superseded only within the new approval scope. Preserve owner AGENTS.md, accepted
+contracts and B0.1 frontend. G1 ACCEPTED; no G2/G3 transition or production use.
+
 ## Current baton — G1 accepted / Track B bounded batch verified, 2026-10-19
 
 Owner G1 acceptance is committed separately in `27350b3` (audit `81ef8aa`, accepted

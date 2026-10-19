@@ -126,26 +126,30 @@ Reconciliation acceptance (HI-04/CR-02): starts only after G0, whose owner dispo
 
 ## DATA-001 — Relational integrity foundation
 
-Local Track B implementation IN_PROGRESS under explicit scoped owner DATA/AUTH
-approval, 2026-10-19; G1 already accepted. Branch `feat/track-b-data-auth`, base
-`446277f`; starting dirty file owner AGENTS.md only (preserved). Accountable
-implementer reused native tsa_builder, Codex Luna / XHigh; Sol / Medium owns root
-entrypoints/dependencies/shared records and independently reviews/tests. First
-bounded bank-core slice reserves `db/migrations/001_bank_core.sql`,
-`src/modules/database/**` and `tests/integration/database/foundation/**`; no other
-writer. Later attempt/schema slice follows reviewed core. Approved mechanisms
-supersede earlier ADR-001/003 implementation blocks within this local scope.
-No application/gate/task acceptance is inferred from partial schema tests.
+Local relational foundation COMPLETED, 2026-10-19, under scoped owner DATA/AUTH
+approval `7364882`; bank core `7885331`, followed by migration002. Branch
+`feat/track-b-data-auth`, base `446277f`. One reused native tsa_builder,
+Codex Luna/XHigh implemented the reserved SQL/fixtures; Sol/Medium independently
+reviewed code, required bounded repairs and reran actual PostgreSQL tests.
+`npm run test:db:foundation`: 34 reported tests PASS, zero failures/skips on
+PostgreSQL18.6. Fresh/reapply/checksum/order/failure rollback, populated001→002,
+immutable versions/snapshots/child links, JSON/relational consistency, private
+role/RLS boundaries, composite ownership/form/score FKs and unique score/job
+writes verified. Real two-client lock barriers cover both cross-mode H1 winners,
+distinct users, rollback, cancel/start and strict history serialization; corrected
+versions remain excluded by stable identity. DB-clock600/capped start bounds,
+non-retroactive schedule edits, pending-grading pin and expired-reservation
+cleanup preserve history/receipt/deadline. Missing tools fail explicitly.
 
-Bank-core checkpoint independently verified on PostgreSQL18.6: 17 reported tests
-PASS (fresh/reapply/checksum/order/upgrade/rollback, same-identity/taxonomy/rights/
-hash FKs, immutable content/evidence, private/Factory role boundaries, parameter
-queries and helper cleanup/missing-binary negatives). Migration001, server-only
-pool/runner and tests are implementation evidence; DATA-001 remains IN_PROGRESS
-until form/attempt/history/job and concurrency acceptance. Existing build/contract/
-consumer/B0 regressions pass; restricted subprocess/socket failures required a
-permitted rerun and were not counted as passing tests.
-
+Application allocation/start/save/cleanup APIs, rights fan-out, worker lease
+claim/finalization and end-to-end scoring remain their ASSEMBLY/EXAM/SCORE tasks;
+fixture SQL transactions do not establish those services. No production-data
+migration or deployment is claimed. Historical001 synthetic rows retain NULL
+original timestamp/xid where evidence was absent; no identity bytes fabricated.
+Both worker reservations released. Owner AGENTS.md hash remains unchanged and
+excluded. Accepted contract tree remains identical to `0e67485`. Root pg8.23.1
+and all14 additions have license/advisory and clean-install evidence in the
+existing dependency review; no ORM/framework. AUTH local path is now READY.
 
 Bounded approved-invariant preflight COMPLETED (partial prerequisite evidence only),
 2026-10-19, under the owner
@@ -172,13 +176,13 @@ preflight alone still proves no application start/auth/migration acceptance.
 
 Phase 02.75 acceptance: stable question history PK(user,question), allocation revision row, canonical singleton/merged equivalence groups, bank eligibility revision, offering windows, personal owner/one-attempt constraints and fixed-mode compatibility. Two-connection strict allocations cannot overlap; corrected versions stay excluded. Factory migration files are separately reserved by FACTORY-001.
 
-Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved global H1 uniqueness, H2 admission-only bounds, H3 one-domain MVP form support and the immutable 600-second start-deadline field, alongside cancellation constraints, blueprint taxonomy FK, lifecycle-pinned idempotency records and shared save buckets. Do not choose the effect of ordinary availability edits on already CREATED attempts; that product decision blocks affected admission/start behavior. Tests require two-connection create races, stale-active cleanup, cancellation/start ordering, immutable deadline replay, cleanup after pending grading and transaction rollback on invalid sealed aggregates. These are requirements, not tests executed in Phase 02.5.
+Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved global H1 uniqueness, H2 admission-only bounds, H3 one-domain MVP form support and the immutable 600-second start-deadline field, alongside cancellation constraints, blueprint taxonomy FK, lifecycle-pinned idempotency records and shared save buckets. Ordinary availability edits are owner-approved as non-retroactive: existing CREATED deadlines remain captured, while future admission uses the current window. Tests require two-connection create races, stale-active cleanup, cancellation/start ordering, immutable deadline replay, cleanup after pending grading and transaction rollback on invalid sealed aggregates. These are requirements, not tests executed in Phase 02.5.
 
 - Objective/scope: implement MVP tables, constraints, immutable triggers, reviewed migrations and test fixtures; include per-user history/equivalence/offerings; coordinate factory migrations with FACTORY-001 rather than duplicate ownership.
 - Prerequisites: FOUND-002, G1. Files: db/**, src/modules database adapters, tests/integration/database/**.
 - Deliverables: schema/migrations and seeded synthetic fixtures. Acceptance: cross-form answers, mismatched version links, immutable edits and duplicate score/job writes rejected; schema upgrade preserves history.
 - Required tests: fresh migration and populated upgrade, FK/check/unique failures, rollback compatibility, real PostgreSQL concurrency/lock ordering and transaction rollback.
-- Priority P0; complexity L; risks: JSON/relational drift, irreversible migrations. Status: IN_PROGRESS under the scoped 2026-10-19 DATA/AUTH approval; FOUND-002/G1 prerequisites satisfied. Partial bank-core acceptance above; remaining schema/concurrency evidence required. Suggested implementer: database engineer; review: backend/data-integrity reviewer. Actual assignee: none.
+- Priority P0; complexity L; risks: JSON/relational drift, irreversible migrations. Status: COMPLETED for the approved local relational foundation; acceptance evidence and runtime scope limits above. Suggested implementer: database engineer; review: backend/data-integrity reviewer. Actual assignee: none.
 
 ## AUTH-001 — Identity and authorization
 
@@ -192,7 +196,7 @@ Reconciliation acceptance (HI-05/MD-05): role-test diagnostic projections and ne
 - Deliverables: secure sessions, CSRF/origin checks, roles, staff MFA integration and negative fixtures. Development acceptance: users cannot inspect others' attempts; authors cannot self-approve; disabled sessions/roles enforced server-side. Production acceptance additionally requires the approved production issuer, audience, redirects, data flow and deployment controls.
 - Lifecycle interpretation: G2 consumes the accepted local AUTH-001 security/authorization evidence. The post-G2 production-configuration sub-acceptance is not a prerequisite to complete AUTH-001 in the task/gate graph and cannot create a G2 cycle.
 - Required tests: cookie/session invalidation, issuer/audience/redirect validation, CSRF, role escalation, BOLA and object-property access. Stub must be impossible to enable in production.
-- Priority P0; complexity M; risks: provider/data policy unknown. Status: BLOCKED (foundation and identity decision). Suggested implementer: backend/security engineer; review: independent security reviewer. Actual assignee: none.
+- Priority P0; complexity M; risks: provider/data policy unknown. Status: READY for the approved local synthetic-only adapter after accepted DATA-001; production configuration remains separately blocked. Suggested implementer: backend/security engineer; review: independent security reviewer. Actual assignee: none.
 
 ## DATA-002 — Lawful starter dataset
 
