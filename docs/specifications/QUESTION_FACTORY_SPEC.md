@@ -80,3 +80,66 @@ These are required observable behaviors, not tests already run. Use fixtures and
 ## Decisions and evidence needed before live production
 
 ADR-005/008 and the provider data/rights envelope remain PROPOSED. The owner must approve schedule/timezone, provider and input permissions, currency/prices and batch/period budgets, request/token ceilings, reviewer capacity, acceptance thresholds, resource limits and retention before live dispatch. Factory implementation can use synthetic or rights-cleared isolated fixtures within its assigned scope. No official TSA reuse permission, official item format, equivalent scoring, provider determinism or live-load result is inferred from this specification.
+
+## Stage 4B complete draft transport — factory-package/2
+
+Scoped D4 approval on 2026-10-19. Existing factory-package/1 and draft receipts
+remain unchanged. Version 2 is an internal validated import command, not a new
+HTTP generation endpoint. It contains schemaVersion, producerNamespace, batchKey,
+1..100 existing FactoryCandidate objects, a shared identity/1 reference DAG,
+asset members and immutable rights evidence. All candidates must validate and
+match computed identity before any receipt is returned; output is DRAFT only.
+No persistence/publication or current-rights authorization is inferred.
+
+Reference payloads: taxonomy is immutable version data; question is immutable
+parent-version data; stimulus is `{content:Block[],provenanceIds:string[]}`;
+asset is `{mediaType,byteLength,bytesHash}`; source is `{title,content:Block[]}`;
+provenance matches the corresponding existing FactoryCandidateProvenance object;
+evidence is immutable evidence data. Every image dependency must be an explicit
+asset edge; stimulus provenance IDs must be explicit provenance edges. Each
+candidate's question.provenanceIds correspond in order to its provenance list;
+provenance nodes reference the exact sourceVersionId and rightsEvidence ID as
+source/evidence edges. Source lists in run metadata must equal candidate source
+versions (set semantics). Parent/taxonomy/evidence payloads are immutable JSON;
+operational keys forbidden by identity/1 remain forbidden.
+
+Rights records are `{id,sourceVersionId,state,allowedUses,territories,validFrom,
+validUntil,evidence}` with nonempty identifiers/evidence/territories, explicit
+OWNED/LICENSED/OPEN_LICENSE/PUBLIC_DOMAIN state and GENERATE in allowedUses;
+allowed uses are DISPLAY/ADAPT/GENERATE/TRAIN, unique. Bounds are RFC3339 timestamps
+or null, ordered when both present. Evidence-node payload equals the immutable
+record. These assertions still require human verification; no real rights grant
+is created by parsing. Mutable current revocation is checked later by Bank.
+
+Assets are `{assetVersionId,mediaType,byteLength,bytesHash,bytesBase64}`; MIME is
+image/png, image/jpeg or image/webp. Decode canonical base64, verify declared length,
+SHA-256 raw-byte digest and matching magic bytes. Graph asset payload equals the
+member metadata. All assets must be referenced; no remote URL fetch or missing
+member is permitted. No decoder/sanitization/real rights clearance is claimed.
+Each asset <=2 MiB, all decoded assets <=8 MiB; entire JSON transport <=16 MiB,
+identity graph <=2,000 nodes/depth64. Limits fail closed before expensive work.
+Reject duplicate candidate identity, graph identity, source/evidence ID or asset ID;
+conflicting references/digests, cycles, unknown fields, truncated/missing bundles,
+invalid evidence and unused graph/members fail the entire import. Collect each
+question's reachable graph for identity/1; shared nodes are allowed, orphan nodes
+are not. Validation produces all receipts or throws, never a partial success.
+Synthetic independent producer/consumer and malformed-second-item tests establish
+package behavior only, not database transaction or publication correctness.
+Validation evidence must name the candidate's computed contentHash; run and question
+generationRunId must agree (including null). Question-version IDs must be unique
+within the package. Source and rights-evidence records are shared by reference,
+not repeated per candidate; every evidence/asset member must be used by the graph.
+Exact top-level keys are schemaVersion, producerNamespace, batchKey, candidates,
+references, assets and rightsEvidence, all required; assets may be empty only if
+there are no referenced assets. AssetMember and RightsEvidenceRecord are the
+technical record names above. Validation evidence inputHash binds question identity;
+run.inputHash remains the independent generation-request digest.
+Machine evidence may be PASS, FAIL or INCONCLUSIVE, as in v1. A FAIL prevents
+IN_REVIEW and INCONCLUSIVE needs explicit reviewer evidence later; neither is
+silently upgraded by draft transport. Do not invent a PASS-only import gate.
+A question-kind node payload is the full immutable QuestionVersion projection
+without contentHash; validate by supplying a placeholder for schema validation.
+Its payload.id equals node.id. A candidate/parent edge must keep questionId equal
+and versionNo strictly decrease. Every such parent payload's required identity
+roots must be listed as edges. This enforces the pre-existing same-identity parent
+rule; reference/1 hashes still use the original generic envelope unchanged.
