@@ -216,6 +216,33 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
 - Required tests: set-order property tests, incomplete true/false, empty/all-correct fixtures, 1/3 rounding, repeat job, immutable historical score, pre/post-release leakage checks.
 - Priority P0; complexity M; risks: accidental partial credit or official score implications. Status: BLOCKED (EXAM-001). Suggested implementer: scoring/backend engineer; review: independent mathematical/domain reviewer. Actual assignee: none.
 
+## WEB-B0 — Isolated interactive visual prototype
+
+- Status: COMPLETED for the assigned B0 slice, 2026-10-19; separate from blocked
+  WEB-001 integration. G1 disposition unchanged. Implementation uncommitted on the
+  isolated feature branch; no commit/push/merge/gate transition was performed.
+- Implementer: existing native tsa_builder, Codex gpt-6-luna / XHigh; normal bounded
+  frontend/test work. Coordinator/reviewer: Sol 6.1 / Medium. Base `81ef8aa`, branch
+  `feat/track-b-b0-prototype`; owner AGENTS.md dirty/reserved and excluded.
+- Worker owns only `apps/practice-prototype/**`; coordinator owns root npm scripts,
+  README, browser acceptance harness and shared records. No overlapping writers.
+- Scope: dependency-free modular frontend plus isolated local mock adapter;
+  Vietnamese landing/catalog, one MATH fixture demo, navigation/answer selection,
+  countdown, submit confirmation and demo results. Existing synthetic test content
+  only, with provenance and visible repeat/unapproved labels. No real NEW_ONLY,
+  student sessions, DB persistence, approved seed stock or official score claims.
+- Acceptance: runnable local command; responsive/keyboard-usable journey; keys
+  absent from public assets/pre-submit responses; mock save/closure/result behavior
+  and countdown tested; relevant regression and actual browser verification.
+- Executed evidence: nine nested Node tests, real Chromium 155 browser journey
+  at desktop/mobile widths, delayed save guard, offline failure/retry, confirmation
+  and 25.00% demo result, explicit new demo, private-response/public-file exclusion
+  and no external page requests PASS. Existing 106 contract/11 emitted tests,
+  typecheck/build/smoke/drift/import/docs/diff checks PASS; no runtime/DB claim.
+- Exclusions: schema/dependency changes, blocked runtime task implementation,
+  public deployment, paid APIs and gate advancement. All worker reservations released;
+  coordinator completed independent verification and shared-record integration. Documentation-only defaults are overridden only for this assigned B0.
+
 ## WEB-001 — Student vertical slice
 
 Phase 02.75 acceptance: default personal NEW_ONLY catalog/create flow; display mode, start TTL, explicit shortage and separately confirmed review/fixed alternatives. Browser test two attempts with no repeats, exhausted inventory, no automatic fallback or AI call.

@@ -10,6 +10,46 @@ statements below describe historical checkpoints, superseded by this disposition
 
 Status: **PROPOSED** Phase 02.75 sequencing. Scoped G0 implementation authorization is recorded in [decisions](../decisions/OPEN_DECISIONS.md) on 2026-10-17; this roadmap is not an ADR approval or production-readiness record. [Backlog](TASK_BACKLOG.md) owns task status; decisions owns approval records. The three product stages below are independently demonstrable and may advance in parallel. Exit evidence is future evidence to be recorded by the accountable task owner, not work completed by this roadmap.
 
+## Active priority — Track B first, 2026-10-19
+
+Owner directive prioritizes visible Track B product progress (~85%) and lightweight
+Track A preparation (~15%); these are priorities, not effort/token quotas.
+G1 ACCEPTED by owner, disposition commit `27350b3`; FOUND-002 COMPLETED. Existing
+B0 finalization and same-app B0.1 polish are explicitly authorized; integrated work
+retains its remaining prerequisites and unresolved decision boundaries.
+
+| Milestone | Dependency / executable scope | Demonstrable exit |
+|---|---|---|
+| B0 now | No G1 dependency for isolated mock UI; no approved-content or real-backend claim | Vietnamese local landing/catalog, MATH fixture navigation/selection, countdown, confirmation and demo result; startup + automated and browser evidence. Repeat synthetic content visibly labeled. |
+| B0 next visible increment | Lawful independent human-reviewed sample content, still explicitly mock; integration remains gated | Distinct mini-profile content, three interaction renderers, mobile/keyboard/error-state walkthrough. No invented official content/structure. |
+| B2 foundations enabling B1 | Owner G1 acceptance → DATA-001 → explicitly scoped local AUTH-001 → BANK-001 ingestion → BANK-002 human review/publication evidence → owner G2 disposition | Minimal controlled staff import/review/publication supplies approved stock; do not defer this dependency until after claiming a real exam. |
+| B1 integrated mini exam | Above gates + ASSEMBLY-001/002, EXAM-001/002 and SCORE-001 acceptance | Immutable allocation, server timing, persisted answers, closure/scoring and authorized result. Reconcile owner's ten-question target with existing separate 4/2/4 domain profiles before integration; no combined attempt assumed. |
+| B3 offline Factory bridge | Working bank/publication boundaries plus Factory/INT prerequisites and own approvals | Draft-only import through human review; no live generation on student paths. |
+
+Recommended implementation: Codex Luna / XHigh for bounded frontend/mock and later
+frozen adapter/test slices (low relative cost); Sol 6.1 / Medium coordination and
+independent verification. Terra only for demonstrated complex DB/security segments.
+No Astra. Maximum one writing worker and two child agents; no downstream work
+started by this roadmap.
+
+Lightweight Track A preparation (no benchmarking, scraping or provider calls):
+
+| Candidate source inventory | Usage basis / current disposition |
+|---|---|
+| Existing repository synthetic contract fixtures | Technical test/demo material only, attributed to exact file; not approved seed stock, Vietnamese subject review or a legal-clearance claim. |
+| Future owner/human-authored original practice items | Require named author, rights attestation, evidence and a different human subject reviewer before publication. |
+| Existing research inventory S1 HUST scheme PDF / S2 HUST handbook announcement | Reference/source-verification only, as recorded in RESEARCH_ASSESSMENT; no sample-question reuse/training permission established. No new retrieval or scraping in B0. |
+| Existing research inventory S3 UIT / ViQuAD | Research assessment records contact/user-agreement conditions; no agreement or corpus usage authorized here. No download, ingestion or training. |
+| Explicitly licensed/open/public-domain inputs | No specific collection approved here; verify exact license, allowed use, attribution, territory/dates and immutable version before ingestion. |
+
+Quality/rubric preparation reuses existing contracts: identify MATH/READING/SCIENCE;
+SINGLE_CHOICE/MULTIPLE_CHOICE/TRUE_FALSE_GROUP; taxonomy version and shared-stimulus
+bundles. Assess correctness, unique/complete answer, ambiguity, Vietnamese clarity,
+explanation evidence, curriculum relevance, rights/provenance and duplicate/equivalence
+flags separately. Record PASS/FAIL/INCONCLUSIVE against exact hashes; no model score
+substitutes for independent human approval. Dataset evaluation additionally needs
+frozen held-out labels, no leakage and an owner-accepted protocol before benchmarking.
+
 ## Active Stage 4B contract batch — 2026-10-19
 
 Owner [scoped D1–D6 approval](../decisions/OPEN_DECISIONS.md#d1d6-scoped-contract-approval--stage-4b--2026-10-19)

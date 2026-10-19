@@ -96,6 +96,27 @@ records execution scope only, not owner G1 acceptance, whole-ADR approval or mis
 evidence approval. Preserve owner AGENTS.md; no push/merge, deployment, paid external
 API, automatic gate advancement or unnecessary orchestration restructuring.
 
+### Track B priority and isolated B0 authorization — 2026-10-19
+
+Human project owner, "OWNER DIRECTIVE — PRIORITIZE TRACK B: TSA WEBSITE":
+"PRIMARY PRIORITY: Track B — Working TSA Practice Website"; secondary Track A,
+approximately 85/15 effort as priorities, not quotas. Explicitly authorizes a
+runnable Vietnamese B0 landing/catalog/exam/navigation/answer/countdown/submit/
+demonstration-result prototype using clearly labeled isolated mock adapters while
+G1 is pending. No official structure/scoring/content invented; reuse existing
+synthetic fixtures, never represent mocks as approved/integrated content. Minimal
+frontend, local startup, automated and actual behavior verification required.
+
+G1 audit remains READY FOR OWNER ACCEPTANCE, not accepted; no gate transition or
+DATA/AUTH/BANK/EXAM implementation is authorized by B0. Existing separate one-domain
+MATH-4/READING-2/SCIENCE-4 policies remain authoritative. The future ten-approved-
+question integrated target does not silently authorize a combined three-domain
+attempt; reconcile its profile before B1 integration. Track A limited to lawful
+source inventory/quality/taxonomy/rubric preparation; no expensive benchmarking,
+paid APIs or unauthorized scraping. Preserve owner AGENTS.md; no push/merge,
+deployment or automatic gate advancement. This directive assigns B0 only within
+these boundaries; existing blocked WEB integration cards remain blocked.
+
 ## G1 — Owner acceptance and bounded Track B execution, 2026-10-19
 
 - Disposition: ACCEPTED by the human project owner, conditional on the mandatory

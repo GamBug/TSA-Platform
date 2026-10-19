@@ -22,6 +22,37 @@ The repository is the persistent source of truth. Owner approval records establi
 
 Do not infer approval from the existence of a document. No provider-specific instructions are needed. Do not initialize the application until the relevant decisions and task assignment are approved. These shared-contract checks do not start the application.
 
+## Local interactive website prototype (B0)
+
+The owner-authorized B0 is a Vietnamese interface with isolated mock services,
+independent of pending G1 acceptance and blocked integrated website tasks.
+With pinned Node.js 24.18.0/npm 11.16.0, run from this repository root:
+
+```bash
+npm run dev:b0
+```
+
+Open **http://127.0.0.1:4173**. No dependency install or build is needed for B0.
+Use `PORT=4174 npm run dev:b0` if the default port is busy. Run its checks with:
+
+```bash
+npm run test:b0
+npm run test:b0:browser
+```
+
+The browser check requires an already installed Chromium (`B0_BROWSER` can select
+its executable); it starts/stops its own temporary server/browser and writes
+screenshots/report under `/tmp/tsa-b0-browser-evidence` by default. It is separate
+from the shared-contract tests below. No browser/dependency download occurs.
+
+Demo: open catalog, start the MATH fixture, choose an answer, navigate between
+slots, cancel a submission once, then confirm submission and return to catalog.
+The four slots repeat existing synthetic test content and are visibly labeled;
+this is not approved seed stock or a NEW_ONLY allocation. Session memory, timer,
+saves and results are demonstrations, not durable/authenticated product features.
+Reading/science cards remain unavailable. Do not enter personal information.
+See the [prototype walkthrough and limitations](apps/practice-prototype/README.md).
+
 ## Shared contract verification
 
 The current executable scope is the TypeScript shared-contract package. Use Node.js `24.18.0` and npm `11.16.0`, then run the following from a clean checkout:

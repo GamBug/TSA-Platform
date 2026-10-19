@@ -10,6 +10,9 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:b0": "node apps/practice-prototype/server.mjs",
+    "test:b0": "node --test apps/practice-prototype/test/*.test.mjs",
+    "test:b0:browser": "node scripts/verify-b0-browser.mjs",
     "build": "tsc -p packages/contracts/tsconfig.build.json",
     "contracts:check": "node --experimental-strip-types packages/contracts/scripts/check-openapi.ts",
     "contracts:generate": "node --experimental-strip-types packages/contracts/scripts/generate-openapi.ts",

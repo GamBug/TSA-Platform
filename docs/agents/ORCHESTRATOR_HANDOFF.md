@@ -8,28 +8,29 @@ G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
 
-## Current baton — Stage 4B engineering complete, 2026-10-19
+## Current baton — Track B B0 delivered, 2026-10-19
 
-Owner D1–D6 approval is recorded in OPEN_DECISIONS. Branch
-`feat/found-002-stage4b-contracts`, base `8beb0ff`; accepted local checkpoints:
-`07ced30` identity/D1, `d65e08b` Factory v2, `8a09b92` + `3af1b34` assembly/replay,
-`a6ec4ad` consumer routes and actual HTTP egress. The following documentation
-checkpoint records final evidence; use Git history for its hash.
+Owner prioritizes Track B (~85%) over lightweight Track A (~15%). Existing B0
+and same-app B0.1 continuation are explicitly authorized; G1 accepted in `27350b3`. Branch `feat/track-b-b0-prototype`,
+HEAD/base `81ef8aa`; B0 code/entrypoints/records uncommitted. Owner AGENTS.md bytes
+preserved. Local B0 checkpoint commits are now explicitly authorized, separately from gate
+recording; no push/merge/deployment or paid API. G2/G3 remain unestablished.
 
-Full local suite passes (102 contract + 10 emitted-consumer tests). One Luna /
-XHigh writer and one read-only Luna scout were reused; Sol / Medium reviewed,
-integrated and completed bounded repairs after worker usage/capacity failures.
-No automatic model fallback. All reservations released. Owner AGENTS.md is the
-only intended residual dirty file, preserved and excluded. See
-[latest handoff](LAST_HANDOFF.md) for criteria, failures, limits and continuation.
+Runnable Vietnamese prototype: `npm run dev:b0` → http://127.0.0.1:4173.
+Repeated synthetic MATH fixture only, visibly mock; no approved seed, real identity,
+DB, NEW_ONLY or integrated scoring claim. Nine Node tests, actual Chromium
+pointer/keyboard/save-error/mobile journey and existing 106 contract/11 emitted
+regressions pass. One reused Luna / XHigh writer; Sol / Medium independent review,
+browser verification and integration; reservations released. See
+[latest handoff](LAST_HANDOFF.md) for exact evidence, repairs and run/demo commands.
 
-Authorized contract engineering is complete; FOUND-002 IN_PROGRESS pending owner
-acceptance/G1 disposition, G1 NOT ESTABLISHED, DATA-001 BLOCKED. No push, merge,
-deploy, paid API, Terra/Astra or automatic gate advancement. Next is owner G1
-acceptance review; no D1–D6 semantic question remains. The historical audit below
-is superseded only where the current handoff maps completed evidence. Stage 4A
-history is preserved at `8beb0ff:docs/agents/LAST_HANDOFF.md`; setup/Stage 3 history
-and scoped versus whole-ADR distinctions below remain historical evidence.
+G1 ACCEPTED / FOUND-002 COMPLETED in isolated disposition commit `27350b3`.
+The [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) recommends READY FOR OWNER
+ACCEPTANCE at `0e67485`, evidence commit `81ef8aa`. DATA/AUTH/BANK and integrated WEB
+work retain existing gates. Next visible content/interaction milestone and actual
+B1 prerequisites are in the roadmap; no downstream implementation started.
+Historical checkpoint bodies below remain evidence only where explicitly scoped;
+current state comes from live backlog/decisions and LAST_HANDOFF.
 
 ## Execution-policy update — 2026-10-19
 
