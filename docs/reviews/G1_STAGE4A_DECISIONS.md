@@ -1,8 +1,12 @@
 # G1 preparation — consolidated owner decision packet
 
 Date: 2026-10-19, Asia/Bangkok. Author: Codex Sol 6.1 / Medium, coordinator.
-Status: PROPOSED; no decision below is approved or implemented by this packet.
-Owner authority is Stage 4A execution, not Stage 4B semantics or G1 advancement.
+Historical Stage 4A proposal, superseded in architectural scope by owner D1–D6
+approval/Stage 4B activation on 2026-10-19 (OPEN_DECISIONS). The options below
+preserve the original packet; they are not evidence of implementation. D3 limits
+remain initial parameters pending measurements, as the owner explicitly required.
+Current technical addenda live in the question, assembly, Factory and API specs;
+no automatic G1 or unrelated ADR approval follows.
 
 ## Work classification
 

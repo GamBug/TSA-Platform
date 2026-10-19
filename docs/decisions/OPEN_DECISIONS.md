@@ -55,6 +55,36 @@ States: DRAFT → PROPOSED → APPROVED → SUPERSEDED. A rejected proposal rema
   push/merge to main, deployment, paid APIs, Astra or automatic G1 advancement.
 - Approval is execution scope only; pending ADRs/decisions remain unapproved.
 
+### D1–D6 scoped contract approval / Stage 4B — 2026-10-19
+
+Approval identity: human project owner. Durable evidence: "OWNER APPROVAL —
+ACTIVATE STAGE 4B BOUNDED AUTOPILOT". D1–D6 architectural behaviors in the
+consolidated brief are APPROVED IN SCOPE; unrelated ADRs remain PROPOSED.
+
+- D1: preserve eligible/unseen shortage and SEARCH_EXHAUSTED distinctions; accept
+  bounded FOUND-007 reconciliation only with its required evidence.
+- D2: versioned immutable identity plus separate fingerprint; freeze exact field
+  projection, immutable reference handling, missing/conflicting/cyclic behavior
+  and byte goldens before dependent implementation; exclude operational state,
+  preserve authored text and never automatically merge equivalence groups.
+- D3: deterministic bounded backtracking with hard constraints/replay/immutable
+  snapshots. Search/contention limits remain initial engineering parameters until
+  behavior/performance evidence supports frozen versioned values; exhaustion is
+  never an infeasibility proof.
+- D4: new self-contained versioned Factory transport, v1 compatibility, complete
+  bounded manifests/reference/provenance/rights validation and atomic rejection;
+  successful import confers no human approval/publication.
+- D5: existing owner-only released-result route, separate score/review contracts,
+  no unreleased private data disclosure.
+- D6: student/internal/released consumer separation and explicit compatibility,
+  generated route types/drift checks and minimization at runtime API boundaries.
+- Execute newly unblocked contracts/tests/integration, bounded repairs and local
+  commits; Luna / XHigh normal implementation, Sol / Medium integration/review.
+  Maximum two subagents and one writing worker. No push, merge to main, deployment,
+  paid external API, Astra, owner AGENTS edits or automatic G1 advancement.
+- These approvals do not assert missing verification, complete task acceptance,
+  production readiness or approval of any whole unrelated ADR.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.

@@ -53,6 +53,14 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
+Stage 4B IN_PROGRESS, 2026-10-19: owner D1–D6 approval activates contracts,
+tests/integration and local commits on `feat/found-002-stage4b-contracts`, base
+`8beb0ff`. One Luna / XHigh writing worker; Sol / Medium freezes technical
+specifications and owns shared records/review/commits. Initial increment reserves
+`packages/contracts/src/identity.ts` and identity tests/fixtures only; existing
+index exports and v1 schemas stay stable. Owner AGENTS.md remains reserved.
+No push/merge/deploy, paid API, Astra or G1 advancement.
+
 Stage 4A completed, 2026-10-19: owner "STAGE 4A — BOUNDED AUTOPILOT ACTIVATION"
 authorized READY G1-preparation evidence and local commits. Branch
 `feat/found-002-stage4a-evidence`, base `84ddff3`; engineering checkpoint `dadd60e`.
@@ -320,7 +328,7 @@ The phrases “accepted ingestion evidence” and “accepted manifest-candidate
 
 | Unresolved item | Must be resolved by | Blocks |
 |---|---|---|
-| `QUESTION_REUSE_POLICY` names `INVENTORY_SHORTAGE`, while the API names `INSUFFICIENT_UNSEEN_INVENTORY` / `INSUFFICIENT_ELIGIBLE_INVENTORY`; the generic `ErrorResponse.details` does not model the normative `StudentShortage` alternatives/blueprint fields. | FOUND-007 records an owner-approved, single error taxonomy and compatible response projection before FOUND-002 freezes schemas. | All `POST /attempts` consumers: ASSEMBLY-001/002, EXAM-001, WEB-003, contract fixtures. |
+| Historical shortage naming/shape conflict: RESOLVED within bounded FOUND-007 reconciliation under owner D1 approval, 2026-10-19; API/reuse/assembly references and runtime fixtures agree. | FOUND-007 records an owner-approved, single error taxonomy and compatible response projection before FOUND-002 freezes schemas. | All `POST /attempts` consumers: ASSEMBLY-001/002, EXAM-001, WEB-003, contract fixtures. |
 | ADR-001–004, 007 and 008 mechanisms remain PROPOSED; ADR-004 remains PROPOSED as a whole, with H1 global active-attempt, H2 admission-only, H3 independent one-domain MVP tests, the 600-second start TTL and non-retroactive ordinary admission-schedule edits scoped APPROVED. ADR-006 retention/identity boundaries and other ADR scope remain undecided. The G0 authorization does not resolve these technical decisions. | Human owner through FOUND-004; contract changes need ADR impact analysis. | Affected implementation semantics and any work that would choose an unresolved contract; downstream gates remain subject to their listed acceptance evidence. |
 | Rights-cleared starter items, independent Vietnamese content reviewers, lawful held-out labels, provider/input permissions, budget/schedule, thresholds and reviewer capacity are unverified. | Human owner plus FOUND-003, DATA-002/003, RESEARCH-002/AI-003. | G2 publication, live factory dispatch, AI evaluation claims, pilot. |
 
@@ -358,7 +366,7 @@ The existing cards supply objective, prerequisites, file scope, deliverables, me
 - Expected deliverables: one consistent public error-code taxonomy, typed safe shortage details, HTTP status mapping, idempotency behavior for no-allocation retries, and a conflict/disposition note if the owner has not selected a policy.
 - Acceptance criteria: every shortage/reference uses the same codes; generic and specialized error schemas are structurally compatible; `SEARCH_EXHAUSTED`, `CONCURRENT_MODIFICATION`, validation and shortage have distinct status/meaning; no details expose question, group, history, key or candidate identifiers.
 - Required verification: static cross-document reference search; positive/negative JSON fixture design for all listed errors; owner decision evidence or an explicit BLOCKED record. Runtime tests are NOT RUN in this documentation task.
-- Suggested agent capability: MEDIUM (Terra). Risk: High — contract drift/security disclosure. Status: PROPOSED, blocked on G0 owner decision.
+- Suggested agent capability: MEDIUM (Terra). Risk: High — contract drift/security disclosure. Status: COMPLETED for bounded contract reconciliation, 2026-10-19, under explicit D1 approval. Static API/reuse/assembly reference comparison and existing error-response tests passed; supplemental CONCURRENT_MODIFICATION/CONSTRAINT_CONFLICT/VALIDATION_ERROR positive/negative fixtures and 409/422 mapping checks passed. No allocation/database implementation or whole-ADR acceptance is claimed. See OPEN_DECISIONS and the current handoff.
 
 ## DATA-003 — Starter dataset manifest and publication preflight
 

@@ -1,3 +1,18 @@
+# Active update — Stage 4B, 2026-10-19
+
+Owner D1–D6 architectural approval and Stage 4B execution are recorded in
+OPEN_DECISIONS. Branch `feat/found-002-stage4b-contracts`, base `8beb0ff`.
+One reused native Luna / XHigh builder implemented identity/1 + fingerprint/1;
+Sol / Medium independently reviewed the module, reran focused tests/typecheck/build
+and independently SHA-256-checked literal bytes using Python. Review repaired
+input-order-dependent DAG depth bounds, root self-reference and duplicate edges;
+regressions include a 2,000-node chain with controlled failure. No dependencies or
+root exports changed. Next READY increment: self-contained Factory v2 using these
+identity helpers, then deterministic assembly and API consumer/egress contracts.
+Future technical addenda already live in the task-specific specs. Owner AGENTS.md
+hash remains unchanged. No push/merge/deploy or G1 advancement. Below is historical
+Stage 4A evidence; its previous Stage 4B approval blocker has been superseded.
+
 # Latest handoff — FOUND-002 Stage 4A evidence
 
 Date: 2026-10-19, Asia/Bangkok. Coordinator/integration reviewer: Codex Sol 6.1 /

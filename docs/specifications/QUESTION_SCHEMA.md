@@ -70,3 +70,64 @@ Duplicate relationships are canonical ordered version pairs with kind EXACT, NEA
 Before release, a delivered slot contains only slotId, sectionId, ordinal, content, safe stimulus content and interaction. Required public attribution is embedded as safe text blocks in content or stimulus when authored and frozen, without exposing private provenance. It omits origin, key, explanation, review, generation data, private provenance, answer evidence and difficulty predictions. Asset access follows the same gate; do not hide answers only in the UI.
 
 Future `question/2` may add NUMERIC_ENTRY with explicit decimal/rational normalization and tolerance, TEXT_ENTRY with declared language normalization, and MATCHING/ORDERING with keyboard alternatives. Add discriminated response/key/scorer variants and renderer compatibility together; no arbitrary code evaluation or LLM scoring on the submission path. QTI adapters remain outside the canonical core.
+
+
+## Stage 4B identity contract — identity/1 and fingerprint/1
+
+Scoped D2 approval is recorded in OPEN_DECISIONS on 2026-10-19. This section
+freezes the technical projection before dependent code; no historical object is
+rewritten. The original question/1 wire shape remains compatible.
+
+Identity input is a validated QuestionVersion and a finite immutable reference
+DAG. The question projection is every question/1 field except `contentHash`, in
+its validated representation. Authored text, TeX and array order are preserved.
+Workflow/events, usage counters, eligibility and current rights state are excluded;
+only immutable rights evidence/version records may enter reference payloads.
+
+Each graph node is `{kind,id,payload,references,contentHash}`; kind is taxonomy,
+question, stimulus, asset, provenance, evidence or source; references are strict
+`{kind,id}` pairs. `payload` is immutable JSON, without operational fields or its
+own contentHash. Node digest is SHA-256 of UTF-8 JCS of
+`{version:"reference/1",kind,id,payload,references:[{kind,id,contentHash}]}`.
+Edges are sorted by kind then id using UTF-16 code-unit comparison, never locale.
+Question required roots: taxonomyVersionId, parentVersionId if present, non-null
+stimulusVersionId, provenanceIds, private.evidenceRefs, and all image assetVersionId
+references in question/interaction/private blocks. GenerationRunId stays an
+immutable identifier in the question projection; mutable run state is not resolved.
+Source dependencies are explicit edges of immutable provenance/evidence nodes.
+Every supplied node must be reachable. Reject duplicate IDs of the same kind,
+missing/extra nodes, conflicting advertised hashes, cycles/self-references,
+unsupported JSON, operational payload keys (workflow, workflowState, usageCounters,
+eligibility, currentRights, events at the payload root), and limits exceeded. Validate all
+nodes before emitting any result. Limits: 2,000 nodes, depth 64, aggregate
+canonical reference bytes 8 MiB; these are parser safety bounds, not exam rules.
+
+Question bytes are UTF-8 JCS of `{canonicalizationVersion:"identity/1",question,
+references:[{kind,id,contentHash}]}` with the complete reachable closure sorted by
+kind/id. Digest string is `sha256:` plus 64 lowercase hex digits. JCS follows RFC
+8785: UTF-16 property ordering, ECMAScript finite-number serialization, no Unicode
+normalization, invalid Unicode/unsupported values rejected. Byte/digest golden
+fixtures must precede downstream transport/replay use.
+
+Fingerprint/1 is separately SHA-256 over JCS of a versioned projection of content,
+interaction and resolved stimulus payload. Omit option/statement IDs and author,
+identity, private-answer/explanation and workflow metadata; retain array order and
+interaction constraints. Replace image asset IDs with a digest of their immutable
+payload (not the asset identity). Normalize human strings with NFC and collapse
+runs of U+0009–000D, U+0020, U+0085, U+00A0, U+1680, U+2000–200A, U+2028–2029,
+U+202F, U+205F and U+3000 to one space, trimming boundaries; preserve case and TeX
+verbatim. Never modify the original object. Fingerprints are review signals only;
+no automatic equivalence merge or publication follows.
+
+Identity construction and verification are distinct: `computeQuestionIdentity`
+returns `{bytes,contentHash}` without comparing or changing the input's existing
+contentHash. Builders can supply any schema-valid placeholder; transport verifiers
+must separately compare the advertised digest. No implicit replacement/mutation.
+Fingerprint bytes are exactly JCS UTF-8 of `{fingerprintVersion:"fingerprint/1",
+content,interaction,stimulus}`. `stimulus` is null or the referenced stimulus
+payload's `content` array (validated Block[]), excluding its authoring metadata.
+Within these projections omit option/statement `id` fields; replace image
+`assetVersionId` with `assetPayloadHash`, SHA-256 of JCS UTF-8 of the resolved asset
+payload, not its identity-bearing reference envelope. Normalize human string
+values recursively except the `tex` field; preserve object property names and
+array order. Return `{bytes,fingerprint}` with the same sha256:hex encoding.
