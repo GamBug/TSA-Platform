@@ -95,6 +95,25 @@ stimulusVersionId, provenanceIds, private.evidenceRefs, and all image assetVersi
 references in question/interaction/private blocks. GenerationRunId stays an
 immutable identifier in the question projection; mutable run state is not resolved.
 Source dependencies are explicit edges of immutable provenance/evidence nodes.
+
+The local manual Bank source projection is versioned `manual-source/1`:
+`{schemaVersion,sourceId,sourceVersionId,sourceTitle,sourceOrigin,canonicalUri,
+ownerReference,sourceVersionNo,sourceContentHash,evidenceUri,metadata}`. It snapshots
+registered source/version fields; URI pointers are never fetched or invented as
+source-content blocks. This projection is not a Factory v2 export. Legacy unknown
+source origin remains NULL and cannot produce a new source reference. Registered
+reference payloads/edges are append-only, namespace-scoped, and private because
+parent question nodes may contain answer evidence. Unknown evidence or incomplete
+legacy stimulus provenance rejects ingestion; mutable current rights are not a
+substitute for an immutable evidence node. Imported Factory payloads must retain
+their own original IDs and exact payload bytes within the producer namespace.
+
+Staff draft UUID node references resolve against the pinned taxonomy version to
+its immutable node codes before constructing/hashing canonical question/1. Preserve
+authored content blocks verbatim. Validate DOMAIN/SKILL/SUBSKILL ancestry; do not
+infer a domain-code/Section mapping absent an explicit taxonomy contract. Semantic
+content alignment remains independent human review, not draft ingestion approval.
+
 Every supplied node must be reachable. Reject duplicate IDs of the same kind,
 missing/extra nodes, conflicting advertised hashes, cycles/self-references,
 unsupported JSON, operational payload keys (workflow, workflowState, usageCounters,

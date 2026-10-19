@@ -1,4 +1,4 @@
-# Latest handoff — DATA/AUTH implementation in progress
+# Latest handoff — local DATA/AUTH and manual Bank ingestion verified
 
 2026-10-19, Asia/Bangkok. Owner scoped DATA-001/AUTH-001 approval is recorded in
 [decisions](../decisions/OPEN_DECISIONS.md#data-001--auth-001--scoped-local-track-b-approval-2026-10-19).
@@ -32,7 +32,35 @@ refusal, role/ownership/session/CSRF negatives and private DB credential boundar
 Test ownership routes are harness-only; production OIDC/MFA/issuer/redirect
 acceptance and actual exam APIs remain unimplemented. See backlog for exact scope.
 
-Continue with eligible BANK-001 ingestion; human publication remains BANK-002. One writer at a time; default Luna/XHigh, Sol/Medium
+Clean archived `6f73272` independently verified with pinned Node24.18.0/npm11.16.0:
+`npm ci --ignore-scripts --offline --cache /tmp/tsa-track-b-pg-npm-cache`, typecheck,
+build/emitted smoke, 106 contract/11 emitted-consumer/11 B0/5 AUTH/34 DB tests,
+contract drift and import boundary all PASS. No dependency graph change after the
+previous pg license/advisory review. Archive docs check lacks Git metadata and
+emitted a Git warning; repository `npm run docs:check` was separately rerun PASS
+(49 Markdown files, 238 links, zero errors). No hosted-CI claim.
+
+AUTH acceptance is committed as `6f73272`. BANK-001 manual ingestion is independently
+verified: Bank10/10, DATA34/34 and AUTH5/5 PASS on actual PostgreSQL18.6/HTTP.
+Luna/XHigh implementation; coordinator review required target-specific receipts,
+private namespace snapshots, UUID→code taxonomy mapping, exact timestamps,
+exclusive bank guard, dependency probe repairs and deterministic lock-barrier tests.
+Fresh migration initially failed on an incorrect form-slot column join; repaired
+query and full database/security regressions now pass. Populated003→004 preserves
+unknown legacy origin/creator and student/staff receipts. No passing restricted-CI
+claim. Accepted contracts/exports and owner AGENTS bytes remain unchanged.
+
+Manual source/version and BANK_MANAGER rights registration, AUTHOR immutable
+MANUAL/IMPORTED drafts/revisions and staff metadata-only listing are real SQL-backed
+commands. Question keys/evidence graphs remain private. Duplicate flags remain OPEN;
+no automatic equivalence confirmation/merge or publication occurs. Rights edits
+with selected-content dependencies fail closed, not an implemented hold/fan-out.
+Factory package mapping/receipts, arbitrary stimulus import and BANK-002 publication
+remain separate work. Next visible slice is the existing frontend's local staff
+workspace and persistent dev startup. Named independent human review and lawful
+inventory still gate publication; real exam services have not been implemented.
+
+One writer at a time; default Luna/XHigh, Sol/Medium
 independent review/integration. No Astra/Terra, push/merge/deployment/paid API.
 Existing frontend remains `npm run dev:b0` at http://127.0.0.1:4173, explicitly mock.
 Human review/publication and lawful inventory remain separate prerequisites.

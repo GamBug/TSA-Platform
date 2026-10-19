@@ -81,8 +81,8 @@ fail closed. Existing frontend/contracts remain stable; no ORM expansion.
 
 | Order | Executable dependency and evidence |
 |---|---|
-| DATA-001 | Bank-core migration/adapter first, then form/attempt/history/jobs schema. Independently verify fresh install, populated upgrade, FK/immutability/role negatives, atomic rollback and real two-connection barriers. Partial schema tests do not complete the task. |
-| AUTH-001 local | Accepted DATA-001; server-side fixed synthetic identities, sessions, role/object checks, invalidation and CSRF/origin negatives. Current B0 mock cookie is not acceptance. Production OIDC/MFA/provider configuration remains later. |
+| DATA-001 — local foundation accepted `37c9f6a` | Bank-core migration/adapter first, then form/attempt/history/jobs schema. Independently verify fresh install, populated upgrade, FK/immutability/role negatives, atomic rollback and real two-connection barriers. Partial schema tests do not complete the task. |
+| AUTH-001 local — accepted `6f73272` | Accepted DATA-001; server-side fixed synthetic identities, sessions, role/object checks, invalidation and CSRF/origin negatives. Current B0 mock cookie is not acceptance. Production OIDC/MFA/provider configuration remains later. |
 | BANK-001 ingestion | Accepted DATA/AUTH and frozen G1 contracts; register evidence, validate/import immutable drafts and keep keys server-only. Existing frontend may consume the resulting local staff adapter. No automatic publication. |
 | BANK-002 / DATA-002 | Accepted ingestion plus named independent human review process, lawful exact-version rights and reviewed stock. Synthetic integration fixtures cannot substitute for these prerequisites. |
 | B1 | Published stock/G2 and accepted allocation/attempt/closure/scoring components; preserve separate 4/2/4 domain profiles. No gate advancement by passing fixtures alone. |

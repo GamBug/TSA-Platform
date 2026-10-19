@@ -7,6 +7,16 @@ not override that scoped approval; unrelated ADR scope remains proposed.
 
 Status: PROPOSED, ADR-003, except the owner-approved ADR-004 H1 global active-attempt constraint, H2 admission semantics and H3 one-domain MVP tests. PostgreSQL logical specification, not executable migrations. Domain authority: [questions](../specifications/QUESTION_SCHEMA.md), [assembly](../specifications/EXAM_ASSEMBLY_SPEC.md), [attempts](../specifications/EXAM_ENGINE_SPEC.md). Factory tables are implemented by early Track A (AI-001/FACTORY-001), independently of website completion; no speculative psychometric tables are required in MVP.
 
+Local implementation checkpoint: reviewed migrations001–004 implement the
+relational foundation, synthetic-only sessions and bounded manual Bank ingestion.
+Migration004 adds nullable legacy source origin/creator and private append-only,
+namespace-scoped reference nodes; new Bank commands require explicit metadata.
+Bank receipts reuse actor/route-scoped RLS on `idempotency_records`. First-time
+staff mutations acquire the exclusive bank singleton guard before source/question
+locks; rights and duplicate changes advance eligibility revision. A restricted
+boolean dependency probe prevents rights edits requiring unimplemented holds.
+This is not publication, Factory persistence, exam-service or deployment acceptance.
+
 ## Conventions
 
 Unless stated otherwise, tables have UUID `id` PK, `created_at timestamptz`, `created_by` FK to local users (nullable for system events with explicit service actor). Mutable projections additionally have `updated_at`, monotonically increasing `revision`, and append-only audit events. Immutable versions never have mutable content fields. UTC throughout; integer counts/revisions/durations; exact numeric for percentages and money. JSONB stores validated discriminated content, not foreign-key arrays as a substitute for relational integrity.

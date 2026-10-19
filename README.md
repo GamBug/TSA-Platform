@@ -2,7 +2,7 @@
 
 An independent educational practice platform inspired by the publicly documented HUST TSA assessment. Not affiliated with, endorsed by, or an official service of Hanoi University of Science and Technology. Practice scores must not be presented as official TSA scores.
 
-G1 is accepted. Track B is the current priority: the local B0.1 website runs with clearly labeled mock services; owner-approved PostgreSQL and synthetic-only local identity work is in progress. G2/G3 and production deployment remain unaccepted. See project state for executed evidence.
+G1 is accepted. Track B is the current priority: the local B0.1 website runs with clearly labeled mock services; owner-approved PostgreSQL foundations and synthetic-only local identity are verified; Bank ingestion is in progress. G2/G3 and production deployment remain unaccepted. See project state for executed evidence.
 
 ## Start here
 
@@ -56,23 +56,26 @@ See the [prototype walkthrough and limitations](apps/practice-prototype/README.m
 
 ## Bounded database prerequisite verification
 
-G1 is owner-accepted; the full DATA-001 migration and local AUTH-001 scope still
-retain their decision/acceptance requirements. The isolated approved-invariant
-probe uses existing local PostgreSQL binaries and creates/removes only its own
-private disposable cluster:
+G1 is owner-accepted. Reviewed migrations001–003 and the local synthetic-only
+identity adapter have independent PostgreSQL/HTTP acceptance evidence. Run with
+installed PostgreSQL18.6 tools (`PG_BIN` may select their directory); tests create
+and remove their own private disposable clusters:
 
 ```bash
 npm run test:db:preflight
+npm run test:db:foundation
+npm run test:auth
 ```
 
-This tests H1 active-attempt uniqueness and immutable start-deadline mechanisms,
-not production migrations, persistent website integration or authentication.
+These test relational integrity, immutable snapshots, transaction/concurrency
+mechanisms and synthetic-only authorization. They do not establish deployed
+security or implemented allocation, exam, scoring and publication services.
 See [scope and prerequisites](tests/integration/database/approved-invariants/README.md).
 No database download or dependency installation is performed.
 
 ## Shared contract verification
 
-The current executable scope is the TypeScript shared-contract package. Use Node.js `24.18.0` and npm `11.16.0`, then run the following from a clean checkout:
+The shared-contract package has its own verification suite. Use Node.js `24.18.0` and npm `11.16.0`, then run the following from a clean checkout:
 
 ```bash
 npm ci

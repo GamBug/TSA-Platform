@@ -222,13 +222,26 @@ Phase 02.75 acceptance: demonstrate two disjoint mini-profile attempts for one s
 
 ## BANK-001 — Import, versioning and approval commands
 
+Manual ingestion sub-acceptance VERIFIED, 2026-10-19, after AUTH `6f73272`.
+Luna/XHigh implemented migration004, source/rights registration, immutable MANUAL/
+IMPORTED drafts/revisions and metadata-only `/api/v1/questions` listing. Sol/Medium
+reviewed code/diff and independently ran Bank10/10, DATA34/34 and AUTH5/5 tests.
+Evidence includes observed SQL-lock barriers, target-scoped replay/conflicts,
+exact microsecond dates/cursors, all three interactions, private graph storage,
+legacy003→004 preservation, role/BOLA/CSRF and missing-reference rollback.
+New versions stay DRAFT; fingerprints create OPEN flags without confirmation or
+merges. Rights edits affecting selected content fail closed until hold/fan-out
+exists. No review/publication, eligible pointer, canonical Factory import receipt,
+arbitrary stimulus import or approved inventory acceptance follows from this slice.
+Next: same-app local staff integration; parent BANK-001 remains incomplete.
+
 Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publication, current-group joins preserve prior history after merge; late-equivalence incident recorded without rewriting snapshots. Canonical factory imports verify hash/receipt atomically, reject changed content under same key and never inherit APPROVED from a package.
 
 - Objective/scope: source/rights registration, validated question/stimulus/bundle import, versions, workflow and exact/flagged duplicate checks.
 - Prerequisites: DATA-001, AUTH-001 and G1 frozen contracts. Files: src/modules/sources/**, src/modules/bank/**, staff bank HTTP adapters, tests/integration/bank/**.
 - Deliverables: import dry-run/report, author/review commands, approval/quarantine audit and eligibility pointer. Acceptance: edits create versions; no approval carryover/self-approval; rights/validator failures block publication; holds immediately affect delivery checks.
 - Required tests: workflow transitions, duplicate fingerprints, stale revision/approval hash, source revocation, concurrent approve/withdraw and asset sanitization.
-- Priority P0; complexity L; risks: approval bypass, unsafe content, rights race. Status: READY for ingestion after accepted local DATA-001/AUTH-001; outcome still depends on BANK-002 publication evidence. Suggested implementer: bank/backend engineer; review: domain/security reviewer. Actual assignee: none.
+- Priority P0; complexity L; risks: approval bypass, unsafe content, rights race. Status: IN_PROGRESS; manual ingestion verified, remaining transport/workflow scope and BANK-002 publication evidence outstanding. Suggested implementer: bank/backend engineer; review: domain/security reviewer. Actual assignee: none.
 
 ## ASSEMBLY-001 — Reproducible starter exam assembly
 
