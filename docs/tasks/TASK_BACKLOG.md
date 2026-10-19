@@ -53,6 +53,19 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
+Stage 4A completed, 2026-10-19: owner "STAGE 4A — BOUNDED AUTOPILOT ACTIVATION"
+authorized READY G1-preparation evidence and local commits. Branch
+`feat/found-002-stage4a-evidence`, base `84ddff3`; engineering checkpoint `dadd60e`.
+Native `tsa_builder` Luna / XHigh implemented five emitted-consumer runtime/type
+checks plus CI/README command; native `tsa_scout` Luna / XHigh collected read-only
+dependency inventory. Coordinator Sol 6.1 / Medium independently reviewed the diff,
+reran required checks and completed online advisory/license evidence. Ownership
+released; owner `AGENTS.md` preserved. See [handoff](../agents/LAST_HANDOFF.md),
+[dependency review](../reviews/FOUND002_STAGE4A_DEPENDENCIES.md) and the single
+[decision packet](../reviews/G1_STAGE4A_DECISIONS.md) for READY/BLOCKED/DEPENDENT
+classification and remaining owner choices. No contracts/semantics/dependencies,
+push/merge/deploy or G1 change. Stage 4B NOT STARTED.
+
 Stage 3 pilot finalized, 2026-10-19: `tsa_builder` (verified Luna / XHigh)
 implemented source JS/declaration build, emitted-JavaScript smoke, CI and README
 commands from accepted setup `0be1384`. Coordinator Sol 6.1 / Medium independently

@@ -73,9 +73,12 @@ No calendar or throughput commitment is made. Next action: assign an accountable
 
 ## Proposed Stage 4 bounded autopilot — 2026-10-19
 
-Status: PROPOSED, NOT STARTED. The owner's Stage 3 finalization directive authorizes
-this plan, not implementation or G1 acceptance. These are bounded subtasks of
-FOUND-002/FOUND-007, not new backlog tasks or a change to their dependencies.
+Status: Stage 4A COMPLETED under the owner's 2026-10-19 "STAGE 4A — BOUNDED
+AUTOPILOT ACTIVATION"; Stage 4B remains NOT STARTED. These are bounded subtasks
+of FOUND-002/FOUND-007, not new tasks or changed dependencies. Engineering
+checkpoint `dadd60e`; [handoff](../agents/LAST_HANDOFF.md) records independent
+checks. The [single decision packet](../reviews/G1_STAGE4A_DECISIONS.md) owns
+current READY/BLOCKED/DEPENDENT classification; recommendations remain unapproved.
 
 ### Verified gaps and first batch
 
@@ -88,9 +91,11 @@ and source/rights transport; released-result wire alignment; accepted route/clie
 contracts; strict independent consumer/private-boundary evidence; and recorded
 version/support/license/advisory review. Hosted CI remains unobserved; no push is
 authorized. Broader database/browser/provider enforcement is later runtime work,
-not an invented G1 prerequisite.
+not an invented G1 prerequisite. Stage 4A now supplies the scoped dependency
+review and emitted consumer/type evidence; the remaining semantic, artifact and
+import-boundary gaps are classified in the linked decision packet.
 
-Recommended first batch after explicit owner assignment:
+Stage 4A batch below was executed; its criteria remain the scope boundary:
 
 | Subtask | Dependency and reserved scope | Acceptance | Agent / complexity / relative cost |
 |---|---|---|---|
@@ -114,12 +119,12 @@ integration through D. Record exact file reservations in dispatch prompts before
 starting. Never let workers concurrently edit `src/index.ts`, generated artifacts,
 package scripts, decisions, backlog/state or handoffs.
 
-Batch ends after A–D and a concise owner decision packet. It does not attempt to
+Batch ended after A–D and a concise owner decision packet. It did not attempt to
 close every G1 gap, install a bundler/framework, start DATA-001 or advance G1.
 Bundle isolation remains unproven by shared-schema consumer fixtures alone.
-No push, merge, deployment, paid API or new architecture is implied. Commit rights
-for this future batch must be explicitly included in its assignment; today's
-local-commit authorization covers Stage 3 finalization only.
+No push, merge, deployment, paid API or new architecture is implied. Stage 4A
+local commits were explicitly authorized by its activation directive;
+Stage 4B and its commit scope still require an explicit assignment.
 
 ### Follow-on work conditional on owner decisions
 
@@ -132,7 +137,7 @@ local-commit authorization covers Stage 3 finalization only.
 | G1 acceptance assessment | All accepted FOUND-002/FOUND-007 evidence, dependency review and boundary gaps disposed | Criterion-by-criterion evidence, no missing check labelled PASS; owner gate disposition, no automatic advancement | Sol / Medium read-only; M / medium |
 
 The owner must approve the field-level semantic choices above, FOUND-007's exact
-scope/closure, the first batch assignment and any dependency/tool/export changes
+scope/closure, the next batch assignment and any dependency/tool/export changes
 needed later. Existing H1/H2/H3/Start TTL/admission-edit approvals remain intact;
 no whole ADR is approved by this plan. Lawful sources and provider/privacy/spend
 choices are separate gates for later real-data/live-provider work.

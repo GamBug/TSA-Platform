@@ -45,6 +45,16 @@ States: DRAFT → PROPOSED → APPROVED → SUPERSEDED. A rejected proposal rema
   pushes, merges, deployment, paid APIs, unapproved architecture or G1 advancement.
   Stage 4 implementation remains unauthorized. Evidence: [latest handoff](../agents/LAST_HANDOFF.md).
 
+### Stage 4A bounded autopilot authorization — 2026-10-19
+
+- Human project owner, "STAGE 4A — BOUNDED AUTOPILOT ACTIVATION": execute READY
+  G1-preparation work, necessary tests/evidence, bounded repairs and local commits;
+  consolidate unresolved choices into one decision packet. At most two subagents
+  and one writing worker. No Stage 4B before owner approval of required semantics.
+- No public-contract/product-semantic/dependency changes, owner `AGENTS.md` edits,
+  push/merge to main, deployment, paid APIs, Astra or automatic G1 advancement.
+- Approval is execution scope only; pending ADRs/decisions remain unapproved.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.
