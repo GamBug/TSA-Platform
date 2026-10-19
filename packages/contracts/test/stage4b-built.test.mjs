@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { computeQuestionIdentity } from "../dist/identity.js";
 import { createDraftReceiptsV2 } from "../dist/factory-package-v2.js";
 import { runAssemblyReference } from "../dist/assembly-reference.js";
@@ -84,6 +85,41 @@ describe("Stage 4B emitted integration and declarations", () => {
     const body = await released.json();
     assert.equal(body.items[0].correctAnswer.optionId, "b");
     assert.equal(JSON.stringify(body).includes("private-"), false);
+  });
+
+  it("exchanges emitted job-dispatch/1 envelopes between ordinary Node producer and consumer processes", () => {
+    const jobsUrl = JSON.stringify(pathToFileURL(resolve("packages/contracts/dist/jobs.js")).href);
+    const producerProgram = `
+      const { JobDispatchSchema } = await import(${jobsUrl});
+      const job = JobDispatchSchema.parse(JSON.parse(process.argv[1]));
+      process.stdout.write(JSON.stringify(job));
+    `;
+    const consumerProgram = `
+      const { parseJobDispatchForExecutor } = await import(${jobsUrl});
+      const job = parseJobDispatchForExecutor(process.argv[2], JSON.parse(process.argv[1]));
+      process.stdout.write(JSON.stringify(job));
+    `;
+    const jobs = [
+      { schemaVersion: "job-dispatch/1", jobId: "11111111-1111-4111-8111-111111111111", kind: "factory_produce_unit", dedupKey: "factory:item:7", payloadRef: "opaque://factory/7", state: "QUEUED", executor: "FACTORY" },
+      { schemaVersion: "job-dispatch/1", jobId: "22222222-2222-4222-8222-222222222222", kind: "exam_grade_attempt", dedupKey: "exam:attempt:8", payloadRef: "opaque://exam/8", state: "RUNNING", executor: "EXAM" },
+    ];
+    for (const job of jobs) {
+      const { executor, ...wireJob } = job;
+      const producer = spawnSync(process.execPath, ["--input-type=module", "-e", producerProgram, JSON.stringify(wireJob)], { encoding: "utf8", timeout: 10_000 });
+      assert.ifError(producer.error);
+      assert.equal(producer.status, 0, producer.stderr);
+      const serialized = producer.stdout;
+      const consumer = spawnSync(process.execPath, ["--input-type=module", "-e", consumerProgram, serialized, executor], { encoding: "utf8", timeout: 10_000 });
+      assert.ifError(consumer.error);
+      assert.equal(consumer.status, 0, consumer.stderr);
+      assert.deepEqual(JSON.parse(consumer.stdout), wireJob);
+
+      const wrongExecutor = executor === "FACTORY" ? "EXAM" : "FACTORY";
+      const rejected = spawnSync(process.execPath, ["--input-type=module", "-e", consumerProgram, serialized, wrongExecutor], { encoding: "utf8", timeout: 10_000 });
+      assert.ifError(rejected.error);
+      assert.notEqual(rejected.status, 0);
+      assert.equal(rejected.stdout, "");
+    }
   });
 
   it("compiles strict student and released consumers against emitted declarations with negative private imports", () => {

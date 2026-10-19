@@ -25,6 +25,8 @@ void invalidQuery;
 import { AnswerKeySchema } from "../../../../dist/student.js";
 // @ts-expect-error The student entrypoint does not expose the fully validating factory parser.
 import { parseFactoryPackageV2 } from "../../../../dist/student.js";
+// @ts-expect-error Job dispatch stays on the internal entrypoint.
+import { JobDispatchSchema } from "../../../../dist/student.js";
 
 void question;
 void parsedLimit;

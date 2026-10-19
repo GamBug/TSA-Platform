@@ -5,3 +5,4 @@ export * from "./factory-package-v2.ts";
 export * from "./assembly-reference.ts";
 export * from "./routes.ts";
 export * from "./http-boundary.ts";
+export * from "./jobs.ts";

@@ -168,3 +168,28 @@ Factory DB credentials claim only factory job kinds, read approved sources and a
 Proposed active-account history retention must outlive the shorter proposed 12-month result retention, or strict NEW_ONLY would forget prior assignments. History, allocation revision and personal manifests are protected personal data; approved erasure requires a controlled user-locked purge and cannot promise no-repeat after account removal/new account creation. Published versions retain minimum source/rights, validation, review and import evidence even if raw model responses expire under an approved policy. Normal deletion of referenced versions, forms, score runs and receipts is restricted; exceptional erasure/incident removal uses audited invalidation/purge rather than an ordinary mutable edit.
 
 Migration implementation should expand/backfill/contract: add nullable provenance links and new tables/constraints, backfill first assignments from retained attempts plus `form_slots` (including fixed/review attempts and never-started attempts), create singleton memberships and canonicalize confirmed merges, then turn on strict allocation only after a complete historical coverage audit. If old assignments are unavailable, record the coverage gap and obtain an explicit owner migration policy; never label an incomplete backfill strict NEW_ONLY. Add indexes concurrently where PostgreSQL requires it, validate FKs/checks on populated data, and test a fresh install and populated upgrade with duplicate, mismatched owner/version/form, rollback, two-connection allocation and publication races. A compatibility rollback disables new allocation/publication paths while preserving immutable versions, history, receipts and exams; it does not delete or rewrite them. Coordinate actual migration file ownership between DATA-001 and FACTORY-001. All constraints and transaction behavior here remain REQUIRES_VERIFICATION until implemented and tested on PostgreSQL.
+
+
+## G1 shared job dispatch contract — job-dispatch/1
+
+The final G1 audit freezes a minimal internal transport for existing logical work,
+not a new queue or database migration. Exact strict fields: schemaVersion
+`job-dispatch/1`, jobId (lowercase UUID), kind, dedupKey, payloadRef, state.
+`factory_produce_unit` names the existing factory_items production-unit job;
+`exam_grade_attempt` names the existing attempt-closure grading job. These are
+technical names for already specified responsibilities, not new workflow stages.
+No wildcard kind is accepted. Additional kinds require coordinated versioning.
+
+FACTORY executor contracts accept only factory_produce_unit; EXAM accepts only
+exam_grade_attempt. Executor identity must be server-derived by later adapters;
+contract validation is not authentication or DB permission enforcement. Shared
+states retain exactly QUEUED, RUNNING, SUCCEEDED, FAILED_RETRYABLE, FAILED_FINAL,
+CANCELLED. dedupKey and payloadRef are opaque nonblank strings preserved verbatim;
+actual domain-derived deduplication, payload lookup and secret-handling remain
+producer/adapter responsibilities. Embed no payload, credentials or publication
+assertion in this dispatch shape. Emit it only through the internal package entry.
+
+This envelope is not the complete jobs persistence row. Leases, fencing tokens,
+attempt counters, timing, retries, transactions and grants remain DATA-001,
+AUTH-001, EXAM-002 and FACTORY task work. This technical encoding changes no
+approved product behavior, existing root schema, public route or dependency.

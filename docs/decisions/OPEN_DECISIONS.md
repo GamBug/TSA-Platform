@@ -85,6 +85,17 @@ consolidated brief are APPROVED IN SCOPE; unrelated ADRs remain PROPOSED.
 - These approvals do not assert missing verification, complete task acceptance,
   production readiness or approval of any whole unrelated ADR.
 
+### Final G1 acceptance audit authorization — 2026-10-19
+
+Human project owner, "FINAL G1 ACCEPTANCE AUDIT — TSA-PLATFORM": audit the existing
+G1/FOUND-002 criteria against committed reproducible evidence; verify clean install,
+build/tests, boundaries and dependency evidence; repair small technical gaps within
+already approved semantics using Luna / XHigh, review/test and commit locally.
+Prepare the actual downstream prerequisite batch without implementing it. This
+records execution scope only, not owner G1 acceptance, whole-ADR approval or missing
+evidence approval. Preserve owner AGENTS.md; no push/merge, deployment, paid external
+API, automatic gate advancement or unnecessary orchestration restructuring.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.

@@ -53,6 +53,15 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
+Final G1 acceptance audit IN_PROGRESS, 2026-10-19, owner assigned Sol / Medium.
+Base `0fc75d8`; owner AGENTS.md remains reserved. Luna / XHigh supplied the narrow
+internal `job-dispatch/1` repair, now independently reviewed; worker ownership
+released. Existing G1 wording requires shared jobs/job-kind; prior code supplied
+lifecycle states but no kind or dispatch parser. The technical encoding of existing
+logical responsibilities was frozen in DATABASE_DESIGN before implementation.
+Coordinator owns final clean-checkout verification and audit/shared records.
+No downstream implementation or gate advancement.
+
 Stage 4B authorized engineering batch COMPLETED, 2026-10-19; FOUND-002 remains
 IN_PROGRESS pending owner acceptance/G1 disposition. No automatic G1 advancement.
 Branch `feat/found-002-stage4b-contracts`, base `8beb0ff`:
