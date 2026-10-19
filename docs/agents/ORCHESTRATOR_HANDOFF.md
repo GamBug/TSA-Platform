@@ -1,18 +1,27 @@
 # TSA-Platform — Orchestrator Handoff Baton
 
-## Current baton — Stage 4B active, 2026-10-19
+## Current baton — Stage 4B engineering complete, 2026-10-19
 
-Owner scoped D1–D6 approval is recorded in OPEN_DECISIONS. Current branch
-`feat/found-002-stage4b-contracts`, base `8beb0ff`; accepted checkpoints `07ced30`
-(identity/fingerprint and bounded D1 acceptance), `d65e08b` (Factory v2).
-One reused native Luna / XHigh builder writes serially; Sol / Medium reviews and
-integrates. Assembly reference is current; API routes/consumer/egress work is next.
-See [latest handoff](LAST_HANDOFF.md) for commands and scope limits. Owner AGENTS.md
-stays dirty, preserved and excluded. No push/merge/deploy, paid API or Astra;
-FOUND-002 IN_PROGRESS, G1 NOT ESTABLISHED, DATA-001 BLOCKED. The historical gap
-assessment below remains an acceptance checklist, not an instruction to reopen
-approved D1–D6 decisions. Prior Stage 4A evidence is preserved at
-`8beb0ff:docs/agents/LAST_HANDOFF.md` and in the linked dependency review.
+Owner D1–D6 approval is recorded in OPEN_DECISIONS. Branch
+`feat/found-002-stage4b-contracts`, base `8beb0ff`; accepted local checkpoints:
+`07ced30` identity/D1, `d65e08b` Factory v2, `8a09b92` + `3af1b34` assembly/replay,
+`a6ec4ad` consumer routes and actual HTTP egress. The following documentation
+checkpoint records final evidence; use Git history for its hash.
+
+Full local suite passes (102 contract + 10 emitted-consumer tests). One Luna /
+XHigh writer and one read-only Luna scout were reused; Sol / Medium reviewed,
+integrated and completed bounded repairs after worker usage/capacity failures.
+No automatic model fallback. All reservations released. Owner AGENTS.md is the
+only intended residual dirty file, preserved and excluded. See
+[latest handoff](LAST_HANDOFF.md) for criteria, failures, limits and continuation.
+
+Authorized contract engineering is complete; FOUND-002 IN_PROGRESS pending owner
+acceptance/G1 disposition, G1 NOT ESTABLISHED, DATA-001 BLOCKED. No push, merge,
+deploy, paid API, Terra/Astra or automatic gate advancement. Next is owner G1
+acceptance review; no D1–D6 semantic question remains. The historical audit below
+is superseded only where the current handoff maps completed evidence. Stage 4A
+history is preserved at `8beb0ff:docs/agents/LAST_HANDOFF.md`; setup/Stage 3 history
+and scoped versus whole-ADR distinctions below remain historical evidence.
 
 ## Execution-policy update — 2026-10-19
 

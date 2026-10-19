@@ -53,15 +53,25 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
-Stage 4B IN_PROGRESS, 2026-10-19: owner D1–D6 approval activates contracts,
-tests/integration and local commits on `feat/found-002-stage4b-contracts`, base
-`8beb0ff`. One Luna / XHigh writing worker; Sol / Medium freezes technical
-specifications and owns shared records/review/commits. Accepted checkpoints: identity/fingerprint `07ced30`, Factory v2 `d65e08b`.
-Current worker reservation: new `assembly-reference.ts` source/test/fixture paths;
-coordinator owns specification addenda and shared records. Existing root exports
-and v1 schemas stay stable; later consumer subpaths are within D6 approval.
-Owner AGENTS.md remains reserved.
-No push/merge/deploy, paid API, Astra or G1 advancement.
+Stage 4B authorized engineering batch COMPLETED, 2026-10-19; FOUND-002 remains
+IN_PROGRESS pending owner acceptance/G1 disposition. No automatic G1 advancement.
+Branch `feat/found-002-stage4b-contracts`, base `8beb0ff`:
+
+- `07ced30`: D2 identity/fingerprint; scoped D1/FOUND-007 acceptance record.
+- `d65e08b`: D4 complete bounded Factory v2 transport and DRAFT receipts.
+- `8a09b92`, `3af1b34`: D3 assembly/replay, stress/goldens and stale-shortage repair.
+- `a6ec4ad`: D5/D6 consumer entries, generated routes and actual GET egress.
+
+One native Luna / XHigh builder implemented the contracts; Sol / Medium reviewed
+and integrated. After worker usage/capacity errors, coordinator completed bounded
+import-fence/emitted-test/CI/README repairs; no model fallback. All reservations
+released. Full local build/smoke/typecheck, 102 contract tests, 10 emitted-consumer
+tests, four-artifact drift, import boundary, docs and diff checks pass. See
+[handoff](../agents/LAST_HANDOFF.md) for failures, evidence limits and criteria map.
+Root v1 schemas, 18 legacy public schemas, dependencies/lockfile and owner AGENTS.md
+bytes are preserved. New consumer subpaths are approved D6 additions. No push,
+merge, deploy, paid API, Astra or G1 advancement. No READY D1–D6 engineering work
+remains; owner gate disposition is next. Later database/auth/bank work stays gated.
 
 Stage 4A completed, 2026-10-19: owner "STAGE 4A — BOUNDED AUTOPILOT ACTIVATION"
 authorized READY G1-preparation evidence and local commits. Branch
@@ -74,7 +84,7 @@ released; owner `AGENTS.md` preserved. See [handoff](../agents/LAST_HANDOFF.md),
 [dependency review](../reviews/FOUND002_STAGE4A_DEPENDENCIES.md) and the single
 [decision packet](../reviews/G1_STAGE4A_DECISIONS.md) for READY/BLOCKED/DEPENDENT
 classification and remaining owner choices. No contracts/semantics/dependencies,
-push/merge/deploy or G1 change. Stage 4B NOT STARTED.
+push/merge/deploy or G1 change. At that historical checkpoint Stage 4B was NOT STARTED.
 
 Stage 3 pilot finalized, 2026-10-19: `tsa_builder` (verified Luna / XHigh)
 implemented source JS/declaration build, emitted-JavaScript smoke, CI and README
@@ -91,7 +101,7 @@ Reconciliation acceptance (HI-04/CR-02): starts only after G0, whose owner dispo
 - Prerequisites: G0 and owner implementation assignment. Files: package manifests, src/contracts/**, src/app skeleton, tests/contract/**, CI config, approved development docs; no bank/attempt features yet.
 - Deliverables: pinned supported versions, runtime validators/OpenAPI/student-safe types, reproducible local/CI entry points. Acceptance: a fresh checkout installs/builds from lockfile; question/blueprint/API examples validate; private types cannot import into student bundle; all commands documented.
 - Required tests: typecheck/build, strict schema fixtures, unknown-field/type rejection, generated contract drift checks. Required version/license/advisory review recorded.
-- Priority P0; complexity M; risks: library/version compatibility, over-scaffolding. Status: IN_PROGRESS — Slices 1–7 completed on 2026-10-17; G1 is not established. Slice 1 implemented shared `question/1` runtime contracts; Slice 2 implemented strict documented API errors and verified the `INSUFFICIENT_ELIGIBLE_INVENTORY`/`INSUFFICIENT_UNSEEN_INVENTORY` taxonomy while keeping `SEARCH_EXHAUSTED` distinct. Slice 3 adds a pinned Zod 4-compatible OpenAPI 3.1 components-only artifact generated from explicit public DTO allowlists, deterministic generation, non-mutating artifact-drift validation, and synthetic artifact/security tests. Slice 4A adds strict generic/MVP blueprint validation plus student-safe creation, attempt-view and slot DTOs, including the immutable `startBefore` representation. Slice 4B reuses AnswerAck and adds strict answer-submission, ordinary practice ResultView and caller-owned attempt-history DTOs; the documented released key/explanation payload remains separate and excluded from OpenAPI. Slice 5 adds internal-only strict `generation/1` provider, batch/job status, validation evidence, `factory-package/1` draft export and Bank draft-receipt contracts with deterministic synthetic producer/consumer fixtures. Slice 6 adds the documented `xorshift32-v1` and Fisher–Yates reference with published PRNG and shuffle vectors, plus synthetic Factory/Bank, renderer-content, blueprint, attempt and result contract fixtures and negative security tests. Slice 7 adds Node `24.18.0`/npm `11.16.0` engine metadata, a clean-install GitHub Actions workflow for type checking, contract tests, non-mutating OpenAPI drift and documentation integrity, and documented local commands; an isolated clone completed `npm ci` and every workflow command. Content/hash canonical byte rules, normalized duplicate fingerprint, complete assembly ordering/search and full Factory stimulus/assets transport remain unspecified and deferred; fixture hashes are synthetic labels, not computed content identities. No endpoints, client SDK, database transaction, provider call or lifecycle enforcement is invented. Remaining scope includes broader schema/API artifacts and client generation after endpoint contracts exist; version/license/advisory evidence is not yet recorded. Suggested implementer: full-stack foundation engineer; review: independent architecture/security reviewer. Actual assignee: Codex, TypeScript Build and Integration Engineer for Slice 7.
+- Priority P0; complexity M; risks: contract drift and confusing reference evidence with deployed enforcement. Status: IN_PROGRESS pending owner acceptance/G1 disposition; authorized D1–D6 engineering is complete. Earlier Slices 1–7 and Stage 3/4A evidence remain in Git (`84ddff3`/`8beb0ff` handoffs). Current executable scope, tests and remaining evidence limits are in the latest handoff. Implementer: native tsa_builder Luna / XHigh; accountable coordinator/reviewer and bounded integration repairer: Sol 6.1 / Medium. No production application, database migration, provider or publication implementation is claimed.
 
 ## DATA-001 — Relational integrity foundation
 
@@ -428,7 +438,7 @@ The existing cards supply objective, prerequisites, file scope, deliverables, me
 - Files/modules: `src/modules/assembly/allocation.ts`, `src/modules/assembly/creation-receipt.ts`, `tests/assembly/allocation-concurrency.test.ts`.
 - Expected deliverables: per-user lock/revision protocol, revalidation/replan boundary, atomic form+CREATED attempt+history+receipt commit and no-allocation typed outcomes.
 - Acceptance criteria: two same-user different-key NEW_ONLY successes have disjoint current identity/equivalence groups; same-key replay returns one receipt; rollback writes no history/form/attempt; different users may reuse stock; proven shortage and unknown search exhaustion remain distinct.
-- Required verification: two real PostgreSQL connections with barriers for winner orders, corrected-version/equivalence-merge fixtures, rollback injection, withdrawal/publication race and receipt retention replay. Suggested agent capability: HIGH (Sol). Risk: High — concurrency/data integrity. Status: PROPOSED, blocked on G2 and unresolved FOUND-007/ADR-007.
+- Required verification: two real PostgreSQL connections with barriers for winner orders, corrected-version/equivalence-merge fixtures, rollback injection, withdrawal/publication race and receipt retention replay. Suggested agent capability: HIGH (Sol). Risk: High — concurrency/data integrity. Status: PROPOSED, blocked on G2 and remaining ADR-007 mechanisms; bounded FOUND-007 taxonomy reconciliation is accepted.
 
 ## WEB-003 — Catalog, creation and explicit shortage UX
 

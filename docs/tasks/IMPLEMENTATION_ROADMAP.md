@@ -13,14 +13,15 @@ No whole ADR, missing evidence, production readiness or G1 advancement is implie
 | D1 shortage reconciliation | Existing 422 eligible/unseen versus 503 unknown semantics; bounded FOUND-007 acceptance | Verified in `07ced30`; allocation implementation is later work |
 | D2 identity and fingerprint | Exact versioned bytes, immutable reference closure, independent hash goldens | Accepted `07ced30` |
 | D4 Factory v2 | D2; full source/rights/assets/ancestry, atomic DRAFT-only receipts, v1 compatibility | Accepted `d65e08b` |
-| D3 assembly/replay | D2; manifest/slot goldens, exhaustive oracle, measured caps and replay failures | IN_PROGRESS |
-| D5/D6 routes and boundaries | Existing approved DTOs; separate consumer entries, generated route types/OpenAPI, actual owner/release HTTP egress | READY after serialized assembly edits |
-| Integration evidence | All above; full required suite, generated drift and consumer restriction checks | DEPENDENT; G1 stays NOT ESTABLISHED |
+| D3 assembly/replay | D2; manifest/slot goldens, exhaustive oracle, measured caps and replay failures | Accepted `8a09b92`, repair `3af1b34` |
+| D5/D6 routes and boundaries | Existing approved DTOs; separate consumer entries, generated route types/OpenAPI, actual owner/release HTTP egress | Accepted `a6ec4ad` |
+| Integration evidence | All above; full required suite, generated drift and consumer restriction checks | Local suite PASS; owner disposition pending, G1 NOT ESTABLISHED |
 
-Default sole writer is Luna / XHigh; Sol / Medium owns technical specification,
-independent review, integration and shared records. A read-only Luna scout may run
-concurrently. No Terra/Astra, dependency changes, push, merge, deployment or paid
-API is needed. Later DATA/AUTH/BANK/ASSEMBLY services retain their own gates.
+Luna / XHigh implemented the batch; Sol / Medium owns technical specification,
+independent review, integration and shared records. Coordinator completed bounded
+integration repairs after worker capacity errors; all reservations are released.
+A read-only Luna scout supplied narrow evidence. No Terra/Astra, dependency change,
+push, merge, deployment or paid API occurred. Later DATA/AUTH/BANK/ASSEMBLY services retain their own gates.
 
 ## Current owner-approved MVP boundary
 

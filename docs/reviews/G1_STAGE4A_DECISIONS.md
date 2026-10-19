@@ -3,8 +3,9 @@
 Date: 2026-10-19, Asia/Bangkok. Author: Codex Sol 6.1 / Medium, coordinator.
 Historical Stage 4A proposal, superseded in architectural scope by owner D1–D6
 approval/Stage 4B activation on 2026-10-19 (OPEN_DECISIONS). The options below
-preserve the original packet; they are not evidence of implementation. D3 limits
-remain initial parameters pending measurements, as the owner explicitly required.
+preserve the original packet; they are not evidence of implementation. At that
+checkpoint D3 limits were initial parameters pending measurements, as the owner explicitly required;
+current Stage 4B reference measurements and completion evidence are in LAST_HANDOFF.
 Current technical addenda live in the question, assembly, Factory and API specs;
 no automatic G1 or unrelated ADR approval follows.
 
@@ -13,7 +14,9 @@ no automatic G1 or unrelated ADR approval follows.
 READY rows were executed and independently verified in Stage 4A; see the
 [handoff](../agents/LAST_HANDOFF.md) and
 [dependency evidence](FOUND002_STAGE4A_DEPENDENCIES.md). BLOCKED/DEPENDENT rows
-remain unaccepted G1 work, not an authorization for Stage 4B.
+preserve the historical Stage 4A classification. Current scoped approvals and
+completion evidence supersede resolved D1–D6 rows; owner G1 disposition and
+missing hosted-CI evidence are not approved by this packet. See current handoff.
 
 | G1 work | Stage 4A classification | Dependency / evidence boundary |
 |---|---|---|
