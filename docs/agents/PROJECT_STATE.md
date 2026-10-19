@@ -7,7 +7,7 @@ Updated 2026-10-19. This is current navigation; task status lives in
 
 | Topic | Verified current position |
 |---|---|
-| Immediate priority | Track B first. Scoped owner PostgreSQL/reviewed-SQL and synthetic-only local AUTH approval recorded 2026-10-19. DATA-001 local relational foundation accepted (34 reported real-PG tests PASS); AUTH implementation follows on `feat/track-b-data-auth`, base `446277f`. B0.1 remains the runnable mock frontend. |
+| Immediate priority | Track B first. Scoped owner PostgreSQL/reviewed-SQL and synthetic-only local AUTH approval recorded 2026-10-19. DATA-001 local relational foundation accepted (34 reported real-PG tests PASS); AUTH local development acceptance verified (5 HTTP/PG security tests); Bank ingestion follows on `feat/track-b-data-auth`, base `446277f`. B0.1 remains the runnable mock frontend. |
 | Engineering checkpoint | G1 disposition `27350b3`; B0 `237da9c`; B0.1 `06849d0`. Same local frontend serves loopback 4173. Eleven B0.1 tests and expanded Chromium journey pass. DATA-001 local migrations001/002 and adapter accepted with 34 real-PG tests; production services remain outside this schema acceptance. |
 | Gates | FOUND-002 COMPLETED; G1 ACCEPTED by owner 2026-10-19 (`0e67485` / audit `81ef8aa`). DATA-001 foundation gate satisfied; scoped local DB mechanisms now have owner disposition; local DATA-001 relational acceptance is recorded; application services remain separate tasks. Bounded FOUND-007 taxonomy reconciliation is accepted; database allocation remains later work. |
 | Architecture | Independent draft-only Question Factory → human-controlled Question Bank → Practice Website. Student requests never require LLM inference. Human review/publication is distinct from validated draft transport. |

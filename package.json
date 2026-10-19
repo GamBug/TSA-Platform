@@ -24,7 +24,8 @@
     "typecheck": "tsc -p packages/contracts/tsconfig.json --noEmit",
     "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts",
     "db:migrate": "node src/modules/database/migrate.mjs",
-    "test:db:foundation": "node --test tests/integration/database/foundation/*.test.mjs"
+    "test:db:foundation": "node --test tests/integration/database/foundation/*.test.mjs",
+    "test:auth": "node --test tests/security/auth/*.test.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

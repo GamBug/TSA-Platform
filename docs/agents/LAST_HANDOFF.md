@@ -25,8 +25,14 @@ frontend change. Typecheck/build/emitted smoke, contract/emitted consumer/B0 tes
 drift/import/docs/diff pass. Restricted subprocess/socket runner failed; managed
 permitted rerun produced actual nested passing tests, not a clean restricted-CI claim.
 
-Continue with AUTH-001 local synthetic-only adapter, then
-eligible Bank ingestion. One writer at a time; default Luna/XHigh, Sol/Medium
+AUTH-001 local development sub-acceptance is verified: migration003, guarded
+synthetic-only identity service and real HTTP/PG tests. Independent `test:auth`
+5/5 and `test:db:foundation` 34/34 PASS, including production-process override
+refusal, role/ownership/session/CSRF negatives and private DB credential boundaries.
+Test ownership routes are harness-only; production OIDC/MFA/issuer/redirect
+acceptance and actual exam APIs remain unimplemented. See backlog for exact scope.
+
+Continue with eligible BANK-001 ingestion; human publication remains BANK-002. One writer at a time; default Luna/XHigh, Sol/Medium
 independent review/integration. No Astra/Terra, push/merge/deployment/paid API.
 Existing frontend remains `npm run dev:b0` at http://127.0.0.1:4173, explicitly mock.
 Human review/publication and lawful inventory remain separate prerequisites.

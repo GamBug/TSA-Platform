@@ -1,7 +1,7 @@
 import pg from 'pg';
 
 const { Pool } = pg;
-const APPLICATION_ROLES = new Set(['tsa_web', 'tsa_bank', 'tsa_factory', 'tsa_exam']);
+const APPLICATION_ROLES = new Set(['tsa_web', 'tsa_bank', 'tsa_factory', 'tsa_exam', 'tsa_identity']);
 
 /** Create a node-postgres pool without logging or retaining a second DSN copy. */
 export function createDatabasePool(connectionConfig, options = {}) {

@@ -186,6 +186,18 @@ Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved gl
 
 ## AUTH-001 — Identity and authorization
 
+Local development sub-acceptance COMPLETED, 2026-10-19, after DATA-001
+`37c9f6a` and scoped owner approval `7364882`. Luna/XHigh implemented migration003,
+the activation-checked local identity service and HTTP adapter; Sol/Medium independently
+reviewed the diff and reran `npm run test:auth` (5/5) and
+`npm run test:db:foundation` (34/34) on real disposable PostgreSQL18.6.
+Production process/configuration, non-loopback origin, privileged connection and
+foreign identity realm refuse activation. HTTP origin/Host/CSRF, rotated/revoked/
+expired sessions, current roles/disabled users, role isolation and own-object/no
+foreign-save-side-effect negatives pass. Ownership routes are test-harness routes,
+not implemented exam APIs. Real OIDC issuer/audience/redirect and MFA verification
+remain production sub-acceptance requirements. Owner AGENTS.md is excluded.
+
 Phase 02.75 acceptance: factory service cannot read student histories/attempts or approve/publish; website has no model credentials. Personal form/manifest ownership must fail closed; test factory/web/job-kind credential boundaries.
 
 Reconciliation acceptance (HI-05/MD-05): role-test diagnostic projections and new BANK_MANAGER diagnostics read; EXAM_MANAGER alone cannot enumerate manifest/candidate pools. Own-object authorization occurs before save-bucket creation; unauthorized IDs create no buckets. Coordinate shared throttling contract with EXAM-001 and DB schema from DATA-001.
@@ -196,7 +208,7 @@ Reconciliation acceptance (HI-05/MD-05): role-test diagnostic projections and ne
 - Deliverables: secure sessions, CSRF/origin checks, roles, staff MFA integration and negative fixtures. Development acceptance: users cannot inspect others' attempts; authors cannot self-approve; disabled sessions/roles enforced server-side. Production acceptance additionally requires the approved production issuer, audience, redirects, data flow and deployment controls.
 - Lifecycle interpretation: G2 consumes the accepted local AUTH-001 security/authorization evidence. The post-G2 production-configuration sub-acceptance is not a prerequisite to complete AUTH-001 in the task/gate graph and cannot create a G2 cycle.
 - Required tests: cookie/session invalidation, issuer/audience/redirect validation, CSRF, role escalation, BOLA and object-property access. Stub must be impossible to enable in production.
-- Priority P0; complexity M; risks: provider/data policy unknown. Status: READY for the approved local synthetic-only adapter after accepted DATA-001; production configuration remains separately blocked. Suggested implementer: backend/security engineer; review: independent security reviewer. Actual assignee: none.
+- Priority P0; complexity M; risks: provider/data policy unknown. Status: COMPLETED for the approved local synthetic-only development adapter; production configuration remains separately blocked. Suggested implementer: backend/security engineer; review: independent security reviewer. Actual assignee: none.
 
 ## DATA-002 — Lawful starter dataset
 
@@ -216,7 +228,7 @@ Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publ
 - Prerequisites: DATA-001, AUTH-001 and G1 frozen contracts. Files: src/modules/sources/**, src/modules/bank/**, staff bank HTTP adapters, tests/integration/bank/**.
 - Deliverables: import dry-run/report, author/review commands, approval/quarantine audit and eligibility pointer. Acceptance: edits create versions; no approval carryover/self-approval; rights/validator failures block publication; holds immediately affect delivery checks.
 - Required tests: workflow transitions, duplicate fingerprints, stale revision/approval hash, source revocation, concurrent approve/withdraw and asset sanitization.
-- Priority P0; complexity L; risks: approval bypass, unsafe content, rights race. Status: BLOCKED (DATA-001/AUTH-001). Suggested implementer: bank/backend engineer; review: domain/security reviewer. Actual assignee: none.
+- Priority P0; complexity L; risks: approval bypass, unsafe content, rights race. Status: READY for ingestion after accepted local DATA-001/AUTH-001; outcome still depends on BANK-002 publication evidence. Suggested implementer: bank/backend engineer; review: domain/security reviewer. Actual assignee: none.
 
 ## ASSEMBLY-001 — Reproducible starter exam assembly
 
