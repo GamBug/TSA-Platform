@@ -53,14 +53,18 @@ All future paths below are proposed ownership scopes, not existing files. Before
 
 ## FOUND-002 — Application and contract foundation
 
-Final G1 acceptance audit IN_PROGRESS, 2026-10-19, owner assigned Sol / Medium.
-Base `0fc75d8`; owner AGENTS.md remains reserved. Luna / XHigh supplied the narrow
-internal `job-dispatch/1` repair, now independently reviewed; worker ownership
-released. Existing G1 wording requires shared jobs/job-kind; prior code supplied
-lifecycle states but no kind or dispatch parser. The technical encoding of existing
-logical responsibilities was frozen in DATABASE_DESIGN before implementation.
-Coordinator owns final clean-checkout verification and audit/shared records.
-No downstream implementation or gate advancement.
+Final G1 acceptance audit COMPLETED, 2026-10-19; recommendation READY FOR OWNER
+ACCEPTANCE, not gate approval. Audited code `0e67485`: Luna / XHigh repaired the
+missing shared job-kind contract; Sol / Medium independently reviewed the actual
+diff and reproduced the full pinned-toolchain sequence in a fresh clean Git clone.
+106 contract tests and 11 emitted-consumer tests pass; four-artifact drift,
+import boundary, docs, clean diff and refreshed dependency/license/advisory checks
+pass. Hosted CI remains unobserved, not a G1 blocker under existing criteria.
+See the [criterion/evidence audit](../reviews/G1_ACCEPTANCE_AUDIT.md) and
+[proposed prerequisite batch](IMPLEMENTATION_ROADMAP.md#proposed-post-g1-prerequisite-batch--2026-10-19).
+FOUND-002 remains IN_PROGRESS pending explicit owner acceptance; G1 NOT ESTABLISHED;
+DATA-001 BLOCKED. All worker reservations released; owner AGENTS.md preserved.
+No downstream implementation or automatic gate advancement.
 
 Stage 4B authorized engineering batch COMPLETED, 2026-10-19; FOUND-002 remains
 IN_PROGRESS pending owner acceptance/G1 disposition. No automatic G1 advancement.

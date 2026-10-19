@@ -1,4 +1,48 @@
-# Latest handoff — FOUND-002 Stage 4B
+# Latest handoff — final G1 acceptance audit
+
+Current checkpoint, 2026-10-19: final owner-authorized audit COMPLETE;
+**READY FOR OWNER ACCEPTANCE**, not owner approval. Audited implementation
+`0e67485ab7bd5e4873dbe74cdb903b995193e40b`; detailed
+[criterion/evidence record](../reviews/G1_ACCEPTANCE_AUDIT.md). FOUND-002 remains
+IN_PROGRESS, G1 NOT ESTABLISHED, DATA-001 BLOCKED. Starting HEAD `0fc75d8`, only
+owner AGENTS.md dirty. No downstream implementation began.
+
+Audit repair `0e67485`: reused native tsa_builder Luna / XHigh added the existing
+G1 jobs/job-kind contract, internal-only job-dispatch/1. Sol / Medium independently
+reviewed source/tests/diff, required canonical UUID version/variant negatives,
+reran tests and integrated locally. Technical specification and audit authority
+are recorded in DATABASE_DESIGN and OPEN_DECISIONS; no new product semantics,
+queue, dependency, public root contract or runtime authentication grant.
+
+Final reproducible verification: fresh local Git clone at the audited commit,
+Node v24.18.0/npm 11.16.0; npm ci, typecheck, build, emitted smoke, 11 emitted
+consumer tests, 106 contract tests, four-artifact drift, student import boundary,
+docs (zero errors, preserved historical whitespace warning), npm ls, git diff
+check and final clean clone status all PASS. Seven locked/installed package and
+license hashes matched; refreshed npm audit exited 0 with zero reported advisories.
+Python independently checked identity/fingerprint/assembly literal hash vectors;
+all 18 legacy OpenAPI components/root schemas/dependency pins remain compatible.
+An isolated optional-field experiment failed against stale declarations/artifacts,
+passed after coordinated generation/build plus strict consumers, then restored
+all temporary changes; the disposable checkout remained clean.
+No hosted GitHub run was observed. Contract tests do not verify DB, deployed auth,
+human publication, physical browser bundles or providers. Earlier restricted
+file-wrapper output was not counted as execution of nested tests.
+
+All worker ownership released. Sol owns this audit/shared-record integration;
+its documentation commit follows the audited implementation. Owner AGENTS.md SHA
+below remains unchanged and excluded from staging. Next: owner G1 disposition,
+then separately authorize the [prerequisite batch](../tasks/IMPLEMENTATION_ROADMAP.md#proposed-post-g1-prerequisite-batch--2026-10-19).
+AUTH-001 local synthetic stub still needs explicit approval; affected proposed
+DB mechanisms, rights and named independent reviewers retain their own gates.
+No new G1 semantic decision is requested. No push/merge/deploy/paid API/Astra.
+
+## Preserved Stage 4B checkpoint
+
+The following is the historical Stage 4B handoff at `0fc75d8`; its counts and
+NOT RUN statements describe that batch, superseded for this audit only by the
+fresh-checkout evidence above. Its decisions, review history and limitations are
+retained for continuity.
 
 Date: 2026-10-19, Asia/Bangkok. Accountable coordinator/reviewer: Codex Sol 6.1 /
 Medium. Owner authority: "OWNER APPROVAL — ACTIVATE STAGE 4B BOUNDED AUTOPILOT",
