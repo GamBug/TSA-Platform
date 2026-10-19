@@ -56,9 +56,11 @@ All future paths below are proposed ownership scopes, not existing files. Before
 Stage 4B IN_PROGRESS, 2026-10-19: owner D1–D6 approval activates contracts,
 tests/integration and local commits on `feat/found-002-stage4b-contracts`, base
 `8beb0ff`. One Luna / XHigh writing worker; Sol / Medium freezes technical
-specifications and owns shared records/review/commits. Initial increment reserves
-`packages/contracts/src/identity.ts` and identity tests/fixtures only; existing
-index exports and v1 schemas stay stable. Owner AGENTS.md remains reserved.
+specifications and owns shared records/review/commits. Accepted checkpoints: identity/fingerprint `07ced30`, Factory v2 `d65e08b`.
+Current worker reservation: new `assembly-reference.ts` source/test/fixture paths;
+coordinator owns specification addenda and shared records. Existing root exports
+and v1 schemas stay stable; later consumer subpaths are within D6 approval.
+Owner AGENTS.md remains reserved.
 No push/merge/deploy, paid API, Astra or G1 advancement.
 
 Stage 4A completed, 2026-10-19: owner "STAGE 4A — BOUNDED AUTOPILOT ACTIVATION"

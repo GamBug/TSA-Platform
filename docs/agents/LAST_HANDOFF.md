@@ -3,21 +3,28 @@
 Owner D1–D6 architectural approval and Stage 4B execution are recorded in
 OPEN_DECISIONS. Branch `feat/found-002-stage4b-contracts`, base `8beb0ff`.
 One reused native Luna / XHigh builder implemented identity/1 + fingerprint/1
-(checkpoint `07ced30`) and self-contained Factory package/2. Sol / Medium reviewed
-actual code and independently executed focused tests/typecheck/build/docs checks.
-Identity review repaired insertion-order-dependent depth bounds, self-reference
-and duplicate edges; Python independently verified literal hash bytes. Factory
-review repaired parent/stimulus closure, ID-independent asset metadata, public
-parser validation and strict new timestamps. Fourteen Factory tests pass, including
-independent producer/consumer processes, rights/hash/reference tampering, bounds,
-ancestry and atomic rejection of a malformed second candidate. Restricted test
-execution failed at subprocess execution; scoped managed rerun passed, not a clean
-restricted pass. No dependency, root-export or v1 changes. Next READY increment:
-deterministic assembly, followed by API consumer/egress contracts. Coordinator owns
-spec addenda/shared records; worker ownership transfers serially. Owner AGENTS.md
-SHA-256 remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
-No push/merge/deploy or G1 advancement. Below is historical Stage 4A evidence;
-its previous Stage 4B approval blocker is superseded.
+(`07ced30`), self-contained Factory package/2 (`d65e08b`) and assembly/1 reference.
+Sol / Medium independently reviewed code, ran focused tests/typecheck/build/docs
+and Python-verified literal identity and assembly bytes/hashes. Factory 14 tests
+pass, including separate producer/consumer processes and atomic DRAFT rejection.
+Assembly 18 tests pass, with 60 exhaustive-oracle comparisons, seeded-output versus
+usage-rank regression, nullable labels, whole bundles/source caps/conflicts, shared
+NEW_ONLY budget, replay pins and three-attempt contention simulation. Coordinator
+stress observation: 2,000 units selecting 200 = 159.2 ms / 201 nodes; adverse case
+stops at exactly 50,000 nodes in 213.5 ms, SEARCH_EXHAUSTED with no slots. These are
+local observations, not production SLOs; caller limits remain explicit in manifests.
+Review corrected seeded output order and incomplete contention evidence. Reference
+limits/three attempts are now covered by behavior/stress tests; database guard
+namespace is reserved only, not executed. No live bank/attempt allocation exists.
+Restricted Factory execution failed at subprocess execution; managed rerun passed.
+Node's restricted assembly invocation reported only a file wrapper; managed rerun
+confirmed all 18 nested tests. No failed/missing test is labelled a clean CI pass.
+Next READY increment: separate student/released/internal entrypoints, generated
+route artifacts and actual GET egress. Coordinator owns specification addenda and
+shared records; writer reservations transfer serially. Owner AGENTS.md SHA-256
+remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+No dependency/root-export/v1 change, push/merge/deploy or G1 advancement. Below is
+historical Stage 4A evidence; its previous approval blocker is superseded.
 
 # Latest handoff — FOUND-002 Stage 4A evidence
 

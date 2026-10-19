@@ -2,6 +2,26 @@
 
 Status: **PROPOSED** Phase 02.75 sequencing. Scoped G0 implementation authorization is recorded in [decisions](../decisions/OPEN_DECISIONS.md) on 2026-10-17; this roadmap is not an ADR approval or production-readiness record. [Backlog](TASK_BACKLOG.md) owns task status; decisions owns approval records. The three product stages below are independently demonstrable and may advance in parallel. Exit evidence is future evidence to be recorded by the accountable task owner, not work completed by this roadmap.
 
+## Active Stage 4B contract batch — 2026-10-19
+
+Owner [scoped D1–D6 approval](../decisions/OPEN_DECISIONS.md#d1d6-scoped-contract-approval--stage-4b--2026-10-19)
+supersedes the historical Stage 4 proposals below only within its recorded scope.
+No whole ADR, missing evidence, production readiness or G1 advancement is implied.
+
+| Increment | Dependencies and evidence | State |
+|---|---|---|
+| D1 shortage reconciliation | Existing 422 eligible/unseen versus 503 unknown semantics; bounded FOUND-007 acceptance | Verified in `07ced30`; allocation implementation is later work |
+| D2 identity and fingerprint | Exact versioned bytes, immutable reference closure, independent hash goldens | Accepted `07ced30` |
+| D4 Factory v2 | D2; full source/rights/assets/ancestry, atomic DRAFT-only receipts, v1 compatibility | Accepted `d65e08b` |
+| D3 assembly/replay | D2; manifest/slot goldens, exhaustive oracle, measured caps and replay failures | IN_PROGRESS |
+| D5/D6 routes and boundaries | Existing approved DTOs; separate consumer entries, generated route types/OpenAPI, actual owner/release HTTP egress | READY after serialized assembly edits |
+| Integration evidence | All above; full required suite, generated drift and consumer restriction checks | DEPENDENT; G1 stays NOT ESTABLISHED |
+
+Default sole writer is Luna / XHigh; Sol / Medium owns technical specification,
+independent review, integration and shared records. A read-only Luna scout may run
+concurrently. No Terra/Astra, dependency changes, push, merge, deployment or paid
+API is needed. Later DATA/AUTH/BANK/ASSEMBLY services retain their own gates.
+
 ## Current owner-approved MVP boundary
 
 The MVP has independent one-domain practice tests: MATH has 4 questions, READING has 2, and SCIENCE has 4. Each is separately selected, created, started, timed, submitted, scored and reviewed only when authorized; no automatic chaining or combined official TSA score exists. The vetted seed-bank target remains 12 MATH, 6 READING and 12 SCIENCE questions. `PERSONALIZED_PRACTICE` + `NEW_ONLY` remains the default, with assignment at the atomic CREATED commit, immutable per-student history and canonical equivalence exclusions. At most one `CREATED` or `IN_PROGRESS` attempt exists per student across modes. Admission is `[available_from, available_until)` for create and first start; an admitted attempt may finish after closing. Creation persists the immutable 600-second bound `start_before_at = min(created_at + 600 seconds, admission_until_at_creation)`. Ordinary admission-schedule edits are non-retroactive for already CREATED attempts; withdrawal, rights and security guards remain independent. These scoped approvals do not approve ADR-004 as a whole. The separate G0 authorization permits development within its recorded conditions but does not by itself establish downstream readiness.

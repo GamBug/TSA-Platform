@@ -105,3 +105,113 @@ Global usage projections must not serialize every user's creation behind a popul
 | A form is sealed, then bank content is corrected, retired or equivalence groups merge | Its ordered public/private snapshots stay unchanged; future NEW_ONLY filtering uses current bank/group state, while access/rights guards can block delivery. |
 
 These are specification outcomes, not executed concurrency evidence. Real PostgreSQL barrier tests, replay fixtures and protected DTO checks remain required by the [test strategy](../quality/TEST_STRATEGY.md).
+
+## Stage 4B executable replay contract — assembly/1
+
+Scoped D3 approval, 2026-10-19, permits a dependency-free reference, not database
+allocation or G1 advancement. Input `assembly-manifest/1` stores complete
+BlueprintConfig plus blueprintVersionId and its JCS SHA-256 hash, seed uint32,
+reuseMode NEW_ONLY/REVIEW_ALLOWED, bankRevision, immutable rights-version records,
+historyQuestionIds/historyGroupIds, units and conflicts. No live inputs are read.
+Each unit has lowercase UUID id, sectionId and ordered members; each member has
+questionId/versionId/contentHash, canonical groupId, section/taxonomyVersionId,
+interactionType, skillIds, cognitiveLevel, editor difficulty, sourceIds and captured
+nonnegative exposureCount. IDs/groups/source IDs and version IDs are distinct
+where required. Units must be internally compatible; sourceIds are nonempty and
+unique. Reject malformed manifests, unsupported types/taxonomy and invalid edges.
+Canonical manifest bytes include all inputs; order units by ID and normalize sets
+(history, rights versions, edges and member tag/source arrays), retaining blueprint
+section order and member order. Compute manifestHash from JCS, never locale order.
+
+Hard checks: exact section counts; all blueprint quota minima/maxima; maxPerSource
+counts each member once for each distinct source; no repeated stable question or
+canonical group; conflicts forbid co-selection; bundles stay whole. Excluded
+question IDs remove the entire unit. NEW_ONLY additionally removes a unit if any
+member's stable ID or canonical group is historical. A final validator independently
+recomputes all constraints from selected units before success.
+
+Reference search: canonical ID order -> existing seeded Fisher–Yates -> stable
+usage rank (sum of captured member exposures, then seeded position). At each state
+choose the unmet quota with minimum remaining compatible contribution / deficit
+using integer cross-products; ties are section index, dimension and value by code
+unit order. If no quota is unmet, use the first incomplete section. Branch on the
+first ranked remaining unit contributing to that quota/section: take then skip.
+Prune exceeded maxima/conflicts/counts/source caps and branches whose remaining
+upper-bound capacity cannot reach a count/minimum. Do not use underestimates to
+prove shortage. Count root and every entered child, including pruned states; check
+budget before entering. Emit selected units by seeded position within blueprint
+section order, then frozen member order. Return immutable references/snapshots,
+not mutable bank rows. Replay compares both manifest and selected slot hashes.
+
+For NEW_ONLY establish eligible-baseline feasibility first, then student-filtered
+feasibility under a shared node budget. Exhausted baseline => SEARCH_EXHAUSTED;
+proved failed baseline => INSUFFICIENT_ELIGIBLE_INVENTORY; feasible baseline plus
+proved failed personal search => INSUFFICIENT_UNSEEN_INVENTORY. Any cap without
+proof => SEARCH_EXHAUSTED. REVIEW_ALLOWED needs baseline search only. Invalid
+blueprints/manifests are validation errors, not stock shortage. All failures return
+no selected slots. Freeze a version only with literal manifest-to-slot goldens,
+small exhaustive oracle comparisons, boundary tests and measured stress evidence.
+
+Initial proposed parameters remain 50,000 visited nodes, 2,000 units and three
+contention replans; measurements must accompany any frozen defaults. Callers pin
+explicit limits in every manifest. Publication guard namespace `(1414742321,1)`
+is a reserved two-int PostgreSQL transaction advisory lock: shared for final seal,
+exclusive for eligibility mutation. This reference does not execute locks or
+claim transactional correctness; existing lock order and short-transaction rules
+remain binding for later adapters.
+Conflict edges are strict `{leftUnitId,rightUnitId}` pairs, representing any confirmed
+member conflict between those units; no self/missing/duplicate edge. Slots are
+`{sectionId,ordinal,unitId,questionId,questionVersionId,contentHash}` references,
+with zero-based ordinal within section; slot hashes cover these exact values.
+Canonical group IDs in members/history are already resolved using the captured
+bank snapshot, not historical aliases. Sum of minima for mutually exclusive
+COGNITIVE_LEVEL or DIFFICULTY quotas exceeding a section count is
+CONSTRAINT_CONFLICT before bank search; skill minima may deliberately overlap.
+The reference records limits explicitly, permits zero budgets for boundary tests,
+and rejects unsafe/unbounded input budgets. A bounded pure replan helper can
+exercise three contention attempts and CONCURRENT_MODIFICATION without claiming
+actual database locking. Never return partially selected slots on failure.
+Exact manifest keys are schemaVersion:"assembly-manifest/1",
+algorithmVersion:"assembly/1", blueprintVersionId, blueprintHash, blueprint, seed,
+reuseMode, bankRevision, rightsVersions, historyQuestionIds, historyGroupIds, units,
+conflicts and limits. rightsVersions entries are strict
+`{sourceId,versionId,contentHash}` immutable decision references, unique by sourceId;
+all member sourceIds must have an entry and no unreferenced entry is allowed.
+Member keys are questionId, versionId, contentHash, groupId, section,
+taxonomyVersionId, interactionType, skillIds, cognitiveLevel, difficulty, sourceIds
+and exposureCount. Exposure counts are safe nonnegative integers. Canonical sets
+are sorted by UTF-16 order; structural duplicates in source/tag lists fail, while
+historical exclusions are normalized sets. Max raw units 10,000, members/unit 200,
+canonical manifest 16 MiB; caller limits maxNodes 0..50,000/maxUnits 0..2,000.
+The unit cap returns SEARCH_EXHAUSTED (not a claim of shortage). These parser/work
+ceilings are technical safety limits, not official test rules. Success/failure
+result includes manifestHash, visitedNodes, slots and slotsHash; failure slots are
+empty. A replay helper compares stored manifestHash and slotsHash against a fresh
+reference run and reports mismatch without altering stored data.
+
+`bankRevision` is an opaque nonempty string, preserved verbatim (no trimming,
+number coercion or floating-point revision arithmetic). This technical wire choice
+can carry database bigint revisions without JavaScript precision loss; blank-only
+or malformed Unicode tokens are rejected. No live database revision is inferred.
+
+Member cognitiveLevel and difficulty are the existing nullable question/1 labels;
+null contributes to no corresponding quota. Identity/source/version/group/skill
+IDs use lowercase UUIDs; section entry IDs remain opaque. Repeated version IDs
+across alternative units must carry identical normalized member projections, and
+one stable question ID maps to one captured canonical group. Alternate versions
+remain valid candidates; co-selection is forbidden by the stable identity/group
+hard constraint. Sum captured usage with exact integer arithmetic for ranking.
+
+The pure contention helper uses explicit `maxAttempts`: its initial reference
+value 3 includes the first plan (at most two retries). Earlier "three replans"
+wording was an unvalidated proposal, not a frozen retry count. Exhausting attempts
+returns CONCURRENT_MODIFICATION with no accepted slots. Unit-cap rejection occurs
+before search and may report zero visited nodes; a zero node budget enters none.
+
+Each baseline/personal search first applies its whole-unit exclusions, then sorts
+and shuffles its own remaining pool. Final selected-unit order uses that pool's
+seeded positions, independently of exposure-based branch rank. Reference ceiling
+behavior is verified by the committed boundary/oracle/stress fixtures; measured
+local timing is in LAST_HANDOFF. These measurements do not establish production
+SLOs or database contention performance. Future budget changes must be explicit
+manifest/version decisions, never silently change a stored replay.

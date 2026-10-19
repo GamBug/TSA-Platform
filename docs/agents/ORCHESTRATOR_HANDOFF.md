@@ -1,17 +1,18 @@
 # TSA-Platform — Orchestrator Handoff Baton
 
-## Current baton — Stage 4A completed, 2026-10-19
+## Current baton — Stage 4B active, 2026-10-19
 
-READY G1-preparation evidence is verified on `feat/found-002-stage4a-evidence`
-from Stage 3 base `84ddff3`; engineering checkpoint `dadd60e`. One Luna / XHigh
-builder and one read-only Luna / XHigh scout executed; coordinator Sol / Medium
-independently verified the implementation and dependency evidence. See
-[latest handoff](LAST_HANDOFF.md) and the
-[single owner decision packet](../reviews/G1_STAGE4A_DECISIONS.md).
-Owner `AGENTS.md` stays dirty, preserved and excluded. No push/merge/deploy;
-FOUND-002 IN_PROGRESS, G1 NOT ESTABLISHED, DATA-001 BLOCKED. No Stage 4B dispatch
-until required semantic decisions and exact field-level addenda are approved.
-Historical setup/Stage 3 evidence remains in Git and the records below.
+Owner scoped D1–D6 approval is recorded in OPEN_DECISIONS. Current branch
+`feat/found-002-stage4b-contracts`, base `8beb0ff`; accepted checkpoints `07ced30`
+(identity/fingerprint and bounded D1 acceptance), `d65e08b` (Factory v2).
+One reused native Luna / XHigh builder writes serially; Sol / Medium reviews and
+integrates. Assembly reference is current; API routes/consumer/egress work is next.
+See [latest handoff](LAST_HANDOFF.md) for commands and scope limits. Owner AGENTS.md
+stays dirty, preserved and excluded. No push/merge/deploy, paid API or Astra;
+FOUND-002 IN_PROGRESS, G1 NOT ESTABLISHED, DATA-001 BLOCKED. The historical gap
+assessment below remains an acceptance checklist, not an instruction to reopen
+approved D1–D6 decisions. Prior Stage 4A evidence is preserved at
+`8beb0ff:docs/agents/LAST_HANDOFF.md` and in the linked dependency review.
 
 ## Execution-policy update — 2026-10-19
 

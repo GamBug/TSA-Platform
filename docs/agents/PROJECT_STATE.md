@@ -1,11 +1,12 @@
 # Project state
 
-Update, 2026-10-19: FOUND-002 Stage 4A READY evidence completed on
-`feat/found-002-stage4a-evidence`, base Stage 3 checkpoint `84ddff3`, engineering
-commit `dadd60e`. Five emitted consumer/type tests and CI integration pass;
-locked dependency/license/advisory evidence and one decision packet are recorded.
-Owner `AGENTS.md` is preserved and excluded. FOUND-002 IN_PROGRESS; G1 NOT
-ESTABLISHED; DATA-001 BLOCKED. Stage 4B NOT STARTED; see [handoff](LAST_HANDOFF.md).
+Update, 2026-10-19: owner D1–D6 approval activates FOUND-002 Stage 4B on
+`feat/found-002-stage4b-contracts`, base `8beb0ff`. Identity/fingerprint checkpoint
+`07ced30` and Factory v2 checkpoint `d65e08b` passed independent coordinator
+review and focused automated verification. Deterministic assembly and safe route/
+consumer contracts are in progress. Stage 4A dependency/consumer evidence remains
+accepted; owner AGENTS.md stays preserved and excluded. FOUND-002 IN_PROGRESS;
+G1 NOT ESTABLISHED; DATA-001 BLOCKED. See [handoff](LAST_HANDOFF.md).
 
 Snapshot: 2026-10-17, FOUND-002 Slice 6. Phase 02.75 documentation is preserved and the owner has recorded scoped G0 implementation authorization. The first executable shared-contract slices now exist, but G1 has not passed. This page is navigation only; [backlog](../tasks/TASK_BACKLOG.md) owns task status, [decisions](../decisions/OPEN_DECISIONS.md) owns approvals, and [latest handoff](LAST_HANDOFF.md) records this integration evidence.
 
