@@ -20,7 +20,7 @@ The proposed first slice is a small, legally usable, human-reviewed question ban
 
 The repository is the persistent source of truth. Owner approval records establish decisions; specifications own domain behavior; architecture documents own technical boundaries and contracts; the backlog owns task status; project state and handoffs provide navigation and evidence. Research is evidence, not operational instructions or an approved specification. If documents conflict, record the conflict and resolve the authoritative document before dependent implementation.
 
-Do not infer approval from the existence of a document. No provider-specific instructions are needed. Do not initialize the application until the relevant decisions and task assignment are approved. There are no install/run commands to execute in this phase.
+Do not infer approval from the existence of a document. No provider-specific instructions are needed. Do not initialize the application until the relevant decisions and task assignment are approved. These shared-contract checks do not start the application.
 
 ## Shared contract verification
 
@@ -30,6 +30,7 @@ The current executable scope is the TypeScript shared-contract package. Use Node
 npm ci
 npm run build
 npm run test:built
+npm run test:consumers
 npm run typecheck
 npm test
 npm run contracts:check
@@ -37,5 +38,7 @@ npm run docs:check
 ```
 
 `build` emits JavaScript and declarations from the shared contracts into the ignored `packages/contracts/dist` directory. `test:built` runs the emitted JavaScript with ordinary Node.js, checking runtime schema acceptance and rejection plus an exported deterministic helper. This smoke test covers only the package's emitted runtime modules; it does not establish an endpoint, client SDK, browser bundle, service integration or release readiness.
+
+`test:consumers` starts separate synthetic Factory producer and Bank consumer Node processes that exchange serialized JSON against the emitted schemas, then compiles a strict TypeScript consumer against the emitted declarations. It checks the current draft receipt, safe student projection, and rejection of malformed, approval-like, unknown, and hypothetical optional fields by today's strict contracts. This is package-local evidence only: it does not exercise real services or transport, a generated client, a browser bundle or browser security, and it does not establish private-type import isolation. Optional fields require a coordinated contract and consumer update.
 
 `contracts:check` compares the committed student-safe OpenAPI artifact with the runtime schemas and does not write files. Regenerate that artifact only as a deliberate coordinated change with `npm run contracts:generate`, then rerun the verification commands. These shared-package checks do not establish service, database, browser, security, or release readiness.

@@ -15,6 +15,7 @@
     "contracts:generate": "node --experimental-strip-types packages/contracts/scripts/generate-openapi.ts",
     "docs:check": "sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node",
     "test:built": "node packages/contracts/test/emitted-javascript.test.mjs",
+    "test:consumers": "node --test packages/contracts/test/emitted-consumers.test.mjs",
     "typecheck": "tsc -p packages/contracts/tsconfig.json --noEmit",
     "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts"
   },

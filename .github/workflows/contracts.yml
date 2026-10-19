@@ -33,6 +33,9 @@ jobs:
       - name: Smoke test emitted JavaScript
         run: npm run test:built
 
+      - name: Test emitted consumers
+        run: npm run test:consumers
+
       - name: Run contract tests
         run: npm test
 
