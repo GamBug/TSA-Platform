@@ -28,10 +28,14 @@ The current executable scope is the TypeScript shared-contract package. Use Node
 
 ```bash
 npm ci
+npm run build
+npm run test:built
 npm run typecheck
 npm test
 npm run contracts:check
 npm run docs:check
 ```
+
+`build` emits JavaScript and declarations from the shared contracts into the ignored `packages/contracts/dist` directory. `test:built` runs the emitted JavaScript with ordinary Node.js, checking runtime schema acceptance and rejection plus an exported deterministic helper. This smoke test covers only the package's emitted runtime modules; it does not establish an endpoint, client SDK, browser bundle, service integration or release readiness.
 
 `contracts:check` compares the committed student-safe OpenAPI artifact with the runtime schemas and does not write files. Regenerate that artifact only as a deliberate coordinated change with `npm run contracts:generate`, then rerun the verification commands. These shared-package checks do not establish service, database, browser, security, or release readiness.

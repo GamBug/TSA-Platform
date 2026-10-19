@@ -1,5 +1,16 @@
 # TSA-Platform — Orchestrator Handoff Baton
 
+## Current baton — Stage 3 finalized, 2026-10-19
+
+FOUND-002 executable contract build/emitted-JavaScript smoke passed coordinator
+review and required local checks. One verified Luna / XHigh builder produced the
+patch from accepted setup `0be1384`; see [latest handoff](LAST_HANDOFF.md) for origin,
+commands and limitations. Policy checkpoint `19ea9a4`; the implementation commit
+following it contains the finalization record and proposed Stage 4 plan.
+Branch: `feat/found-002-executable-contract-pilot`. Owner `AGENTS.md` stays dirty,
+preserved and excluded. No push/merge; FOUND-002 IN_PROGRESS, G1 NOT ESTABLISHED,
+DATA-001 BLOCKED. Stage 4 remains PROPOSED/NOT STARTED in the existing roadmap.
+
 ## Execution-policy update — 2026-10-19
 
 The human owner's permanent

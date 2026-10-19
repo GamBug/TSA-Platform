@@ -10,9 +10,11 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "tsc -p packages/contracts/tsconfig.build.json",
     "contracts:check": "node --experimental-strip-types packages/contracts/scripts/check-openapi.ts",
     "contracts:generate": "node --experimental-strip-types packages/contracts/scripts/generate-openapi.ts",
     "docs:check": "sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node",
+    "test:built": "node packages/contracts/test/emitted-javascript.test.mjs",
     "typecheck": "tsc -p packages/contracts/tsconfig.json --noEmit",
     "test": "node --experimental-strip-types --test packages/contracts/test/**/*.test.ts"
   },

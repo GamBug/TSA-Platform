@@ -1,4 +1,86 @@
-# Latest handoff — FOUND-002 Slice 7
+# Latest handoff — FOUND-002 Stage 3 finalized
+
+## Stage 3 finalization — 2026-10-19
+
+- Accountable implementer: native Codex `tsa_builder`, Luna / XHigh. Coordinator
+  and independent integration reviewer: Codex Sol 6.1 / Medium; no separate reviewer
+  agent is claimed. Worker ownership released; no new agent dispatched at finalization.
+- Owner authority: "RESUME APPROVED STAGE 3 — FOUND-002 PILOT" (2026-10-18),
+  followed by "STAGE 3 FINALIZATION AND STAGE 4 READINESS" (2026-10-19), authorizing
+  cleanup, validation, local commits and planning only; see [decision record](../decisions/OPEN_DECISIONS.md#stage-3-pilot-and-local-finalization--2026-10-19).
+- Branch: `feat/found-002-executable-contract-pilot`. Starting HEAD exactly matches
+  accepted setup `0be13842bf18ba82a6c96e732c322eef2af512a1`; before finalization all
+  pilot/policy changes were uncommitted. Policy checkpoint:
+  `19ea9a4803556168bf14fe162b37f339eb26aa77`. The following implementation commit
+  contains this handoff; use Git history for its hash rather than a self-reference.
+- Scope: build-specific config emits source JS/declarations into ignored `dist`;
+  ordinary-Node `.mjs` smoke validates success, unknown/private-field and malformed
+  rejection, and the deterministic helper's emitted sibling import. Root scripts,
+  CI and README document/run both commands. Existing source package exports remain.
+- No schema/semantics, dependencies/lockfile, source exports, tracked OpenAPI or
+  security configuration changed. Owner `AGENTS.md` retained SHA-256
+  `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b` and is excluded
+  from staging/commits. No push, merge, deployment, paid API, Astra or G1 advancement.
+
+### Verified implementation origin
+
+The coordinator inspected the actual local worker rollout metadata and tool-call
+records, not just a model catalog or the worker's narrative. Parent session:
+`01a14fa8-ca00-70c3-bb57-e78c5e9bc64d`; native child:
+`01a14faa-f16b-7030-a5f4-2624dbe81f48`, task `/root/found_002_stage3_builder`.
+Its turn context records `gpt-6-luna` / `xhigh`, workspace-write/on-request,
+network disabled. Rollout file under `~/.codex/sessions/2026/10/18/` records patch
+calls at 15:39:56Z and 15:40:04Z for the smoke/config/scripts, followed by checks.
+The same worker subsequently reverified build/smoke read-only. Current Git diff
+matches the assigned five implementation paths; no implementation commit existed
+before this finalization. Runtime records substantiate execution; Git alone did
+not attribute the uncommitted patch to a model.
+
+The original feature-branch creation failed because `.git` was mounted read-only,
+then succeeded through owner-approved escalation. No policy bypass occurred.
+Finalization also needed the managed approval mechanism for Git index/commit writes;
+this is a runtime boundary, not a Full Access policy rejection. Permanent policy
+lives in the [protocol](ORCHESTRATION_PROTOCOL.md#owner-trust-execution-policy--2026-10-18);
+duplicate policy prose was removed from tracking files while historical setup and
+Slice 7 evidence remains below/in the baton.
+
+### Executed validation and review
+
+Environment: 2026-10-19 Asia/Bangkok, Node `v24.18.0`, npm `11.16.0`, TypeScript
+`5.9.3`. Coordinator independently reviewed all implementation/new-file diffs.
+No blocking findings. No additional implementation repairs were needed.
+
+| Command/check | Observed result / limitation |
+|---|---|
+| `npm run build` | PASS, exit 0; source JS/declarations emitted |
+| `npm run test:built` | PASS, exit 0; ordinary Node emitted-runtime smoke |
+| `npm run typecheck` | PASS, exit 0 |
+| `npm test` | PASS, eight test files, zero failed/skipped |
+| `npm run contracts:check` | PASS, committed artifact unchanged |
+| `npm run docs:check` | PASS, zero errors; existing historical whitespace warning only |
+| `git diff --check` and staged diff check | PASS, exit 0 |
+| Negative subprocess probes | Missing emitted entry/helper each fails nonzero with `ERR_MODULE_NOT_FOUND`; both restored in `finally`; restored smoke PASS |
+| Git/base and protected-file comparisons | Accepted setup ancestry verified; source/config/lockfile/export paths unchanged; owner hash identical |
+
+An initial negative-check harness used the restore rename in the wrong direction;
+its generated entry was restored immediately, the harness corrected and both
+negative probes rerun successfully. No tracked file was affected.
+NOT RUN: clean installation (existing locked dependency evidence reused; no install
+needed for this patch), hosted CI (no push), service/database/browser/release tests
+(outside scope). Shared runtime smoke is not student-bundle isolation or G1 proof.
+
+### Continuation and ownership
+
+Pilot accepted and finalized locally; FOUND-002 remains IN_PROGRESS, G1 NOT
+ESTABLISHED, DATA-001 BLOCKED. Implementation reservations released; owner
+`AGENTS.md` remains reserved. Backlog/project state updated by coordinator; the
+[Stage 4 batch](../tasks/IMPLEMENTATION_ROADMAP.md#proposed-stage-4-bounded-autopilot--2026-10-19)
+is PROPOSED/NOT STARTED. It sequences dependency evidence, decision packet,
+existing-contract consumer fixtures and review before semantic implementation.
+Owner must assign Stage 4 and approve unresolved choices; no automatic gate change.
+Recovery: verify branch and Git history, preserve owner changes, run build then smoke.
+
+## Historical handoff — FOUND-002 Slice 7
 
 Operational update, 2026-10-18: Stage 2 was finalized at `8407bea`; the Luna / XHigh
 worker policy and historical delegation evidence are recorded in the

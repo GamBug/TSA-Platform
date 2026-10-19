@@ -1,5 +1,12 @@
 # Project state
 
+Update, 2026-10-19: FOUND-002 Stage 3 executable build/emitted-JavaScript smoke
+is verified and approved for local commit finalization on
+`feat/found-002-executable-contract-pilot`, based on accepted setup `0be1384`.
+Owner `AGENTS.md` edits are preserved and excluded. FOUND-002 IN_PROGRESS;
+G1 NOT ESTABLISHED; DATA-001 BLOCKED. See [latest handoff](LAST_HANDOFF.md) for
+checks and the existing roadmap for the proposed, unstarted Stage 4 batch.
+
 Snapshot: 2026-10-17, FOUND-002 Slice 6. Phase 02.75 documentation is preserved and the owner has recorded scoped G0 implementation authorization. The first executable shared-contract slices now exist, but G1 has not passed. This page is navigation only; [backlog](../tasks/TASK_BACKLOG.md) owns task status, [decisions](../decisions/OPEN_DECISIONS.md) owns approvals, and [latest handoff](LAST_HANDOFF.md) records this integration evidence.
 
 | Topic | Current position |

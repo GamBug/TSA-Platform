@@ -35,6 +35,16 @@ States: DRAFT → PROPOSED → APPROVED → SUPERSEDED. A rejected proposal rema
   This supersedes the restricted-session-only writing-pilot precondition;
   task scope and explicit prohibitions remain binding. No product/ADR approval.
 
+### Stage 3 pilot and local finalization — 2026-10-19
+
+- Human project owner: "RESUME APPROVED STAGE 3 — FOUND-002 PILOT" (2026-10-18)
+  assigned one Luna / XHigh builder for executable contract build/emitted-JS smoke.
+  "STAGE 3 FINALIZATION AND STAGE 4 READINESS" (2026-10-19) additionally authorizes
+  scope cleanup, validation, two logical local commits and Stage 4 planning only.
+- Preserve owner `AGENTS.md` edits; no schemas, public exports, dependencies,
+  pushes, merges, deployment, paid APIs, unapproved architecture or G1 advancement.
+  Stage 4 implementation remains unauthorized. Evidence: [latest handoff](../agents/LAST_HANDOFF.md).
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.

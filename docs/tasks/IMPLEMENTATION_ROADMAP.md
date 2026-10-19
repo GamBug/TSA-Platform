@@ -69,3 +69,70 @@ The following assignments may run concurrently after their stated gates when the
 A coordinated integrator sequences shared migrations, G1 fixtures and state-file updates. Role/provider names do not imply assignment. Follow the [handoff protocol](../agents/HANDOFF_PROTOCOL.md); preserve all unresolved architecture decisions and obtain the required owner approval before implementation or live provider use.
 
 No calendar or throughput commitment is made. Next action: assign an accountable owner for the first implementation task, then establish G1 through FOUND-002 under the recorded authorization and unresolved-decision limits. No paid LLM API request is authorized by this roadmap.
+
+
+## Proposed Stage 4 bounded autopilot — 2026-10-19
+
+Status: PROPOSED, NOT STARTED. The owner's Stage 3 finalization directive authorizes
+this plan, not implementation or G1 acceptance. These are bounded subtasks of
+FOUND-002/FOUND-007, not new backlog tasks or a change to their dependencies.
+
+### Verified gaps and first batch
+
+Stage 3 supplies local JS/declaration build and emitted-runtime smoke evidence.
+Existing schemas, source package exports and components-only OpenAPI are unchanged.
+The [historical G1 gap assessment](../agents/ORCHESTRATOR_HANDOFF.md#g1-acceptance-001-audit-actual-remaining-criteriagaps)
+still requires: FOUND-007 owner acceptance; exact content/hash/fingerprint rules;
+complete assembly/replay and publication-lock encoding; Factory stimulus/assets
+and source/rights transport; released-result wire alignment; accepted route/client
+contracts; strict independent consumer/private-boundary evidence; and recorded
+version/support/license/advisory review. Hosted CI remains unobserved; no push is
+authorized. Broader database/browser/provider enforcement is later runtime work,
+not an invented G1 prerequisite.
+
+Recommended first batch after explicit owner assignment:
+
+| Subtask | Dependency and reserved scope | Acceptance | Agent / complexity / relative cost |
+|---|---|---|---|
+| A: dependency evidence | No unresolved product decision; installed manifests/lockfile read-only; one review record under `docs/reviews/` | Exact installed/locked versions, licenses/support and dated primary advisory sources, commands/results and unresolved findings recorded; no installs/upgrades or claim that an unavailable advisory check passed | `tsa_builder`, Luna / XHigh; S–M / low; bounded evidence gathering |
+| B: decision packet | Existing task-specific specs/tests only; one proposal under `docs/reviews/`; no authoritative spec/source changes | One field-level gap matrix with options, recommended choices, consumer impact/migration, golden-example expectations and precise owner sign-off scopes for FOUND-007, identity, assembly, transport and result/routes | `tsa_builder`, Luna / XHigh; M / medium; structured reconciliation without implementation |
+| C: existing-contract consumer evidence | Current immutable semantics; only new synthetic fixtures/tests in separately reserved paths under `packages/contracts/test/` | Independent producer/consumer serialization against emitted modules; malformed/unknown fields rejected; safe projections exclude private fields; changed-response and optional-field cases distinguish current strict-schema behavior from future approved evolution | `tsa_builder`, Luna / XHigh; M / medium; focused fixtures using established contracts |
+| D: integration review | A–C complete; coordinator alone updates shared package scripts, CI and tracking records if needed | Review actual diffs; build/smoke/typecheck/tests/drift/docs/whitespace pass; no schema/export/dependency drift; explicit gap dispositions; unresolved G1 criteria stay open | Sol 6.1 / Medium; S–M / low–medium; necessary integration review |
+
+The configured model/effort recommendations use existing subscription clients;
+future availability/quota is not verified. If a recommended role is unavailable,
+pause its dispatch and report that limitation; no paid or automatic model fallback.
+Independent review is proposed, not performed for Stage 4. No Astra.
+
+### Ordering, concurrency and batch boundary
+
+Run A and B concurrently only as separately owned records (or read-only outputs),
+with at most two child threads. Default to one writer: otherwise serialize them
+unless the owner explicitly authorizes two isolated worktrees. C follows B's scope
+check and runs while the coordinator reads A/B; serialize its shared script/CI
+integration through D. Record exact file reservations in dispatch prompts before
+starting. Never let workers concurrently edit `src/index.ts`, generated artifacts,
+package scripts, decisions, backlog/state or handoffs.
+
+Batch ends after A–D and a concise owner decision packet. It does not attempt to
+close every G1 gap, install a bundler/framework, start DATA-001 or advance G1.
+Bundle isolation remains unproven by shared-schema consumer fixtures alone.
+No push, merge, deployment, paid API or new architecture is implied. Commit rights
+for this future batch must be explicitly included in its assignment; today's
+local-commit authorization covers Stage 3 finalization only.
+
+### Follow-on work conditional on owner decisions
+
+| Work | Prerequisite | Independently verifiable exit | Suggested worker / complexity / relative cost |
+|---|---|---|---|
+| Computed identity/fingerprint vectors | Approved immutable fields, encoding/normalization, self-reference and versioning rules | Exact byte/hash goldens plus tamper, Unicode and equivalent-input negatives | Luna / XHigh; M / medium; Terra / Medium only for demonstrated algorithmic complexity |
+| Full assembly replay references | Approved tie/order/search-count/lock encoding rules; identity vectors if replay uses their hashes | Frozen manifest-to-slot goldens, tie/boundary/search-exhaustion cases; no database transaction claim | Luna / XHigh initially; L / medium–high; Terra / Medium only if complexity justifies escalation |
+| Complete Factory transport | Approved stimulus/assets and rights/provenance fields | Strict positive/negative complete-bundle producer/consumer fixtures; draft-only receipt invariant | Luna / XHigh; M / medium |
+| Released result and route/client artifacts | Approved release wire shape, route operations and client target/tool scope | Generated artifacts reproduce exactly; mutation drift fails; strict consumer evolution cases; public/released/private boundary checks | Luna / XHigh; M–L / medium–high; Sol / Medium independent boundary review |
+| G1 acceptance assessment | All accepted FOUND-002/FOUND-007 evidence, dependency review and boundary gaps disposed | Criterion-by-criterion evidence, no missing check labelled PASS; owner gate disposition, no automatic advancement | Sol / Medium read-only; M / medium |
+
+The owner must approve the field-level semantic choices above, FOUND-007's exact
+scope/closure, the first batch assignment and any dependency/tool/export changes
+needed later. Existing H1/H2/H3/Start TTL/admission-edit approvals remain intact;
+no whole ADR is approved by this plan. Lawful sources and provider/privacy/spend
+choices are separate gates for later real-data/live-provider work.
