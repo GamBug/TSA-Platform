@@ -126,6 +126,28 @@ Reconciliation acceptance (HI-04/CR-02): starts only after G0, whose owner dispo
 
 ## DATA-001 — Relational integrity foundation
 
+Bounded approved-invariant preflight COMPLETED (partial prerequisite evidence only),
+2026-10-19, under the owner
+Track B batch after B0.1 verification/commit `06849d0`. One reused native
+`tsa_builder`, Codex Luna / XHigh owns only
+`tests/integration/database/approved-invariants/**`; Sol / Medium owns root npm
+entrypoint and shared records/review. Disposable local PostgreSQL 18.6 fixture
+probes only: approved H1 global active-attempt uniqueness and immutable TTL600/
+creation-window-capped deadline. No production migration, framework/driver install,
+application adapter, general DB/ADR adoption, auth or publication. Required evidence:
+both same-user mode winner orders with real lock barriers, distinct-user success,
+terminal/rollback behavior, capped/immutable deadline and exact exclusive boundary.
+Independent Sol / Medium review repaired spawn-error cleanup handling and replaced
+sequential distinct-user assertions with actual separate-connection commits while
+the winner remained uncommitted. Coordinator independently ran the final probe:
+11 named checks PASS on PostgreSQL 18.6, both Lock barriers/23505 losers, real
+concurrent distinct-user success, terminal/rollback/deadline/immutability boundaries;
+private cluster/socket/process cleanup verified. Missing-binary negative exits
+nonzero with a clear diagnostic, never a skipped PASS. Worker ownership released.
+DATA-001 remains incomplete and blocked on affected proposed mechanisms for its
+full production migration scope; no application start/auth/migration acceptance.
+
+
 Phase 02.75 acceptance: stable question history PK(user,question), allocation revision row, canonical singleton/merged equivalence groups, bank eligibility revision, offering windows, personal owner/one-attempt constraints and fixed-mode compatibility. Two-connection strict allocations cannot overlap; corrected versions stay excluded. Factory migration files are separately reserved by FACTORY-001.
 
 Reconciliation acceptance (CR-01/HI-01/MD-02/04/05): implement owner-approved global H1 uniqueness, H2 admission-only bounds, H3 one-domain MVP form support and the immutable 600-second start-deadline field, alongside cancellation constraints, blueprint taxonomy FK, lifecycle-pinned idempotency records and shared save buckets. Do not choose the effect of ordinary availability edits on already CREATED attempts; that product decision blocks affected admission/start behavior. Tests require two-connection create races, stale-active cleanup, cancellation/start ordering, immutable deadline replay, cleanup after pending grading and transaction rollback on invalid sealed aggregates. These are requirements, not tests executed in Phase 02.5.

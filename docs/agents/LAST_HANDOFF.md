@@ -1,4 +1,4 @@
-# Latest handoff — Track B / B0.1 verified
+# Latest handoff — G1 accepted / Track B bounded batch verified
 
 2026-10-19, Asia/Bangkok. Owner: G1 ACCEPTANCE AND TRACK B EXECUTION;
 [authority](../decisions/OPEN_DECISIONS.md#g1--owner-acceptance-and-bounded-track-b-execution-2026-10-19).
@@ -8,14 +8,17 @@ and audit `81ef8aa`. G2/G3 remain unestablished; no unrelated whole ADR approved
 ## Checkpoints and ownership
 
 Branch `feat/track-b-b0-prototype`. `27350b3` records G1 only; `237da9c` preserves
-the existing B0 separately. B0.1 local checkpoint follows this handoff. Owner
+the existing B0 separately. B0.1 is `06849d0`; the following local prerequisite
+checkpoint contains its tests/readiness records (find hash in Git log). Owner
 AGENTS.md is unchanged/excluded, SHA-256
 `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
 
 One reused native tsa_builder, Codex Luna / XHigh, implemented B0/B0.1 inside
 `apps/practice-prototype`; Sol 6.1 / Medium independently inspected code/diffs,
 ran actual Node/browser verification and owns root scripts/shared records.
-Worker reservations released. No extra explorer, Terra/Astra, dependency/lockfile/
+The same worker then implemented the three disposable PostgreSQL probe files;
+Sol independently reviewed and required cleanup/concurrency evidence repairs. All
+reservations released. No extra explorer, Terra/Astra, dependency/lockfile/
 accepted-contract change, push, merge, deployment or paid API.
 
 ## Runnable result
@@ -45,10 +48,11 @@ Node v24.18.0/npm 11.16.0; Chromium 155.0.8059.79, Linux.
   external page requests or private pre-submit response fields.
 - Desktop 1280x900/mobile 375x812 no horizontal overflow; eight screenshots in
   `/tmp/tsa-b0-browser-evidence`, review-mobile visually inspected by coordinator.
-- B0 baseline full regression passed 106 contract/11 emitted tests, typecheck,
-  build/smoke, drift/import/docs/diff checks; accepted contract tree unchanged.
-  Final batch regression will be rerun after bounded prerequisite integration.
-- B0.1 docs/diff checks pass; historical whitespace and non-failing browser-ESM
+- Final batch independently reran typecheck/build/emitted smoke, 106 contract and
+  11 emitted-consumer tests, 11 B0.1 tests, drift/import checks: all PASS. Contract
+  tree/lockfile still identical to audited `0e67485`. Local transcript:
+  `/tmp/tsa-track-b-final-verification.log` (transient; commands/results are durable here).
+- Final docs/new-file whitespace/diff checks pass; historical whitespace and non-failing browser-ESM
   Node auto-detection warnings retained. Hosted CI not observed.
 
 ## Run and continue
@@ -60,8 +64,26 @@ catalog → answer/clear/navigate → reload/resume → confirm submission → r
 explanation → return to score/catalog/new demo. Original test text remains English;
 navigation and notices are Vietnamese.
 
-Next authorized bounded step: disposable PostgreSQL evidence for already approved
-H1/TTL invariants, not production migrations. DATA-001 full schema/adapter still
+## Database prerequisite outcome and next scope
+
+`npm run test:db:preflight` independently PASS on installed PostgreSQL 18.6:
+11 named invariant checks in a new private cluster, Unix socket only. Both inverse
+cross-mode same-user races observed actual Lock waits before winner commit and
+loser SQLSTATE23505; separate distinct-user connections committed while the winner
+remained uncommitted. Terminal replacement, rollback, full600/capped300 deadlines,
+NULL/bad interval/TTL rejection, immutable creation fields and strict < boundary
+PASS. Owned cluster/socket removal and no leftover task-owned server verified;
+missing binaries explicitly fail rather than skip/pass. Worker’s initial restricted
+socket failure was not accepted evidence; permitted run exposed/repaired a helper
+default-argument bug, then coordinator independently verified final behavior.
+
+Probe files under `tests/integration/database/approved-invariants` are fixtures,
+not production migrations. No real application DB integration, start transaction,
+mutable availability-edit transaction, complete FK/history/upgrade schema or auth
+is accepted from them. Full DATA-001 remains incomplete.
+
+All currently authorized READY tasks in this bounded batch are complete.
+DATA-001 full schema/adapter still
 requires affected ADR-001/003 disposition; AUTH-001 requires explicit local
 synthetic-only stub approval. Bank stock needs rights evidence and named independent
 human review/publication; assembly/attempt/scoring follow their gates. Ten-question

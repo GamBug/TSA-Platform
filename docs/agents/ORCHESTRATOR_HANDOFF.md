@@ -8,29 +8,32 @@ G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
 
-## Current baton — Track B B0.1 verified, 2026-10-19
+## Current baton — G1 accepted / Track B bounded batch verified, 2026-10-19
 
-Owner prioritizes Track B (~85%) over lightweight Track A (~15%). Existing B0
-and same-app B0.1 continuation are explicitly authorized; G1 accepted in `27350b3`. Branch `feat/track-b-b0-prototype`,
-gate `27350b3`, B0 `237da9c`; B0.1 checkpoint follows its verified handoff. Owner AGENTS.md bytes
-preserved. Local B0 checkpoint commits are now explicitly authorized, separately from gate
-recording; no push/merge/deployment or paid API. G2/G3 remain unestablished.
+Owner G1 acceptance is committed separately in `27350b3` (audit `81ef8aa`, accepted
+contracts `0e67485`). B0 `237da9c`, same-app B0.1 `06849d0`; the following local
+prerequisite checkpoint records disposable PostgreSQL tests/readiness. Branch
+`feat/track-b-b0-prototype`. Owner AGENTS.md preserved/excluded. No push/merge,
+deployment, paid API, Astra or G2/G3 advancement.
 
-Runnable Vietnamese prototype: `npm run dev:b0` → http://127.0.0.1:4173.
-Repeated synthetic MATH fixture only, visibly mock; no approved seed, real identity,
-DB, NEW_ONLY or integrated scoring claim. Eleven B0.1 Node tests, clear/resume/released-review and actual Chromium
-pointer/keyboard/save-error/mobile journey and existing 106 contract/11 emitted
-regressions pass. One reused Luna / XHigh writer; Sol / Medium independent review,
-browser verification and integration; reservations released. See
-[latest handoff](LAST_HANDOFF.md) for exact evidence, repairs and run/demo commands.
+`npm run dev:b0` → http://127.0.0.1:4173. Vietnamese local demo: answer/clear,
+resume same deadline, confirmation/score and separate post-grade explanation.
+Repeated synthetic English fixture only, labeled mock. Eleven B0.1 tests and real
+Chromium desktop/mobile journey PASS; 106 contract/11 emitted regressions and
+build/typecheck/drift/import/docs/diff PASS. PostgreSQL18.6 approved-invariant
+probe PASS: 11 named checks, real H1 lock barriers in both winner orders, concurrent
+distinct users, rollback/deadlines and cleanup. No production migration/API/auth
+integration claim. One reused Luna/XHigh writer; Sol/Medium independent review and
+verification; all reservations released, no Terra or additional agents.
 
-G1 ACCEPTED / FOUND-002 COMPLETED in isolated disposition commit `27350b3`.
-The [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) recommends READY FOR OWNER
-ACCEPTANCE at `0e67485`, evidence commit `81ef8aa`. DATA/AUTH/BANK and integrated WEB
-work retain existing gates. Next visible content/interaction milestone and actual
-B1 prerequisites are in the roadmap; no downstream implementation started.
-Historical checkpoint bodies below remain evidence only where explicitly scoped;
-current state comes from live backlog/decisions and LAST_HANDOFF.
+No currently authorized READY implementation remains. Full DATA-001 still needs
+affected proposed ADR-001/003 disposition; local AUTH needs explicit synthetic-only
+stub approval; Bank needs lawful stock and named independent human publication.
+[Roadmap](../tasks/IMPLEMENTATION_ROADMAP.md#next-integrated-track-b-batch--decision-boundaries)
+contains the exact narrow proposal. Do not invent approval from broad execution
+authority or passing fixtures. Read [latest handoff](LAST_HANDOFF.md) for exact
+commands/evidence/limitations. Earlier pending-G1 histories below are superseded
+only by the current explicit owner disposition.
 
 ## Execution-policy update — 2026-10-19
 

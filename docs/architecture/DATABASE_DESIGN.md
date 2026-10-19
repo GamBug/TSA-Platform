@@ -170,6 +170,27 @@ Proposed active-account history retention must outlive the shorter proposed 12-m
 Migration implementation should expand/backfill/contract: add nullable provenance links and new tables/constraints, backfill first assignments from retained attempts plus `form_slots` (including fixed/review attempts and never-started attempts), create singleton memberships and canonicalize confirmed merges, then turn on strict allocation only after a complete historical coverage audit. If old assignments are unavailable, record the coverage gap and obtain an explicit owner migration policy; never label an incomplete backfill strict NEW_ONLY. Add indexes concurrently where PostgreSQL requires it, validate FKs/checks on populated data, and test a fresh install and populated upgrade with duplicate, mismatched owner/version/form, rollback, two-connection allocation and publication races. A compatibility rollback disables new allocation/publication paths while preserving immutable versions, history, receipts and exams; it does not delete or rewrite them. Coordinate actual migration file ownership between DATA-001 and FACTORY-001. All constraints and transaction behavior here remain REQUIRES_VERIFICATION until implemented and tested on PostgreSQL.
 
 
+## Track B prerequisite verification scope — 2026-10-19
+
+G1 is owner-accepted (`27350b3`); this does not approve ADR-001/003 in full. The
+next bounded database probe tests only approved H1 partial uniqueness across all
+active modes and the committed immutable 600-second/capped start deadline in a
+private disposable cluster. Executed independently on PostgreSQL 18.6: 11 named
+checks PASS, both real cross-mode lock waits/23505 outcomes, concurrent distinct-user
+success, rollback, TTL/cap, immutable fields and exclusive predicate. See
+[probe](../../tests/integration/database/approved-invariants/README.md). Mutable
+schedule-edit and application start transactions were NOT tested. These fixtures
+are not migrations or a second product store; passing them proves neither the
+complete proposed schema nor application transactions. Production schema/adapter choices remain gated by affected ADR
+scope. No synthetic identity handle is promoted into AUTH-001 approval.
+
+| Authority | Executable now | Still required before integrated implementation |
+|---|---|---|
+| H1, TTL600, non-retroactive ordinary admission edits | Disposable uniqueness/blocking/rollback/deadline fixture probes | Full DATA-001 schema and real application transaction evidence |
+| G1 versioned DTO/identity/transport contracts | Frozen input fixtures and boundary tests | Affected ADR-001/003 database mechanisms; upgrade/history/private-table constraints |
+| AUTH-001 | Negative fixture planning | Explicit synthetic-only local stub scope and DATA-001 acceptance; production OIDC remains separately gated |
+| Bank/seed | Existing lawful-source inventory and schema/rights preflight planning | Named author/independent human reviewer, lawful rights evidence, validated drafts and publication controls |
+
 ## G1 shared job dispatch contract — job-dispatch/1
 
 The final G1 audit freezes a minimal internal transport for existing logical work,

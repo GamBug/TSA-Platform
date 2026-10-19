@@ -71,6 +71,31 @@ integration repairs after worker capacity errors; all reservations are released.
 A read-only Luna scout supplied narrow evidence. No Terra/Astra, dependency change,
 push, merge, deployment or paid API occurred. Later DATA/AUTH/BANK/ASSEMBLY services retain their own gates.
 
+## Next integrated Track B batch — decision boundaries
+
+G1 acceptance is complete. B0/B0.1 are verified local mocks in the same app; the
+approved-invariant PostgreSQL probe is verified (11 real-DB checks plus cleanup),
+a bounded DATA-001 prerequisite, not the production relational foundation. Do not wait on AI benchmarking to build Track B.
+
+| Next scope | State / exact dependency | Recommended next action |
+|---|---|---|
+| DATA-001 production migrations and first server-only data adapter | Foundation gate satisfied; ADR-001/003 affected mechanisms remain PROPOSED | Owner disposition of PostgreSQL + reviewed SQL migrations and immutable version/snapshot/private-table/FK boundaries. Recommended narrow approval of these scopes; defer ORM/framework expansion. Keep this frontend, implement bounded schema slices and actual migration/upgrade/rollback tests. |
+| AUTH-001 local synthetic path | DATA-001 plus explicit synthetic-only local identity-stub scope | Recommended authorize a local-only synthetic identity/role adapter with production activation impossible; Sol chooses routine implementation details. Current mock cookie is not AUTH acceptance. |
+| BANK-001/002 and lawful seed | Accepted DATA/AUTH, immutable validated drafts; named independent human author/reviewer and rights evidence | Nominate humans and original/authorized content basis. Ingestion and human publication remain separate; accepted ingestion can unlock BANK-002 without waiting on parent completion/G2. |
+| First B1 product evidence | Published stock/G2, assembly/allocation/attempt/closure/scoring acceptance | Use separate 4/2/4 domain profiles and own clocks/results. Ten initial approved items may supply the first domain runs; they do not prove the broader 30-item seed target, a second unseen round or a combined official exam. |
+
+These are material existing architecture/identity/content decisions, not routine
+technical approvals or new G1 criteria. Exact narrow owner disposition can be:
+"Authorize DATA-001 using PostgreSQL, reviewed SQL migrations and the immutable
+version/snapshot/private-data/FK boundaries in ADR-003; retain the existing frontend
+and defer ORM/framework adoption. Authorize AUTH-001's local synthetic-only identity
+adapter after DATA-001, with production activation prohibited." This proposal is
+not approval. Named human content authors/reviewers and lawful rights remain required.
+Production OIDC/privacy/retention/deployment approvals remain later; no paid API is
+needed for this first local backend batch. Codex Luna / XHigh implements frozen
+bounded slices; Sol / Medium independently reviews integrity/security evidence;
+Terra / Medium only for demonstrated complex migration or lock reasoning.
+
 ## Proposed post-G1 prerequisite batch — 2026-10-19
 
 The [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) recommends owner acceptance
