@@ -175,7 +175,14 @@ async function loadQuestionRow(client, versionId) {
             qv.origin, qv.provenance_ids, qv.generation_run_id, qv.created_by,
             qv.authored_created_at, qv.content_hash, qv.normalized_fingerprint,
             qv.reference_namespace, qs.answer_key, qs.explanation, qs.evidence,
-            qs.scoring_policy_version
+            qs.scoring_policy_version,
+            (SELECT mapping.external_id
+               FROM tsa_private.factory_external_mappings mapping
+              WHERE mapping.external_kind = 'stimulus' AND mapping.local_id = qv.stimulus_version_id
+              LIMIT 1) AS external_stimulus_version_id,
+            (SELECT factory_run.external_generation_run_id
+               FROM tsa_private.factory_import_runs factory_run
+              WHERE factory_run.question_version_id = qv.id) AS external_generation_run_id
        FROM tsa.question_versions qv
        JOIN tsa_private.question_secrets qs ON qs.question_version_id = qv.id
       WHERE qv.id = $1`, [versionId]);
@@ -199,7 +206,7 @@ function toQuestionVersion(row) {
     cognitiveLevel: row.cognitive_level,
     difficulty: parseJson(row.difficulty),
     content: parseJson(row.content),
-    stimulusVersionId: row.stimulus_version_id,
+    stimulusVersionId: row.external_stimulus_version_id ?? row.stimulus_version_id,
     interaction: parseJson(row.interaction),
     private: {
       answerKey: parseJson(row.answer_key),
@@ -209,7 +216,7 @@ function toQuestionVersion(row) {
     },
     origin: row.origin,
     provenanceIds: parseJson(row.provenance_ids),
-    generationRunId: row.generation_run_id,
+    generationRunId: row.external_generation_run_id ?? row.generation_run_id,
     createdBy: row.created_by,
     createdAt: row.authored_created_at,
     contentHash: row.content_hash,

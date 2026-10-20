@@ -688,7 +688,7 @@ test('migration 004 preserves legacy sources and student/staff receipts from 003
         staffReceiptId, authorId, staffKey, sha256('staff request')]);
 
     const latest = await migrate(database.pool, { directory: MIGRATIONS_DIRECTORY });
-    assert.deepEqual(latest.applied, ['004_bank_ingestion.sql']);
+    assert.deepEqual(latest.applied, ['004_bank_ingestion.sql', '005_factory_package_v2_import.sql']);
     const preservedSource = await database.pool.query(
       `SELECT id, title, canonical_uri, owner_reference, origin, created_by
          FROM tsa.sources WHERE id = $1`, [sourceId]);
