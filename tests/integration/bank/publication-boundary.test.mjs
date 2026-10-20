@@ -145,7 +145,7 @@ test('migration005 to006 preserves populated source records and installs an empt
     await database.pool.query("INSERT INTO tsa.sources (id,title,origin) VALUES ($1,'Preserved synthetic upgrade fixture','OWNED')", [id]);
     const previous = (await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows;
     const upgraded = await migrate(database.pool);
-    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql']);
+    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql']);
     assert.deepEqual((await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows, previous);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.bank_workflow_fixture_scope')).rowCount, 0);
   } finally {
