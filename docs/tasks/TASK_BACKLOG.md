@@ -241,10 +241,33 @@ private template editing, DRAFT creation and metadata reload/restart persistence
 are real; lost-response retries reuse their request identity. Candidate access is
 denied. Rights remain UNKNOWN, and the exam remains explicitly mock. No schema,
 dependency or contract change in this slice. Worker reservation released.
-Parent BANK-001 remains incomplete; bounded canonical transport mapping is next,
+At the staff checkpoint, bounded canonical transport mapping was next (verified below),
 with Terra/Medium justified by immutable identity/graph normalization and atomic
 receipt/asset persistence. Sol owns shared records and independent verification.
 One writing worker at a time.
+
+Canonical Factory v2 ingestion sub-acceptance VERIFIED, 2026-10-20, `d376791`.
+Terra/Medium implemented the bounded normalization/receipt checkpoint; Luna/XHigh
+completed replay integrity and missing acceptance fixtures; Sol independently
+reviewed the final diff and verified Bank21/21, DATA34/34, AUTH5/5 and local13/13.
+Whole declared packages commit atomically as DRAFT, with private immutable
+manifests/graphs/bytes and exact candidate receipts. Changed manifests conflict;
+replay verifies stored graphs/mappings/byte digests, preserves original receipt
+order, and permits later workflow changes. Original authored timestamps, ancestry,
+origin, external generation identity and hashes survive SQL normalization.
+Cross-batch exact ancestor reuse, actual HTTP correction, observed two-worker
+lock waits, late second-candidate rollback, corruption negatives and populated
+004→005 preservation pass. Private import tables deny web/Factory/exam/identity
+roles. Receipt FKs bind matching question/version/hash. Package rights remain
+unverified private claims, not human decisions/current rights/publication.
+
+This is a trusted internal AUTHOR/operator command with a separate in-process
+capability and restricted Bank connection, not deployed Factory authentication or
+a public generation route. No public asset delivery/sanitization, producer/export
+completeness, BANK-002/INT-002 acceptance or production stock is claimed. Manual
+`679c380`, staff `021dec0`, transport `d376791` are local checkpoints. No writing
+reservation remains. Named independent human review and lawful stock block the
+next publication/inventory tasks; parent BANK-001 outcome remains IN_PROGRESS.
 
 Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publication, current-group joins preserve prior history after merge; late-equivalence incident recorded without rewriting snapshots. Canonical factory imports verify hash/receipt atomically, reject changed content under same key and never inherit APPROVED from a package.
 
@@ -579,7 +602,7 @@ The existing cards supply objective, prerequisites, file scope, deliverables, me
 - Files/modules: `src/modules/bank/publication.ts`, `src/http/staff/reviews.ts`, `tests/integration/bank-publication.test.ts`.
 - Expected deliverables: exact-hash independent review decision, equivalence adjudication/audit, approval eligibility pointer and quarantine/revocation guard.
 - Acceptance criteria: author/factory operator self-approval fails; stale hash/new version cannot inherit approval; unresolved duplicate flags block approval; quarantine/revocation stops future eligibility; a canonical import receipt never asserts APPROVED.
-- Required verification: real-DB concurrent approve/withdraw serialization, workflow transition matrix, authorization/BOLA fixtures, equivalence merge/history preservation and safe error projection tests. Suggested agent capability: HIGH (Sol). Risk: High — rights and publication integrity. Status: PROPOSED, blocked on DATA-001/AUTH-001, BANK-001 ingestion evidence and named review process.
+- Required verification: real-DB concurrent approve/withdraw serialization, workflow transition matrix, authorization/BOLA fixtures, equivalence merge/history preservation and safe error projection tests. Suggested agent capability: HIGH (Sol). Risk: High — rights and publication integrity. Status: BLOCKED on a named independent human review process; local DATA-001/AUTH-001 and bounded BANK-001 ingestion evidence are now verified.
 
 ## ASSEMBLY-002 — Per-student NEW_ONLY allocation transaction
 

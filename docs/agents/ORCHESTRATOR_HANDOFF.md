@@ -8,15 +8,38 @@ G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
 
-## Active baton — DATA/AUTH execution, 2026-10-19
+## Active baton — PostgreSQL staff integration, 2026-10-20
 
-Owner scoped local DATA-001/AUTH-001 approval is recorded in `7364882`;
-bank-core foundation and independently verified PostgreSQL evidence in `7885331`.
-Branch `feat/track-b-data-auth`, base `446277f`. DATA-001 local foundation is accepted after migration002 and 34 real-PG tests;
-synthetic-only local authorization and eligible Bank ingestion follow. Use [latest handoff](LAST_HANDOFF.md) and backlog
-for reservations and observed tests. Prior decision blocks below are historical,
-superseded only within the new approval scope. Preserve owner AGENTS.md, accepted
-contracts and B0.1 frontend. G1 ACCEPTED; no G2/G3 transition or production use.
+Branch `feat/track-b-data-auth`, implementation HEAD `d376791`; owner AGENTS.md
+is preserved (SHA in LAST_HANDOFF); shared tracking records are updated here. Local DATA-001
+`37c9f6a`, AUTH `6f73272`, manual Bank `679c380` and same-app staff `021dec0`
+are independently verified. G1 remains ACCEPTED; G2/G3 unestablished.
+
+Run `NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b` on
+127.0.0.1:4174 with installed PostgreSQL18.6. Persistent private synthetic staff
+login/draft creation/listing works; the existing exam remains mock. Local13,
+Bank10, AUTH5 and DATA34 tests plus both Chromium journeys passed independently
+at their scoped checkpoints. See [latest handoff](LAST_HANDOFF.md) for exact
+commands and limitations; no hosted-CI or production acceptance is claimed.
+
+Luna/XHigh implemented staff and import acceptance repairs; Terra/Medium supplied
+its narrow mapping plan and complex import checkpoint. Sol independently reviewed
+and verified final Bank21, DATA34, AUTH5, local13, contracts106, emitted11 and B0 11
+tests, build/typecheck/drift/import checks and Chromium staff journey. All
+reservations released. Code checkpoints `021dec0` staff / `d376791` transport.
+See latest handoff for clean-clone evidence, failed restricted runner versus
+permitted nested passes, and exact startup/cleanup observations.
+
+No authorized READY implementation remains before named independent human review
+and lawful inventory prerequisites for BANK-002/DATA-003/002. Owner action:
+identify distinct human author/rights attestor and qualified reviewer; authorize
+original/lawfully cleared stock preparation under existing 12/6/12 targets and
+exact-version review criteria. Do not fabricate rights or reviews. G2 acceptance
+follows actual ingestion/publication evidence and owner disposition; only then
+start eligible assembly/attempt/scoring/backend integration. Preserve independent
+MATH4/READING2/SCIENCE4 attempts; no combined ten-question attempt. No Astra,
+provider call, push, merge, deployment or gate advancement occurred. Historical
+baton blocks below are superseded only within recorded owner approval scope.
 
 ## Current baton — G1 accepted / Track B bounded batch verified, 2026-10-19
 

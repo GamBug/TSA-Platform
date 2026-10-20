@@ -96,6 +96,8 @@ and remove their own private disposable clusters:
 npm run test:db:preflight
 npm run test:db:foundation
 npm run test:auth
+npm run build
+npm run test:bank
 ```
 
 These test relational integrity, immutable snapshots, transaction/concurrency

@@ -1,4 +1,4 @@
-# Latest handoff — persistent same-app staff integration verified
+# Latest handoff — staff and canonical draft ingestion verified
 
 2026-10-20, Asia/Bangkok. Owner scoped DATA-001/AUTH-001 approval is recorded in
 [decisions](../decisions/OPEN_DECISIONS.md#data-001--auth-001--scoped-local-track-b-approval-2026-10-19).
@@ -55,9 +55,9 @@ MANUAL/IMPORTED drafts/revisions and staff metadata-only listing are real SQL-ba
 commands. Question keys/evidence graphs remain private. Duplicate flags remain OPEN;
 no automatic equivalence confirmation/merge or publication occurs. Rights edits
 with selected-content dependencies fail closed, not an implemented hold/fan-out.
-Factory package mapping/receipts, arbitrary stimulus import and BANK-002 publication
-remain separate work. Next visible slice is the existing frontend's local staff
-workspace and persistent dev startup. Named independent human review and lawful
+The manual checkpoint did not accept Factory receipts; that bounded transport
+is verified below. Arbitrary manual stimulus import and BANK-002 publication
+remain separate work. The persistent same-app staff workspace is now verified. Named independent human review and lawful
 inventory still gate publication; real exam services have not been implemented.
 
 One writer at a time; default Luna/XHigh, Sol/Medium
@@ -95,11 +95,93 @@ no questions auto-seeded. Candidates cannot read draft/template data. Retry afte
 lost successful response creates one version. Existing exam remains explicitly
 in-memory mock, with no real allocation/attempt/scoring or publication claim.
 
-Next: canonical Factory v2 database import/receipts within BANK-001, preserving
-opaque IDs, full private immutable reference graphs, byte digests and DRAFT-only
-state. No provider work. Named independent human review and rights-cleared stock
-remain required before BANK-002/publication and downstream assembly. G2/G3 stay
-unestablished; do not bypass them using synthetic roles or fixture claims.
+Staff checkpoint committed as `021dec0`. A fresh local Git clone at this commit
+(`/tmp/tsa-staff-clean-hoh1v03z`) independently passed `npm ci --ignore-scripts`,
+typecheck/build/emitted smoke, 106 contract tests, 11 emitted-consumer tests,
+drift/import checks and repository docs checks. Offline npm ci first failed
+ENOTCACHED for zod4.1.12; permitted installation fetched pinned missing packages,
+installed22/audited24 and reported zero advisories at query time. No lockfile
+change. Log `/tmp/tsa-staff-clean-verification.log` includes both outcomes.
+Bank10 and AUTH5 regression checks independently pass after staff integration.
+The docs check initially encountered the ignored persistent cluster during its
+restricted fallback walk; its existing ignored-directory list now also excludes
+`.local`, and both repository/clean-clone checks pass. Owned PG process/socket and
+startup lock were released after the exact CLI verification; persistent data is
+retained and ignored. Current managed sandbox controls were respected; local
+socket/process/Git actions used permitted escalation, with no policy changes.
+
+## Canonical draft ingestion checkpoint (2026-10-20)
+
+Accepted code `d376791`, following staff `021dec0` and manual Bank `679c380`.
+Terra/Medium implemented the complex opaque-ID/immutable graph normalization and
+atomic receipt checkpoint; Luna/XHigh completed missing tests and replay repairs.
+Sol independently reviewed the complete diff and extended actual SQL role-denial
+checks across every new private table for web/Factory/exam/identity credentials.
+All writer reservations released. No new dependency, contract/export/public route,
+provider call, human approval or gate transition occurred.
+
+Migration005 stores private immutable manifests, exact receipts, opaque reference
+mappings, verified raw asset bytes and external run evidence. Normalized SQL rows
+preserve original authored question identity, raw timestamps, ancestry/origin and
+private canonical DAGs. Unknown authors/taxonomy fail closed. Complete declared
+packages import atomically as DRAFT; machine FAIL/INCONCLUSIVE never approves.
+Package rights remain unverified private claims; no human rights decision, current
+source-rights grant, eligible pointer, confirmed duplicate group or review is
+created. Source/artifact containers are explicitly unverified EXTERNAL. Receipt
+FKs bind the correct question/version/hash and manifest. Stored graphs/mappings/
+bytes are verified before replay; exact replay preserves original receipt order
+and permits subsequent workflow changes. New drafts do not erase older eligible
+versions. Cross-batch exact ancestor reuse is verified; candidate collisions reject.
+
+Independent final observed checks, Node24.18.0/npm11.16.0/PG18.6:
+
+- `npm run test:bank`: **21/21** (10 manual +11 import), zero skips/failures.
+  Includes actual authenticated HTTP correction, nanosecond lexical timestamp and
+  hash/fingerprint reconstruction, v3→v2→v1 ancestry with distinct stimulus/parent
+  provenance and assets, two observed blocked import workers, exact replay,
+  changed/tampered/missing/corrupt graph/byte negatives, late second-candidate
+  SQL23505 whole-unit rollback, populated004→005 preservation and receipt FK negatives.
+- `test:db:foundation` **34/34**, `test:auth` **5/5**, `test:local` **13/13** PASS.
+- Typecheck/build/emitted smoke, contracts **106**, emitted consumers **11**, B0
+  **11**, generated drift/import checks and docs/diff checks PASS. Restricted
+  consumer execution returned only two failed file wrappers; managed permitted
+  rerun produced actual nested passes. This is not a clean restricted-CI claim.
+- `test:track-b:browser` PASS on Chromium155 after005. Existing B0 Chromium
+  journey also passed in this batch. Public app static import scan passed and is now registered in the root
+  `contracts:consumer-check` command using the existing checker.
+- Fresh Git clone of `d376791` at `/tmp/tsa-bank-clean-5h4lr8d9` passed pinned
+  `npm ci --ignore-scripts --offline --cache /tmp/tsa-track-b-pg-npm-cache`, all
+  build/contract/consumer checks above, Bank/DATA/AUTH/local/B0 and docs checks.
+  Log `/tmp/tsa-bank-clean-verification.log`. No hosted CI observed.
+- Exact `NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b`
+  upgraded retained local001–004 data to005 and served `/local-auth/session`200
+  on127.0.0.1:4174. Ctrl+C removed postmaster.pid/startup lock and retained data.
+  Root transcripts `/tmp/tsa-factory-final-*.log` are transient; commands/results
+  above are the durable record. Historical whitespace warning remains unchanged.
+
+Scope limits: trusted internal AUTHOR/operator capability plus restricted Bank
+connection, not deployed Factory-service credential authentication. No public
+asset serving/sanitization, upstream producer/export-unit completeness or
+FACTORY-003/INT-002 acceptance follows from this checkpoint. No publication,
+approved production inventory or real allocation/attempt/scoring API exists.
+The frontend practice exam remains explicitly mock; only staff identity and Bank
+persistence are integrated. G1 ACCEPTED; G2/G3 remain unestablished.
+
+## Next action — genuine human prerequisites
+
+No further READY implementation in the approved local batch precedes the named
+human review/inventory prerequisites. BANK-002 explicitly requires a named
+independent human review process; DATA-003/002 require distinct human author and
+reviewer plus lawful stock authorization/evidence. Synthetic role profiles cannot
+satisfy these. Ask the owner in one packet to name the author/rights attestor and
+an independent qualified reviewer and authorize original/lawfully cleared stock
+under existing contracts/12-MATH,6-READING,12-SCIENCE targets. Do not fabricate legal
+rights, human reviews or whole-ADR approval. Then implement BANK-002 while humans
+prepare DATA-003/002; verify controlled publication and obtain G2 disposition before
+eligible assembly/attempt/closure/scoring and existing-frontend B1 integration.
+Keep independent MATH4/READING2/SCIENCE4 attempts; no combined ten-question attempt.
+Lightweight Track A source/quality/taxonomy/rubric preparation remains in roadmap;
+no provider work, download, scraping or benchmarking was added.
 
 ## Previous accepted checkpoint (historical; scope blocks superseded above)
 

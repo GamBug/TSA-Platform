@@ -83,9 +83,20 @@ fail closed. Existing frontend/contracts remain stable; no ORM expansion.
 |---|---|
 | DATA-001 — local foundation accepted `37c9f6a` | Bank-core migration/adapter first, then form/attempt/history/jobs schema. Independently verify fresh install, populated upgrade, FK/immutability/role negatives, atomic rollback and real two-connection barriers. Partial schema tests do not complete the task. |
 | AUTH-001 local — accepted `6f73272` | Accepted DATA-001; server-side fixed synthetic identities, sessions, role/object checks, invalidation and CSRF/origin negatives. Current B0 mock cookie is not acceptance. Production OIDC/MFA/provider configuration remains later. |
-| BANK-001 ingestion | Accepted DATA/AUTH and frozen G1 contracts; register evidence, validate/import immutable drafts and keep keys server-only. Existing frontend may consume the resulting local staff adapter. No automatic publication. |
+| BANK-001 ingestion — manual `679c380`, staff `021dec0` verified | Accepted DATA/AUTH and frozen G1 contracts; register evidence, validate/import immutable drafts and keep keys server-only. Existing frontend may consume the resulting local staff adapter. No automatic publication. |
 | BANK-002 / DATA-002 | Accepted ingestion plus named independent human review process, lawful exact-version rights and reviewed stock. Synthetic integration fixtures cannot substitute for these prerequisites. |
 | B1 | Published stock/G2 and accepted allocation/attempt/closure/scoring components; preserve separate 4/2/4 domain profiles. No gate advancement by passing fixtures alone. |
+
+As of 2026-10-20, the existing app has a persistent synthetic-only staff workspace
+on 4174 (`021dec0`), with actual auth/Bank APIs, DRAFT creation and reload/restart
+persistence. Local13/13 tests and both Chromium journeys pass independently;
+practice exam behavior remains mock. Canonical Factory v2 PostgreSQL transport/receipts
+is verified in `d376791` (Bank21, DATA34, AUTH5, local13 tests); this is draft
+ingestion, not AI generation. Terra/Medium implemented its immutable graph/opaque-ID
+mapping and atomic asset
+persistence; Luna/XHigh completed acceptance repairs; Sol independently reviewed
+and verified. All writer reservations released. Named human review and rights-cleared inventory
+still block publication and downstream G2/assembly; synthetic roles are no substitute.
 
 Codex Luna / XHigh implements bounded slices; Sol / Medium independently reviews
 and verifies. Terra only for demonstrated complexity. One writing worker; no
