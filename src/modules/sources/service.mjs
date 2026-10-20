@@ -146,9 +146,10 @@ export async function registerRightsDecision(bankPool, identityService, principa
       || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0) reject(422, 'VALIDATION_ERROR');
   return withIdempotency(bankPool, principal, key, `POST /api/v1/source-versions/${sourceVersionId}/rights`, input, async (client) => {
     const sourceVersionResult = await client.query(
-      `SELECT sv.id, sv.source_id
-         FROM tsa.source_versions sv
-        WHERE sv.id = $1 FOR UPDATE`, [sourceVersionId]);
+      `SELECT sv.id, sv.source_id, sv.version_no, sv.content_hash, sv.metadata, sv.evidence_uri,
+              s.title, s.canonical_uri, s.owner_reference, s.origin
+         FROM tsa.source_versions sv JOIN tsa.sources s ON s.id=sv.source_id
+        WHERE sv.id = $1 FOR UPDATE OF sv`, [sourceVersionId]);
     if (sourceVersionResult.rowCount !== 1) reject(404, 'NOT_FOUND');
     const rightsResult = await client.query(
       `SELECT sr.revision, sr.decision_id
@@ -189,11 +190,20 @@ export async function registerRightsDecision(bankPool, identityService, principa
         `INSERT INTO tsa.source_rights (source_version_id, decision_id, revision)
          VALUES ($1, $2, 1)`, [sourceVersionId, decisionId]);
     }
-    const sourceNodeResult = await client.query(
+    let sourceNodeResult = await client.query(
       `SELECT kind, id, payload, dependency_refs, content_hash
          FROM tsa_private.reference_nodes
         WHERE reference_namespace = $1 AND kind = 'source' AND id = $2`,
       [MANUAL_REFERENCE_NAMESPACE, sourceVersionId]);
+    if (sourceNodeResult.rowCount === 0) {
+      // Imported containers retain their original private Factory graph. A new
+      // explicit manager decision gets a separate local SQL source snapshot;
+      // package rights claims are never promoted or rewritten.
+      const version = sourceVersionResult.rows[0];
+      const node = sourceReference(sourcePayload({ ...version, id: version.source_id }, version));
+      await storeReferenceGraph(client, MANUAL_REFERENCE_NAMESPACE, [node]);
+      sourceNodeResult = { rowCount: 1, rows: [{ ...node, dependency_refs: node.references, content_hash: node.contentHash }] };
+    }
     if (sourceNodeResult.rowCount !== 1) reject(422, 'SOURCE_REFERENCE_NOT_REGISTERED');
     const sourcePayloadRow = sourceNodeResult.rows[0];
     const sourceNode = {

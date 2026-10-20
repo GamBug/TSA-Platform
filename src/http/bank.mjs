@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { isIP } from 'node:net';
 import { BankCommandError } from '../modules/bank/common.mjs';
 import { createQuestionService } from '../modules/bank/questions.mjs';
+import { createPublicationService } from '../modules/bank/publication.mjs';
 import { createSourceService } from '../modules/sources/service.mjs';
 
 const MAX_JSON_BYTES = 1024 * 1024;
@@ -77,6 +78,12 @@ async function readJson(request) {
 function publicError(error) {
   if (error instanceof BankCommandError) {
     const aliases = new Map([
+      ['PUBLICATION_DISABLED', 'FORBIDDEN'],
+      ['ASSET_SANITIZATION_REQUIRED', 'VALIDATION_ERROR'],
+      ['QUARANTINE_REQUIRES_HOLD', 'CONCURRENT_MODIFICATION'],
+      ['CONTENT_HASH_MISMATCH', 'CONCURRENT_MODIFICATION'],
+      ['WORKFLOW_CONFLICT', 'CONCURRENT_MODIFICATION'],
+      ['INVALID_WORKFLOW_TRANSITION', 'CONCURRENT_MODIFICATION'],
       ['SOURCE_ORIGIN_UNKNOWN', 'VALIDATION_ERROR'],
       ['INVALID_REFERENCE_GRAPH', 'VALIDATION_ERROR'],
       ['REFERENCE_NOT_FOUND', 'VALIDATION_ERROR'],
@@ -165,9 +172,10 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
     throw new TypeError('A restricted Bank pool and local identity service are required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
-  const [sources, questions] = await Promise.all([
+  const [sources, questions, publication] = await Promise.all([
     createSourceService({ bankPool, identityService }),
     createQuestionService({ bankPool, identityService }),
+    createPublicationService({ bankPool, identityService }),
   ]);
 
   return async function handleBankRequest(request) {
@@ -204,6 +212,12 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
         result = await questions.createQuestionDraft(principal, idempotencyKey, body);
       } else if ((result = url.pathname.match(/^\/api\/v1\/questions\/([0-9a-f-]+)\/versions$/))) {
         result = await questions.createQuestionDraftVersion(principal, result[1], idempotencyKey, body);
+      } else if ((result = url.pathname.match(/^\/api\/v1\/question-versions\/([0-9a-f-]+)\/submit-review$/))) {
+        result = await publication.submitReview(principal, result[1], idempotencyKey, body);
+      } else if ((result = url.pathname.match(/^\/api\/v1\/question-versions\/([0-9a-f-]+)\/reviews$/))) {
+        result = await publication.review(principal, result[1], idempotencyKey, body);
+      } else if ((result = url.pathname.match(/^\/api\/v1\/question-versions\/([0-9a-f-]+)\/quarantine$/))) {
+        result = await publication.quarantine(principal, result[1], idempotencyKey, body);
       } else {
         return errorResponse(404, 'NOT_FOUND', requestId);
       }

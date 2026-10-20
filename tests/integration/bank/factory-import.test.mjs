@@ -1,3 +1,4 @@
+import { createPublicationService } from '../../../src/modules/bank/publication.mjs';
 import { createDatasetPreflightService } from '../../../src/modules/bank/dataset-preflight-service.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
@@ -9,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { createFactoryImportService } from '../../../src/modules/bank/factory-import.mjs';
 import {
   QuestionVersionSchema,
+  parseFactoryPackageV2,
   canonicalize,
   computeDuplicateFingerprint,
   computeQuestionIdentity,
@@ -896,4 +898,77 @@ test('canonical Factory imports feed exact-hash non-publishing dataset preflight
     FROM tsa.question_versions qv JOIN tsa.questions q ON q.id=qv.question_id
     JOIN tsa.question_workflow w ON w.question_version_id=qv.id WHERE qv.id=$1`, [question.id]);
   assert.deepEqual(state.rows[0], { state: 'DRAFT', eligible_version_id: null, reviews: 0 });
+});
+
+
+test('actual generated import requires independent DISPLAY/GENERATE and territory rights before fixture approval', async () => {
+  const pkg = freshPackage(await seedTaxonomy(), { candidateCount: 1, withStimulus: true });
+  await service.importFactoryPackageV2(principal, pkg, capability);
+  const fixtureScopeId = randomUUID();
+  await harness.database.pool.query(`INSERT INTO tsa_private.bank_workflow_fixture_scope
+    (scope_id,database_oid,postmaster_started_at) SELECT $1,oid,pg_postmaster_start_time()
+    FROM pg_database WHERE datname=current_database()`, [fixtureScopeId]);
+  const workflow = await createPublicationService({ bankPool: harness.bankPool, identityService: harness.identity, fixtureScopeId });
+  const reviewerBrowser = await loginActor(harness,'reviewer');
+  const reviewerPrincipal = await harness.identity.authenticate(new Request(harness.origin, { headers: { cookie: reviewerBrowser.cookies.join('; ') } }));
+  const question = pkg.candidates[0].question;
+  await workflow.submitReview(principal,question.id,randomUUID(),{ expectedRevision: 1 });
+  await workflow.confirmSingleton(reviewerPrincipal,question.id,randomUUID(),{
+    expectedRevision: 2,contentHash: question.contentHash,reason: 'Synthetic fixture equivalence decision only.',
+  });
+  const input = { expectedRevision: 2,contentHash: question.contentHash,decision: 'APPROVE',
+    rubric: { correctness:true,unambiguous:true,relevant:true,language:true,explanation:true,rights:true },
+    reason: 'Synthetic isolated generated workflow decision only.' };
+  await assert.rejects(workflow.review(reviewerPrincipal,question.id,randomUUID(),input),{ code:'RIGHTS_BLOCKED' });
+  const localSources = await harness.database.pool.query(`SELECT local_id FROM tsa_private.factory_external_mappings
+    WHERE producer_namespace=$1 AND external_kind='source'`,[pkg.producerNamespace]);
+  const scenarios = [
+    { allowedUses:['GENERATE','ADAPT'],territory:['VN'] },
+    { allowedUses:['DISPLAY','ADAPT'],territory:['VN'] },
+    { allowedUses:['DISPLAY','GENERATE'],territory:['US'] },
+    { allowedUses:['DISPLAY','GENERATE'],territory:['VN'] },
+  ];
+  for (let revision=0;revision<scenarios.length;revision++) {
+    for (const { local_id } of localSources.rows) {
+      const response = await bankRequest(harness,managerBrowser,`/api/v1/source-versions/${local_id}/rights`,{
+        method:'POST',key:randomUUID(),body:{ status:'OWNED',...scenarios[revision],
+          validFrom:'2026-10-19T00:00:00Z',validTo:null,evidence:'Explicit synthetic attestation; not a lawful stock claim.',expectedRevision:revision },
+      });
+      assert.equal(response.status,201,await response.clone().text());
+    }
+    if (revision<scenarios.length-1) await assert.rejects(workflow.review(reviewerPrincipal,question.id,randomUUID(),input),{ code:'RIGHTS_BLOCKED' });
+  }
+  const approved = await workflow.review(reviewerPrincipal,question.id,randomUUID(),input);
+  assert.equal(approved.body.state,'APPROVED');
+  const replay = await service.importFactoryPackageV2(principal,pkg,capability);
+  assert.equal(replay.replayed,true,'new current-rights evidence does not rewrite immutable package');
+  const rights = await harness.database.pool.query(`SELECT count(*)::int AS count FROM tsa.source_rights sr
+    WHERE source_version_id=ANY($1::uuid[])`,[localSources.rows.map((row)=>row.local_id)]);
+  assert.equal(rights.rows[0].count,localSources.rowCount);
+});
+
+
+test('image-bearing imported closures cannot publish before asset sanitization exists', async () => {
+  const pkg=freshPackage(await seedTaxonomy(),{candidateCount:1,withAsset:true});
+  await service.importFactoryPackageV2(principal,pkg,capability);
+  const scope=(await harness.database.pool.query('SELECT scope_id FROM tsa_private.bank_workflow_fixture_scope')).rows[0].scope_id;
+  const workflow=await createPublicationService({bankPool:harness.bankPool,identityService:harness.identity,fixtureScopeId:scope});
+  const browser=await loginActor(harness,'reviewer');
+  const reviewerPrincipal=await harness.identity.authenticate(new Request(harness.origin,{headers:{cookie:browser.cookies.join('; ')}}));
+  const q=pkg.candidates[0].question;
+  await workflow.submitReview(principal,q.id,randomUUID(),{expectedRevision:1});
+  await assert.rejects(workflow.review(reviewerPrincipal,q.id,randomUUID(),{
+    expectedRevision:2,contentHash:q.contentHash,decision:'APPROVE',
+    rubric:{correctness:true,unambiguous:true,relevant:true,language:true,explanation:true,rights:true},reason:'Synthetic asset gate check.',
+  }),{code:'ASSET_SANITIZATION_REQUIRED'});
+});
+
+
+test('unsupported augmented transport remains rejected by frozen Factory contracts', async () => {
+  const pkg=freshPackage(await seedTaxonomy(),{candidateCount:1});
+  pkg.candidates[0].question.origin='AUGMENTED';
+  rehashPackage(pkg);
+  assert.throws(()=>parseFactoryPackageV2(pkg),/Factory candidates must be generated drafts/);
+  await assert.rejects(service.importFactoryPackageV2(principal,pkg,capability),{code:'VALIDATION_ERROR'});
+  assert.equal((await harness.database.pool.query('SELECT id FROM tsa.question_versions WHERE id=$1',[pkg.candidates[0].question.id])).rowCount,0);
 });
