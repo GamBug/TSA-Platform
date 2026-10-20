@@ -1,3 +1,4 @@
+import { createDatasetPreflightService } from '../../../src/modules/bank/dataset-preflight-service.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { cp, mkdtemp, readdir, rm } from 'node:fs/promises';
@@ -869,4 +870,30 @@ test('same-package imports serialize on the Bank guard and produce one import pl
   }
   assert.ok(outcomes?.every((outcome) => outcome.status === 'fulfilled'), JSON.stringify(outcomes));
   assert.deepEqual(outcomes.map((outcome) => outcome.value.replayed).sort(), [false, true]);
+});
+
+
+test('canonical Factory imports feed exact-hash non-publishing dataset preflight', async () => {
+  const taxonomy = await seedTaxonomy();
+  const pkg = freshPackage(taxonomy, { candidateCount: 1, withStimulus: true, withAsset: true });
+  pkg.candidates[0].question.createdAt = '2026-10-19T08:00:00.123456789Z';
+  rehashPackage(pkg);
+  await service.importFactoryPackageV2(principal, pkg, capability);
+  const diagnostic = await createDatasetPreflightService({ bankPool: harness.bankPool, identityService: harness.identity });
+  const question = pkg.candidates[0].question;
+  const input = { versions: [{ versionId: question.id, contentHash: question.contentHash }] };
+  const first = await diagnostic.preflight(principal, input);
+  assert.equal(first.report.publishing, false);
+  assert.equal(first.manifest.items[0].contentHash, question.contentHash);
+  assert.ok(first.manifest.items[0].referenceClosure.some((ref) => ref.kind === 'stimulus' && ref.id === question.stimulusVersionId));
+  assert.ok(first.manifest.items[0].referenceClosure.some((ref) => ref.kind === 'asset'));
+  assert.ok(first.report.blockerCodes.includes('CURRENT_RIGHTS_UNVERIFIED'));
+  const replay = await service.importFactoryPackageV2(principal, pkg, capability);
+  assert.equal(replay.replayed, true);
+  assert.deepEqual(await diagnostic.preflight(principal, input), first);
+  const state = await harness.database.pool.query(`SELECT w.state, q.eligible_version_id,
+    (SELECT count(*)::int FROM tsa.reviews WHERE question_version_id=$1) AS reviews
+    FROM tsa.question_versions qv JOIN tsa.questions q ON q.id=qv.question_id
+    JOIN tsa.question_workflow w ON w.question_version_id=qv.id WHERE qv.id=$1`, [question.id]);
+  assert.deepEqual(state.rows[0], { state: 'DRAFT', eligible_version_id: null, reviews: 0 });
 });
