@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -15,6 +16,7 @@ const PUBLIC_FILES = new Map([
   ["/styles.css", "public/styles.css"],
   ["/app/main.js", "public/app/main.js"],
   ["/app/api.js", "public/app/api.js"],
+  ["/app/staff.js", "public/app/staff.js"],
 ]);
 
 const CONTENT_TYPES = {
@@ -22,6 +24,7 @@ const CONTENT_TYPES = {
   "public/styles.css": "text/css; charset=utf-8",
   "public/app/main.js": "text/javascript; charset=utf-8",
   "public/app/api.js": "text/javascript; charset=utf-8",
+  "public/app/staff.js": "text/javascript; charset=utf-8",
 };
 
 function result(status, headers, body) {
@@ -60,40 +63,125 @@ export function createPrototypeHandler({ mockService = createMockApiService() } 
   };
 }
 
-async function readRequestBody(request) {
+async function readRequestBody(request, maxRequestBytes) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > MAX_REQUEST_BYTES) {
+    if (size > maxRequestBytes) {
       request.resume();
-      return { tooLarge: true, body: "" };
+      return { tooLarge: true, body: Buffer.alloc(0) };
     }
     chunks.push(chunk);
   }
-  return { tooLarge: false, body: Buffer.concat(chunks).toString("utf8") };
+  return { tooLarge: false, body: Buffer.concat(chunks) };
 }
 
-export function createPrototypeServer({ port = DEFAULT_PORT, mockService = createMockApiService() } = {}) {
+function requestLike(method, pathname) {
+  return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/workspace/")
+    || pathname === "/api/v1" || pathname.startsWith("/api/v1/");
+}
+
+function tooLargeResponse(url) {
+  if (url.startsWith("/api/v1")) {
+    const requestId = randomUUID();
+    return {
+      status: 413,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-Request-Id": requestId,
+      },
+      body: JSON.stringify({ error: {
+        code: "PAYLOAD_TOO_LARGE", message: "Request body is too large", requestId, details: {},
+      } }),
+    };
+  }
+  return {
+    status: 413,
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+    body: JSON.stringify({ error: { code: "PAYLOAD_TOO_LARGE", message: "Request body is too large." } }),
+  };
+}
+
+function requestHeaders(incoming) {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(incoming.headers)) {
+    if (value === undefined) continue;
+    headers.set(name, Array.isArray(value) ? value.join(", ") : value);
+  }
+  return headers;
+}
+
+async function sendResponse(outgoing, method, response) {
+  if (response instanceof Response) {
+    const headers = {};
+    for (const [name, value] of response.headers) {
+      if (name.toLowerCase() !== "set-cookie") headers[name] = value;
+    }
+    const cookies = response.headers.getSetCookie?.() ?? [];
+    if (cookies.length) headers["set-cookie"] = cookies;
+    outgoing.writeHead(response.status, headers);
+    const bytes = await response.arrayBuffer();
+    outgoing.end(method === "HEAD" ? undefined : Buffer.from(bytes));
+    return;
+  }
+  outgoing.writeHead(response.status, response.headers);
+  outgoing.end(method === "HEAD" ? undefined : response.body);
+}
+
+export function createPrototypeServer({
+  port = DEFAULT_PORT,
+  mockService = createMockApiService(),
+  maxRequestBytes = MAX_REQUEST_BYTES,
+  integratedRequestHandler,
+} = {}) {
+  if (!Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1 || maxRequestBytes > 1024 * 1024) {
+    throw new TypeError("maxRequestBytes must be an integer from 1 through 1048576");
+  }
   const handle = createPrototypeHandler({ mockService });
   return createServer(async (incoming, outgoing) => {
     try {
       const method = incoming.method ?? "GET";
-      let body;
+      let body = Buffer.alloc(0);
       if (method !== "GET" && method !== "HEAD") {
-        const requestBody = await readRequestBody(incoming);
+        const requestBody = await readRequestBody(incoming, maxRequestBytes);
         if (requestBody.tooLarge) {
-          outgoing.writeHead(413, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
-          outgoing.end(JSON.stringify({ error: { code: "PAYLOAD_TOO_LARGE", message: "Request body is too large." } }));
+          await sendResponse(outgoing, method, tooLargeResponse(incoming.url ?? "/"));
           return;
         }
         body = requestBody.body;
       }
-      const response = await handle({ method, url: incoming.url ?? "/", headers: incoming.headers, body });
-      outgoing.writeHead(response.status, response.headers);
-      if (Buffer.isBuffer(response.body)) outgoing.end(method === "HEAD" ? undefined : response.body);
-      else outgoing.end(method === "HEAD" ? undefined : response.body);
+      const url = incoming.url ?? "/";
+      if (typeof integratedRequestHandler === "function" && requestLike(method, new URL(url, "http://127.0.0.1").pathname)) {
+        const host = incoming.headers.host ?? "127.0.0.1";
+        const fetchRequest = new Request(`http://${host}${url}`, {
+          method,
+          headers: requestHeaders(incoming),
+          ...(body.byteLength ? { body: new Uint8Array(body) } : {}),
+        });
+        const response = await integratedRequestHandler(fetchRequest);
+        await sendResponse(outgoing, method, response);
+        return;
+      }
+      const response = await handle({ method, url, headers: incoming.headers, body: body.toString("utf8") });
+      await sendResponse(outgoing, method, response);
     } catch {
+      const requestUrl = incoming.url ?? "/";
+      if (requestUrl.startsWith("/api/v1")) {
+        const requestId = randomUUID();
+        outgoing.writeHead(503, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "X-Request-Id": requestId,
+        });
+        outgoing.end(JSON.stringify({ error: {
+          code: "TEMPORARILY_UNAVAILABLE", message: "The local request could not be completed", requestId, details: {},
+        } }));
+        return;
+      }
       outgoing.writeHead(500, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
       outgoing.end(JSON.stringify({ error: { code: "INTERNAL_ERROR", message: "The local demo could not complete this request." } }));
     }

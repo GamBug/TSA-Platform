@@ -12,6 +12,10 @@ describe("local static server public-file boundary", () => {
       assert.ok(response.headers["Content-Type"]);
       assert.doesNotMatch(response.body.toString("utf8"), /answerKey|Subtract 2 from each side/);
     }
+    const staffScript = await handler({ method: "GET", url: "/app/staff.js" });
+    assert.equal(staffScript.status, 200);
+    assert.doesNotMatch(staffScript.body.toString("utf8"), /What is x if x \+ 2 = 5\?|Subtract 2 from each side\./);
+    assert.equal((await handler({ method: "GET", url: "/local-auth/session" })).status, 404);
     const index = await handler({ method: "GET", url: "/" });
     const html = index.body.toString("utf8");
     assert.match(html, /lang="vi"/);

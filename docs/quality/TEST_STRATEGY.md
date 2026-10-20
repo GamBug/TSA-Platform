@@ -96,7 +96,7 @@ const required = ['README.md','AGENTS.md',
   'docs/decisions/OPEN_DECISIONS.md',
   ...['AGENT_ONBOARDING','PROJECT_STATE','HANDOFF_PROTOCOL','HANDOFF_TEMPLATE','LAST_HANDOFF'].map(x=>`docs/agents/${x}.md`),
   'docs/quality/TEST_STRATEGY.md'];
-const ignoredDirectories = new Set(['.git','.next','.parcel-cache','.turbo','build','coverage','dist','node_modules','out','target','temp','tmp']);
+const ignoredDirectories = new Set(['.git','.local','.next','.parcel-cache','.turbo','build','coverage','dist','node_modules','out','target','temp','tmp']);
 const sourceExtensions = new Set(['.cjs','.css','.cts','.go','.html','.java','.js','.jsx','.json','.kt','.mjs','.mts','.php','.py','.rb','.rs','.scss','.sh','.sql','.ts','.tsx','.vue','.yaml','.yml']);
 const approvedCodexConfigs = new Set([
   '.codex/config.toml',

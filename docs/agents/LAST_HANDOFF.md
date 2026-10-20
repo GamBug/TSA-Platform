@@ -1,6 +1,6 @@
-# Latest handoff — local DATA/AUTH and manual Bank ingestion verified
+# Latest handoff — persistent same-app staff integration verified
 
-2026-10-19, Asia/Bangkok. Owner scoped DATA-001/AUTH-001 approval is recorded in
+2026-10-20, Asia/Bangkok. Owner scoped DATA-001/AUTH-001 approval is recorded in
 [decisions](../decisions/OPEN_DECISIONS.md#data-001--auth-001--scoped-local-track-b-approval-2026-10-19).
 G1 remains ACCEPTED; G2/G3 unchanged. Branch `feat/track-b-data-auth`, base
 `446277f`. Owner AGENTS.md hash remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`; excluded from commits.
@@ -61,9 +61,45 @@ workspace and persistent dev startup. Named independent human review and lawful
 inventory still gate publication; real exam services have not been implemented.
 
 One writer at a time; default Luna/XHigh, Sol/Medium
-independent review/integration. No Astra/Terra, push/merge/deployment/paid API.
+independent review/integration. Terra/Medium completed a read-only canonical transport mapping plan; bounded
+implementation follows only after Luna released ownership. No Astra,
+push/merge/deployment/paid API.
 Existing frontend remains `npm run dev:b0` at http://127.0.0.1:4173, explicitly mock.
 Human review/publication and lawful inventory remain separate prerequisites.
+
+## Same-app staff checkpoint (2026-10-20)
+
+Manual Bank baseline is `679c380`. Luna/XHigh implemented only existing frontend,
+local composition, focused tests and browser harness; Sol independently reviewed
+code and required private-path, no-TCP, cleanup, factual source hashing, role-error
+and idempotent retry repairs. Root owns scripts/shared records. No dependency,
+schema or accepted-contract change. Owner AGENTS hash above is still identical.
+
+Independent `npm run test:local` PASS13/13, `test:b0` PASS11 nested tests,
+`test:track-b:browser` and `test:b0:browser` PASS on Chromium155. Public app import
+scan via `scanConsumerTree("apps/practice-prototype/public")` returned zero
+violations. Desktop/mobile staff screenshots under
+`/tmp/tsa-track-b-browser-evidence`; coordinator visually inspected mobile editor.
+Actual `NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b`
+started on 127.0.0.1:4174, returned Vietnamese HTML200 and stopped gracefully on
+SIGINT. Local startup retains its owned `.local/track-b` data; no TCP PG listener.
+No hosted-CI claim. Transient transcripts: `/tmp/tsa-local-independent.log`,
+`/tmp/tsa-staff-browser-independent.log`, `/tmp/tsa-b0-local-independent.log`.
+
+Demonstrate: staff workspace → synthetic AUTHOR → edit existing private fixture
+→ create DRAFT → reload/list → logout. Real PG-backed auth and Bank APIs are
+composed with separate restricted role pools; owner migration pool closes before
+requests. Production/unknown modes refuse before filesystem/network effects.
+Source is EXTERNAL/unverified with UNKNOWN rights and actual fixture bytes hash;
+no questions auto-seeded. Candidates cannot read draft/template data. Retry after
+lost successful response creates one version. Existing exam remains explicitly
+in-memory mock, with no real allocation/attempt/scoring or publication claim.
+
+Next: canonical Factory v2 database import/receipts within BANK-001, preserving
+opaque IDs, full private immutable reference graphs, byte digests and DRAFT-only
+state. No provider work. Named independent human review and rights-cleared stock
+remain required before BANK-002/publication and downstream assembly. G2/G3 stay
+unestablished; do not bypass them using synthetic roles or fixture claims.
 
 ## Previous accepted checkpoint (historical; scope blocks superseded above)
 

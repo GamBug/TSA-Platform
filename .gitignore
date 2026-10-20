@@ -36,3 +36,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Persistent synthetic-only local PostgreSQL data
+.local/

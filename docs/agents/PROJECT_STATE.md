@@ -1,13 +1,13 @@
 # Project state
 
-Updated 2026-10-19. This is current navigation; task status lives in
+Updated 2026-10-20. This is current navigation; task status lives in
 [backlog](../tasks/TASK_BACKLOG.md), authority in
 [decisions](../decisions/OPEN_DECISIONS.md), executed evidence in
 [latest handoff](LAST_HANDOFF.md). Earlier snapshots remain in Git.
 
 | Topic | Verified current position |
 |---|---|
-| Immediate priority | Track B first. Scoped owner PostgreSQL/reviewed-SQL and synthetic-only local AUTH approval recorded 2026-10-19. DATA-001 local relational foundation accepted (34 reported real-PG tests PASS); AUTH local development acceptance verified (5 HTTP/PG security tests); manual Bank ingestion verified (10 HTTP/PG tests); staff integration follows on `feat/track-b-data-auth`, base `446277f`. B0.1 remains the runnable mock frontend. |
+| Immediate priority | Track B first. Scoped owner PostgreSQL/reviewed-SQL and synthetic-only local AUTH approval recorded 2026-10-19. DATA-001 local relational foundation accepted (34 reported real-PG tests PASS); AUTH local development acceptance verified (5 HTTP/PG security tests); manual Bank ingestion verified (10 HTTP/PG tests); same-app persistent staff integration verified (13 PG/HTTP tests and Chromium); work continues on `feat/track-b-data-auth`, base `446277f`. B0.1 exam remains mock; local staff mode uses PostgreSQL on 4174. |
 | Engineering checkpoint | G1 disposition `27350b3`; B0 `237da9c`; B0.1 `06849d0`. Same local frontend serves loopback 4173. Eleven B0.1 tests and expanded Chromium journey pass. DATA-001 local migrations001/002 and adapter accepted with 34 real-PG tests; production services remain outside this schema acceptance. |
 | Gates | FOUND-002 COMPLETED; G1 ACCEPTED by owner 2026-10-19 (`0e67485` / audit `81ef8aa`). DATA-001 foundation gate satisfied; scoped local DB mechanisms now have owner disposition; local DATA-001 relational acceptance is recorded; application services remain separate tasks. Bounded FOUND-007 taxonomy reconciliation is accepted; database allocation remains later work. |
 | Architecture | Independent draft-only Question Factory → human-controlled Question Bank → Practice Website. Student requests never require LLM inference. Human review/publication is distinct from validated draft transport. |
@@ -17,8 +17,8 @@ Updated 2026-10-19. This is current navigation; task status lives in
 | Verification | Final G1 audit at `0e67485`: fresh Git clone / pinned npm ci, typecheck/build/smoke; 106 contract tests and 11 emitted-consumer tests; four-artifact drift, import boundary, docs and clean diff PASS. Seven-package installed/license hashes reverified; dated npm audit reports zero advisories. See [audit](../reviews/G1_ACCEPTANCE_AUDIT.md). |
 | Current batch verification | Node24.18/npm11.16: typecheck/build/smoke, 106 contract + 11 emitted + 11 B0.1 tests, drift/import checks PASS. Chromium155 desktop/mobile clear/resume/released review PASS. PostgreSQL18.6 probe 11 checks and cleanup/missing-tools negative PASS. Accepted contract tree unchanged; pg8.23.1 graph/license/advisory evidence is recorded separately. |
 | Limits | No hosted CI observation, production client integration, deployed auth, complete application allocation/grading services, publication or live-provider evidence. Local B0.1 browser behavior is verified separately. These later runtime tasks are not invented G1 prerequisites. Source import policy currently covers the designated synthetic consumer tree; new app consumers must be registered. |
-| Ownership | B0: one reused Luna / XHigh writer; Sol / Medium independent code/browser/regression review and shared-record integration. No new exploratory agent. One Luna/XHigh worker currently owns bounded Bank ingestion; shared records remain with the coordinator. Owner AGENTS.md bytes preserved and excluded. No Terra/Astra, push, merge or deployment. |
-| Next | Integrate verified manual Bank ingestion with the same frontend; AUTH `6f73272` remains the local security baseline. Named independent human review and lawful stock remain prerequisites for publication; no G2/G3 advancement. |
+| Ownership | B0: one reused Luna / XHigh writer; Sol / Medium independent code/browser/regression review and shared-record integration. No new exploratory agent. Luna/XHigh completed manual Bank and staff integration; Terra/Medium supplied a read-only transport plan; shared records remain with the coordinator. Owner AGENTS.md bytes preserved and excluded. No Astra, push, merge or deployment. |
+| Next | Complete bounded canonical Factory transport persistence; AUTH `6f73272` remains the local security baseline. Named independent human review and lawful stock remain prerequisites for publication; no G2/G3 advancement. |
 
 Historical architecture/QA review evidence remains in
 [LOW_COST_REVIEW_001](../reviews/LOW_COST_REVIEW_001.md),

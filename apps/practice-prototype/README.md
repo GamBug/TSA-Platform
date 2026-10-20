@@ -29,3 +29,31 @@ They cover mock-session and answer handling, clearing answers, timer and closure
 ## Limits
 
 The server binds to `127.0.0.1` and has no external requests. Its random session cookie is only an in-memory demo handle, not authentication; the review ownership check is not a production access-control mechanism. It does not use a database, persist progress, select fresh questions, verify content permissions, or provide real exam services. Client code and browser assets are public; the prototype demonstrates server-side separation of the answer key and a post-grade review boundary, but it is not a deployment or browser-bundle security assessment.
+
+## Persistent local staff mode
+
+The existing frontend also supports the owner-authorized synthetic staff adapter:
+
+```sh
+NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b
+```
+
+Requires the root dependencies and PostgreSQL18.6 tools (`PG_BIN` optional).
+Open <http://127.0.0.1:4174>, choose the staff workspace, and log in as the synthetic
+author. Edit the existing question text/options, private key and explanation;
+create a DRAFT and refresh. Reload and restart preserve records in ignored
+`.local/track-b`; Ctrl+C gracefully stops this app's database, retaining its data.
+Reviewer/Bank Manager profiles can see metadata only. The candidate profile is
+denied draft access. Logout invalidates the local session. Mock-only `dev:b0`
+reports that this workspace is unavailable.
+
+Source rights remain UNKNOWN, and there are no approval or publication controls.
+The private template is delivered only after server-side AUTHOR authorization;
+it is absent from public assets. This mode adds real PostgreSQL identity/session
+and Bank draft persistence, while the practice exam still uses mock services.
+Synthetic roles do not establish production authentication or human review.
+
+`npm run test:local` verifies real PostgreSQL/HTTP boundaries and restart
+persistence; `npm run test:track-b:browser` exercises login, lost-response retry,
+one persisted draft, candidate denial and the mock-only unavailable state.
+Desktop/mobile screenshots are written to `/tmp/tsa-track-b-browser-evidence`.

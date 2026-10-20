@@ -1,4 +1,5 @@
 import * as api from "./api.js";
+import { openStaffWorkspace } from "./staff.js";
 
 const app = document.querySelector("#app");
 const announcements = document.querySelector("#announcements");
@@ -170,6 +171,7 @@ function renderLanding() {
   copy.append(element("p", "hero-copy", "Làm quen với nhịp luyện tập ngắn, tập trung và dễ theo dõi. Phiên demo này minh họa thao tác làm bài; nội dung chưa phải học liệu đã duyệt."));
   const actions = element("div", "hero-actions");
   actions.append(actionButton("Chọn bài luyện tập", "catalog-open", () => renderCatalog(), "button primary-light"));
+  actions.append(actionButton("Không gian bản nháp cục bộ", "staff-open", () => openStaffWorkspace(app, renderLanding), "button secondary staff-launch"));
   actions.append(element("span", "", "Một bài một lần · Có đồng hồ demo"));
   copy.append(actions);
   const art = element("div", "hero-art");
@@ -236,6 +238,11 @@ function renderCatalog() {
   for (const domain of state.catalog) grid.append(domainCard(domain));
   fragment.append(grid);
   fragment.append(element("p", "demo-disclaimer", "Đây là bản demo giao diện với phiên trong bộ nhớ. Không có tài khoản thật, cơ sở dữ liệu, phân bổ câu hỏi mới, hoặc cam kết lưu dữ liệu sau khi dừng máy chủ."));
+  const staffCallout = element("section", "staff-callout");
+  staffCallout.append(element("div", "", "Không gian nhân viên cục bộ"));
+  staffCallout.append(element("p", "", "Một khu riêng dùng vai trò tổng hợp và PostgreSQL cục bộ để soạn bản nháp. Không kết nối với phiên luyện tập demo."));
+  staffCallout.append(actionButton("Mở không gian bản nháp", "staff-open", () => openStaffWorkspace(app, renderLanding), "button secondary"));
+  fragment.append(staffCallout);
   fragment.append(footerNote());
   app.replaceChildren(fragment);
 }

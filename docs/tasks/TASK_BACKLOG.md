@@ -233,7 +233,18 @@ New versions stay DRAFT; fingerprints create OPEN flags without confirmation or
 merges. Rights edits affecting selected content fail closed until hold/fan-out
 exists. No review/publication, eligible pointer, canonical Factory import receipt,
 arbitrary stimulus import or approved inventory acceptance follows from this slice.
-Next: same-app local staff integration; parent BANK-001 remains incomplete.
+Manual checkpoint committed as `679c380`. Same-app staff integration VERIFIED:
+Luna/XHigh implemented the existing frontend workspace and private persistent local
+runtime; Sol independently verified 13 PostgreSQL/HTTP tests, both Chromium
+journeys, 11 B0 tests and the actual localhost startup command. Author login,
+private template editing, DRAFT creation and metadata reload/restart persistence
+are real; lost-response retries reuse their request identity. Candidate access is
+denied. Rights remain UNKNOWN, and the exam remains explicitly mock. No schema,
+dependency or contract change in this slice. Worker reservation released.
+Parent BANK-001 remains incomplete; bounded canonical transport mapping is next,
+with Terra/Medium justified by immutable identity/graph normalization and atomic
+receipt/asset persistence. Sol owns shared records and independent verification.
+One writing worker at a time.
 
 Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publication, current-group joins preserve prior history after merge; late-equivalence incident recorded without rewriting snapshots. Canonical factory imports verify hash/receipt atomically, reject changed content under same key and never inherit APPROVED from a package.
 

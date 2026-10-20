@@ -2,7 +2,7 @@
 
 An independent educational practice platform inspired by the publicly documented HUST TSA assessment. Not affiliated with, endorsed by, or an official service of Hanoi University of Science and Technology. Practice scores must not be presented as official TSA scores.
 
-G1 is accepted. Track B is the current priority: the local B0.1 website runs with clearly labeled mock services; owner-approved PostgreSQL foundations and synthetic-only local identity are verified; Bank ingestion is in progress. G2/G3 and production deployment remain unaccepted. See project state for executed evidence.
+G1 is accepted. Track B is the current priority: the local B0.1 website runs with clearly labeled mock services; owner-approved PostgreSQL foundations and synthetic-only local identity are verified; manual Bank ingestion and the same-app staff workspace are verified. G2/G3 and production deployment remain unaccepted. See project state for executed evidence.
 
 ## Start here
 
@@ -53,6 +53,37 @@ this is not approved seed stock or a NEW_ONLY allocation. Session memory, timer,
 saves and results are demonstrations, not durable/authenticated product features.
 Reading/science cards remain unavailable. Do not enter personal information.
 See the [prototype walkthrough and limitations](apps/practice-prototype/README.md).
+
+## PostgreSQL-backed local staff workspace
+
+Use the same frontend with real local identity and Bank draft APIs. Requires the
+pinned Node/npm toolchain, installed PostgreSQL18.6 binaries, and `npm ci`.
+`PG_BIN` can select the PostgreSQL bin directory. From the repository root:
+
+```bash
+NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b
+```
+
+Open **http://127.0.0.1:4174** and choose the staff workspace. Select the synthetic
+author, edit the private fixture template, create a DRAFT, then reload the list.
+Drafts and sessions persist across graceful restart in ignored `.local/track-b`.
+Ctrl+C stops the owned server/database and retains data. The database uses a
+private Unix socket, without a TCP listener; no system database is modified.
+Production/unknown runtime modes refuse startup. Do not enter personal data.
+
+This is synthetic-only development authentication, not production login. Source
+rights remain UNKNOWN; creating a draft does not approve or publish it. The exam
+journey remains the separately labeled in-memory B0.1 mock. No real attempt,
+allocation or scoring integration is claimed. Focused checks:
+
+```bash
+npm run test:local
+npm run test:track-b:browser
+```
+
+The browser check needs existing Chromium (`TRACK_B_BROWSER` selects its path),
+uses temporary data, and writes screenshots to `/tmp/tsa-track-b-browser-evidence`.
+See the [walkthrough](apps/practice-prototype/README.md).
 
 ## Bounded database prerequisite verification
 
