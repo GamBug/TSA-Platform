@@ -1,3 +1,4 @@
+import { drainDeliveryHolds } from './delivery-holds.mjs';
 import { randomUUID } from 'node:crypto';
 import {
   HASH_PATTERN,
@@ -204,7 +205,7 @@ async function quarantine(bankPool, identityService, principal, versionId, key, 
   validateRevision(input.expectedRevision);
   validateReason(input.reason);
 
-  return withIdempotency(bankPool, principal, key,
+  const result = await withIdempotency(bankPool, principal, key,
     `POST /api/v1/question-versions/${versionId}/quarantine`, input,
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
@@ -233,6 +234,8 @@ async function quarantine(bankPool, identityService, principal, versionId, key, 
       const body = { state: 'QUARANTINED', revision };
       return idempotentResult(200, body, versionId);
     });
+  await drainDeliveryHolds(bankPool, principal);
+  return result;
 }
 
 async function confirmSingleton(bankPool, identityService, principal, versionId, key, input) {

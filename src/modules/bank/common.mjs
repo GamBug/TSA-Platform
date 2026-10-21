@@ -236,6 +236,7 @@ export async function withIdempotency(bankPool, principal, key, routeScope, requ
       const body = typeof row.safe_response === 'string' ? JSON.parse(row.safe_response) : row.safe_response;
       return { status: row.response_status, body, replayed: true };
     }
+    await client.query('SELECT pg_advisory_xact_lock(1414742321, 1)');
     const guard = await client.query('SELECT id FROM tsa.bank_state WHERE id = 1 FOR UPDATE');
     if (guard.rowCount !== 1) throw new Error('Bank state guard is unavailable');
     const result = await operation(client);

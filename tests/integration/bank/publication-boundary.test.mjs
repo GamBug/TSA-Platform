@@ -132,7 +132,7 @@ test('production process cannot be overridden by a fixtureScopeId', async () => 
   }
 });
 
-test('migration005 to006 preserves populated source records and installs an empty fixture gate', async () => {
+test('migration005 to009 preserves populated source records and installs empty private gates', async () => {
   const database = await startDisposablePostgres();
   const directory = await mkdtemp(path.join(os.tmpdir(), 'tsa-review-upgrade-'));
   try {
@@ -145,9 +145,11 @@ test('migration005 to006 preserves populated source records and installs an empt
     await database.pool.query("INSERT INTO tsa.sources (id,title,origin) VALUES ($1,'Preserved synthetic upgrade fixture','OWNED')", [id]);
     const previous = (await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows;
     const upgraded = await migrate(database.pool);
-    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql']);
+    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql', '008_bank_delivery_safety.sql', '009_assembly_stock.sql']);
     assert.deepEqual((await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows, previous);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.bank_workflow_fixture_scope')).rowCount, 0);
+    assert.equal((await database.pool.query('SELECT * FROM tsa_private.question_delivery_checks')).rowCount, 0);
+    assert.equal((await database.pool.query('SELECT * FROM tsa_private.form_delivery_holds')).rowCount, 0);
   } finally {
     await database.stop();
     await rm(directory, { recursive: true, force: true });
@@ -184,7 +186,8 @@ async function observeBankWaiter() {
   const deadline=Date.now()+5000;
   while (Date.now()<deadline) {
     const result=await harness.database.pool.query(`SELECT count(*)::int AS count FROM pg_stat_activity
-      WHERE application_name='tsa-bank-api-test' AND wait_event_type='Lock' AND query ILIKE '%bank_state%'`);
+      WHERE application_name='tsa-bank-api-test' AND wait_event_type='Lock'
+        AND (query ILIKE '%bank_state%' OR query ILIKE '%1414742321%')`);
     if (result.rows[0].count>0) return;
     await new Promise((resolve)=>setTimeout(resolve,10));
   }
@@ -228,13 +231,14 @@ test('approval and rights withdrawal serialize in both real PostgreSQL winner or
     } finally {barrier.release();}
     const [a,b]=await Promise.all([first,second]);
     assert.ok(a.value, a.error?.stack);
-    assert.equal(b.error?.code,winner==='APPROVE'?'RIGHTS_CHANGE_REQUIRES_HOLD':'RIGHTS_BLOCKED');
+    if (winner==='APPROVE') assert.ok(b.value, b.error?.stack);
+    else assert.equal(b.error?.code,'RIGHTS_BLOCKED');
     const state=(await harness.database.pool.query(`SELECT q.eligible_version_id,w.state,rd.status
       FROM tsa.questions q JOIN tsa.question_workflow w ON w.question_version_id=$1
       JOIN tsa.source_rights sr ON sr.source_version_id=$2 JOIN tsa.rights_decisions rd ON rd.id=sr.decision_id
       WHERE q.id=$3`,[q.versionId,sourceVersionId,q.questionId])).rows[0];
     assert.deepEqual(state,winner==='APPROVE'
-      ?{eligible_version_id:q.versionId,state:'APPROVED',status:'OWNED'}
+      ?{eligible_version_id:null,state:'APPROVED',status:'REVOKED'}
       :{eligible_version_id:null,state:'IN_REVIEW',status:'REVOKED'});
   }
 });

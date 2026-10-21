@@ -27,6 +27,7 @@
     "test:db:foundation": "node --test tests/integration/database/foundation/*.test.mjs",
     "test:auth": "node --test tests/security/auth/*.test.mjs",
     "test:bank": "node --test tests/integration/bank/*.test.mjs",
+    "test:assembly": "node --test tests/integration/assembly/*.test.mjs",
     "dev:track-b": "npm run build && node src/local/track-b.mjs",
     "test:local": "node --test tests/integration/local/*.test.mjs",
     "test:track-b:browser": "node scripts/verify-track-b-browser.mjs"

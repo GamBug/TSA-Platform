@@ -1,3 +1,4 @@
+import { drainDeliveryHolds } from '../bank/delivery-holds.mjs';
 import { randomUUID } from 'node:crypto';
 import { createReferenceHash } from '../../../packages/contracts/dist/internal.js';
 import {
@@ -144,7 +145,7 @@ export async function registerRightsDecision(bankPool, identityService, principa
       || !isInstant(input.validFrom) || !(input.validTo === null || isInstant(input.validTo))
       || !nonEmptyString(input.evidence, { max: 1024 * 1024 })
       || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0) reject(422, 'VALIDATION_ERROR');
-  return withIdempotency(bankPool, principal, key, `POST /api/v1/source-versions/${sourceVersionId}/rights`, input, async (client) => {
+  const result = await withIdempotency(bankPool, principal, key, `POST /api/v1/source-versions/${sourceVersionId}/rights`, input, async (client) => {
     const sourceVersionResult = await client.query(
       `SELECT sv.id, sv.source_id, sv.version_no, sv.content_hash, sv.metadata, sv.evidence_uri,
               s.title, s.canonical_uri, s.owner_reference, s.origin
@@ -158,9 +159,15 @@ export async function registerRightsDecision(bankPool, identityService, principa
     const revision = prior ? Number(prior.revision) : 0;
     if (revision !== input.expectedRevision) reject(409, 'REVISION_CONFLICT');
 
-    const blocked = await client.query('SELECT tsa.source_has_delivery_dependencies($1) AS affects_selected_content', [sourceVersionId]);
-    if (blocked.rows[0]?.affects_selected_content) reject(409, 'RIGHTS_CHANGE_REQUIRES_HOLD');
 
+    // Preserve a lapse before replacing its current decision. Restoring rights
+    // authorizes future forms, never a previously withdrawn sealed form.
+    if (prior) {
+      const previousDisplay = await client.query('SELECT tsa.bank_source_display_allowed($1) AS allowed', [sourceVersionId]);
+      if (previousDisplay.rows[0]?.allowed !== true) await client.query(
+        "SELECT tsa.bank_apply_delivery_hold('RIGHTS',$1,$2,$3)",
+        [sourceVersionId, principal.userId, 'Previous source rights did not permit delivery']);
+    }
     const decisionId = randomUUID();
     const rightsPayload = {
       id: decisionId,
@@ -227,11 +234,19 @@ export async function registerRightsDecision(bankPool, identityService, principa
     });
     await storeReferenceGraph(client, MANUAL_REFERENCE_NAMESPACE, [evidenceNode]);
     const nextRevision = revision + 1;
+    const display = await client.query('SELECT tsa.bank_source_display_allowed($1) AS allowed',[sourceVersionId]);
+    if (display.rows[0]?.allowed !== true) await client.query("SELECT tsa.bank_apply_delivery_hold('RIGHTS',$1,$2,$3)",
+      [sourceVersionId,principal.userId,'Source rights no longer permit delivery']);
+    await client.query(`UPDATE tsa.questions SET eligible_version_id=NULL WHERE eligible_version_id IS NOT NULL
+      AND EXISTS(SELECT 1 FROM tsa.bank_question_sources(eligible_version_id) s WHERE s.id=$1)
+      AND NOT tsa.bank_question_selection_allowed(eligible_version_id)`,[sourceVersionId]);
     await client.query('UPDATE tsa.bank_state SET eligibility_revision = eligibility_revision + 1, updated_at = clock_timestamp() WHERE id = 1');
     await recordAudit(client, principal.userId, 'SOURCE_RIGHTS_RECORDED', 'source_version', sourceVersionId,
       prior ? revision : null, nextRevision);
     return { status: 201, body: { decisionId, revision: nextRevision }, resourceId: decisionId };
   });
+  await drainDeliveryHolds(bankPool, principal);
+  return result;
 }
 
 export async function createSourceService({ bankPool, identityService }) {

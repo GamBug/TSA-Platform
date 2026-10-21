@@ -417,6 +417,7 @@ async function importFactoryPackageV2(bankPool, identityService, principal, inpu
   const manifestHash=digest(pkg); const namespace=namespaceFor(pkg);
   return withTransaction(bankPool, async (client) => {
     await client.query("SELECT set_config('tsa.bank_actor_id',$1,true)",[principal.userId]);
+    await client.query('SELECT pg_advisory_xact_lock(1414742321,1)');
     await client.query('SELECT id FROM tsa.bank_state WHERE id=1 FOR UPDATE');
     await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[JSON.stringify(['factory-package/2',pkg.producerNamespace,pkg.batchKey])]);
     const prior = await client.query(

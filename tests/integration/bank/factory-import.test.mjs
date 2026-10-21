@@ -60,7 +60,7 @@ async function waitForImportLockWaiters(count) {
     const result = await harness.database.pool.query(
       `SELECT count(*)::int AS count FROM pg_stat_activity
         WHERE application_name='tsa-bank-api-test' AND wait_event_type='Lock'
-          AND query ILIKE '%bank_state%'`);
+          AND (query ILIKE '%bank_state%' OR query ILIKE '%1414742321%')`);
     if (result.rows[0].count >= count) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -948,19 +948,20 @@ test('actual generated import requires independent DISPLAY/GENERATE and territor
 });
 
 
-test('image-bearing imported closures cannot publish before asset sanitization exists', async () => {
+test('image-bearing imported closures are rejected at submission before asset sanitization exists', async () => {
   const pkg=freshPackage(await seedTaxonomy(),{candidateCount:1,withAsset:true});
   await service.importFactoryPackageV2(principal,pkg,capability);
   const scope=(await harness.database.pool.query('SELECT scope_id FROM tsa_private.bank_workflow_fixture_scope')).rows[0].scope_id;
   const workflow=await createPublicationService({bankPool:harness.bankPool,identityService:harness.identity,fixtureScopeId:scope});
   const browser=await loginActor(harness,'reviewer');
-  const reviewerPrincipal=await harness.identity.authenticate(new Request(harness.origin,{headers:{cookie:browser.cookies.join('; ')}}));
+  const authorBrowser=await loginActor(harness,'author');
+  const authorPrincipal=await harness.identity.authenticate(new Request(harness.origin,{headers:{cookie:authorBrowser.cookies.join('; ')}}));
   const q=pkg.candidates[0].question;
-  await workflow.submitReview(principal,q.id,randomUUID(),{expectedRevision:1});
-  await assert.rejects(workflow.review(reviewerPrincipal,q.id,randomUUID(),{
-    expectedRevision:2,contentHash:q.contentHash,decision:'APPROVE',
-    rubric:{correctness:true,unambiguous:true,relevant:true,language:true,explanation:true,rights:true},reason:'Synthetic asset gate check.',
-  }),{code:'ASSET_SANITIZATION_REQUIRED'});
+  await assert.rejects(workflow.submitReview(authorPrincipal,q.id,randomUUID(),{expectedRevision:1}),{code:'ASSET_SANITIZATION_REQUIRED'});
+  const state=await harness.database.pool.query(`SELECT state,revision FROM tsa.question_workflow WHERE question_version_id=$1`,[q.id]);
+  assert.deepEqual(state.rows[0],{state:'DRAFT',revision:'1'});
+  assert.equal((await harness.database.pool.query('SELECT 1 FROM tsa.reviews WHERE question_version_id=$1',[q.id])).rowCount,0);
+  assert.equal((await harness.database.pool.query('SELECT 1 FROM tsa_private.question_delivery_checks WHERE question_version_id=$1',[q.id])).rowCount,0);
 });
 
 

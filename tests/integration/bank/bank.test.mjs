@@ -182,7 +182,7 @@ async function waitForBlockedBankQueries(pattern, expectedCount) {
       `SELECT count(*)::int AS count FROM pg_stat_activity
         WHERE application_name = 'tsa-bank-api-test'
           AND wait_event_type = 'Lock'
-          AND query ILIKE $1`, [pattern]);
+          AND (query ILIKE $1 OR query ILIKE '%1414742321%')`, [pattern]);
     if (result.rows[0].count >= expectedCount) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -599,7 +599,7 @@ test('metadata pagination retains PostgreSQL microseconds without skipping immut
   for (const item of created) assert.ok(seen.has(item.versionId), `missing ${item.versionId} across pages`);
 });
 
-test('rights changes fail closed for an indirect eligible question asset dependency', async () => {
+test('rights withdrawal for an indirect eligible question asset dependency is durable and clears eligibility', async () => {
   const provenanceSource = await registerSource('Eligible question provenance source');
   const assetSource = await registerSource('Question image source');
   const assetId = randomUUID();
@@ -622,13 +622,15 @@ test('rights changes fail closed for an indirect eligible question asset depende
   assert.equal(dependency.rows[0].depends, true);
 
   const revisedRights = await registerRights(assetSource.sourceVersionId, manager, 1, 'REVOKED');
-  await assertError(revisedRights, 409, 'CONCURRENT_MODIFICATION');
+  assert.equal(revisedRights.status, 201);
   const savedRevision = await harness.database.pool.query(
-    `SELECT sr.revision, rd.status::text AS status
+    `SELECT sr.revision, rd.status::text AS status, q.eligible_version_id
        FROM tsa.source_rights sr JOIN tsa.rights_decisions rd ON rd.id = sr.decision_id
-      WHERE sr.source_version_id = $1`, [assetSource.sourceVersionId]);
-  assert.equal(Number(savedRevision.rows[0].revision), 1);
-  assert.equal(savedRevision.rows[0].status, 'OWNED');
+       JOIN tsa.questions q ON q.id=$2
+      WHERE sr.source_version_id = $1`, [assetSource.sourceVersionId,question.questionId]);
+  assert.equal(Number(savedRevision.rows[0].revision), 2);
+  assert.equal(savedRevision.rows[0].status, 'REVOKED');
+  assert.equal(savedRevision.rows[0].eligible_version_id, null);
 });
 
 test('Bank idempotency RLS cannot expose student attempt receipts', async () => {
@@ -688,7 +690,7 @@ test('migration 004 preserves legacy sources and student/staff receipts from 003
         staffReceiptId, authorId, staffKey, sha256('staff request')]);
 
     const latest = await migrate(database.pool, { directory: MIGRATIONS_DIRECTORY });
-    assert.deepEqual(latest.applied, ['004_bank_ingestion.sql', '005_factory_package_v2_import.sql', '006_bank_review_workflow.sql', '007_bank_equivalence.sql']);
+    assert.deepEqual(latest.applied, ['004_bank_ingestion.sql', '005_factory_package_v2_import.sql', '006_bank_review_workflow.sql', '007_bank_equivalence.sql', '008_bank_delivery_safety.sql', '009_assembly_stock.sql']);
     const preservedSource = await database.pool.query(
       `SELECT id, title, canonical_uri, owner_reference, origin, created_by
          FROM tsa.sources WHERE id = $1`, [sourceId]);

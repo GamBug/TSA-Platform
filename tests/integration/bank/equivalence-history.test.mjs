@@ -156,7 +156,7 @@ test('private incidents and student/form probes remain unavailable to non-Bank s
   await assert.rejects(withTransaction(harness.bankPool,(client)=>client.query('SELECT * FROM tsa.form_slots'),{role:'tsa_bank'}),{code:'42501'});
 });
 
-test('populated006 to007 retains existing evidence and installs no synthetic incidents',async()=>{
+test('populated006 to009 retains evidence and installs empty private delivery state',async()=>{
   const database=await startDisposablePostgres();const directory=await mkdtemp(path.join(os.tmpdir(),'tsa-equivalence-upgrade-'));
   try {
     const sourceDirectory=new URL('../../../db/migrations/',import.meta.url);
@@ -166,9 +166,11 @@ test('populated006 to007 retains existing evidence and installs no synthetic inc
     await database.pool.query("INSERT INTO tsa.users(id,issuer,subject) VALUES($1,'synthetic','equivalence-upgrade')",[userId]);
     await database.pool.query("INSERT INTO tsa.duplicate_groups(id,reason,confirmed_by) VALUES($1,'Synthetic preserved group',$2)",[groupId,userId]);
     const before=(await database.pool.query('SELECT * FROM tsa.duplicate_groups')).rows;
-    assert.deepEqual((await migrate(database.pool)).applied,['007_bank_equivalence.sql']);
+    assert.deepEqual((await migrate(database.pool)).applied,['007_bank_equivalence.sql','008_bank_delivery_safety.sql','009_assembly_stock.sql']);
     assert.deepEqual((await database.pool.query('SELECT * FROM tsa.duplicate_groups')).rows,before);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.equivalence_merge_incidents')).rowCount,0);
+    assert.equal((await database.pool.query('SELECT * FROM tsa_private.question_delivery_checks')).rowCount,0);
+    assert.equal((await database.pool.query('SELECT * FROM tsa_private.form_delivery_holds')).rowCount,0);
   }finally{await database.stop();await rm(directory,{recursive:true,force:true});}
 });
 

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertSafeQuestionContent } from './content-safety.mjs';
 import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema } from '../../../packages/contracts/dist/internal.js';
 import { reject, resolveReferenceGraph, UUID_PATTERN, jsonDigest } from './common.mjs';
 
@@ -62,6 +63,16 @@ export async function validateWorkflowTarget(client, target) {
   const failed = await client.query(`SELECT 1 FROM tsa.validation_runs WHERE question_version_id=$1
     AND input_hash=$2 AND outcome<>'PASS' LIMIT 1`, [target.id, target.content_hash]);
   if (failed.rowCount) reject(422, 'VALIDATION_ERROR');
+  assertSafeQuestionContent(question, references);
+  const sourceIds = await collectQuestionSourceIds(client, target, references);
+  const checked = await client.query(`INSERT INTO tsa_private.question_delivery_checks(question_version_id,input_hash,profile)
+    VALUES($1,$2,'text-math-table/1') ON CONFLICT(question_version_id) DO NOTHING RETURNING question_version_id`, [target.id,target.content_hash]);
+  if (checked.rowCount) {
+    for (const sourceId of sourceIds) await client.query('INSERT INTO tsa_private.question_source_dependencies(question_version_id,source_version_id) VALUES($1,$2)',[target.id,sourceId]);
+  } else {
+    const existing = await client.query('SELECT source_version_id FROM tsa_private.question_source_dependencies WHERE question_version_id=$1 ORDER BY source_version_id',[target.id]);
+    if (JSON.stringify(existing.rows.map((row)=>row.source_version_id))!==JSON.stringify([...sourceIds].sort())) reject(422,'VALIDATION_ERROR');
+  }
   return { question, references };
 }
 
@@ -104,7 +115,7 @@ async function assertEquivalence(client, target) {
   if (unmerged.rowCount) reject(422, 'CONSTRAINT_CONFLICT');
 }
 
-async function assertRights(client, target, references) {
+export async function collectQuestionSourceIds(client, target, references) {
   const sourceIds = new Set();
   const normalized = await client.query(`SELECT source_version_id FROM tsa.question_provenance WHERE question_version_id=$1
     UNION SELECT source_version_id FROM tsa.stimulus_sources WHERE stimulus_version_id=$2
@@ -123,6 +134,11 @@ async function assertRights(client, target, references) {
     }
   }
   if (!sourceIds.size) reject(422, 'RIGHTS_BLOCKED');
+  return sourceIds;
+}
+
+async function assertRights(client, target, references) {
+  const sourceIds = await collectQuestionSourceIds(client,target,references);
   const requiredUses = ['DISPLAY'];
   if (['GENERATED', 'AUGMENTED'].includes(target.origin)) requiredUses.push('GENERATE');
   if (target.origin === 'AUGMENTED') requiredUses.push('ADAPT');
@@ -152,10 +168,9 @@ export async function assertPublicationGates(client, target, principal, fixtureS
       AND validator_version='bank-immutable/1' AND outcome='PASS'
       AND created_at>COALESCE(tsa.bank_latest_quarantine_at($1), '-infinity'::timestamptz) LIMIT 1`, [target.id, target.content_hash]);
   if (!validation.rowCount) reject(422, 'VALIDATION_ERROR');
-  // No inspected/sanitized asset pipeline is implemented yet. Fail closed for
-  // image-bearing closures, including stimulus, parent and explanation assets.
-  if (references.some((ref) => ref.kind === 'asset')) reject(422, 'ASSET_SANITIZATION_REQUIRED');
   await assertRights(client, target, references);
+  const allowed = await client.query('SELECT tsa.bank_question_delivery_allowed($1) AS allowed',[target.id]);
+  if (allowed.rows[0]?.allowed !== true) reject(422,'RIGHTS_BLOCKED');
   await assertEquivalence(client, target);
 }
 
@@ -167,6 +182,8 @@ export async function appendWorkflowAudit(client, principal, target, action, aft
 }
 
 export async function quarantineSelectedForms(client, target, reason) {
-  const result = await client.query('SELECT tsa.bank_version_has_sealed_forms($1) AS present', [target.id]);
-  if (result.rows[0]?.present) reject(409, 'QUARANTINE_REQUIRES_HOLD');
+  const actor = await client.query("SELECT current_setting('tsa.bank_actor_id',true) AS id");
+  await client.query("SELECT tsa.bank_apply_delivery_hold('QUARANTINE',$1,$2,$3)",[target.id,actor.rows[0].id,reason]);
+  await client.query(`UPDATE tsa.questions SET eligible_version_id=NULL WHERE eligible_version_id IS NOT NULL
+    AND EXISTS(SELECT 1 FROM tsa.bank_question_ancestors(eligible_version_id) a WHERE a.id=$1)`,[target.id]);
 }
