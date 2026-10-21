@@ -1,11 +1,15 @@
 import {
   AttemptPathParamsSchema,
   AttemptViewSchema,
+  AnswerAckSchema,
+  AnswerPathParamsSchema,
+  AnswerSubmissionRequestSchema,
   CreateAttemptSchema,
   CreationReceiptSchema,
   EmptyCommandBodySchema,
   ErrorHttpStatusByCode,
   IdempotencyKeySchema,
+  ResponseValueSchema,
   StartReceiptSchema,
 } from '../../../packages/contracts/dist/internal.js';
 import { createAllocationService } from '../assembly/allocation.mjs';
@@ -61,10 +65,38 @@ function validateCreateRate(createRate) {
   return Object.freeze({ capacity, refillPerSecond });
 }
 
+function validateSaveRate(saveRate) {
+  if (saveRate === null || typeof saveRate !== 'object' || Array.isArray(saveRate)) {
+    throw new TypeError('Explicit USER_SAVE and ATTEMPT_SAVE rate configuration is required');
+  }
+  const validateBucket = (bucket, label) => {
+    if (bucket === null || typeof bucket !== 'object' || Array.isArray(bucket)) {
+      throw new TypeError(`${label} rate configuration is invalid`);
+    }
+    const { capacity, refillPerSecond } = bucket;
+    if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 1_000
+        || typeof refillPerSecond !== 'number' || !Number.isFinite(refillPerSecond)
+        || refillPerSecond < 0.000001 || refillPerSecond > 1_000) {
+      throw new TypeError(`${label} rate configuration is invalid`);
+    }
+    return Object.freeze({ capacity, refillPerSecond });
+  };
+  return Object.freeze({
+    user: validateBucket(saveRate.user, 'USER_SAVE'),
+    attempt: validateBucket(saveRate.attempt, 'ATTEMPT_SAVE'),
+  });
+}
+
 function parseAttemptId(attemptId) {
   const parsed = AttemptPathParamsSchema.safeParse({ id: attemptId });
   if (!parsed.success) reject(422, 'VALIDATION_ERROR');
   return parsed.data.id;
+}
+
+function parseAnswerPath(attemptId, slotId) {
+  const parsed = AnswerPathParamsSchema.safeParse({ id: attemptId, slotId });
+  if (!parsed.success) reject(422, 'VALIDATION_ERROR');
+  return { attemptId: parsed.data.id, slotId: parsed.data.slotId };
 }
 
 function parseGuard(value, attemptId, userId) {
@@ -120,22 +152,52 @@ function toCreationResult(result) {
   reject(503, 'TEMPORARILY_UNAVAILABLE');
 }
 
+function toAnswerResult(result) {
+  if (result.status === 'SAVED' || result.status === 'REPLAY') {
+    const parsed = AnswerAckSchema.safeParse(result.receipt);
+    if (!parsed.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
+    return { status: 200, body: parsed.data, replayed: result.status === 'REPLAY' };
+  }
+  if (result.status === 'ERROR') {
+    const status = ErrorHttpStatusByCode[result.code] ?? ROUTE_ONLY_STATUS[result.code];
+    if (!status) reject(503, 'TEMPORARILY_UNAVAILABLE');
+    const error = new BankCommandError(status, result.code);
+    if (result.code === 'RATE_LIMITED') {
+      const retryAfterSeconds = result.retryAfter;
+      if (!Number.isSafeInteger(retryAfterSeconds) || retryAfterSeconds < 1) {
+        reject(503, 'TEMPORARILY_UNAVAILABLE');
+      }
+      error.details = { retryAfterSeconds };
+    } else if (result.code === 'REVISION_CONFLICT') {
+      const details = record(result.details);
+      if (details && Number.isSafeInteger(details.currentRevision) && details.currentRevision >= 0) {
+        error.details = { currentRevision: details.currentRevision };
+        const currentAnswer = ResponseValueSchema.safeParse(details.currentAnswer);
+        if (currentAnswer.success) error.details.currentAnswer = currentAnswer.data;
+      }
+    }
+    throw error;
+  }
+  reject(503, 'TEMPORARILY_UNAVAILABLE');
+}
+
 function normalizeRead(value, attemptId, userId) {
   if (value === null || value === undefined) return null;
   return parseReadResult(value, attemptId, userId);
 }
 
 /**
- * Student attempt commands over the restricted exam role. USER_CREATE is
- * charged in its own PostgreSQL transaction; the existing allocator remains
- * responsible for atomic creation, persisted receipt replay, and H1/NEW_ONLY.
+ * Student attempt commands over the restricted exam role. Creation and save
+ * budgets commit in separate PostgreSQL transactions; SQL owns each command's
+ * persisted receipt, current lifecycle guards, and answer revision.
  */
-export function createAttemptService({ examPool, identityService, createRate } = {}) {
+export function createAttemptService({ examPool, identityService, createRate, saveRate } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
   const rate = validateCreateRate(createRate);
+  const saveRates = saveRate === undefined ? null : validateSaveRate(saveRate);
   const allocation = createAllocationService({ examPool, identityService });
 
   async function runReceipt(principal, key, requestHash) {
@@ -165,6 +227,45 @@ export function createAttemptService({ examPool, identityService, createRate } =
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
       const result = await client.query(
         'SELECT tsa.exam_attempt_start($1,$2,$3) AS result', [attemptId, key, bodyHash]);
+      return statusResult(result.rows[0]?.result);
+    }, { role: 'tsa_exam' });
+  }
+
+  async function authorizeSave(principal, attemptId, slotId) {
+    return withTransaction(examPool, async (client) => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+      const result = await client.query('SELECT tsa.exam_authorize_save($1,$2) AS authorized', [attemptId, slotId]);
+      if (typeof result.rows[0]?.authorized !== 'boolean') reject(503, 'TEMPORARILY_UNAVAILABLE');
+      return result.rows[0].authorized;
+    }, { role: 'tsa_exam' });
+  }
+
+  async function consumeSaveBudget(principal, attemptId, slotId, configured) {
+    return withTransaction(examPool, async (client) => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+      const result = await client.query(
+        'SELECT tsa.exam_consume_save_budget($1,$2,$3::numeric,$4::numeric,$5::numeric,$6::numeric) AS result',
+        [attemptId, slotId,
+          String(configured.user.capacity), String(configured.user.refillPerSecond),
+          String(configured.attempt.capacity), String(configured.attempt.refillPerSecond)]);
+      const budget = record(result.rows[0]?.result);
+      if (!budget) reject(503, 'TEMPORARILY_UNAVAILABLE');
+      if (budget.status === 'ERROR') {
+        if (budget.code === 'NOT_FOUND') reject(404, 'NOT_FOUND');
+        reject(503, 'TEMPORARILY_UNAVAILABLE');
+      }
+      if (budget.allowed === true) return;
+      if (budget.allowed === false) failCommand('RATE_LIMITED', budget);
+      reject(503, 'TEMPORARILY_UNAVAILABLE');
+    }, { role: 'tsa_exam' });
+  }
+
+  async function runSave(principal, attemptId, slotId, key, bodyHash, request) {
+    return withTransaction(examPool, async (client) => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+      const result = await client.query(
+        'SELECT tsa.exam_answer_save($1,$2,$3,$4,$5::jsonb) AS result',
+        [attemptId, slotId, key, bodyHash, JSON.stringify(request)]);
       return statusResult(result.rows[0]?.result);
     }, { role: 'tsa_exam' });
   }
@@ -216,6 +317,49 @@ export function createAttemptService({ examPool, identityService, createRate } =
       }
       if (result.status === 'ERROR') failCommand(result.code, result);
       reject(503, 'TEMPORARILY_UNAVAILABLE');
+    }
+    reject(409, 'CONCURRENT_MODIFICATION');
+  }
+
+  async function save(principal, attemptIdInput, slotIdInput, key, input) {
+    requireActor(identityService, principal, 'candidate.attempt.read');
+    const { attemptId, slotId } = parseAnswerPath(attemptIdInput, slotIdInput);
+    if (!IdempotencyKeySchema.safeParse(key).success) reject(422, 'VALIDATION_ERROR');
+
+    let authorized;
+    try {
+      authorized = await authorizeSave(principal, attemptId, slotId);
+    } catch (error) {
+      if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
+      throw error;
+    }
+    if (!authorized) reject(404, 'NOT_FOUND');
+    if (!saveRates) reject(503, 'TEMPORARILY_UNAVAILABLE');
+
+    try {
+      await consumeSaveBudget(principal, attemptId, slotId, saveRates);
+    } catch (error) {
+      if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
+      throw error;
+    }
+
+    // The independent save buckets are charged after ownership/slot authorization
+    // but before strict answer validation, including invalid typed values.
+    const parsedRequest = AnswerSubmissionRequestSchema.safeParse(input);
+    if (!parsedRequest.success) reject(422, 'VALIDATION_ERROR');
+    const request = parsedRequest.data;
+    const bodyHash = jsonDigest(request);
+
+    for (let attempt = 0; attempt < START_RETRIES; attempt += 1) {
+      let result;
+      try {
+        result = await runSave(principal, attemptId, slotId, key, bodyHash, request);
+      } catch (error) {
+        if (isRetryableTransactionConflict(error)) continue;
+        if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
+        throw error;
+      }
+      return toAnswerResult(result);
     }
     reject(409, 'CONCURRENT_MODIFICATION');
   }
@@ -272,5 +416,5 @@ export function createAttemptService({ examPool, identityService, createRate } =
     }
   }
 
-  return Object.freeze({ create, start, read, withReadBoundary });
+  return Object.freeze({ create, start, save, read, withReadBoundary });
 }

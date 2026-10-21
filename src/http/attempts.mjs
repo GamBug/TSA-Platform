@@ -94,7 +94,8 @@ function safeError(error, operation) {
       const message = code === 'FORM_NOT_OPEN' ? 'The form is not open'
         : code === 'FORM_UNAVAILABLE' ? 'The form is unavailable'
           : code === 'IDEMPOTENCY_CONFLICT' ? 'The idempotency key conflicts with an earlier request'
-            : code === 'RATE_LIMITED' ? 'Too many creation requests'
+            : code === 'RATE_LIMITED'
+              ? (operation === 'saveAnswer' ? 'Too many answer save requests' : 'Too many creation requests')
               : code === 'UNAUTHENTICATED' ? 'Authentication is required'
                 : code === 'FORBIDDEN' ? 'Access is not permitted'
                   : code === 'CSRF_FAILED' ? 'Request validation failed'
@@ -145,15 +146,15 @@ async function readJson(request) {
   catch { throw new BankCommandError(400, 'MALFORMED_JSON'); }
 }
 
-/** Loopback-only student create/start/GET adapter using the frozen student routes. */
-export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate } = {}) {
+/** Loopback-only student create/start/save/GET adapter using the frozen student routes. */
+export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate } = {}) {
   if (!identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function'
       || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('A trusted identity service is required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
-  const service = createAttemptService({ examPool, identityService, createRate });
+  const service = createAttemptService({ examPool, identityService, createRate, saveRate });
 
   return async function handleAttemptRequest(request) {
     const requestId = randomUUID();
@@ -181,6 +182,36 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
           });
           return boundary(request);
         });
+      }
+
+      if (method === 'PUT') {
+        operation = 'saveAnswer';
+        const saveMatch = url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)\/answers\/([^/]+)$/);
+        if (!saveMatch) return routeResponse(operation, 404, {
+          error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} },
+        }, requestId);
+        if (url.search !== '') throw new BankCommandError(422, 'VALIDATION_ERROR');
+
+        const principal = await identityService.validateMutation(request);
+        if (!principal) {
+          const authenticated = await identityService.authenticate(request);
+          const code = authenticated ? 'CSRF_FAILED' : 'UNAUTHENTICATED';
+          const status = authenticated ? 403 : 401;
+          const message = authenticated ? 'Request validation failed' : 'Authentication is required';
+          return routeResponse(operation, status, { error: { code, message, requestId, details: {} } }, requestId);
+        }
+        if (!identityService.mayPerform(principal, 'candidate.attempt.read')) {
+          return routeResponse(operation, 403, {
+            error: { code: 'FORBIDDEN', message: 'Access is not permitted', requestId, details: {} },
+          }, requestId);
+        }
+
+        const key = request.headers.get('idempotency-key');
+        const body = await readJson(request);
+        const result = await service.save(principal, saveMatch[1], saveMatch[2], key, body);
+        return routeResponse(operation, result.status, result.body, requestId, result.status === 429
+          ? { 'Retry-After': String(result.body?.error?.details?.retryAfterSeconds ?? 1) }
+          : {});
       }
 
       if (method !== 'POST') return routeResponse('createAttempt', 404, {
