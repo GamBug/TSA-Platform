@@ -10,11 +10,18 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
   const stock = await withTransaction(examPool, async (client) => {
     await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
     await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
-    return (await client.query('SELECT tsa.assembly_standalone_stock($1) AS stock', [blueprintVersionId])).rows[0].stock;
+    const stock = (await client.query('SELECT tsa.assembly_standalone_stock($1) AS stock', [blueprintVersionId])).rows[0].stock;
+    if (!stock) {
+      const state = (await client.query('SELECT tsa.assembly_offering_state($1) AS state', [blueprintVersionId])).rows[0].state;
+      reject(state.code === 'NOT_FOUND' ? 404 : state.code === 'FORM_NOT_OPEN' ? 409 : 410, state.code);
+    }
+    return stock;
   }, { role: 'tsa_exam' });
   if (!stock) reject(404, 'NOT_FOUND');
-  const blueprint = BlueprintConfigSchema.parse(stock.blueprint);
-  if (stock.candidates.length > 10_000) reject(422, 'SEARCH_EXHAUSTED');
+  let blueprint;
+  try { blueprint = BlueprintConfigSchema.parse(stock.blueprint); }
+  catch { reject(422, 'VALIDATION_ERROR'); }
+  if (stock.candidates.length > 10_000) reject(503, 'SEARCH_EXHAUSTED');
   const rightsVersions = stock.rightsVersions.map(({ sourceId, versionId, decision }) => ({
     sourceId, versionId,
     contentHash: `sha256:${createHash('sha256').update(canonicalize(decision)).digest('hex')}`,
@@ -27,7 +34,9 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
     units: stock.candidates.map((member) => ({ id: member.versionId, sectionId: blueprint.sections[0].id, members: [member] })),
     conflicts: stock.conflicts, limits,
   };
-  const parsed = parseAssemblyManifest(input);
+  let parsed;
+  try { parsed = parseAssemblyManifest(input); }
+  catch { reject(422, 'VALIDATION_ERROR'); }
   return {
     ...parsed, historyRevision: stock.historyRevision, offeringRevision: stock.offeringRevision,
     result: runAssemblyReference(parsed.manifest),
