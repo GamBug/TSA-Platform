@@ -966,15 +966,18 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
-2026-10-22 clean-checkout continuation IN_PROGRESS from `13c56ad` under
-[owner's autonomous authority](../decisions/LOCAL_STUDENT_INTEGRATION_AUTHORITY_2026_10_22.md).
-Accountable Sol owns preservation/integration index operations, README/script
-updates, coordinated records and clean-clone verification. Separate read-only
-Sol6.1/Medium reviews; Luna is actually usage-limited. Preserve necessary existing
-UI/demo/fonts as a separate checkpoint, then commit persistent-client main/state
-regression and project records; no working-tree reset/AGENTS/research staging.
-Clean pinned install, actual PG/browser and contract regressions must pass before
-claiming the integrated UI is reproducible from committed source. Evidence pending.
+2026-10-22 clean-checkout continuation IMPLEMENTED/VERIFIED under
+[autonomous authority](../decisions/LOCAL_STUDENT_INTEGRATION_AUTHORITY_2026_10_22.md).
+Baseline `02f2b61`, integration/demo `cf193e4`, portability `53b2c86`, terminal
+shutdown `0cb49a2`; [actual evidence](../reviews/WEB_004_CLEAN_CHECKOUT_VERIFICATION.md).
+Fresh pinned install/build, full PG/static/contract/browser and docs PASS; separate
+clean keyboard actual PASS75 focus/18 AX/22responses. Terminal SIGINT issue found
+by real npm command, fixed via isolated worker and stronger2-test whole-group
+regression; coordinator student8 PASS. Final reviewer runtime context failed,
+static review no P1/P2; do not claim final independent supervisor2PASS. All writers
+released. Only AGENTS/local research remain unstaged, byte-preserved. Manual AT/
+native zoom/full accessibility NOT EXECUTED; packet prepared, WEB-004 IN_PROGRESS.
+No G1/schema change, production stock, push/merge/deploy/Astra/paid model API.
 
 2026-10-22 bounded existing-client PostgreSQL integration **IN_PROGRESS** from
 `ccc14e0`; transport checkpoint `e8a5f5b` (six task files, only two server lines).

@@ -1,28 +1,51 @@
-# Current handoff — clean-checkout integration prepared
+# Current handoff — committed student integration verified from clean checkout
 
-2026-10-22, `feat/track-b-data-auth`, owner autonomous authority recorded in
-[decisions](../decisions/LOCAL_STUDENT_INTEGRATION_AUTHORITY_2026_10_22.md).
-Accountable Sol; separate read-only Sol6.1/Medium review. Luna actually usage-limited.
-`02f2b61` preserves existing UI/demo/font baseline by index-only staging; working-tree
-integrated main unchanged. Persistent main/state test, runnable npm browser aliases,
-disposable student demo and current project records now form the next checkpoint.
-[Verification](../reviews/WEB_004_CLEAN_CHECKOUT_VERIFICATION.md).
+2026-10-22, `feat/track-b-data-auth`. Baseline preservation `02f2b61`, integrated
+client/demo/current records `cf193e4`, portability `53b2c86`, terminal shutdown
+`0cb49a2`. [Full actual evidence](../reviews/WEB_004_CLEAN_CHECKOUT_VERIFICATION.md).
+Accountable Sol; Luna usage-limited; separate read-only Sol6.1/Medium reviews.
+No open P1/P2. This is engineering review, not qualified human content review.
 
-Actual pre-checkpoint student8/launcher2 PASS; separate reviewer launcher2 and
-legacy16/font12+license PASS, no P1/P2. Prior main/keyboard/Firefox reviews remain
-valid; no code changes to accepted backend/G1. Clean-clone installation/PG/browser
-verification is PENDING. Do not yet claim clean-checkout end-to-end success.
+Fresh clone installed locked dependencies with npm ci and built without copying
+owner files/node_modules. Actual foundation34/auth5/Bank94/assembly23/attempts28/
+grading21/recovery16/results6/directory9/student8/scoring5/local13/B0 21/contracts106/
+consumers11, typecheck/build/smoke/drift/import/docs PASS. Chromium actual practice,
+expiry, keyboard, mock and Firefox156 PASS. Separate clean keyboard actual PASS75
+focus entries/zero mismatches,18 AX checks,22 responses; root PASS74. Initial
+restricted reviewer socket failure is distinct from its accepted elevated PASS.
+Hosted CI unobserved. Historical records below retain earlier worktree limitations.
 
-Demo command is explicitly test/synthetic/disposable, loopback and isolated;
-Ctrl+C removes its owned fixture database. It never provisions production stock.
-Manual [assistive-technology/zoom packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md)
-is prepared, NOT EXECUTED. WEB-004 remains IN_PROGRESS. G1 accepted; G2/G3 owner
-accepted; lawful inventory/human rights/content evidence and Track A remain distinct.
+Clean-clone docs/Firefox failures were fixed by explicit local research references
+and Snap-compatible random owned profiles, no browser security changes. Exact demo
+terminal run found real SIGINT process-group shutdown bug; isolated supervisor/
+worker fix and stronger whole-group regression PASS. Final restricted reviewer
+launcher2 runtime attempt failed in its context; static review closed with no
+P1/P2, coordinator final launcher2/student8 PASS. Startup/parent-loss fault branches
+are not exhaustively tested. Actual clean npm demo served200 and stopped with no
+PG error or owned leftover worker/postmaster; npm cancellation status1 is recorded.
 
-AGENTS.md and unrelated owner research remain unstaged and byte-preserved; no
-working-tree reset/push/merge/deployment/publication/Astra/paid model API. Shared
-records are now authorized checkpoint scope, preserving their existing history.
-Sol owns final clean verification; separate reviewer has no write reservation.
+Run from pinned clean checkout:
+`NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student`
+Open printed loopback URL in a dedicated private session, choose synthetic candidate
+A explicitly, start/answer/submit, wait for grade and open released review. Ctrl+C
+discards its owned fixture database. This is disposable synthetic engineering stock,
+not qualified human-approved production inventory or persistent seed provisioning.
+[Run guide](../../apps/practice-prototype/README.md).
+
+Only AGENTS.md and owner-local research remain outside checkpoints, byte-preserved;
+AGENTS SHA256 `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Original snapshots retained under `/tmp/tsa-clean-integration-preserve`; no working
+file was overwritten to create the baseline commit. All reservations released.
+
+WEB-004 remains IN_PROGRESS for qualified screen-reader/native200% zoom/full
+accessibility acceptance. [Manual packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md)
+is prepared, NOT EXECUTED. Next: execute and record that bounded manual review,
+repair actual findings; keep production identity/worker operations separate.
+Recommended Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium review
+when available; qualified human AT assessment remains distinct.
+G1 accepted; G2/G3 owner accepted. Lawful real inventory/qualified independent human
+rights/content evidence and Track A remain outstanding. No push/merge/deploy,
+Astra/paid model API/live student LLM/unauthorized publication.
 
 ---
 

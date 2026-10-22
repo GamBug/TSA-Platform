@@ -1,3 +1,14 @@
+Committed integrated student practice now reproducible from a fresh clone.
+`02f2b61` baseline, `cf193e4` integration/demo, `53b2c86` portability, `0cb49a2`
+terminal shutdown. [Executed evidence](../reviews/WEB_004_CLEAN_CHECKOUT_VERIFICATION.md).
+Pinned npm ci/build, full PG/contract/static and Chrome/Firefox journeys PASS.
+Separate actual clean keyboard PASS75/18/22; final supervisor runtime review was
+restricted/failed, static review no P1/P2; coordinator launcher2/student8 PASS.
+Exact interactive demo starts200 and cleans after Ctrl+C (npm cancellation1).
+Only owner AGENTS/local research remain uncheckpointed; all reservations released.
+Manual AT/native zoom packet NOT EXECUTED; WEB-004 IN_PROGRESS. G2/G3 owner accepted,
+lawful human-reviewed stock/Track A/production operations distinct. No deployment.
+
 Clean-checkout continuation under new autonomous owner authority: baseline `02f2b61`
 preserves existing UI/demo/fonts separately without overwriting integrated main.
 Persistent client/state test, aliases/disposable demo and coordinated records are
