@@ -1,3 +1,38 @@
+# Current handoff — retained local student workspace verified
+
+2026-10-22, `feat/track-b-data-auth`, base `ed953aa`; accountable Sol6.1.
+[Actual evidence](../reviews/WEB_001_RETAINED_WORKSPACE_VERIFICATION.md).
+WEB-001 remains IN_PROGRESS overall; bounded local composition implemented and
+verified. Explicit `LOCAL_STUDENT_ENABLED=true` adds frozen student APIs and existing
+worker/sweeper to retained staff workspace with separate restricted credentials,
+owner closure/full attestation, safe route dispatch and terminal-safe shutdown.
+No new schema/public contract or eligible seed. Default staff behavior preserved.
+
+Run `NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true LOCAL_STUDENT_ENABLED=true npm run dev:track-b`.
+Open printed student URL; fresh catalog is empty. Owned `.local/track-b` retains
+sessions/drafts. Optional absolute `TRACK_B_DATA_DIRECTORY`; Ctrl+C drains before
+stopping owned PG. Disposable approved-test-scope demo remains a separate command.
+
+Actual PG local15/student8/attempt28/grading21/recovery16/directory9/results6/
+Bank94/assembly23/foundation34/auth5/B021/contracts106/consumers11/build/typecheck/
+drift/import/docs and Chromium synthetic exam journey PASS. Retained test proves
+candidate/draft restart persistence, UNKNOWN rights/no eligible seed and unsafe
+credential refusal; CLI test proves two terminal-group shutdowns/retained files.
+Retained positive allocation/grading persistence is NOT demonstrated. Separate
+read-only Sol6.1/Medium static review no P1/P2; independent PG test failed before
+integration due Unix socket permission. Do not claim that test passed.
+
+Owner AGENTS and local research byte-preserved/unstaged; hashes in evidence.
+Reservations released. No push/merge/deploy/paid API/Astra/unauthorized publication.
+G1 accepted; G2/G3 OWNER_ACCEPTED; lawful stock/human review and Track A outstanding.
+Manual screen-reader/native zoom/full accessibility evidence remains pending.
+Next executable card: isolated retained queued-job recovery across full process
+restart, using existing disposable publication scope; preserve production gates.
+Recommended Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium reviewer.
+Engineering review is distinct from qualified human content/accessibility review.
+
+---
+
 # Current handoff — committed student integration verified from clean checkout
 
 2026-10-22, `feat/track-b-data-auth`. Baseline preservation `02f2b61`, integrated

@@ -275,12 +275,16 @@ export async function startPersistentPostgres(dataDirectory, { pgBin } = {}) {
   }
 }
 
-/** Create the two restricted application LOGIN roles; fail closed on existing drift. */
-export async function ensureRuntimeRoles(ownerPool) {
+/** Bootstrap restricted local LOGIN roles; fail closed on existing drift. */
+export async function ensureRuntimeRoles(ownerPool, { student = false } = {}) {
   const roles = [
     { name: 'tsa_track_b_identity', member: 'tsa_identity' },
     { name: 'tsa_track_b_bank', member: 'tsa_bank' },
   ];
+  if (student) roles.push(
+    { name: 'tsa_track_b_exam', member: 'tsa_exam' },
+    { name: 'tsa_track_b_exam_worker', member: 'tsa_exam_worker' },
+  );
   for (const role of roles) {
     await ownerPool.query(`DO $role_setup$
       BEGIN

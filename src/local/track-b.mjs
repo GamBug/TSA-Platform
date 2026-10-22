@@ -1,4 +1,6 @@
+import { prepareStudentComponents } from './student.mjs';
 import { randomUUID } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBankHandler } from '../http/bank.mjs';
@@ -113,6 +115,10 @@ export async function createTrackBRuntime({
   pgBin,
 } = {}) {
   assertLocalEnvironment(env);
+  if (env.LOCAL_STUDENT_ENABLED !== undefined && !['true', 'false'].includes(env.LOCAL_STUDENT_ENABLED)) {
+    throw new Error('LOCAL_STUDENT_ENABLED must be true or false');
+  }
+  const studentEnabled = env.LOCAL_STUDENT_ENABLED === 'true';
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new TypeError('port must be an integer from 0 through 65535');
   if (env.LOCAL_AUTH_TRUSTED_ORIGIN && port === 0) {
     throw new Error('Do not set LOCAL_AUTH_TRUSTED_ORIGIN when requesting an ephemeral port');
@@ -128,8 +134,12 @@ export async function createTrackBRuntime({
   let ownerPool = database.ownerPool;
   let identityPool;
   let bankPool;
+  let examPool;
+  let workerPool;
+  let workerStop;
   let server;
   let closed = false;
+  let closePromise;
   let routeHandlers = null;
   const cleanupErrors = [];
   const cleanup = async () => {
@@ -138,6 +148,9 @@ export async function createTrackBRuntime({
       catch (error) { cleanupErrors.push(error); }
     };
     if (server?.listening) await attempt(() => closeServer(server));
+    if (workerStop) { const stop = workerStop; workerStop = null; await attempt(stop); }
+    if (workerPool) { const pool = workerPool; workerPool = null; await attempt(() => endPoolBounded(pool, 'Worker')); }
+    if (examPool) { const pool = examPool; examPool = null; await attempt(() => endPoolBounded(pool, 'Exam')); }
     if (bankPool) { const pool = bankPool; bankPool = null; await attempt(() => endPoolBounded(pool, 'Bank')); }
     if (identityPool) { const pool = identityPool; identityPool = null; await attempt(() => endPoolBounded(pool, 'Identity')); }
     if (ownerPool) { const pool = ownerPool; ownerPool = null; await attempt(() => endPoolBounded(pool, 'Owner')); }
@@ -151,7 +164,7 @@ export async function createTrackBRuntime({
     await bootstrapLocalSyntheticIdentity(ownerPool, { env: bootstrapEnv });
     await ensureLocalTaxonomy(ownerPool);
     const sourceSeedState = await inspectLocalSourceSeed(ownerPool);
-    await ensureRuntimeRoles(ownerPool);
+    await ensureRuntimeRoles(ownerPool, { student: studentEnabled });
 
     identityPool = createDatabasePool(runtimePoolConfig(database.connectionConfig, 'tsa_track_b_identity', 'tsa-track-b-identity'), {
       max: 4, connectionTimeoutMillis: 2_000, applicationName: 'tsa-track-b-identity',
@@ -160,9 +173,22 @@ export async function createTrackBRuntime({
       max: 6, connectionTimeoutMillis: 2_000, applicationName: 'tsa-track-b-bank',
     });
 
+    if (studentEnabled) {
+      examPool = createDatabasePool(runtimePoolConfig(database.connectionConfig, 'tsa_track_b_exam', 'tsa-track-b-exam'));
+      workerPool = createDatabasePool(runtimePoolConfig(database.connectionConfig, 'tsa_track_b_exam_worker', 'tsa-track-b-exam-worker'));
+    }
+
     // Requests must never run with the migration owner pool still open.
     await database.closeOwnerPool();
     ownerPool = null;
+
+    const rate = Object.freeze({ capacity: 100, refillPerSecond: 10 });
+    const student = studentEnabled ? await prepareStudentComponents({
+      identityPool, examPool, workerPool, env, port,
+      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'local-retained-student',
+      leaseSeconds: 30, retrySeconds: 1,
+      createRate: rate, saveRate: { user: rate, attempt: rate },
+    }) : null;
 
     const integratedRequestHandler = async (request) => {
       if (!routeHandlers) {
@@ -174,6 +200,8 @@ export async function createTrackBRuntime({
       const pathname = new URL(request.url).pathname;
       if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request);
       if (pathname === TEMPLATE_PATH) return routeHandlers.templateHandler(request);
+      if (student && (pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
+          || pathname.startsWith('/api/v1/attempts/'))) return routeHandlers.attemptHandler(request);
       if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) return routeHandlers.bankHandler(request);
       return null;
     };
@@ -211,7 +239,9 @@ export async function createTrackBRuntime({
       if (!identityService.mayPerform(principal, 'bank.question.author')) return response(403, { error: 'FORBIDDEN' });
       return response(200, { template: buildTemplate(sourceSeed) }, { 'x-request-id': requestId });
     };
-    routeHandlers = { authHandler, bankHandler, templateHandler };
+    const attemptHandler = student?.createHandler({ identityService, trustedOrigin: origin });
+    routeHandlers = { authHandler, bankHandler, templateHandler, attemptHandler };
+    if (student) workerStop = student.startWorker();
 
     return {
       server,
@@ -219,11 +249,13 @@ export async function createTrackBRuntime({
       port: address.port,
       dataDirectory: absoluteDataDirectory,
       syntheticOnly: true,
+      studentEnabled,
       identityPool,
       bankPool,
       async close() {
         if (closed) return;
-        await cleanup();
+        closePromise ??= cleanup();
+        return closePromise;
       },
     };
   } catch (error) {
@@ -241,28 +273,54 @@ function isDirectExecution() {
   return entrypoint !== undefined && pathToFileURL(path.resolve(entrypoint)).href === import.meta.url;
 }
 
-if (isDirectExecution()) {
+if (isDirectExecution() && process.argv[2] !== '--workspace-worker') {
+  // Keep the postmaster out of the terminal process group. The worker drains
+  // HTTP and grading before stopping its owned retained database.
+  const worker = spawn(process.execPath, [fileURLToPath(import.meta.url), '--workspace-worker'], {
+    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], env: process.env,
+  });
+  worker.stdout.pipe(process.stdout); worker.stderr.pipe(process.stderr);
+  let stopping = false;
+  const stop = (signal) => {
+    if (stopping) return;
+    stopping = true;
+    if (worker.exitCode === null && worker.signalCode === null) worker.kill(signal);
+  };
+  process.on('SIGINT', () => stop('SIGINT'));
+  process.on('SIGTERM', () => stop('SIGTERM'));
+  worker.once('error', (error) => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
+  worker.once('close', (code, signal) => { process.exitCode = signal ? 1 : code ?? 1; });
+} else if (isDirectExecution()) {
   let runtime;
+  let stopRequested = process.connected === false;
+  let stopping = false;
+  const stop = async () => {
+    stopRequested = true;
+    if (!runtime || stopping) return;
+    stopping = true;
+    try { await runtime.close(); process.exitCode = 0; }
+    catch (error) {
+      process.stderr.write(`Track B shutdown was incomplete: ${error instanceof Error ? error.message : 'unknown error'}\n`);
+      process.exitCode = 1;
+    } finally { if (process.connected) process.disconnect(); }
+  };
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+  process.once('disconnect', stop);
   try {
     assertLocalEnvironment(process.env);
     const portText = process.env.PORT;
     const port = portText === undefined ? DEFAULT_PORT : /^(0|[1-9]\d{0,4})$/.test(portText) ? Number(portText) : NaN;
     if (!Number.isSafeInteger(port) || port > 65_535) throw new Error('PORT must be an integer from 0 through 65535');
-    runtime = await startTrackB({ env: process.env, dataDirectory: path.join(ROOT, '.local', 'track-b'), port });
+    runtime = await startTrackB({ env: process.env, dataDirectory: process.env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b'), port });
     process.stdout.write(`Track B local workspace listening at ${runtime.origin}\n`);
     process.stdout.write(`Persistent synthetic-only PostgreSQL data: ${runtime.dataDirectory}\n`);
-    const stop = async () => {
-      try { await runtime.close(); process.exit(0); }
-      catch (error) {
-        process.stderr.write(`Track B shutdown was incomplete: ${error instanceof Error ? error.message : 'unknown error'}\n`);
-        process.exitCode = 1;
-      }
-    };
-    process.once('SIGINT', () => { void stop(); });
-    process.once('SIGTERM', () => { void stop(); });
+    if (runtime.studentEnabled) process.stdout.write(`Retained student practice: ${runtime.origin}/?student=postgres\n`);
+    if (stopRequested) await stop();
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'unknown startup failure';
     process.stderr.write(`Track B local workspace did not start: ${reason}\n`);
     process.exitCode = 1;
+    if (process.connected) process.disconnect();
   }
 }

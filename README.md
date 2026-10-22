@@ -2,7 +2,7 @@
 
 An independent educational practice platform inspired by the publicly documented HUST TSA assessment. Not affiliated with, endorsed by, or an official service of Hanoi University of Science and Technology. Practice scores must not be presented as official TSA scores.
 
-G1 is accepted. Track B is the current priority: the local B0.1 website runs with clearly labeled mock services; owner-approved PostgreSQL foundations and synthetic-only local identity are verified; manual Bank ingestion and the same-app staff workspace are verified. G2/G3 and production deployment remain unaccepted. See project state for executed evidence.
+G1 is accepted; G2/G3 are owner accepted. Track B has verified local PostgreSQL Bank, allocation, student delivery and grading services, with an opt-in student client. The default prototype remains mock. Retained local student mode seeds no eligible inventory; lawful stock and qualified human review remain prerequisites for real publication. Production deployment is not authorized. See project state for executed evidence.
 
 ## Start here
 
@@ -15,6 +15,12 @@ G1 is accepted. Track B is the current priority: the local B0.1 website runs wit
 - Evidence: [research assessment](docs/research/RESEARCH_ASSESSMENT.md); the [original research](docs/research/TSA_DEEP_RESEARCH.md) is preserved as received.
 
 The proposed first slice is a small, legally usable, human-reviewed question bank → assembled practice exam → timed attempt → persisted answers → practice score and explanations. Default assembly is personalized and excludes prior stable identities/equivalents for that student. The [Question Factory](docs/specifications/QUESTION_FACTORY_SPEC.md) is an independent early research/production track, never a live examination dependency; see [reuse policy](docs/specifications/QUESTION_REUSE_POLICY.md).
+
+For the retained local staff and student stack, run
+`NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true LOCAL_STUDENT_ENABLED=true npm run dev:track-b`.
+Open the printed student URL. A fresh workspace has an empty catalog; it does not
+promote synthetic drafts. For a disposable engineering-only exam journey, use the
+[student run guide](apps/practice-prototype/README.md#disposable-postgresql-student-demonstration).
 
 ## Documentation authority
 

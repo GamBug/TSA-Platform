@@ -76,9 +76,9 @@ Screenshots/report are written to `/tmp/tsa-b0-browser-evidence` by default;
 See [latest executed evidence](../../docs/reviews/WEB_B0_3_VERIFICATION.md) for observed
 results and limitations.
 
-## Limits
+## Default mock server limits
 
-The server binds to `127.0.0.1` and has no external requests. Its random session cookie is only an in-memory demo handle, not authentication; the review ownership check is not a production access-control mechanism. It does not use a database, persist progress, select fresh questions, verify content permissions, or provide real exam services. Client code and browser assets are public; the prototype demonstrates server-side separation of the answer key and a post-grade review boundary, but it is not a deployment or browser-bundle security assessment.
+The default mock server binds to `127.0.0.1` and has no external requests. Its random session cookie is only an in-memory demo handle, not authentication; the review ownership check is not a production access-control mechanism. It does not use a database, persist progress, select fresh questions, verify content permissions, or provide real exam services. Client code and browser assets are public; the prototype demonstrates server-side separation of the answer key and a post-grade review boundary, but it is not a deployment or browser-bundle security assessment.
 
 ## Persistent local staff mode
 
@@ -97,7 +97,7 @@ Reviewer/Bank Manager profiles can see metadata only. The candidate profile is
 denied draft access. Logout invalidates the local session. Mock-only `dev:b0`
 reports that this workspace is unavailable.
 
-Source rights remain UNKNOWN, and there are no approval or publication controls.
+Source rights remain UNKNOWN; this staff UI offers no approval or publication controls.
 The private template is delivered only after server-side AUTHOR authorization;
 it is absent from public assets. This mode adds real PostgreSQL identity/session
 and Bank draft persistence, while the practice exam still uses mock services.
@@ -110,6 +110,34 @@ Desktop/mobile screenshots are written to `/tmp/tsa-track-b-browser-evidence`.
 
 To start an independent mock preview, run `PORT=4176 npm run dev:b0` and open
 `http://127.0.0.1:4176`. No running preview is implied by this checkout.
+
+## Retained local student mode
+
+```sh
+NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true LOCAL_STUDENT_ENABLED=true npm run dev:track-b
+```
+
+Open the printed `/?student=postgres` URL in a dedicated private browser session.
+The same local workspace serves staff and student APIs, with separate restricted
+identity, Bank, exam and grading-worker PostgreSQL logins. Existing student
+allocation/delivery/save/submit/result handlers and the expiry/grading loop are
+reused. The migration owner connection closes before serving requests.
+
+The default owned database remains `.local/track-b`. Optionally set
+`TRACK_B_DATA_DIRECTORY` to an absolute private path; existing ownership/path
+checks apply. `PORT=0` chooses an ephemeral loopback port. Ctrl+C drains the app
+and worker before stopping its owned PostgreSQL process; it retains the data.
+Sessions and author drafts persist across restart. Exam/worker roles are
+provisioned only with `LOCAL_STUDENT_ENABLED=true`; other values besides `false`
+or unset are rejected. Omit this opt-in for the existing staff-only behavior.
+
+A fresh workspace has no blueprint offerings or eligible questions, so its catalog
+is empty. No synthetic draft, review decision, rights assertion or eligible stock
+is provisioned by this command. Existing publication and rights gates still apply.
+This is local synthetic identity, not production authentication or deployment.
+Actual retained-workspace verification covers empty stock and draft/session
+persistence; it does not claim a retained approved exam journey. The disposable
+demo below separately exercises the complete synthetic exam flow.
 
 ## Disposable PostgreSQL student demonstration
 

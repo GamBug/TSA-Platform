@@ -173,8 +173,8 @@ function createWorkerLoop(sweeper, worker, pollMilliseconds) {
   };
 }
 
-/** Compose the local student HTTP handlers and a separate trusted grading poller. */
-export async function createStudentRuntime({
+/** Prepare attested student components for an existing local HTTP server. */
+export async function prepareStudentComponents({
   identityPool,
   examPool,
   workerPool,
@@ -195,6 +195,20 @@ export async function createStudentRuntime({
   const sweeper = createExamSweeper({ workerPool, executorId, batchSize: sweepBatchSize });
   await assertStudentRuntimePools({ identityPool, examPool, workerPool });
 
+  return Object.freeze({
+    env: config.env,
+    createHandler({ identityService, trustedOrigin }) {
+      return createAttemptHandler({ examPool, identityService, trustedOrigin,
+        createRate: config.rates.createRate, saveRate: config.rates.saveRate });
+    },
+    startWorker() { return createWorkerLoop(sweeper, worker, pollMilliseconds); },
+  });
+}
+
+/** Compose the local student HTTP handlers and a separate trusted grading poller. */
+export async function createStudentRuntime(options = {}) {
+  const { identityPool, port = DEFAULT_PORT } = options;
+  const components = await prepareStudentComponents(options);
   let routes = null;
   let workerStop = null;
   let closePromise = null;
@@ -223,20 +237,14 @@ export async function createStudentRuntime({
     }
     const origin = `http://127.0.0.1:${address.port}`;
     const handlerEnv = Object.freeze({
-      ...config.env,
+      ...components.env,
       LOCAL_AUTH_TRUSTED_ORIGIN: origin,
     });
     const identityService = await createLocalSyntheticIdentityService(identityPool, { env: handlerEnv });
     const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv });
-    const attemptHandler = createAttemptHandler({
-      examPool,
-      identityService,
-      trustedOrigin: origin,
-      createRate: config.rates.createRate,
-      saveRate: config.rates.saveRate,
-    });
+    const attemptHandler = components.createHandler({ identityService, trustedOrigin: origin });
     routes = Object.freeze({ authHandler, attemptHandler });
-    workerStop = createWorkerLoop(sweeper, worker, pollMilliseconds);
+    workerStop = components.startWorker();
 
     return Object.freeze({
       server,

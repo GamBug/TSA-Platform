@@ -596,6 +596,20 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
 
 ## WEB-001 — Student vertical slice
 
+2026-10-22 bounded retained local composition IMPLEMENTED/VERIFIED from `ed953aa`:
+explicit opt-in, separate restricted exam/worker credentials, owner closed before
+attestation/serving, frozen route/worker reuse, terminal-safe retained lifecycle.
+Actual local15/student8/attempt28/grading21/recovery16/results6/directory9/Bank94/
+assembly23/foundation34/auth5/B021/contracts106/consumers11/build/typecheck/drift/
+import/docs and actual Chromium synthetic journey PASS. Separate read-only
+Sol6.1/Medium no P1/P2; its PG run blocked at Unix socket permission, no passing
+independent PG claim. [Evidence](../reviews/WEB_001_RETAINED_WORKSPACE_VERIFICATION.md).
+Sol accountable; Luna/XHigh usage-limited. No eligible seed/publication or frozen
+contract changes. Owner AGENTS/research preserved. Reservations released.
+Recommended next implementer Sol6.1/High for isolated retained queued-job restart
+recovery tests, separate Sol6.1/Medium review; qualified content/AT reviewers remain
+distinct. Actual retained positive exam/grading journey is not yet demonstrated.
+
 Phase 02.75 acceptance: default personal NEW_ONLY catalog/create flow; display mode, start TTL, explicit shortage and separately confirmed review/fixed alternatives. Browser test two attempts with no repeats, exhausted inventory, no automatic fallback or AI call.
 
 Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent domain-test countdown, persisted 600-second start deadline while CREATED, accessible <=60-second warning once per test, locked/future labels and ICT (UTC+7) absolute times. Browser tests cover resume inside warning window, denied late saves, 429 retry without false saved state, CANCELLED reason, existing-attempt conflict recovery and admission-window disclosure before start. The UI must not imply a rule for ordinary schedule edits after creation until the owner resolves it. Changing browser timezone must not change countdown or authoritative deadlines.
@@ -604,7 +618,7 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 - Prerequisites: frozen contracts, EXAM-001 for integration; EXAM-002 and SCORE-001 for completion. Files: src/app student routes, student components/styles, tests/e2e/student/**.
 - Deliverables: accessible Vietnamese practice flow for three types; no duplicated business clock/scorer. Acceptance: student completes the starter exam, resumes after disconnect, sees save failures, can submit persisted answers knowingly and read results.
 - Required tests: browser full journey, keyboard-only flow, math/table readability, multi-tab conflict, offline/reconnect and expiry; inspect network/hydration for answer leaks.
-- Priority P0; complexity M; risks: optimistic UI concealing failed save, inaccessible interactions. Status: BLOCKED (contracts/backend). Suggested implementer: frontend engineer (e.g. Antigravity if assigned); review: independent browser/UX reviewer. Actual assignee: none.
+- Priority P0; complexity M; risks: optimistic UI concealing failed save, inaccessible interactions. Status: IN_PROGRESS (bounded backend/client/local composition verified; remaining acceptance gaps in evidence). Suggested implementer: Sol6.1/High while Luna is usage-limited; independent Sol6.1/Medium engineering reviewer plus qualified accessibility reviewer. Accountable implementer: Sol; reservations released.
 
 ## WEB-002 — Minimal staff review interface
 
