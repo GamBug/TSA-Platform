@@ -1,6 +1,16 @@
 # Quality and verification strategy
 
-Status: PROPOSED test requirements; no application tests exist or have passed. Task owners implement tests with their features. [Backlog](../tasks/TASK_BACKLOG.md) defines completion criteria; [latest handoff](../agents/LAST_HANDOFF.md) records actual checks. Use synthetic or explicitly authorized data, never protected exam dumps or production PII.
+Status: verification requirements with executed task evidence recorded below and in task-specific review records. Passing bounded checks do not imply full release or accessibility acceptance. [Backlog](../tasks/TASK_BACKLOG.md) defines completion criteria; [latest handoff](../agents/LAST_HANDOFF.md) records actual checks. Use synthetic or explicitly authorized data, never protected exam dumps or production PII.
+
+Current executed student integration evidence (2026-10-22):
+[WEB-004 verification](../reviews/WEB_004_PERSISTENT_STUDENT_VERIFICATION.md)
+records actual Chromium/PostgreSQL and separate engineering review. It supplements
+the proposed requirements; full browser/accessibility/pilot acceptance is pending.
+
+Executed keyboard/reflow and Firefox checks (2026-10-22) are recorded in
+[WEB-004 cross-browser evidence](../reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md).
+Half-width reflow and AX smoke checks do not establish native zoom, qualified
+screen-reader testing or WCAG conformance. See that record for actual limitations.
 
 ## Layers and release policy
 
@@ -104,6 +114,9 @@ const approvedCodexConfigs = new Set([
   '.codex/agents/tsa_builder.toml',
   '.codex/agents/tsa_complex_builder.toml',
   '.codex/agents/tsa_reviewer.toml']);
+const approvedFontAssets = new Set([400,500,600,700].flatMap(weight=>
+  ['latin','latin-ext','vietnamese'].map(subset=>
+    `apps/practice-prototype/public/fonts/be-vietnam-pro-${weight}-${subset}.woff2`)));
 const errors=[], warnings=[]; let links=0;
 let files=[];
 try {
@@ -142,7 +155,7 @@ if(hash!=='97a5bbe5844626043a5aa92bef7813a1fdbe1ba7d0d65e2bce3970f4c0dd2284') er
 const reviewPath='docs/reviews/ARCHITECTURE_REVIEW_001.md';
 if(!fs.existsSync(reviewPath)||crypto.createHash('sha256').update(fs.readFileSync(reviewPath)).digest('hex')!=='d78a114027d3441967a2a7756d1a44bf6c6e46a80d537c027a3265ce2669ee34') errors.push('Review input missing/changed');
 const unexpected=files.filter(p=>{
-  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)) return false;
+  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)||approvedFontAssets.has(p)) return false;
   return !sourceExtensions.has(path.extname(p).toLowerCase());
 });
 if(unexpected.length) errors.push(`Unsupported tracked artifacts: ${unexpected.join(', ')}`);

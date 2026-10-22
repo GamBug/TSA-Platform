@@ -27,7 +27,7 @@ no reference attempt creation/submission, credential inspection or account edits
 The approval scope is recorded in [decisions](../decisions/OPEN_DECISIONS.md).
 
 Fresh authenticated catalog/detail/taking/result/review observations and safe
-computed CSS are recorded in [research](../research/VN_EXAMS_UI_GAP_ANALYSIS.md).
+computed CSS are recorded in `docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md` (owner local research, not checkpointed).
 Private evidence is ignored at `tmp/vn-exams-ui-20261020/`; required taking,
 mobile-taking, result and review PNG files exist and their dimensions/bytes/SHA
 were verified. `verified-screenshot-manifest.json` and

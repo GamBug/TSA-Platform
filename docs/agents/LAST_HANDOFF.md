@@ -1,3 +1,1042 @@
+# Current handoff — clean-checkout integration prepared
+
+2026-10-22, `feat/track-b-data-auth`, owner autonomous authority recorded in
+[decisions](../decisions/LOCAL_STUDENT_INTEGRATION_AUTHORITY_2026_10_22.md).
+Accountable Sol; separate read-only Sol6.1/Medium review. Luna actually usage-limited.
+`02f2b61` preserves existing UI/demo/font baseline by index-only staging; working-tree
+integrated main unchanged. Persistent main/state test, runnable npm browser aliases,
+disposable student demo and current project records now form the next checkpoint.
+[Verification](../reviews/WEB_004_CLEAN_CHECKOUT_VERIFICATION.md).
+
+Actual pre-checkpoint student8/launcher2 PASS; separate reviewer launcher2 and
+legacy16/font12+license PASS, no P1/P2. Prior main/keyboard/Firefox reviews remain
+valid; no code changes to accepted backend/G1. Clean-clone installation/PG/browser
+verification is PENDING. Do not yet claim clean-checkout end-to-end success.
+
+Demo command is explicitly test/synthetic/disposable, loopback and isolated;
+Ctrl+C removes its owned fixture database. It never provisions production stock.
+Manual [assistive-technology/zoom packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md)
+is prepared, NOT EXECUTED. WEB-004 remains IN_PROGRESS. G1 accepted; G2/G3 owner
+accepted; lawful inventory/human rights/content evidence and Track A remain distinct.
+
+AGENTS.md and unrelated owner research remain unstaged and byte-preserved; no
+working-tree reset/push/merge/deployment/publication/Astra/paid model API. Shared
+records are now authorized checkpoint scope, preserving their existing history.
+Sol owns final clean verification; separate reviewer has no write reservation.
+
+---
+
+# Current handoff — keyboard/reflow and Firefox verified
+
+2026-10-22, `feat/track-b-data-auth`, base `e136627`; local checkpoint `13c56ad`; WEB-004 IN_PROGRESS.
+[Executed evidence](../reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md).
+Accountable Sol implemented Firefox test, narrow persistent-client focus fixes and
+final verification. Native Luna/XHigh wrote the initial keyboard mode and reproduced
+failures, then hit its actual usage limit; Sol completed it directly. Separate
+read-only Sol6.1/Medium reviewed final code/evidence, no open P1/P2. It did not run
+browsers. Engineering review is not qualified human content or screen-reader review.
+
+Actual Chromium155/PostgreSQL18.6 keyboard-only login/catalog/start, SC/MC/TF saves,
+forward/reverse modal containment, Escape restoration, submission/pending/grade,
+released review and return PASS:76 focus entries, zero mismatches,18 AX smoke checks,
+22 inspected API responses,640 CSS-pixel half-width reflow and six screenshots.
+Persistent route transitions and disappearing owned-focus targets now reach the
+appropriate heading; same-screen redraws preserve stable owned controls. Native
+submit dialogs include SUMMARY in the bounded forward/reverse Tab cycle.
+
+Actual Firefox156/geckodriver0.37.1 mixed-type student journey PASS after final
+fixes: saved answers and original clock text survive fresh reload, worker outage
+shows pending then100% result, explicit released owner review. Privacy inspection
+covers captured initial-document pre-release responses; resource-origin check is
+final-document only. No all-traffic or uncaught-exception claim for Firefox.
+
+Final B0 21/student6/local13/contracts106/consumers11/build/typecheck/import,
+Chromium default+real expiry+mock and Firefox PASS. Restricted B0 showed five file
+wrappers only; permitted run established actual21. Docs FAIL unchanged owner
+research whitespace/four missing temporary screenshots. Hosted CI unobserved.
+Two native zoom probes did not change DPR/viewport: manual200% page zoom remains
+NOT VERIFIED. AX/reflow are not screen-reader/WCAG conformance evidence.
+
+Owner AGENTS unchanged SHA256
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Thirteen unrelated tracked diffs and19 original untracked files byte-compared
+unchanged; server owner baseline preserved. Main/UI/shared records remain unstaged.
+Task-owned opt-in browser scripts/evidence are checkpointed in `13c56ad`,
+but require the owner-preserving working-tree UI; a clean checkout does not contain
+that integrated UI. State test remains unstaged. Recovery snapshot:
+`/tmp/tsa-web004-accessibility-preserve`; updated integration-only patch against the
+owner baseline: `/tmp/tsa-client-owner-baseline/persistent-main-only.patch`.
+Do not apply the latter to HEAD assuming the owner baseline is already committed.
+
+All reservations released. Next exact card: bounded qualified screen-reader and
+manual native200% zoom review packet against this existing client, then repair
+observed defects and safely integrate the preserved UI baseline. Recommend
+Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium engineering review
+when available; human usability review remains distinct. No new Bank/UI redesign.
+G1 accepted; G2/G3 OWNER_ACCEPTED. Lawful inventory/qualified independent human
+rights/content evidence and production identity/worker operation remain separate.
+Track A incomplete. No push/merge/deploy/Astra/paid API/live student LLM/publication.
+
+---
+
+# Current handoff — persistent student browser journey verified
+
+2026-10-22, branch `feat/track-b-data-auth`, checkpoints `ccc14e0` directory and
+`e8a5f5b` student transport, `8f8137f` verification and `e136627` expiry fixture/evidence. [Executed evidence](../reviews/WEB_004_PERSISTENT_STUDENT_VERIFICATION.md).
+WEB-004 IN_PROGRESS. Actual native Luna/XHigh implemented existing-client changes;
+accountable Sol implemented transport, integration repairs and PG/browser checks.
+Separate read-only native Sol6.1/Medium independently ran transport3/stale-identity2/
+PGtransport1, reviewed final delta and closed two P2 findings; no open P1/P2. It
+inspected coordinator Chromium evidence but did not rerun Chromium. No human
+content-review or formal WEB/EXAM/SCORE acceptance follows.
+
+Explicit local `?student=postgres` now reaches real catalog/history/allocation,
+immutable safe delivery, typed acknowledged revision saves, durable submission,
+independent queued grading, released result and fresh protected review. Actual
+Chromium/PG verifies mixed types, retry after lost committed ACK, minimum-selection
+unsaved guards, late-account history isolation, original clocks/answers after fresh
+reload, forward/backward clock/timezone resistance, pending worker/recovery to100%,
+HTTP restart, rights revocation, foreign denial, safe shortage and private-response
+checks. No mock fallback, publication, automatic content seed or new public API.
+
+Actual Node24.18/npm11.16/PG18.6/Chromium155: student6/local13/B0 21, both new real
+and existing mock browser journeys, contracts106/consumers11/build/typecheck/smoke/
+drift/import PASS. Earlier backend directory9/Bank94/assembly23/DATA34/attempts28/
+grading21/results6/recovery16/auth5 PASS in this continuation. Restricted contract
+run failed two subprocess wrappers; permitted rerun106 PASS. Docs FAIL unchanged:
+owner research whitespace/four missing temporary screenshots. Hosted CI unobserved.
+
+Clean local clone `/tmp/tsa-student-e8a5f5b-clean`: build/student6/B0 14 PASS without
+owner changes. Offline npm ci failed ENOTCACHED(zod4.1.12); tests used a copy of the
+installed pinned dependencies. This is not fresh-install success. Initial local
+hardlink clone failed across devices; --no-hardlinks clone succeeded.
+
+Preservation: AGENTS unchanged SHA256
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Thirteen unrelated owner tracked diffs and19 original untracked files byte-compared
+unchanged. Owner-overlapped main.js integration and dependent new browser/state
+tests remain UNCOMMITTED, as do owner static/font/UI/shared-record edits; only the
+two isolated transport static-server lines were staged. Do not stage whole owner
+files or claim the checkpoint alone contains the integrated UI. Baselines and
+snapshot: `/tmp/tsa-client-owner-baseline`, `/tmp/tsa-results-preserve`. The former
+also holds `persistent-main-only.patch`, generated against the preserved owner
+baseline for recovery; do not apply it to HEAD as though the owner baseline exists.
+
+Final expanded browser journey also PASS in actual independent Luna and Sol
+runs: offline save leaves no DB row, same-key explicit retry after reconnect, and
+second-tab newer answer survives stale write plus explicit reload. Separate Sol
+review inspected assertions/cleanup with no open findings; all reservations released.
+Actual expiry continuation also PASS in Luna and independent Sol runs: original
+8-second database deadline, page departure, worker outage, owned reload toEXPIRED,
+one original-digest job/no submit POST, unchanged exact timestamp text/seals/history/
+answer and recovered25% release. Normal browser/student6 reruns PASS. Separate Sol
+final review no open P1/P2; all reservations released. Next: keyboard/zoom/screen-reader
+and second-engine evidence plus safe UI checkpoint. Use
+native Luna/XHigh for isolated test work if available (Sol6.1/High fallback), Sol
+integration and separate Sol6.1/Medium review. No Bank expansion or UI redesign.
+
+G1 accepted; G2/G3 OWNER_ACCEPTED. Lawful inventory/qualified human rights/content
+review and production OIDC/worker operations remain distinct. Track A incomplete.
+No push/merge/deploy/Astra/paid API/live student LLM/unauthorized publication.
+
+---
+
+# Current handoff — catalog and owned history verified
+
+2026-10-22, branch `feat/track-b-data-auth`, base `71613e1`; local checkpoint `ccc14e0`.
+[Executed evidence](../reviews/EXAM_STUDENT_DIRECTORY_VERIFICATION.md).
+Owner `continue` resumed the earlier usage-stop work. Sol owns SQL017/races/final
+fixes/integration; initial native Luna/XHigh wrote service/HTTP/tests; fresh separate
+Sol6.1/Medium actually reviewed final files and independently passed directory9,
+no remaining P1/P2/no edits. Engineering review is not human content review.
+
+Frozen GET catalog/history now use restricted PG commands, trusted candidate and
+strict query/cursor validation. Catalog projects only supported NEW_ONLY metadata,
+never config or inventory promises. History reconciles owned pages and exposes a
+score only for current exact latest active release and rights. Original timestamps
+retain microseconds; lifecycle rollback/digest and both actual rights lock orders
+are verified. No G1/schema-table/publication privilege change.
+
+Actual Node24.18/npm11.16/PG18.6: directory9 (6 PG+3 adapter), Bank94, assembly23,
+DATA34, attempts28, grading21, results6, recovery16, student5, auth5, local13, B0 16,
+contracts106, consumers11, build/typecheck/smoke/drift/import PASS. Initial8/9 test
+setup failure, canonical encoding mismatch and unknown-query omission were fixed
+and independently retested. Docs fail unchanged owner research whitespace/four
+missing temporary screenshots. Browser NOT RUN (no UI), hosted CI NOT OBSERVED.
+
+Owner15 unrelated tracked diffs and19 original untracked files byte-compared to
+preserved snapshot; unchanged. AGENTS SHA256 remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Shared records remain unstaged alongside prior owner edits. No push/merge/deploy,
+Astra/paid APIs/live student LLM/publication. Current reservations released.
+G1 accepted; G2/G3 owner accepted; lawful inventory/human evidence remain distinct.
+Track A incomplete. Full EXAM/SCORE acceptance not declared.
+
+Next exact card: connect existing student client to local auth/frozen attempt and
+directory APIs, with durable acknowledged revisions/retries, queued grading and
+released-only review. Preserve owner UI; no reconstruction or automatic test stock
+publication. Recommended native Luna/XHigh isolated transport/tests if available
+(Sol6.1/High fallback), Sol integration and separate Sol6.1/Medium review. Production
+worker/OIDC/provisioning and final-failure operations remain separate limitations.
+
+---
+
+# Current handoff — usage limit; catalog/history unfinished
+
+2026-10-22, branch `feat/track-b-data-auth`, HEAD `71613e1` (last fully reviewed
+checkpoint). [Exact partial files, evidence and resume steps](../reviews/STUDENT_DIRECTORY_WORK_IN_PROGRESS.md).
+Root owns recovery coordination. Native Luna/XHigh implementer and separate
+Sol6.1/Medium reviewer both terminated with actual usage-limit errors; goal service
+confirms usageLimited. No independent review of the new directory slice occurred.
+
+SQL017/catalog/history adapter/GET wiring/tests and Bank migration expectations are
+uncommitted. Root five PostgreSQL history/race tests PASS; new adapter/HTTP tests,
+full regressions and final independent review are NOT VERIFIED/NOT PERFORMED.
+Do not commit or declare the directory complete without finishing those checks.
+Next action: inspect partial files, execute/fix the directory suite, obtain actual
+separate review, then narrow checkpoint and existing-client integration. No need
+to reimplement verified scoring/results/runtime/sweep checkpoints.
+
+Earlier verified local checkpoints: `86edda7` grading/release, `f551f8d` released
+result transport, `bc3ed0a` local API composition, `71613e1` bounded expiry recovery.
+Their dedicated review evidence records actual separate review and passing tests.
+G1 accepted; G2/G3 owner accepted; UI remains mock, real lawful inventory/qualified
+human evidence/production worker and OIDC remain distinct. Track A incomplete.
+Owner AGENTS/UI/research and all unrelated changes remain preserved/unstaged.
+AGENTS SHA256 remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+No push/merge/deploy/Astra/paid APIs/live student LLM or publication.
+
+---
+
+# Current handoff — bounded trusted expiry recovery verified
+
+2026-10-22, branch `feat/track-b-data-auth`, base `bc3ed0a`; local checkpoint `71613e1`.
+[Executed evidence](../reviews/EXAM_002_EXPIRY_RECOVERY_VERIFICATION.md).
+Actual Sol SQL016/races/faults/integration; native Luna/XHigh adapter/tests/local
+loop; separate read-only Sol6.1/Medium final recovery16/student5 PASS, no open P1/P2.
+G1 accepted; G2/G3 owner accepted; sustained continuation remains active.
+
+Worker-only bounded SKIP LOCKED recovery now cancels unavailable/TTL-stale CREATED
+attempts and invalidates restricted active attempts before permitted deadline
+expiry. Expiry atomically queues the exact existing digest-bound job plus service
+audit. Bank→attempt→availability ordering, current rights, unchanged original
+clocks/seals/history, no candidate session required. Local poll requires explicit
+sweepBatchSize and isolates sweep errors from queued grading. No new public API,
+publication permission or G1 change; user-disable policy remains unchanged.
+
+Actual pinned Node24.18/npm11.16/PG18.6: recovery16 (15 real PG+1 adapter), student5,
+attempts28, grading21, results6, Bank94, assembly23, DATA34, auth5, local13, B0 16,
+contracts106, consumers11, build/typecheck/smoke/drift/import PASS. Actual lock
+waiters, independent students, whole-batch second-row failure and deferred COMMIT
+rollback, start/save/submit/rights races and natural expiry verified. Initial root
+test-column errors fixed before final pass. Docs fail unchanged owner research
+whitespace/four missing temporary screenshots; browser NOT RUN, CI NOT OBSERVED.
+Independent engineering review is not qualified human content review.
+
+Owner AGENTS SHA remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Unrelated owner changes preserved; shared records remain unstaged alongside prior
+owner edits. No push/merge/deploy/Astra/paid APIs/live student LLM/publication.
+Reservations released. Track A remains separate and incomplete.
+
+Next exact task: frozen GET catalog and caller-owned attempt history, safe bounded
+pagination, owned lazy reconciliation/current-rights score visibility; then connect
+the existing client without UI reconstruction. Recommended Sol6.1/High SQL/integration,
+isolated native Luna/XHigh adapters/tests if available (Sol fallback), separate
+Sol6.1/Medium engineering review. Prototype UI stays mock until connected; separate
+production worker/OIDC/provisioning/final-failure operations and real lawful content
+remain explicit outstanding work. Full EXAM/SCORE acceptance not declared.
+
+---
+
+# Current handoff — local student API composition verified
+
+2026-10-22, branch `feat/track-b-data-auth`, base `f551f8d`; local checkpoint `bc3ed0a`.
+[Executed evidence](../reviews/EXAM_LOCAL_STUDENT_RUNTIME_VERIFICATION.md).
+Actual Luna/XHigh runtime/journey tests; Sol restricted-pool attestation/security
+and integration; separate read-only Sol6.1/Medium final student5 PASS, no open
+P1/P2. G1 accepted; G2/G3 owner accepted; sustained continuation remains active.
+
+Programmatic loopback runtime now composes local auth and frozen attempt/result
+APIs with a nonoverlapping trusted grading poll loop. Separate provisioned
+identity/exam/worker pools are attested before listen; no owner runtime pool,
+migration, seed or publication. Explicit budgets/lease/retry/poll settings,
+existing errors/CSRF/origin guards, graceful drain, caller-owned pools retained.
+Real login/create/start/save/submit/background grade/released review and persistent
+session/attempt/score across HTTP restart are demonstrated with disposable fixtures.
+The browser UI and /mock remain mock-backed. Production worker process isolation,
+OIDC/provisioning, real inventory and qualified human evidence are not claimed.
+
+Actual pinned Node24.18/npm11.16/PG18.6: student5, attempts28, grading21, results6,
+auth5, local13, B0 16, contracts106, consumers11, build/typecheck/emitted smoke/drift/
+import PASS. Prior Bank94/assembly23/DATA34 not repeated for composition-only work.
+Docs check still fails untouched owner research whitespace/four missing temporary
+screenshots; browser NOT RUN and hosted CI NOT OBSERVED. Initial invented transient
+error was corrected before final tests/review. Independent review is engineering
+review only. All current reservations released.
+
+Owner AGENTS SHA remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Fifteen unrelated tracked diffs and 19 original untracked files byte-compared
+against `/tmp/tsa-results-preserve/`; unchanged. Shared records remain unstaged
+with prior owner changes. No push/merge/deploy/Astra/paid API/live student LLM or
+publication. Frozen G1 contracts unchanged. Track A remains incomplete.
+
+Next exact card: EXAM-002 bounded trusted expiry sweep, using existing documented
+CREATED cancellation/current rights/deadline behavior and exact grade-job digest;
+actual PG concurrent sweep/start/save/submit/rights and rollback tests. Then frozen
+catalog/history and existing-client integration without redesign. Recommended
+Sol6.1/High for SQL/locking integration, isolated native Luna/XHigh for adapter/tests
+if available (Sol fallback), separate Sol6.1/Medium engineering review.
+
+---
+
+# Current handoff — owner-only released result verified
+
+2026-10-22. Branch `feat/track-b-data-auth`, base `86edda7`; local checkpoint **`f551f8d`**. Accountable Sol;
+native Luna/XHigh attempt-service/result tests, Sol SQL015/races/integration.
+[Executed evidence](../reviews/SCORE_001_RELEASED_RESULTS_VERIFICATION.md).
+G1 accepted; G2/G3 owner accepted. Sustained user goal remains active until usage
+limit. Existing rights/publication controls and real human evidence requirements
+remain; Track A is separate and incomplete.
+
+SQL015 owns exact latest score/active release checks and private frozen review
+projection. The existing frozen HTTP final guard runs fresh in one transaction;
+only owner/GRADED/current-rights/active release can load keys/explanations. No new
+HTTP contract, raw grant, worker authority or duplicate adapter. Ungraded409,
+foreign404, unauth401, forbidden403, held410; ordinary views stay private. Guard
+changes after loading discard payload503. Rights/read winner orders observe actual
+PG lock waiters; immutable scores remain unchanged after revocation.
+
+Actual pinned Node24.18/npm11.16/PG18.6: results6/grading21/attempts28/Bank94/
+assembly23/DATA34/AUTH5/local13/B0 16/contracts106/emitted11 and build/typecheck/
+smoke/drift/import PASS. Separate actual read-only Sol6.1/Medium independently
+passed results6 and diff-check, no open P1/P2/no edits. Engineering review is not
+human content review. Earlier fixture receipt-level/worker-metadata assertions,
+missing command idempotency headers and pool teardown order were fixed before
+passes. Docs check still fails untouched research whitespace/four missing temp
+screenshots. Browser NOT RUN (no UI); hosted CI NOT OBSERVED.
+
+Owner AGENTS SHA remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Recovery `/tmp/tsa-results-preserve/` transient. Owner UI/README/research/shared
+records unstaged. No push/merge/deploy/Astra/paid APIs/live student LLM/production
+publication/G1 change. Current reservations released.
+
+Real PG/HTTP create/start/save/submit/leased grade/released review is demonstrated
+with isolated synthetic fixtures. Prototype student UI still uses mock routes.
+Next compose a loopback student runtime using existing auth/student handlers and
+separate trusted worker; add real catalog/history and bounded expiry reconciliation
+as required by frozen contracts. Keep pools/credentials isolated, no owner pool in
+request handlers, no automatic synthetic publication. Then connect the student
+client without redesign. SCORE-001/EXAM-002 integrated acceptance remains open.
+Recommended Sol6.1/High SQL/runtime integration, isolated native Luna/XHigh adapter/
+tests if available (Sol fallback), separate Sol6.1/Medium engineering review.
+Continue authorized work until usage limit; broader goal is not complete.
+
+---
+
+# Current handoff — leased grading and atomic score release verified
+
+2026-10-22. Branch `feat/track-b-data-auth`, start `b094a6e`; local checkpoint **`86edda7`**. Accountable Sol;
+actual native Luna/XHigh scorer/worker/tests, Sol SQL014/transactions/integration.
+[Evidence and failures](../reviews/SCORE_001_LEASED_GRADING_VERIFICATION.md).
+[Owner sustained continuation](../decisions/OPEN_DECISIONS.md#sustained-grading-and-student-integration-continuation--2026-10-22).
+G1 accepted; G2/G3 owner accepted. Question-specific rights/human review and
+publication controls remain unchanged; Track A remains separate and incomplete.
+
+Implemented narrow NOLOGIN trusted worker capability, private claim/load/finish/
+fail commands; no student/Factory worker authority or raw private grants. Legacy
+student lease-GUC spoof path now requires worker membership, direct raw Bank keys
+revoked for student exam role. SKIP LOCKED claims, real-time reclaim/fencing,
+bounded attempts and code-only failures; explicit local lease/retry config.
+SQL/JS all-type binary scoring and exact integer half-up percentage; final SQL
+rechecks frozen digest/items/aggregate. Score run/items, GRADED/release, job success
+and service audit atomic. Actual end-write and deferred-COMMIT lease expiry roll
+back all grade effects. Current rights block grade/revoke later release without
+changing historical snapshots/answers/scores. No worker scheduler/heartbeat/sweep.
+
+Actual final grading21 (19 PG+2 adapter) and direct scorer5 PASS; assembly23/DATA34/
+AUTH5/local13/B0 16/contracts106/emitted11/build/typecheck/smoke/drift/import PASS.
+Separate actual read-only Sol review final21/5 PASS plus earlier attempts28/Bank94
+PASS, no open P1/P2, no edits. Live matching lease spoof negative proves student
+credentials cannot read grading data. Seven persistence faults, delayed COMMIT,
+rights winner orders, concurrent independent claims, retry/exhaustion and typed
+parity covered. Engineering review is not human content/rights approval.
+
+Initial missing audit service identity, privilege-probe and weak failed-final
+spoof fixture repaired before final passes. Docs checker retains untouched owner
+research whitespace/four absent temporary screenshots. Browser NOT RUN (no UI),
+hosted CI NOT OBSERVED. Owner AGENTS SHA unchanged:
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Recovery `/tmp/tsa-grading-preserve/` transient; owner/shared files unstaged. No
+push/merge/deploy/Astra/paid API/live student LLM/production publication/G1 change.
+All current writer reservations released. Sustained user goal remains active.
+
+Next exact task: safe owner released GET `/attempts/{id}/result`, frozen released
+DTO/final response guard in one transaction, current rights/release checks, no
+keys before complete GRADED release. Prove foreign/ungraded/held/changed-release
+races and restart over actual PG/HTTP, then integrate local student transport.
+EXAM-002 expiry sweep/operational recovery and integrated browser acceptance remain.
+Recommended Sol6.1/High for SQL authorization, isolated Luna/XHigh adapter/tests
+if available (Sol fallback), separate Sol6.1/Medium engineering review. Continue
+within owner scope until usage limit; do not mark the broader goal complete here.
+
+---
+
+# Current handoff — atomic submission verified; G2/G3 owner accepted
+
+2026-10-22, Asia/Bangkok; start `cda1235`, branch `feat/track-b-data-auth`.
+Accountable engineer Codex Sol. Local checkpoint **`b094a6e`** contains13 named implementation,
+test, acceptance/evidence and roadmap files; shared records containing owner work
+remain unstaged. Actual native Luna/XHigh authored isolated service/HTTP and tests;
+Sol authored SQL013, race/fault tests, inherited HTTP adjustment and integration.
+[G2/G3 owner acceptance](../decisions/G2_G3_OWNER_ACCEPTANCE_2026_10_21.md).
+[Full verification, independent review, failures and next card](../reviews/EXAM_002_SUBMISSION_VERIFICATION.md).
+
+**G1 accepted; G2/G3 OWNER_ACCEPTED** by explicit owner instruction “next. G2/G3
+accepted.” Earlier unaccepted statements are historical. Lawful inventory, named
+qualified human exact-hash content/equivalence reviews and per-question publication
+evidence were not supplied by that instruction. Existing publication/rights/auth
+controls remain enforced. Track A remains separate and incomplete.
+
+Implemented frozen empty-body POST submit and restricted SQL013 command. Current
+ownership/Bank holds precede replay; one shared Bank/attempt transaction commits
+SUBMITTED, authoritative closure, digest-bound exam job, exact receipt and metadata
+audit. A deadline lost while waiting/in the trigger yields committed EXPIRED with
+one job. Exact replay returns original closure; fresh terminal keys return current
+closure without extra jobs; held receipt access410. No save/create bucket charge.
+Saved/unanswered paths work; no answer payload on submit, private key disclosure,
+snapshot/history/deadline rewrite or new G1/schema contracts.
+
+Final pinned Node24.18/npm11.16/PG18.6: attempts28/Bank94/assembly23/DATA34/AUTH5/
+local13/B0 16/contracts106/emitted11 PASS; build/typecheck/smoke/drift/import PASS.
+Real PostgreSQL observes both save/submit and rights/submit winner orders, trigger/
+lock deadline crossing, exact digest consistency and job/audit/receipt/deferred-
+COMMIT rollback. Factory DB role cannot execute submission. Fresh separate actual
+read-only Sol6.1/Medium independently passed attempts28/28, Bank94/94 and diff-check;
+no unresolved concrete P1/P2, no files edited. Review is engineering only.
+
+An earlier restricted worker contract run had two generic file failures; permitted
+coordinator runs passed106 unchanged contracts. Docs check still FAILS on untouched
+owner research trailing whitespace/four missing temporary screenshot links. Browser
+NOT RUN (no UI change), hosted CI NOT OBSERVED. Continuation cleared old /tmp logs/
+recovery and prior reviewer contexts; final suites and independent review were rerun.
+Current transient recovery: `/tmp/tsa-submit-continuation-preserve/`.
+
+AGENTS SHA remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Owner UI/README/research remain excluded from staging; never reset/clean them.
+All writer reservations released. No push/merge/deploy/Astra/paid model API/live
+student LLM/production publication or frozen G1 change.
+
+Bounded submit/closure/dispatch engineering and synthetic evidence complete;
+full EXAM-002 remains IN_PROGRESS for leased workers/reclaim/fencing/retry/sweep.
+No grader, score, released-result endpoint or prototype student-server wiring;
+app student exams remain mock. PostgreSQL create/start/read/save/submit/expiry now
+has real integration evidence ending at a durable queued grading job.
+
+Next exact task: bounded EXAM-002/SCORE-001 trusted exam-job lease claim/reclaim and
+fencing, verify existing SQL digest, exact practice-binary-v1 scoring and atomic
+immutable score/release. Reuse existing DB job context/consistency constraints;
+prove worker crashes, stale lease tokens, duplicate delivery, current holds and
+integer percentage rounding. Then result transport and prototype integration.
+Recommended Codex Sol6.1/High coupled transactions, native Luna/XHigh isolated work
+if available (Sol fallback), separate Sol6.1/Medium read-only review. No speculative
+Bank features, UI reconstruction or invented human evidence.
+
+---
+
+# Current handoff — persisted revisioned answer saves verified
+
+2026-10-21, Asia/Bangkok. Branch `feat/track-b-data-auth`, base `b55afb1`.
+Accountable integrator Codex Sol; actual native Luna/XHigh implemented isolated
+attempt service/HTTP/save tests; Sol implemented SQL012/race tests/integration.
+Local checkpoint **`cda1235`** contains only10 named implementation/test/evidence files; shared
+records remain unstaged with prior owner work preserved.
+[Owner continuation](../decisions/OPEN_DECISIONS.md#persisted-answer-save-continuation--2026-10-21).
+[Detailed evidence, failures, limits and next card](../reviews/EXAM_001_ANSWER_SAVE_VERIFICATION.md).
+
+Implemented frozen PUT saves: owned sealed slot authorization, strict SC/MC/TFG
+validation, optimistic revisions/clear, exact actor/route/key/hash receipts and
+safe conflict/current-answer feedback. Shared USER_SAVE and ATTEMPT_SAVE budgets
+charge both or neither before the attempt write transaction; supplied local/test
+configuration, no approved production defaults. Replays/invalid typed requests
+charge after ownership; foreign slots/roles touch no buckets. Current Bank holds
+suppress replay410; ordinary closed attempts replay original ACK without mutation.
+No answer history table or raw/private grants. Latest answer/receipt/audit commit
+together; metadata-only audits contain no answer values.
+
+Real PostgreSQL verifies both rights/save winner orders with observed lock waiters;
+actual saved_at/deadline crossing and lock waits cannot backdate answers. Late work
+rolls back before expiry+one grading job commits; deferred receipt COMMIT faults
+roll back answer/receipt/audit while budget charge remains. Same-key races replay;
+distinct-key same-revision saves produce exactly one winner/conflict. Clearing,
+resume/new service instance, strict typed values, shared two-handler429 and unchanged
+paired balances pass. Existing immutable snapshots/history and publication gates
+remain unchanged. Grading jobs are queued only; no grading worker or score claim.
+
+Final pinned Node24.18/npm11.16/PG18.6: attempts15/assembly23/Bank94/DATA34/AUTH5/
+local13/B0 16/contracts106/emitted11 PASS; build/typecheck/smoke/drift/import PASS.
+Separate actual read-only Sol6.1/Medium review independently passed attempts15/15,
+Bank94/94 and final adversarial save/HTTP subset5/5; no unresolved P1/P2, no files
+edited. Review is engineering only, never qualified human content approval.
+SQL parameter ambiguity and UPSERT/INSERT-trigger update failures were observed
+and repaired before final runs; maximum-safe-revision and typed fixture issues
+also repaired. Documentation checker still fails untouched owner research trailing
+whitespace/four missing temporary screenshots. Browser NOT RUN (no UI edits);
+hosted CI NOT OBSERVED. No failed or unavailable check is counted as passing.
+
+Preservation:16 unrelated tracked diffs/19 original untracked files identical to
+start; AGENTS SHA remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Transient recovery `/tmp/tsa-answer-preserve/`; never reset/clean owner work. All
+writer reservations released. No push/merge/deploy/Astra/paid APIs/production
+publication/live student LLM or frozen G1 change.
+
+Bounded save engineering/synthetic evidence complete. EXAM-001 integrated
+acceptance remains IN_PROGRESS: app server/UI is unwired and still uses mock
+student exams. No submit/grade worker/scoring/results/sweep completion. G1 accepted;
+BANK-002 formal acceptance and G2/G3 unaccepted. Lawful stock/current rights,
+qualified distinct human exact-hash content/equivalence review and authorized
+publication remain required. Track A remains separate and incomplete. Actual
+PostgreSQL create/start/read/save is now demonstrable through integration tests.
+
+Next exact card: EXAM-002 owned explicit submit with frozen empty body/closure DTO,
+current holds and fresh clock under the same attempt lock. Atomically freeze
+closure and enqueue one job using existing SQL digest/dedup; preserve exact receipts
+and natural terminal replay. Prove save/submit/expiry/rights orders, failed COMMIT
+and restart recovery. Then grading/SCORE-001/release and app transport integration.
+Recommended Codex Sol6.1/High for coupled SQL/time/authorization, isolated Luna/XHigh
+if available (Sol fallback), separate Sol6.1/Medium engineering review. No Bank/UI
+expansion or human-acceptance claims.
+
+---
+
+# Current handoff — persisted first-start and safe GET verified
+
+2026-10-21, Asia/Bangkok. Accountable engineer Codex Sol. Start branch
+`feat/track-b-data-auth` / `6fc219e`. Bounded EXAM-001 implementation/test/evidence
+checkpoint **`b55afb1`** contains only11 named files. Shared records remain
+unstaged to preserve earlier owner modifications.
+[Owner continuation](../decisions/OPEN_DECISIONS.md#persisted-attempt-start-and-safe-delivery-continuation--2026-10-21).
+[Commands, separate review, failures, limits and next card](../reviews/EXAM_001_START_DELIVERY_VERIFICATION.md).
+
+SQL011 adds private owned first-start/read/reconciliation and shared USER_CREATE
+commands without table/G1 contract changes. Existing allocator supplies create;
+actual native Luna/XHigh supplied the attempt service/strict loopback HTTP adapter
+and main tests. Sol integrated migration, deadline/schedule tests and records.
+Stored TTL, exact receipts, immutable snapshots/history and current Bank holds/
+rights persist. Actual trigger deadline must be covered or start/window rolls
+back before cancellation commits. Ordinary admission edits do not rewrite TTL.
+GET uses the frozen boundary with fresh final guard inside one transaction;
+CREATED/terminal states have no slots, current restrictions deny delivery, and
+lazy expiry closes/queues one durable job without grading. Creation budget is
+explicit (no approved production defaults), separate from start/replay.
+
+Pinned Node24.18/npm11.16/PG18.6: final attempts5, assembly23, Bank94, DATA34, AUTH5,
+local13, B0 16, contracts106, emitted11 PASS; build/typecheck/smoke/drift/import PASS.
+Actual PG observes both first-start/revocation winner orders, TTL expiry, actual
+start deadline rights failure rollback, final GET deadline crossing and ordinary
+schedule shortening/extension. Separate read-only Sol6.1/Medium independently
+passed attempts5/5 and Bank94/94; reproduced/reverified rate-overflow repair,
+no unresolved concrete P1/P2. No files edited by reviewer. This is engineering
+review, never qualified human content approval.
+
+`npm run docs:check` FAILS on preserved research-document trailing whitespace and
+four missing temporary screenshot links. Restricted contract/PG wrappers and
+initial fixture/barrier assertions failed before permitted corrected final runs;
+see evidence. Browser NOT RUN (no UI changes); hosted CI NOT OBSERVED.
+
+Owner preservation verified:16 unrelated tracked diffs and19 original untracked
+files identical to start; AGENTS SHA256 remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Recovery snapshot `/tmp/tsa-exam-start-preserve/` is transient; never reset/clean
+owner work. All writer reservations released. No push/merge/deploy/Astra/paid
+APIs/live student LLM/production publication or frozen G1 changes.
+
+EXAM-001 remains IN_PROGRESS: answers/save acknowledgements remain unimplemented.
+No submission/grade worker/score/released result/sweep or prototype server/UI
+wiring; student exams in the app remain mock-only. Actual PostgreSQL create/start/
+safe HTTP read is now demonstrable in isolated tests. Full assembly modes and
+staff search diagnostics remain outside this slice. G1 accepted; BANK-002 formal
+acceptance and G2/G3 unaccepted. Lawful inventory/current rights, distinct qualified
+human exact-hash content/equivalence review and authorized publication remain
+outstanding. Track A research is separate and not complete.
+
+Next exact task: EXAM-001 persisted revisioned answers using frozen DTOs; enforce
+owned active sealed slots/deadline/current holds, exact-key lost-ACK replay,
+stale-revision conflicts and USER_SAVE budget independent of submission. Prove
+restart, cross-tab, closure and hold races in real PostgreSQL. Then integrate
+closure/submission, grader/scoring/results and app transport; no UI redesign.
+Recommended Codex Sol6.1/High for coupled SQL/authorization, isolated Luna/XHigh
+if available (Sol fallback), separate Sol6.1/Medium read-only engineering review.
+
+---
+
+# Current handoff — atomic standalone NEW_ONLY allocation verified
+
+2026-10-21, Asia/Bangkok. Accountable engineer Codex Sol. Start branch
+`feat/track-b-data-auth` / `c0b42b5`; local checkpoint **`6fc219e`** contains only
+11 named allocation implementation/test/evidence files.
+[Owner authorization](../decisions/OPEN_DECISIONS.md#atomic-allocation-engineering-authorization--2026-10-21).
+[Full implementation, A–O scenarios, commands, failures and limits](../reviews/ASSEMBLY_001_002_ATOMIC_ALLOCATION_VERIFICATION.md).
+
+Implemented SQL010 private candidate allocation commands, internal allocation
+service, exact canonical snapshot/form builder, stock/error-boundary fixes and
+real-PG fixtures. Frozen solver and schemas are unchanged. One transaction commits
+validated manifest/run, immutable sealed personal public/private form, CREATED
+attempt, first history, allocation revision, receipt and audit. User allocation
+row → shared advisory/Bank revision guard → active attempt → availability/offering;
+heavy search holds neither user nor Bank locks. Different students do not reserve
+stock. Matching retained receipts precede global H1; changed bodies conflict.
+Current stock/rights/history/groups/quotas and revisions recheck at seal; stale
+plans replan at most three total attempts, never yield stale shortage or fallback.
+
+Stale active cleanup commits separately: CREATED cancels, elapsed IN_PROGRESS
+closes with exactly one grading job; assignment history remains. Receipt keeps
+exact DB-returned 600-second/admission deadline and lifecycle retention. Global H1
+also precedes unimplemented review/fixed mode503 responses. Internal grading input
+uses `grading-input/sql-jsonb-1`; future grade worker must reuse the SQL digest and
+existing attemptId:policyVersion:inputHash convention. No score/grader claim.
+
+Actual native Luna/XHigh authored service/main fixtures/tests; Sol integrated SQL,
+builder, lifecycle/admission tests and records. Separate actual native Sol6.1/Medium
+read-only review found/reproduced cross-mode H1 precedence and verified the repair.
+Independent assembly23/23 and Bank94/94 PASS, no unresolved concrete P1/P2; no files
+edited by reviewer. Engineering review is not qualified human content approval.
+
+Final pinned Node24.18/npm11.16/PG18.6: assembly23, Bank94, DATA34, AUTH5, local13,
+B0 16, contracts106, emitted11 PASS; build/typecheck/emitted smoke/drift/import
+PASS. Actual PG waiters prove same-user serialization; separate students each
+reach persisted uncommitted success; twelve persistence/deferred-COMMIT failures
+leave no partial allocation. Corrections/equivalence, immutable manifest/slot-order
+replay, rights/quarantine ordering, TTL and clock races pass. Browser NOT RUN (no
+UI change); hosted CI NOT OBSERVED. Initial parsing/fixture/review failures and
+restricted wrappers are recorded honestly in the evidence.
+
+AGENTS SHA remains `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Original owner UI/README/research and prior shared records preserved; shared task/
+state/decision/handoff updates remain unstaged. Refreshed transient recovery copies
+in `/tmp/tsa-allocation-preserve/`; earlier temporary copies disappeared across
+session continuation. Do not reset/clean owner work. All writer reservations
+released. No push/merge/deploy/Astra/paid model API/frozen G1 contract change.
+
+Gate assessment: bounded atomic standalone NEW_ONLY engineering and synthetic
+regression evidence complete. Full ASSEMBLY-001/002 remain IN_PROGRESS: bundles
+explicitly reject, repeat/fixed creation unavailable, HTTP/rate integration and
+staff failed-search diagnostics outstanding. Lawful inventory/current rights,
+distinct qualified human exact-hash content/equivalence review and publication
+authorization remain outstanding. G1 accepted; BANK-002 formal acceptance and G2/G3
+unaccepted. Track A research is separate and not completed. Student delivery still
+mock-only; actual PG allocation is now demonstrated by integration tests.
+
+Next exact task: EXAM-001 persisted owned first-start + safe GET attempt delivery
+from sealed snapshots using frozen DTOs/current Bank guards. Connect this internal
+creation command to existing transport with explicit creation-rate configuration.
+Prove exact start/deadline boundaries, repeated start replay, BOLA, no pre-start/
+closed-state questions, restart persistence and revocation races. Then add revisioned
+answers, closure/submission, scoring and released results. Recommended Codex
+Sol6.1/High for coupled SQL/time/authorization, isolated Luna/XHigh fixtures if
+available (Sol fallback), separate Sol6.1/Medium review; no dispatch implied. No UI
+redesign, extra Bank features or live LLM calls in the student path.
+
+---
+
+# Current handoff — Bank safety verified; assembly stock connected
+
+2026-10-21, Asia/Bangkok. Accountable coordinator Codex Sol. Start
+`feat/track-b-data-auth` / `d9812b3`; narrow local checkpoint **`c0b42b5`**, 19 named engineering/test/evidence files.
+[Owner authority](../decisions/OPEN_DECISIONS.md#minimum-bank-safety-and-student-backend-transition--2026-10-21).
+[Complete implementation, commands, failures, limits and next card](../reviews/BANK_002_DELIVERY_SAFETY_VERIFICATION.md).
+Shared records contain preserved prior owner changes and remain unstaged.
+
+Implemented SQL008 exact-hash/profile/source ledger, permanent rights/quarantine
+holds, withdrawal/eligible-pointer restrictions, postcommit recoverable fanout and
+owned lazy access invalidation. CREATED cancels; active/submitted/expired/graded
+attempts invalidate; releases revoke; sealed snapshots/history/scores stay intact.
+Renewing expired rights never revives old forms. Frozen publication advisory guard
+and Bank row enforce writer/reader ordering; attempt locks are outside exclusive
+publication transactions. Pending durable holds deny access before fanout runs.
+Recovery uses `drainDeliveryHolds`/manager command replay; no scheduled runner yet.
+
+Nonmutating text/math/table safety supports all three interactions, Vietnamese and
+restricted TeX. Unsafe markup/loaders, invalid references and resource-boundary
+violations fail closed. All assets/images are unsupported and rejected. Default
+runtime/production approval remains disabled; synthetic fixture scope never grants
+production inventory authorization. Existing exact-hash/equivalence controls hold.
+
+Actual PostgreSQL stock→frozen assembly/1 groundwork now captures approved current
+standalone stock, rights covering offering window+duration, canonical groups and
+NEW_ONLY history with UUID skill projections. No public pool API or allocation
+writes. Applicable stimulus bundles explicitly reject; full ASSEMBLY acceptance
+still requires complete bundles. Student examination delivery remains mock-only.
+
+Actual Luna/XHigh implemented validator and Bank safety tests; root Sol reviewed,
+integrated and implemented SQL/services/assembly reader. Separate actual read-only
+Sol6.1/Medium reviewed critical changes and independently PASS38/38, no unresolved
+P1/P2. This is engineering review, never qualified human content approval.
+Final pinned Node24.18/npm11.16/PG18.6: Bank94/94, assembly1/1, foundations34/34,
+auth5/5, local13/13, B0 16/16, contracts106/106, emitted11/11; build/typecheck/smoke/
+drift/import PASS. Browser NOT RUN (no UI changes), hosted CI NOT OBSERVED.
+Known restricted-wrapper and initial test/projection failures are recorded in the
+evidence; repaired permitted final runs passed. G1 contracts unchanged.
+
+Preservation PASS16 original unrelated tracked diffs and19 original untracked
+files. AGENTS SHA `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Recovery copies `/tmp/tsa-bank-final-preserve/`; do not reset/clean owner work.
+All implementation reservations released. No push/merge/deploy/Astra/paid API.
+
+Gate assessment: bounded supported-profile Bank engineering and synthetic evidence
+complete; lawful inventory/rights evidence, distinct qualified human exact-hash
+content reviewers and real-publication authorization outstanding. BANK-002 remains
+IN_PROGRESS for formal acceptance; G1 accepted, G2/G3 unaccepted. No human task
+is a blocker to the next authorized synthetic engineering step.
+
+Next exact task: **ASSEMBLY-001/002 standalone NEW_ONLY allocation transaction**:
+persistent user lock/H1 reconciliation, receipt replay, final guarded revision/
+rights/history/offering revalidation and atomic manifest+personal snapshots+CREATED
+attempt+history/revision+receipt. Prove actual PG winner orders, stale replans,
+no-repeat/corrections/equivalence, revocation and rollback. Full bundles remain
+required before full assembly acceptance. Then EXAM-001 persisted start/read/save,
+EXAM-002 closure and SCORE-001 result. Recommended Sol6.1/High implementer,
+isolated Luna/XHigh fixtures if available (Sol fallback), separate Sol6.1/Medium
+reviewer; recommendation does not itself dispatch another agent. Stop nonessential
+Bank expansion and mock UI reconstruction. Real PostgreSQL student exams are
+closer through guarded stock-to-solver integration, not yet demonstrable.
+
+---
+
+# Current handoff — BANK-002 monotonic equivalence verified
+
+2026-10-21, Asia/Bangkok. Accountable coordinator Codex Sol. Start
+`feat/track-b-data-auth` / `416b621`; local checkpoint **`d9812b3`** contains only8
+named equivalence/migration/test/evidence files. Authoritative shared updates are
+uncommitted alongside preserved prior owner work. Owner “Next” continues the
+[engineering scope](../decisions/OPEN_DECISIONS.md#bank-002-equivalence-continuation--2026-10-21).
+No push/merge/deploy/Astra/paid API, dependency or frozen G1 contract change.
+
+Actual native Luna/XHigh wrote internal equivalence service/direct tests; root Sol
+implemented SQL007, private incident helper and preservation/upgrade fixtures.
+Separate actual native Sol6.1/Medium read-only review PASS42/42 with no unresolved
+P1/P2 findings. All implementation reservations released. AGENTS SHA unchanged:
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Recovery starting patch/archive/status: transient `/tmp/tsa-equivalence-preserve/`.
+Preservation comparison PASS16 original unrelated tracked diffs and19 original
+untracked files. Existing owner previews/listeners untouched; do not reset/clean.
+
+**Implemented:** internal exact-version/hash/workflow/bank-revision independent
+EXACT/NEAR_DUPLICATE CONFIRMED/DISMISSED adjudication. Authorization precedes
+private lookup/replay and repeats under exclusive Bank lock; authors/import
+operators cannot adjudicate their own pair. Detector evidence remains immutable;
+OPEN becomes one final decision. Confirmation atomically initializes missing
+groups, retains one-way aliases, moves all members, advances Bank revision once,
+both target workflow revisions once and appends audits/receipt. SQL guards
+prohibit alias reset/cycles/splits and incomplete moves. No content/version,
+approval or eligible-pointer change occurs, including for already-approved targets.
+
+Late-equivalence incidents store only private group/actor references and compact
+form/collision/prior-overlap counts, bound to the exact merge. Publication consumes
+fresh exact-version confirmation evidence; dismissal does not authorize it. Current
+membership expands future exclusions while old manifests/forms/keys/attempts/
+history remain byte-for-byte equivalent in fixtures. This proves mechanisms, not
+an implemented production allocation service or qualified human content review.
+Normal runtime publication remains disabled; positive approval remains explicitly
+owner-initialized disposable-scope-only. G1 ACCEPTED; BANK-002 IN_PROGRESS; G2/G3
+unaccepted; student delivery mock-only.
+
+**Executed checks:** final `npm run test:bank` PASS80/80 (prior61 + service13 +
+preservation6), zero failures/skips; DATA34, AUTH5, local13, B0 16, contracts106,
+emitted consumers11; build/typecheck/emitted smoke/drift/import PASS on pinned
+Node24.18/npm11.16/PG18.6. Independent command with the equivalence, history,
+publication and boundary files PASS42/42, no edits by reviewer. Git-backed docs
+PASS52 files/279 links before final shared updates, staged/new-file whitespace/
+links and diff PASS. Both observed PG lock winner orders and failures after
+incident/member writes roll back relation/groups/workflow/revision/audit/receipt.
+[Complete evidence/failures/limits](../reviews/BANK_002_EQUIVALENCE_VERIFICATION.md).
+Initial root fixtures used unsupported cancellation/duplicate blueprint names and
+then conflicting UUID/text inference; repaired fixtures using allowed actual
+withdrawal and separate parameters, preserving lifecycle contracts. Restricted
+worker wrappers/docs fallback failed as known; permitted coordinator runs passed.
+Browser NOT RUN (no UI change); hosted CI NOT OBSERVED; no production/G2 evidence.
+
+Reviewer additionally reported final38/38 PASS for the prior workflow before007
+existed, closing the historical quota-limited rerun gap in the handoff below;
+current full scoped independent42 PASS is separate actual evidence. Do not erase
+historical failures or represent any agent review as human content approval.
+
+**Next exact engineering task:** durable selected-form rights/quarantine holds and
+audited fan-out, preserving immutable snapshots/history and proving concurrent
+approval/revoke/withdraw/delivery guard behavior with isolated synthetic fixtures;
+then asset sanitization. These do not wait for real inventory/reviewers. Existing
+hold-required/image cases remain fail-closed until implemented. Actual assembly/
+delivery consumers and public publication remain separately gated. Recommendation:
+Codex Luna/XHigh for bounded work if available, otherwise direct Sol, with separate
+Sol/Medium critical review; no dispatch implied by recommendation.
+
+Human prerequisites for real publication/acceptance remain named human author/
+rights attestor plus distinct qualified reviewer, lawful source/assets inventory,
+exact-hash content/clarity/alternate-answer/equivalence review and explicit real-
+publication authorization. The project is closer to an integrated MVP through
+executable reuse-equivalence and durable historical integrity, without inventing
+live exam delivery, approved stock or G2/G3 acceptance. Older next-merge instructions
+below are superseded by this checkpoint; historical scope/evidence remains intact.
+
+---
+
+# Current handoff — BANK-002 executable fixture workflow verified
+
+2026-10-21, Asia/Bangkok. Accountable coordinator: Codex Sol. Start branch/HEAD
+`feat/track-b-data-auth` / `c1b4fa7`; local implementation checkpoint **`416b621`**
+contains only10 named workflow/code/test/evidence files. Owner AGENTS/UI/research
+and earlier shared-record changes preserved; task updates to shared records remain
+uncommitted. No push/merge/deploy, Astra, paid API or frozen G1 contract change.
+[Owner scope](../decisions/OPEN_DECISIONS.md#bank-002-workflow-engineering-authorization--2026-10-20)
+explicitly removes named-human/inventory blockers for engineering only.
+
+Actual native Luna/XHigh wrote publication service/direct tests. Coordinator Sol
+implemented gates, additive006, existing HTTP/source integration and boundary/
+import regressions. Separate actual native Sol6.1/Medium reviewed code read-only;
+all implementation reservations released. AGENTS SHA remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Recovery patch/untracked archive/status in transient `/tmp/tsa-bank002-preserve/`;
+preservation comparison PASS16 unrelated original tracked diffs/all19 original
+untracked file contents. Existing listeners/preview were untouched.
+
+**Implemented:** own-author submission after frozen schema/graph/normalized-hash
+validation; exact-version/hash/revision independent REVIEWER decisions; atomic
+approval/eligible pointer/bank revision; rejection/new immutable DRAFT correction;
+private singleton adjudication and exact-version post-quarantine evidence; manager
+quarantine/revalidation; append-only audit/reviews and actor/route receipts.
+Reviewer/operator/author separation is server-enforced, including authorization
+before replay and unsupported-role rejection before private-target lookup.
+Current rights across source/stimulus/parent dependencies, DISPLAY/GENERATE uses,
+territory/dates/evidence, duplicate flags and canonical membership gate approval.
+Separate manager rights evidence for imported sources preserves original graphs.
+AUGMENTED transport remains unsupported by frozen Factory contracts; never relax
+that contract just to exercise a defensive rights branch.
+
+**Publication safety:** normal same-app service has no approval scope; it can
+submit/reject/quarantine drafts but cannot publish synthetic questions. Positive
+eligibility tests need an owner-initialized private fixture UUID bound to database
+OID/postmaster and explicit internal service option; production process refuses.
+Application roles cannot initialize it; runtime SQL additionally guards approvals/
+pointers. This is fixture simulation, never qualified human content approval.
+
+**Actually verified:** final `npm run test:bank` PASS61/61, zero skips/failures;
+DATA34, AUTH5, local13, B0 16, contracts106, emitted consumers11; pinned
+Node24.18/npm11.16/PG18.6; build/typecheck/emitted smoke/drift/public imports PASS.
+Git-backed docs PASS51 files/268 links before these final navigation updates;
+diff/explicit new-file whitespace and links PASS. Both observed real-PG
+review/quarantine and approval/rights-withdraw race winner orders PASS. Existing
+receipt/rights-hold failure behavior is preserved, not a fan-out implementation.
+[Detailed commands, intermediate failures and limits](../reviews/BANK_002_WORKFLOW_VERIFICATION.md).
+
+**Independent review evidence:** actual37/37 PASS, then final authorization23/23
+PASS; two P2 findings (HTTP conflict projection and replay authorization) repaired
+and retested. The later rights-policy rerun passed37/38 and exposed an unsupported
+AUGMENTED fixture; reviewer independently confirmed the frozen GENERATED-only
+constraint and inspected rights-use separation without a code finding. Root
+changed the test to assert rejection and ran final61 PASS. Final independent
+rerun was UNAVAILABLE due reviewer subscription usage limit. Do not claim final
+independent38 PASS, invent a human review or use a paid API fallback. Browser
+NOT RUN (no UI change); hosted CI NOT OBSERVED. Earlier failed fixture expectations
+and final review limitation remain documented, not relabeled as passing checks.
+
+**Status/next executable work:** BANK-002 remains IN_PROGRESS, not accepted.
+Implement monotonic equivalence adjudication/merge and late-equivalence incident
+recording while preserving question versions, sealed snapshots and student history;
+then durable selected-form rights/quarantine holds/fan-out and image sanitization.
+These can be engineered with synthetic isolated fixtures now. Current unsupported
+merge/asset/hold cases fail closed; do not wait for real reviewers or inventory.
+Recommendation: native Codex Luna/XHigh for bounded implementation if available,
+otherwise direct Sol; separate Sol/Medium critical review when subscription access
+is available. No Astra/paid API; recommendation is not a new dispatch.
+
+**Human prerequisites:** named human author/rights attestor plus a distinct
+qualified reviewer, lawful original/cleared stock, exact-hash correctness/language/
+alternate-answer/equivalence review and explicit real-publication authorization
+remain required for real publication/G2 acceptance. No such evidence was supplied.
+Project is closer to an integrated MVP: persisted drafts now have executable
+controlled review commands and isolated eligibility simulation. Student examination
+remains mock-only; G1 ACCEPTED, G2/G3 unaccepted. Historical instructions below
+that block workflow engineering on missing people are superseded by the current
+owner scope, while real-content acceptance gates remain binding.
+
+---
+
+# Current handoff — dataset preflight foundations verified
+
+2026-10-20, Asia/Bangkok. Task DATA-003 scoped engineering subtask IMPLEMENTED /
+VERIFIED; DATA-003/002 human/inventory acceptance and BANK-002 publication remain
+BLOCKED. Accountable coordinator: Codex Sol. Actual native Luna/XHigh implemented
+the pure helper/test; coordinator implemented PG adapter/test and Factory regression;
+actual independent native Sol6.1/Medium reviewed final code and PASS25 scoped tests.
+All implementation reservations released. Shared records integrated by coordinator.
+
+Start `feat/track-b-data-auth` / `f72f6a8` with20 dirty tracked paths and prior
+untracked UI/fonts/research/evidence. Local code/evidence checkpoint **`c1b4fa7`**
+contains only six named preflight/test/evidence files. Shared navigation/decision
+updates remain uncommitted alongside preserved previous UI/owner work. No push,
+merge, deploy, paid API, Astra, reference-site access or G1 contract/schema change.
+Owner scope: [record](../decisions/OPEN_DECISIONS.md#dataset-preflight-engineering-scope--2026-10-20).
+Pre-edit tracked binary patch/untracked archive/status are in transient
+`/tmp/tsa-g2-preserve-20261020/`. Preservation comparison PASS:16 unrelated original
+tracked diffs and all19 original untracked files unchanged; four coordinated
+records received additive task updates. AGENTS SHA remains
+`308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
+Do not reset/clean/stash away the remaining work or commit AGENTS on this task.
+
+**Implemented:** bounded deterministic manifest/report/private review-packet
+helper; frozen question/identity/reference validation; exact hashes, section/type
+coverage and12/6/12 shortfalls; fingerprint flags. Private restricted Bank service
+reads explicitly pinned versions in REPEATABLE READ READ ONLY and returns workflow/
+revision/open-flag metadata. No content/key/evidence payload leaves the diagnostic;
+no public route, decision write, eligibility mutation or synthetic promotion exists.
+Every report retains human/legal blockers and `publishing:false`. Original lexical
+Factory identity and historical versions survive preflight; canonical graph-only
+scope does not imply all normalized-row/raw-asset/rights/publication checks.
+
+**Actually verified:** pinned Node24.18/npm11.16/PG18.6. `npm run test:bank` PASS35
+(manual10+Factory12+pure6+PG7), DATA foundation34, AUTH5, local13, B0 16,
+contracts106, emitted-consumer11; build/typecheck/emitted smoke/drift/import checks
+PASS. Independent reviewer ran25 scoped tests PASS; read-only review touched no
+files, found incremental aggregate-budget P2, repair/regression verified with no
+unresolved P1/P2. Git-backed docs PASS50 files/255 links and staged diff check PASS;
+initial staging check found one extra EOF blank line, removed before commit.
+[Complete commands, failures, audit and limits](../reviews/G2_DATASET_PREFLIGHT_VERIFICATION.md).
+Restricted runners initially failed process/socket wrappers; permitted executions
+ran actual nested tests. First new fixture used invalid null rights validFrom;
+repaired fixture to existing required timestamp. Restricted docs fallback still
+flags preserved owner research whitespace. Browser NOT RUN (no UI changes), hosted
+CI NOT OBSERVED; no clean restricted-CI, production/publication acceptance claim.
+Existing owner preview/listeners were untouched.
+
+**Next exact task:** owner supplies named human author/rights attestor and a
+separate qualified reviewer, lawful original/cleared inventory authorization and
+rights evidence; record affected unresolved BANK-002 mechanism dispositions.
+Implement BANK-002 exact-hash submission/independent review decision and controlled
+publication, with current dependency-rights/validator checks, no self/operator
+approval, equivalence resolution, quarantine/revocation and real-PG approval/
+withdraw serialization. Human DATA-003/002 review must use exact packet hashes and
+prove inventory/bundle capacity; synthetic profiles/agent reviews cannot satisfy
+it. Recommendation: Codex Luna/XHigh for isolated implementation if available,
+otherwise direct Sol; actual independent Sol/Medium for critical code review,
+plus real human content reviewers. No new delegation is implied by recommendation.
+
+Closer to a real integrated MVP: **yes, narrowly**—existing persisted drafts now
+feed executable exact-hash review preparation. Student examination remains mock-only;
+no lawful stock, human approval, publication, assembly/attempt/scoring integration
+or G2/G3 acceptance was manufactured. G1 remains ACCEPTED. Prior handoffs follow
+unchanged for historical evidence; older “no executable work” statements are
+superseded only by this owner-authorized non-publishing engineering scope.
+
+---
+
+# Current handoff — WEB-B0.3 compatible UI accepted
+
+2026-10-20, Asia/Bangkok. Codex Sol6.1 / Medium accountable integrator.
+Branch/HEAD remain `feat/track-b-data-auth` / `f72f6a8`, uncommitted. Original
+owner/B0.2 dirty edits preserved; owner AGENTS SHA unchanged. No push/merge,
+frozen-contract, schema, auth, fixture, reuse or scoring change in this UI phase.
+
+**IMPLEMENTED / VERIFIED:** owner-authenticated direct-observation reconstruction
+of compatible catalog/detail/exam/result/review. Owner alone authenticated,
+entered/submitted the reference attempt and supplied manual images. Catalog/detail
+manual evidence gate resolved by actual1920x1080 reference PNGs. No new reference
+attempt or external submission is authorized; browser/session preserved. If auth
+expires, mandatory owner login gate applies. Never inspect/export credentials or
+account values. No protected branding/assets/question/explanation/history copied.
+
+Actual native Luna/XHigh wrote only main/styles. Root integrated typography,
+static allowlisting, harness and repairs. Actual read-only Sol6.1/Medium reviewed
+code, hashes and final browser artifacts; no unresolved findings. It independently
+ran prototype16/static3 and syntax/diff checks; artifact-writing browser was
+root-executed. All file reservations released. Root owns coordinated records.
+
+Final Chromium155 PASS26 verified PNGs/17 layout records/11 check groups at
+1440x900,768x1024,390x844: catalogcounts/3-2-1grid/disabledcards, genuine structure,
+breadcrumb/back/start/focus/scroll, catalog→staff unavailable/return cleanup, all
+exam save/reload/rollback/deadline/privacy/navigation/submit/result/review cases,
+native disclosure/Enter/focus and independent pane scroll. Prototype16/contract106/
+emitted11/staff PG13, typecheck/build/smoke passed during task; final public-import/
+generated-drift/syntax/diff checks PASS. Final real-PG staff browser PASS4 captures.
+Git-backed docs check PASS; restricted fallback flags preserved input whitespace.
+New evidence docs receive separate link/whitespace checks. No WCAG/pixel-perfect claim.
+
+[Detailed executed evidence](../reviews/WEB_B0_3_VERIFICATION.md) records actual
+intermediate failures and repairs: detached catalog button lookup, breadcrumb
+focus, nested main, weak count assertion, obsolete native close events, readable
+mobile errors and browse-only scroll reset. [Research](../research/VN_EXAMS_UI_GAP_ANALYSIS.md)
+records current measured1024px catalog group/768px detail outer and native viewport/
+scrollbar discrepancies. Private ignored `tmp/vn-exams-ui-20261020/` contains owner
+PNG provenance, reference/local hashes, `local-complete/` report and comparison.html.
+Required01–06 reference names exist; images with browser banner are not exact
+viewport captures. Keep authenticated screenshots private/ignored.
+
+Fresh preview RUNNING at `http://localhost:4176` (task-owned exec session14194).
+`PORT=4176 npm run dev:b0` started; HTTP200 and main/styles current SHA verified.
+Existing4173/4175 listeners were preserved; attempted4175 launch failed EADDRINUSE.
+Use localhost preview to keep separate from existing127.0.0.1 browser sessions.
+Stop only session14194 with Ctrl+C if requested; do not terminate owner listeners.
+To relaunch after stopping, run the same4176 command. Mock answers live only while
+that server process runs. No dependency install/build needed for demo launch.
+
+**DEMO ONLY:** student delivery still uses original4-slot6-minute synthetic
+fixtures/complete-group semantics, separate from real local PostgreSQL staff Bank.
+No official TSA score, fabricated exam inventory/history or live generation.
+**BLOCKED / NOT IMPLEMENTED:** real student-service integration needs approved
+inventory/publication and assembly/attempt/persistence/closure/grading services.
+Section timing/locks and unobserved calculator/notes/report/other formats are not
+invented from current mock metadata. No G2/G3 advancement. Highest-value next work
+is the existing gated student-service integration path; architecture remains stable.
+
+---
+
+# Current handoff — WEB-B0.2 frontend UX execution
+
+2026-10-20, Asia/Bangkok. Accountable integrator: Codex Sol6.1; bounded
+implementation: native Luna/XHigh; actual independent read-only reviewer:
+native Sol6.1/Medium. Branch `feat/track-b-data-auth`, start HEAD `f72f6a8`.
+Uncommitted; no push/merge/deployment/paid API/external reference-site access.
+
+Owner current “Autonomous Engineering Orchestrator” directive authorizes this
+local frontend work; scope recorded in [decisions](../decisions/OPEN_DECISIONS.md#frontend-ux-execution-scope--2026-10-20).
+Pre-existing AGENTS.md/main.js/styles.css edits and research report preserved.
+Production contracts, one-domain lifecycle, auth/DB/scoring/reuse unchanged.
+
+Cycle1 IMPLEMENTED/VERIFIED: catalog availability filter/instructions, tab-local
+review marks, navigator filtering/direct navigation, live submit counts, sticky
+responsive timer/footer, result statistics, explicit released inline details,
+focused filtered/paged review and explanation disclosures. Reviewer save-control
+finding repaired and asserted in real browser. Evidence/commands/limits in
+[WEB-B0.2 verification](../reviews/WEB_B0_2_VERIFICATION.md).
+
+Cycle2 IMPLEMENTED/VERIFIED: original synthetic true/false arithmetic in slot4;
+first3 single-choice fixtures retained. Partial saves remain unfinished, full
+exact matches earn one mock point. Functional mobile menu and compact exam shell.
+B0 PASS15; Chromium1440/768/390 mixed saves/reload/offline/keyboard/review and
+automatic clock expiry/late-save rejection PASS. Final independent review has no
+outstanding findings; review text/control fixes visually and functionally verified.
+Seventeen captures/report in `/tmp/tsa-b0-browser-evidence`. All reservations released.
+
+Cycle1 observed PASS: B0 11 nested tests, expanded Chromium155 at1440/768/390,
+106 contract tests,11 emitted consumers, typecheck/build/emitted smoke,
+contract drift/import and scoped diff. Existing staff regressions PASS13 local
+PG/HTTP tests plus Chromium staff workflow. Git-backed `docs:check` PASS;
+restricted fallback FAILS existing untracked research trailing spaces; preserve input. No clean restricted-CI or WCAG claim.
+See evidence record for launch failure and permitted test execution distinctions.
+
+Run: `npm run dev:b0` → http://127.0.0.1:4173 (no install/build).
+Current4173 listener was preserved; exact alternate `PORT=4175 npm run dev:b0`
+served HTTP200 and was stopped with Ctrl+C. No task-owned server remains running.
+Student exam remains DEMO ONLY; only separate local staff identity/Bank uses real
+PostgreSQL. Real student delivery requires controlled human publication/stock,
+assembly/attempt/closure/scoring services and their gates. Historical accepted
+staff/Bank evidence follows and remains authoritative for those earlier scopes.
+
+---
+
 # Latest handoff — staff and canonical draft ingestion verified
 
 2026-10-20, Asia/Bangkok. Owner scoped DATA-001/AUTH-001 approval is recorded in

@@ -153,3 +153,18 @@ must be registered before integration; there is no application/browser bundle to
 validate yet. This source policy is not a JavaScript sandbox or proof of production
 security. Hosted CI, database/publication concurrency and live-provider evidence
 remain outside these local shared-contract checks.
+
+## PostgreSQL student engineering demo
+
+The explicitly enabled disposable student command demonstrates real allocation,
+acknowledged answers, queued grading and released review using isolated original
+synthetic inventory. From the repository root:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student
+```
+
+Open the printed loopback URL and choose a synthetic candidate. Ctrl+C discards
+this fixture database. This does not provision lawful production stock or satisfy
+qualified human review. See the [student run guide](apps/practice-prototype/README.md#disposable-postgresql-student-demonstration)
+for installation, test commands and scope. Default `dev:b0` remains in-memory mock.

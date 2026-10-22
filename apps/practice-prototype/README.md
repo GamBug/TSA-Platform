@@ -108,6 +108,46 @@ persistence; `npm run test:track-b:browser` exercises login, lost-response retry
 one persisted draft, candidate denial and the mock-only unavailable state.
 Desktop/mobile screenshots are written to `/tmp/tsa-track-b-browser-evidence`.
 
-A fresh preview for this checkout is running at <http://localhost:4176>. Existing
-4173/4175 servers were preserved. To launch after stopping that preview, run
-`PORT=4176 npm run dev:b0`; use localhost for a separate preview browser session.
+To start an independent mock preview, run `PORT=4176 npm run dev:b0` and open
+`http://127.0.0.1:4176`. No running preview is implied by this checkout.
+
+## Disposable PostgreSQL student demonstration
+
+Use the pinned Node/npm/PostgreSQL toolchain from the repository root:
+
+```sh
+npm ci --ignore-scripts
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student
+```
+
+Open the printed `http://127.0.0.1:<port>/?student=postgres` URL. Choose synthetic
+candidate A explicitly, start the available practice, answer the mixed question
+types, submit, wait for background grading, and open the released review. Reload
+preserves the attempt and acknowledged answers while this process remains running.
+Ctrl+C stops the owned runtime and discards the disposable database. A fresh run
+creates a fresh isolated fixture; this command is not persistent stock provisioning.
+
+This opt-in launcher uses original engineering fixtures and simulated review roles
+inside the existing postmaster-bound test scope. It refuses production/missing
+opt-in flags and does not publish to any persistent or production Bank. No real
+content-rights evidence, qualified human approval or official score is implied.
+Candidate B has separate ownership. No question identity is selected automatically
+for a real student and no live model is called. The ordinary `dev:b0` command still
+starts only the in-memory mock service.
+
+Automated actual PostgreSQL browser commands:
+
+```sh
+npm run build
+npm run test:student
+npm run test:student:browser
+npm run test:student:keyboard
+npm run test:student:expiry
+npm run test:student:firefox
+```
+
+Chromium/Firefox/geckodriver must already be installed; these commands download no
+browser. See [persistent integration](../../docs/reviews/WEB_004_PERSISTENT_STUDENT_VERIFICATION.md)
+and [keyboard/cross-browser evidence](../../docs/reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md)
+for executed scope and limitations. Keyboard AX/reflow checks do not establish
+qualified screen-reader testing, native page zoom or WCAG conformance.

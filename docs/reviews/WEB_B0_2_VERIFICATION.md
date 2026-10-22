@@ -4,7 +4,7 @@ Date: 2026-10-20, Asia/Bangkok. Accountable integrator: Codex Sol 6.1.
 Starting branch `feat/track-b-data-auth`, HEAD `f72f6a8`; all work uncommitted.
 Owner-authorized local implementation; no G2/G3 or production acceptance.
 Pre-existing AGENTS.md, main.js, styles.css modifications and untracked
-[research](../research/VN_EXAMS_UI_GAP_ANALYSIS.md) preserved.
+`docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md` (owner local research, not checkpointed) preserved.
 
 ## Evidence classification and prioritization
 

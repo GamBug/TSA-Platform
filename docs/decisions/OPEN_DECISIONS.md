@@ -161,6 +161,159 @@ approve whole unrelated ADRs, human content approval, missing evidence or G2/G3.
 Synthetic integration fixtures remain distinct from rights-cleared inventory.
 No owner AGENTS edits, push/merge, deployment, paid external API or Astra.
 
+## Frontend UX execution scope — 2026-10-20
+
+- Approver: human project owner, current “Autonomous Engineering Orchestrator”
+  directive, sections 4, 8, 9 and 14: “authorizes autonomous local development,
+  including implementation, testing, and routine technical decisions”.
+- Scope: continue existing frontend from actual working tree using verified
+  VN Exams research; original components, synthetic demo where integration is
+  unavailable, delegated bounded work and real browser verification.
+- Limits: frozen G1/API/DB/lifecycle/reuse/scoring/publication contracts preserved;
+  no external attempts, protected content reuse, paid APIs, commits, push or merge.
+  This is scoped execution authorization, not approval of a whole ADR or G2/G3.
+- Task/evidence: WEB-B0.2 in [backlog](../tasks/TASK_BACKLOG.md); final executed
+  evidence belongs in [latest handoff](../agents/LAST_HANDOFF.md).
+
+## Autonomous local integration — 2026-10-22
+
+Owner authorizes autonomous continued engineering in the current session. The
+coordinator applies this to separate preservation/integration checkpoints and
+clean-checkout PostgreSQL student verification. [Exact authority and scope](LOCAL_STUDENT_INTEGRATION_AUTHORITY_2026_10_22.md).
+No question-specific rights, human review, new frozen contract or publication
+approval is inferred. Owner AGENTS/unrelated research remain preserved.
+
+## Dataset preflight engineering scope — 2026-10-20
+
+- APPROVED scoped execution by the human project owner, 2026-10-20, current
+  “accountable engineering orchestrator” directive, Phases 1–5: stop reference-UI
+  reconstruction; preserve current work; audit DATA-002/003 and BANK-001/002;
+  implement unblocked synthetic dataset/provenance validation and independent-review
+  foundations; require actual independent code review and pinned-toolchain checks.
+- Local narrowly scoped checkpoints are authorized. No push, merge, deployment,
+  protected question copying, paid model API or Astra use is authorized.
+- This authorizes non-publishing preflight engineering before named human review
+  and lawful inventory are supplied. It does not name human reviewers, clear
+  rights, approve synthetic content, accept G2/G3, change frozen G1 contracts or
+  approve unrelated ADR mechanisms. Actual publication remains separately gated.
+- Durable evidence: owner directive in this session, recorded here by the
+  accountable Codex coordinator; implementation/evidence links follow in backlog.
+
+## BANK-002 workflow engineering authorization — 2026-10-20
+
+Human project owner, current “Continue TSA-Platform engineering from commit
+c1b4fa7” directive: missing named humans/lawful inventory block real publication
+and G2 acceptance, not implementing/testing the review system. Authorizes exact-
+version/hash submission, independent approval/rejection/revision controls,
+rights/equivalence/authorization guards, immutable evidence and isolated synthetic
+concurrency tests, with separate engineering review. No G1 contract changes,
+real publication, push/merge/deployment, Astra or paid model APIs authorized.
+Use existing roles/contracts/tables; minimal additive reviewed SQL only for
+necessary fixture isolation/guard and command-receipt authorization. Approval
+simulation is confined to owner-initialized disposable test scope and must not
+activate publication in the normal staff runtime. No named human approval, rights
+attestation, production authorization, whole ADR approval or G2 acceptance follows.
+
+## BANK-002 equivalence continuation — 2026-10-21
+
+Human project owner “Next” continues authorized workflow engineering from416b621:
+implement the recorded next monotonic equivalence adjudication/merge and late-
+equivalence incident evidence using isolated synthetic fixtures. Follow existing
+reuse-policy semantics: immutable versions/snapshots/history, canonical aliases,
+no split/unmerge, exact-version independent review, atomic Bank revision and audit.
+Minimal additive SQL may enforce those existing invariants and keep incident
+probes private; no frozen G1 contract, publication authorization or whole-ADR
+change follows. Real human content/rights/inventory and G2 acceptance remain gated.
+
+## Minimum Bank safety and student-backend transition — 2026-10-21
+
+Human project owner directive “Continue TSA-Platform from commit d9812b3” authorizes
+minimum durable rights/quarantine enforcement, documented attempt cancellation/
+invalidation, safe supported-MVP content validation, synthetic PostgreSQL tests
+and separate review. Then audit ASSEMBLY-001/002 and begin fixture-tested student
+backend groundwork. Do not wait for named humans/inventory to engineer mechanisms;
+they remain real-publication/G2 acceptance gates. Follow documented withdrawal
+policy without inventing new rules; retain immutable snapshots/history and frozen
+G1 contracts. Reject unsupported media instead of adding speculative infrastructure.
+No mock-UI polish, live student LLM, Astra, paid API, push/merge/deploy or unauthorized
+publication. Existing local checkpoint authorization remains bounded to task files.
+
+## Atomic allocation engineering authorization — 2026-10-21
+
+- Approval identity: human project owner; durable evidence is the current instruction
+  “Continue TSA-Platform engineering from commit c0b42b5” and “Implement
+  ASSEMBLY-001/002 atomic allocation.”
+- Scope: reuse the frozen solver/current Bank eligibility, atomically persist the
+  manifest, sealed form, CREATED attempt, assignment history/revision and receipt;
+  enforce H1/NEW_ONLY, receipt/error precedence and publication guards; verify
+  actual PostgreSQL concurrency/rollback/security and obtain separate engineering
+  review. Synthetic isolated fixtures are authorized without real publication.
+- Accountable implementer Codex Sol; isolated Luna/XHigh implementation and separate
+  Sol review are explicitly requested when available. Preserve owner AGENTS/UI work.
+- No new frozen contracts, Bank expansion except allocation-blocking defects,
+  speculative UI work, Astra/paid APIs, push/merge/deploy or real publication.
+  Formal G2/G3, lawful inventory, qualified human review and Track A remain pending.
+
+## Sustained grading and student-integration continuation — 2026-10-22
+
+Owner instruction in the current session: “next. working until reach usage limit.”
+Continues the `b094a6e` handoff: leased grading, exact scoring/release, then safe
+results and application integration as executable and verified. G2/G3 acceptance
+remains the recorded owner disposition; publication/content-review controls stay.
+Sol owns SQL014, race/fault tests and records; actual native Luna/XHigh owns new
+pure scorer/worker adapter and scoped tests; separate native Sol6.1/Medium reviews.
+Recommendation reason: isolate typed arithmetic/adapter work while Sol integrates
+lease/rights/score transactions; independent review audits security and concurrency.
+Dedicated NOLOGIN `tsa_exam_worker` is an internal least-privilege capability for
+the already-specified trusted EXAM executor. Only narrow command execution is
+granted; existing student/Bank/Factory roles gain no worker or private-data access.
+Runtime worker credentials require explicit operator provisioning, never HTTP roles.
+No public/frozen contract change, production deployment/publication, paid LLM API,
+Astra, push/merge or owner-file overwrite is authorized. All operational rate/lease
+and retry choices stay explicit test/local configuration, without production claims.
+
+## G2/G3 owner acceptance and submit continuation — 2026-10-21
+
+**G2 and G3 OWNER_ACCEPTED** by the human repository owner in the current session:
+“next. G2/G3 accepted.” [Durable disposition and scope](G2_G3_OWNER_ACCEPTANCE_2026_10_21.md).
+This supersedes earlier unaccepted gate status. Actual human/question evidence
+and remaining implementation limits are explicitly retained in that record.
+EXAM-002 bounded submit/closure/one-job work continues from `cda1235` with Sol
+SQL/integration, isolated Luna/XHigh adapters/tests and separate read-only Sol
+review. No operational publication/deployment or frozen-contract changes.
+
+## Persisted answer save continuation — 2026-10-21
+
+- Owner identity/evidence: repository owner, current session `next.` immediately
+  after local `b55afb1` start/read handoff naming persisted revisioned saves next.
+- Scope: EXAM-001 answer saves using frozen contracts and existing PostgreSQL
+  tables; exact-key receipts, revisions, ownership, active clock/rights guards,
+  shared USER_SAVE/ATTEMPT_SAVE budgets, isolated synthetic tests and independent
+  engineering review. Explicit test/local rate config; proposed operational defaults
+  remain unapproved. No submit/grading/results/UI or production-publication scope.
+- Integrator Codex Sol owns SQL012/shared records/race tests; actual native
+  Luna/XHigh owns bounded service/HTTP/save tests; separate Sol6.1/Medium is read-only.
+  Recommendation reason: isolated adapter work for Luna, coupled authorization/time
+  integration for Sol, independent security/concurrency review. Sol fallback if
+  Luna unavailable; existing subscriptions only, no paid model APIs.
+
+## Persisted attempt start and safe delivery continuation — 2026-10-21
+
+- Approval identity: human project owner; actionable instruction “Next” continues
+  the latest EXAM-001 persisted start/safe GET task after local `6fc219e`.
+- Authorized bounded scope: reuse frozen student DTO/HTTP boundaries and committed
+  allocation; add owned first-start and lazy lifecycle reconciliation, safe sealed
+  question delivery, creation transport with explicit local creation-rate config,
+  actual PostgreSQL timing/ownership/concurrency/restart/security tests and separate
+  engineering review. No answer-save/submission/score/result completion implied.
+- Accountable engineer Sol; continuing explicit session strategy authorizes isolated
+  Luna/XHigh implementation and separate Sol review where available. No production
+  rate defaults are approved; test/development budgets must be supplied explicitly.
+- Preserve owner AGENTS/UI/shared work, frozen G1 and all publication gates. No
+  Bank expansion, UI redesign, paid model calls/Astra, push/merge/deploy or real
+  publication. Human inventory/content review, full milestone and G2/G3 acceptance
+  remain outstanding.
+
 ## ADR-001 — Transactional application stack
 
 - Status: PROPOSED; approval: none; revision: 2.
@@ -299,3 +452,26 @@ Migration impact: proposed create/catalog/result DTOs, forms/attempt constraints
 - Blocks: AI-001/002, FACTORY-001 and INT-001; not the manually seeded website milestone.
 
 Owner approval queue additionally covers ADR-007/008 and all revised scopes above. Fundamentals in the owner's requirement are not reopened as optional features; the proposed mechanisms and parameter values still need approval.
+
+### Direct authenticated frontend research scope — 2026-10-20
+
+Approval identity: human project owner. Evidence: current “Human-in-the-Loop
+UI Reverse Engineering Orchestrator” directive, manual login DONE, manual attempt
+entry screenshot/DONE, explicit manual-submission choice then SUBMITTED, and
+three manual result/review/solution screenshots followed by DONE.
+
+Scope: local browser preparation, content-free authenticated UI measurements,
+private ignored screenshot evidence and original compatible frontend
+reconstruction after the evidence gate. Owner alone performed authentication,
+reference attempt entry and submission. No additional external attempt, automated
+submission, credential access/export, protected content reuse, commit/push/merge,
+frozen-contract/schema/security or production-service change is approved.
+Manual evidence now satisfies the taking/result/review visual gate; exact matching
+result viewports and detail PNG remain unavailable and must be labeled as such.
+
+Catalog/detail evidence continuation: on2026-10-20 the owner supplied actual
+reference catalog/card and detail PNGs after local images were excluded.
+`owner-catalog-details-provenance.json` records verified1920x1080 files and SHA
+in ignored research storage. This resolves the visual checkpoint for compatible
+catalog/detail changes; it does not authorize new reference attempts, copied
+history/branding/assets, fabricated inventory or any contract change.

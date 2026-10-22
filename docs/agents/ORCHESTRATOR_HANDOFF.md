@@ -1,3 +1,62 @@
+Clean-checkout continuation under new autonomous owner authority: baseline `02f2b61`
+preserves existing UI/demo/fonts separately without overwriting integrated main.
+Persistent client/state test, aliases/disposable demo and coordinated records are
+prepared for checkpoint. Actual student8, separate reviewer launcher2/legacy16/
+font12+license PASS, no P1/P2. Clean-clone verification still PENDING.
+[Evidence](../reviews/WEB_004_CLEAN_CHECKOUT_VERIFICATION.md). Owner AGENTS/research
+remain unstaged. Manual accessibility packet prepared, not executed. Sol owns final
+verification; no push/merge/deploy/publication/G1 change; G2/G3 owner accepted.
+
+Keyboard/reflow and Firefox continuation verified from `e136627`, local checkpoint `13c56ad`.
+[Evidence](../reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md).
+Actual Chromium keyboard/PG PASS76 focus entries/zero mismatches,18 AX checks,
+640px reflow-equivalent; Firefox156 actual persisted student journey PASS. Sol
+finished after Luna actual usage stop; separate Sol review no open P1/P2, no browser
+execution claimed for reviewer. Final prototype21/student6/local13/contracts106/
+consumers11/build/typecheck/import and default/expiry/mock Chrome+Firefox PASS.
+Native200% zoom and qualified screen-reader/full accessibility remain unverified.
+Owner-overlapped UI/shared records remain unstaged; opt-in test checkpoints require
+that working-tree integration. Owner AGENTS/unrelated files preserved; all reservations
+released. Next bounded manual assistive-tech/zoom review packet, then actual fixes.
+G2/G3 owner accepted; lawful inventory/human content review distinct, Track A incomplete.
+
+Student client now exercises PostgreSQL end to end in the preserved working tree;
+transport checkpoint `e8a5f5b`, directory `ccc14e0`. [Evidence](../reviews/WEB_004_PERSISTENT_STUDENT_VERIFICATION.md).
+Actual student6/local13/B0 21/contracts106/consumers11 and real+legacy Chromium
+PASS; separate read-only Sol no open P1/P2. Owner-overlapped main/server and
+UI-dependent browser/state tests remain unstaged. Do not claim a clean checkout
+contains the integrated UI. WEB-004 remains IN_PROGRESS; actual reconnect/conflict
+browser tests passed in Luna and Sol runs; all reservations released. Next bounded
+keyboard/zoom/accessibility and second-engine evidence. Actual8-second expiry
+passed in Luna and Sol runs with unchanged seals/clocks/history/answer and one
+digest-bound job/released25% score; separate Sol review has no open P1/P2. G2/G3 owner accepted; Track A incomplete;
+real lawful stock/human-review evidence and production operations remain distinct.
+
+Catalog/owned history verified from `71613e1`; [evidence](../reviews/EXAM_STUDENT_DIRECTORY_VERIFICATION.md).
+Fresh separate Sol final directory9 PASS, no open P1/P2; all relevant PG/contract
+regressions PASS. Earlier usage-stop record is historical. Next existing-client
+integration without owner UI reconstruction. G2/G3 owner accepted, Track A
+incomplete, lawful inventory/human review distinct; owner work preserved.
+
+Usage-limit handoff: last reviewed checkpoint `71613e1`; directory work remains
+unfinished/uncommitted. Root PostgreSQL races5 PASS, adapter/HTTP/full verification
+and independent review outstanding. Both agents and goal service reported the
+actual usage limit. [Exact resume](../reviews/STUDENT_DIRECTORY_WORK_IN_PROGRESS.md).
+Owner work preserved; no push/merge/deploy/publication. G2/G3 owner accepted.
+
+Trusted expiry recovery verified from `bc3ed0a`; [latest handoff](LAST_HANDOFF.md),
+[evidence](../reviews/EXAM_002_EXPIRY_RECOVERY_VERIFICATION.md). Actual recovery16 and
+all relevant PG/contract regressions PASS; separate Sol recovery16/student5 PASS,
+no open P1/P2. Next frozen catalog/history, then existing client integration. UI
+remains mock, G2/G3 owner accepted, Track A incomplete; owner changes preserved.
+
+Local student API composition is verified from `f551f8d`; see
+[latest handoff](LAST_HANDOFF.md) and [evidence](../reviews/EXAM_LOCAL_STUDENT_RUNTIME_VERIFICATION.md).
+Actual student5 plus existing attempt/grading/result/auth/local/contract checks PASS;
+separate Sol student5 PASS, no open P1/P2. UI remains mock. Next trusted bounded
+expiry reconciliation, then catalog/history/client integration. Owner files remain
+preserved/unstaged, G2/G3 owner accepted, Track A incomplete.
+
 # TSA-Platform — Orchestrator Handoff Baton
 
 Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
@@ -7,6 +66,169 @@ implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
 G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
+
+## Current baton — owner released result verified, 2026-10-22
+
+Local checkpoint **`f551f8d`** from `86edda7`: SQL015 + existing frozen response boundary now return owned,
+current-rights/exact-release reviews only after grading. Actual results6/grading21/
+attempts28/Bank94/assembly23/DATA34/AUTH5/local13/B0 16/contracts106/emitted11 PASS;
+separate read-only Sol results6 PASS, no P1/P2. [Evidence](../reviews/SCORE_001_RELEASED_RESULTS_VERIFICATION.md).
+No prototype student UI integration or expiry sweep yet. Next compose local auth/
+student API/worker, add catalog/history and bounded reconciliation. Sustained user
+goal remains active until usage limit; G2/G3 owner accepted, publication controls
+unchanged. Owner work/AGENTS preserved; no push/merge/deploy/paid APIs/Astra.
+
+## Current baton — leased grading/release verified, 2026-10-22
+
+Local checkpoint **`86edda7`** from `b094a6e`: SQL014/private worker/scorer implement leased exact grading and
+atomic immutable score/release, with current rights, fencing, real-time retry/
+exhaustion and deferred-COMMIT lease safety. Grading21/scorer5 plus full relevant
+regressions PASS; separate read-only Sol review21/5 and earlier attempts28/Bank94
+PASS, no P1/P2. [Evidence](../reviews/SCORE_001_LEASED_GRADING_VERIFICATION.md).
+Owner G2/G3 acceptance stands; question publication controls/human prerequisites
+remain. Next safe released result GET, then local student integration and expiry
+sweep. User requested sustained work until usage limit; goal remains active.
+Owner work/AGENTS preserved, shared records unstaged; no push/merge/deploy/paid API.
+
+## Current baton — submission verified; G2/G3 owner accepted, 2026-10-22
+
+Local checkpoint **`b094a6e`** from `cda1235`: SQL013 + frozen protected POST submit now atomically persist closure,
+one digest-bound grade job, exact receipt and audit. Holds precede replay; trigger
+and waited deadlines produce committed expiry; actual save/submit and rights/submit
+winner orders and job/audit/receipt/COMMIT failures are verified. Attempts28/Bank94/
+assembly23/DATA34/AUTH5/local13/B0 16/contracts106/emitted11 PASS, build/typecheck/
+drift/import PASS. Fresh separate read-only Sol review attempts28/Bank94 PASS,
+no concrete P1/P2. [Evidence](../reviews/EXAM_002_SUBMISSION_VERIFICATION.md).
+**G2/G3 OWNER_ACCEPTED** per [owner disposition](../decisions/G2_G3_OWNER_ACCEPTANCE_2026_10_21.md),
+superseding earlier unaccepted status. Question-specific rights/publication controls
+remain unchanged; qualified human evidence is not fabricated. Full EXAM-002 worker/
+sweep recovery, scoring/results and prototype student integration remain outstanding.
+Next EXAM-002/SCORE-001 leased grader/fencing + exact score + atomic release.
+Recommended Codex Sol6.1/High integration, native Luna/XHigh isolated tasks if
+available (Sol fallback), separate Sol6.1/Medium read-only review. All writer
+reservations released; owner work/AGENTS/shared records preserved. No push/merge/
+deploy/Astra/paid API/G1 changes. Docs check retains owner research failures.
+
+## Current baton — persisted answers verified, 2026-10-21
+
+Local checkpoint **`cda1235`**. Bounded EXAM-001 save engineering verified from `b55afb1`: SQL012 + frozen PUT
+persist latest acknowledged typed values, revisions/clear, exact receipts and
+metadata audit; rights/deadline guards and dual shared budgets fail closed.
+Actual attempts15/assembly23/Bank94/DATA34/AUTH5/local13/B0 16/contracts106/emitted11
+PASS; build/typecheck/drift/import PASS. Separate Sol6.1/Medium read-only review
+attempts15/Bank94/final save subset5 PASS, no unresolved P1/P2. Actual Luna/XHigh
+service/HTTP/tests and Sol SQL/races/integration. [Evidence](../reviews/EXAM_001_ANSWER_SAVE_VERIFICATION.md).
+All reservations released. Owner work/AGENTS/shared records preserved; no push,
+merge, deployment, paid APIs/Astra or G1 changes. Docs check retains existing owner
+research failures. EXAM-001 integrated acceptance, BANK-002 formal acceptance and
+G2/G3 remain pending; app server/UI still mocks student exams. Next EXAM-002 atomic
+submit/closure/job, then grader/scoring/released results and app integration.
+Recommended Codex Sol6.1/High coupled closure work, isolated Luna/XHigh if available
+(Sol fallback), separate Sol6.1/Medium read-only review. Real publication still
+requires lawful inventory, current rights and distinct qualified human review.
+
+## Current baton — persisted start and safe delivery, 2026-10-21
+
+Local checkpoint **`b55afb1`**. Bounded EXAM-001 backend SQL011/service/loopback HTTP adapter implemented from
+`6fc219e`. Shared Bank/attempt locks preserve immutable clocks, exact receipts,
+stored TTL, rights and sealed snapshots. Safe GET uses the frozen final guard in
+one transaction; expiry queues one job and never returns terminal questions.
+Explicit shared USER_CREATE configuration is required; no production defaults.
+[Actual tests, separate engineering review and limits](../reviews/EXAM_001_START_DELIVERY_VERIFICATION.md).
+EXAM-001 remains IN_PROGRESS for persisted answers. No grade worker, results or
+prototype server/UI wiring; full student examination remains mock in the app.
+G1 accepted, BANK-002 formal acceptance and G2/G3 unaccepted. Lawful inventory,
+qualified distinct human review/current rights and publication authorization are
+still required. Next owned revisioned answer saves, then submission/scoring.
+Recommended Codex Sol6.1/High SQL integration, isolated Luna/XHigh if available
+(Sol fallback), separate Sol6.1/Medium read-only review. Reservations released;
+owner AGENTS/UI/research and shared uncommitted records preserved. No push,
+merge, deployment, paid API, Astra or frozen G1 changes.
+
+## Current baton — atomic allocation verified, 2026-10-21
+
+Local checkpoint **`6fc219e`** from `c0b42b5`: standalone NEW_ONLY now commits manifest,
+sealed public/private form, CREATED attempt, assignment history/revision, receipt
+and audit atomically. Actual PG lock waiters, independent-student concurrent
+uncommitted success, twelve fault stages, immutable replay, correction/equivalence,
+rights/quarantine and committed deadline cleanup PASS. Assembly23/Bank94/DATA34/
+AUTH5/local13/B0 16/contracts106/emitted11 and build/typecheck/drift/import PASS;
+separate read-only Sol review23/94, no unresolved P1/P2. [Evidence](../reviews/ASSEMBLY_001_002_ATOMIC_ALLOCATION_VERIFICATION.md)
+and [latest handoff](LAST_HANDOFF.md). Owner AGENTS/UI/research preserved/unstaged.
+No push/merge/deploy/Astra/paid APIs or G1 changes. Full ASSEMBLY-001/002, BANK-002
+formal acceptance and G2/G3 remain outstanding; synthetic agents are not qualified
+human content reviewers. Next EXAM-001 persisted start/student-safe GET with create
+transport/rate wiring, then answers/submission/scoring. Full bundles/review/fixed
+allocation and the student HTTP exam journey are not implemented or accepted.
+
+## Current baton — Bank safety and student-backend transition, 2026-10-21
+
+Bounded Bank engineering verified from `d9812b3`; local checkpoint **`c0b42b5`**.
+Durable rights/quarantine holds, postcommit attempt/release fanout and exact-hash
+text/math/table validation complete; unsupported media rejected. Real-PG eligible
+standalone stock feeds frozen assembly/1 with NEW_ONLY history and current rights.
+Final Bank94/assembly1/DATA34/AUTH5/local13/B0 16/contracts106/emitted11 PASS;
+separate actual Sol review38 PASS, no unresolved P1/P2. See
+[safety evidence](../reviews/BANK_002_DELIVERY_SAFETY_VERIFICATION.md) and
+[latest handoff](LAST_HANDOFF.md). Owner work preserved and unstaged.
+BANK-002 formal acceptance/G2/G3 remain outstanding; synthetic agents are not
+qualified human content review. Student delivery remains mock-only. Execute the
+backlog's ASSEMBLY-001/002 atomic allocation card next; no additional Bank/UI
+features, push, merge, deploy, paid API, Astra or frozen G1 changes.
+
+## Current baton — monotonic equivalence, 2026-10-21
+
+`feat/track-b-data-auth` local `d9812b3`, from416b621: exact-hash independent
+adjudication, one-way aliases/all-member merge and private late incidents verified.
+Final Bank80, DATA34, AUTH5, local13, B0 16, contracts106, emitted11 and build/
+drift/import/docs PASS; actual independent read-only Sol42 PASS. Prior final38
+workflow rerun was additionally reported PASS before007. See
+[latest handoff](LAST_HANDOFF.md) and
+[equivalence evidence](../reviews/BANK_002_EQUIVALENCE_VERIFICATION.md).
+Owner AGENTS/UI/research preserved; shared updates uncommitted; reservations
+released. No push/merge/deploy/Astra/paid APIs. G1 accepted; BANK-002 IN_PROGRESS,
+G2/G3 unaccepted, student delivery mock-only. Next engineering: durable selected-
+form rights/quarantine holds/fan-out, then assets, using synthetic fixtures now.
+Missing humans/lawful stock gate real publication/acceptance only. No production
+allocation/qualified human review follows from fixtures; default publication off.
+
+## Current baton — executable BANK-002 workflow, 2026-10-21
+
+Local `416b621` on `feat/track-b-data-auth`, starting `c1b4fa7`: exact-version/hash
+review commands, rights/equivalence/authorization guards and disposable-only
+eligibility simulation implemented; default/production publication remains disabled.
+Final Bank61/DATA34/AUTH5/local13/B0 16/contracts106/emitted11 PASS. Actual Sol
+independent review performed; earlier37 and23 PASS, final fixture correction not
+independently rerun because reviewer hit subscription usage limit. See
+[latest handoff](LAST_HANDOFF.md) and
+[workflow evidence](../reviews/BANK_002_WORKFLOW_VERIFICATION.md).
+Owner AGENTS/UI/research preserved; shared updates uncommitted. All reservations
+released; no push/merge/deploy/Astra/paid APIs. G1 accepted; BANK-002 IN_PROGRESS,
+G2/G3 unaccepted. Next engineering: monotonic equivalence merge/incident workflow,
+then durable rights/quarantine selected-form holds; synthetic fixtures suffice.
+Missing named humans/lawful stock gate real publication and acceptance only.
+Do not resurrect the older engineering blocker or claim agent review is human
+content approval. No frozen contract/production-publication switch authorized.
+
+## Current baton — dataset priority, 2026-10-20
+
+Owner stopped further reference-UI reconstruction and authorized non-publishing
+dataset/review engineering. `feat/track-b-data-auth` now at local `c1b4fa7`:
+DATA-003 exact-hash manifests/private review packets and read-only PostgreSQL
+preflight implemented and independently code-reviewed. Bank35/DATA34/AUTH5/local13/
+B0 16/contracts106/emitted11 PASS; see
+[latest handoff](LAST_HANDOFF.md) and
+[execution evidence](../reviews/G2_DATASET_PREFLIGHT_VERIFICATION.md).
+Prior dirty owner/UI/research work, especially AGENTS.md, preserved; shared-record
+updates remain uncommitted. No push/merge/deploy. All implementation reservations
+released. No Astra or paid model APIs. G1 ACCEPTED; G2/G3 unchanged.
+
+Do not assume preflight grants rights, approves human review, proves inventory
+capacity, changes eligible pointers or integrates student delivery. Next BANK-002
+publication work requires named real independent humans, lawful stock evidence and
+affected owner mechanism dispositions. Ask that packet once; do not recreate UI.
+This supersedes the older no-authorized-preparation baton below for this narrow
+owner-authorized engineering scope only.
 
 ## Active baton — PostgreSQL staff integration, 2026-10-20
 
