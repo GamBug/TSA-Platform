@@ -174,6 +174,7 @@ npm run test:student:reservation:late
 npm run test:student:warning-resume
 npm run test:student:admission
 npm run test:student:allocation-race
+npm run test:student:new-only
 npm run test:student:domains
 npm run test:student:reading
 npm run test:student:rate-limit
@@ -226,6 +227,12 @@ only genuine empty-history responses, then send ordinary distinct-key creation
 requests. A real201/409 pair recovers the same attempt/form/clocks; acknowledged
 answers cross reloads and both tabs reach the same100% result. This verifies client
 conflict recovery; the existing PostgreSQL barrier tests establish locking behavior.
+
+The NEW_ONLY command completes two distinct original synthetic reading bundles,
+verifies disjoint stable identities/versions/equivalence groups, and then shows an
+actual unseen-inventory shortage. The failed allocation leaves both prior forms,
+history and released scores unchanged; no reuse or generation fallback is added.
+These test-only passages are not qualified human-reviewed production inventory.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline

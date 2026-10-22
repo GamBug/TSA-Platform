@@ -5,9 +5,26 @@ import { jsonDigest, resolveReferenceGraph, storeReferenceGraph, MANUAL_REFERENC
 import { bankRequest } from '../bank/harness.mjs';
 import { createAllocationFixture } from './fixtures.mjs';
 
+// Original synthetic passages; these are workflow fixtures, not reviewed inventory.
+const READING_SAMPLES = [
+  {
+    passage: 'Đoạn đọc tự viết: Nhóm bạn tổ chức ba buổi đổi sách tại thư viện. Buổi đầu nhóm nhận mười hai quyển sách. Buổi cuối nhóm sắp xếp sách theo chủ đề để người đọc dễ tìm. Chỉ kiểm thử kỹ thuật, không phải đề thi chính thức.',
+    questions: ['Theo đoạn đọc, nhóm tổ chức bao nhiêu buổi đổi sách?', 'Vì sao nhóm sắp xếp sách theo chủ đề?'],
+    options: [{ a: 'Hai buổi', b: 'Ba buổi', c: 'Bốn buổi' }, { a: 'Để đếm số buổi', b: 'Để thay đổi bìa sách', c: 'Để người đọc dễ tìm' }],
+    explanations: ['Đoạn đọc nêu rõ nhóm tổ chức ba buổi đổi sách.', 'Đoạn đọc nêu mục đích sắp xếp theo chủ đề là để người đọc dễ tìm.'],
+  },
+  {
+    passage: 'Đoạn đọc tự viết: Câu lạc bộ trồng cây tổ chức năm buổi chăm sóc vườn trường. Buổi đầu nhóm gieo hai mươi hạt giống. Buổi cuối nhóm ghi ngày tưới vào sổ để theo dõi độ ẩm. Chỉ kiểm thử kỹ thuật, không phải đề thi chính thức.',
+    questions: ['Theo đoạn đọc, câu lạc bộ tổ chức bao nhiêu buổi chăm sóc vườn?', 'Vì sao nhóm ghi ngày tưới vào sổ?'],
+    options: [{ a: 'Bốn buổi', b: 'Năm buổi', c: 'Sáu buổi' }, { a: 'Để đếm số cây', b: 'Để đổi tên vườn', c: 'Để theo dõi độ ẩm' }],
+    explanations: ['Đoạn đọc nêu rõ nhóm tổ chức năm buổi chăm sóc vườn.', 'Đoạn đọc nêu mục đích ghi ngày tưới là để theo dõi độ ẩm.'],
+  },
+];
+
 /** Original private disposable inventory; no retained provisioning or human approval. */
 export async function createBundleFixture({ bundleCount = 2, memberCount = 2, ordinals, materialize = true, mismatchedStimulus = false, section = 'MATH', durationSeconds = 180 } = {}) {
   if (!Number.isSafeInteger(durationSeconds) || durationSeconds <= 0) throw new RangeError('Positive integral fixture duration required');
+  if (section === 'READING' && (!Number.isSafeInteger(bundleCount) || bundleCount < 1 || bundleCount > READING_SAMPLES.length || memberCount !== 2)) throw new RangeError('Reading fixtures support one or two original two-question passages');
   if (!['MATH', 'READING'].includes(section)) throw new RangeError('Unsupported bundle fixture section');
   const f = await createAllocationFixture({ questionCount: 0, blueprintCount: 4 });
   try {
@@ -40,9 +57,10 @@ export async function createBundleFixture({ bundleCount = 2, memberCount = 2, or
     }
     f.bundles = [];
     for (let bundleIndex = 0; bundleIndex < bundleCount; bundleIndex++) {
+      const reading = section === 'READING' ? READING_SAMPLES[bundleIndex] : null;
       const source = await f.registerSource();
       const stimulusId = randomUUID(), stimulusVersionId = randomUUID(), provenanceId = randomUUID();
-      const content = [{ type: 'text', text: section === 'READING' ? 'Đoạn đọc tự viết: Nhóm bạn tổ chức ba buổi đổi sách tại thư viện. Buổi đầu nhóm nhận mười hai quyển sách. Buổi cuối nhóm sắp xếp sách theo chủ đề để người đọc dễ tìm. Chỉ kiểm thử kỹ thuật, không phải đề thi chính thức.' : `Đoạn dẫn tổng hợp ${bundleIndex + 1}: số liệu tự viết dùng chung cho hai câu. Chỉ kiểm thử kỹ thuật.` }];
+      const content = [{ type: 'text', text: section === 'READING' ? reading.passage : `Đoạn dẫn tổng hợp ${bundleIndex + 1}: số liệu tự viết dùng chung cho hai câu. Chỉ kiểm thử kỹ thuật.` }];
       await withTransaction(f.pool, async (client) => {
         const graph = await resolveReferenceGraph(client, MANUAL_REFERENCE_NAMESPACE, [{ kind: 'stimulus', id: stimulusVersionId }], [
           { kind: 'provenance', id: provenanceId, payload: { sourceVersionId: source.sourceVersionId, rightsEvidence: source.decisionId },
@@ -62,9 +80,9 @@ export async function createBundleFixture({ bundleCount = 2, memberCount = 2, or
         const response = await bankRequest(f.harness, f.browsers.author, '/api/v1/questions', { method: 'POST', key: randomUUID(), body: {
           schemaVersion: 'question/1', language: 'vi-VN', section, taxonomyVersionId: taxonomy.taxonomyVersionId,
           domainId: taxonomy.domainId, skillIds: taxonomy.skillIds, subskillIds: [], cognitiveLevel: null, targetDifficulty: 'EASY',
-          content: [{ type: 'text', text: section === 'READING' ? (index === 0 ? 'Theo đoạn đọc, nhóm tổ chức bao nhiêu buổi đổi sách?' : 'Vì sao nhóm sắp xếp sách theo chủ đề?') : `Câu hỏi tổng hợp có đoạn dẫn ${bundleIndex + 1}, vị trí ${index + 1}, mã ${randomUUID()}.` }],
-          stimulusVersionId, interaction: { type: 'SINGLE_CHOICE', options: ['a', 'b', 'c'].map((id) => ({ id, content: [{ type: 'text', text: section === 'READING' ? (index === 0 ? { a: 'Hai buổi', b: 'Ba buổi', c: 'Bốn buổi' } : { a: 'Để đếm số buổi', b: 'Để thay đổi bìa sách', c: 'Để người đọc dễ tìm' })[id] : `Nhãn ${id}` }] })) },
-          answerKey: { type: 'SINGLE_CHOICE', optionId: section === 'READING' && index === 1 ? 'c' : 'b' }, explanation: [{ type: 'text', text: section === 'READING' ? (index === 0 ? 'Đoạn đọc nêu rõ nhóm tổ chức ba buổi đổi sách.' : 'Đoạn đọc nêu mục đích sắp xếp theo chủ đề là để người đọc dễ tìm.') : 'Lời giải tổng hợp cho dữ liệu tự viết.' }],
+          content: [{ type: 'text', text: section === 'READING' ? reading.questions[index] : `Câu hỏi tổng hợp có đoạn dẫn ${bundleIndex + 1}, vị trí ${index + 1}, mã ${randomUUID()}.` }],
+          stimulusVersionId, interaction: { type: 'SINGLE_CHOICE', options: ['a', 'b', 'c'].map((id) => ({ id, content: [{ type: 'text', text: section === 'READING' ? reading.options[index][id] : `Nhãn ${id}` }] })) },
+          answerKey: { type: 'SINGLE_CHOICE', optionId: section === 'READING' && index === 1 ? 'c' : 'b' }, explanation: [{ type: 'text', text: section === 'READING' ? reading.explanations[index] : 'Lời giải tổng hợp cho dữ liệu tự viết.' }],
           evidenceRefs: template.evidenceRefs, origin: 'MANUAL', provenance: template.provenance,
         } });
         const question = await response.json();

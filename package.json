@@ -40,6 +40,7 @@
     "test:student:warning-resume": "STUDENT_WARNING_RESUME_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:admission": "STUDENT_ADMISSION_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:allocation-race": "STUDENT_ALLOCATION_RACE_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:new-only": "STUDENT_NEW_ONLY_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:browser": "node scripts/verify-student-browser.mjs",
     "test:student:rate-limit": "STUDENT_RATE_LIMIT_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:rate-limit:expiry": "STUDENT_RATE_LIMIT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs",

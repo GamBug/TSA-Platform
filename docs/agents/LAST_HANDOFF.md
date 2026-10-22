@@ -1,3 +1,42 @@
+# Current handoff — successive NEW_ONLY and exhaustion verified
+
+2026-10-23, `feat/track-b-data-auth`, base `88a09ea`; accountable Sol6.1.
+[Fixture boundary, actual commands, review and next finding](../reviews/WEB_004_NEW_ONLY_SUCCESSION_VERIFICATION.md).
+Second distinct original synthetic reading passage, existing sample/default180sec
+one-bundle fixture preserved. Two actual browser NEW_ONLY forms consume disjoint
+stableIDs/versions/current canonical groups and complete ordered passage units,
+acknowledge/grade100%, then third actual422 unseen shortage shows truthfully with
+no reuse override/generation job/partial attempt. Exact committed graph and both
+graded snapshots including score/items/releases retained. Not real human-reviewed
+inventory or semantic-equivalence acceptance; all synthetic publication gates remain.
+
+Initial/final Chrome36 responses/four screenshots, assembly49/student31/default
+reading32/contracts106/consumers11/build/typecheck/emitted smoke/drift/import/docs
+PASS. Separate Sol6.1/Medium found detailed-grade snapshot evidence gap; repaired,
+final browser rerun PASS, no remaining findings, syntax/whitespace independent.
+No independent PG/browser run. No verification failures in this batch; sequential
+PG/browser scheduling avoids earlier contention. Existing module-type/whitespace
+warnings remain. Full Bank/attempt/foundation/directory/keyboard/Firefox not rerun.
+No product defect or product/schema/API/dependency/publication-capability change.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal active; G1 accepted/G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot, lawful
+inventory, qualified human review, manual AT/native zoom and Track A outstanding.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+Owned browser/runtime/PostgreSQL fixtures cleaned.
+
+Next executable WEB-001/004 card: **mandatory timing notice before start**.
+Separate reviewer static P2: engine spec77 requires offline/no-grace explanation
+before start, but direct catalog action bypasses optional intro's offline wording;
+CREATED screen also omits explicit no-grace text. Reproduce with assertions in
+existing browser journeys, add minimal shared visible notice at direct/reserved
+start and strengthen intro text. No extra confirmation gate, new timing policy,
+frozen API/schema change or UI reconstruction. Recommended Sol6.1/High while Luna
+is usage-limited; separate Sol6.1/Medium read-only engineering review. Static-only
+finding so far; no next-card implementation claimed.
+
+---
+
 # Current handoff — two-tab allocation conflict recovery verified
 
 2026-10-23, `feat/track-b-data-auth`, base `61314b4`; accountable Sol6.1.

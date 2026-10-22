@@ -1143,6 +1143,20 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 successive NEW_ONLY **IMPLEMENTED / VERIFIED** from `88a09ea`: second
+original synthetic reading passage preserves default sample, isolated two-bundle
+fixture. Two browser forms use disjoint stableIDs/versions/current canonical groups
+and complete ordered units, save/grade100%, then actual422 unseen shortage leaves
+committed graph and both exact graded snapshots unchanged. No reuse/generation
+fallback or human-inventory claim. Initial/final Chrome36 responses/four screenshots,
+assembly49/student31/defaultreading32/contracts106/consumers11/build/typecheck/
+drift/import/docs PASS. Separate Sol6.1/Medium found detailed-grade snapshot gap,
+repaired and rerun; final no findings, syntax/whitespace only. [Evidence](../reviews/WEB_004_NEW_ONLY_SUCCESSION_VERIFICATION.md).
+Sol accountable, reservations released, owner files preserved. Next independent
+static P2: required offline/no-grace notice before direct/reserved start; reproduce
+and add shared notice without new confirmation gate. Recommended Sol6.1/High,
+separate Sol6.1/Medium review. Full WEB/human/AT/Track A remain distinct.
+
 2026-10-23 two-tab allocation recovery **IMPLEMENTED / VERIFIED** from `61314b4`:
 both clients hold genuine empty-history responses, then actual distinct-key201/409
 recover same owned attempt/form/clocks. One form/manifest/creation receipt/history
