@@ -27,6 +27,7 @@ function runtimeOptions(fixture, workerPool) {
     env: ENV,
     port: 0,
     pollMilliseconds: 20,
+    sweepBatchSize: 10,
     executorId: `student-runtime-${randomUUID()}`,
     leaseSeconds: 30,
     retrySeconds: 30,
@@ -106,7 +107,15 @@ function parseReleasedResponse(status, body) {
 }
 
 function createWorkerPoolProxy(pool) {
-  const state = { available: true, connections: 0, active: 0, maxActive: 0, idleClaims: 0 };
+  const state = {
+    available: true,
+    failSweep: false,
+    connections: 0,
+    active: 0,
+    maxActive: 0,
+    idleClaims: 0,
+    failedSweeps: 0,
+  };
   return {
     state,
     pool: {
@@ -118,6 +127,10 @@ function createWorkerPoolProxy(pool) {
         state.maxActive = Math.max(state.maxActive, state.active);
         return {
           async query(...args) {
+            if (String(args[0]).includes('tsa.exam_worker_sweep') && state.failSweep) {
+              state.failedSweeps += 1;
+              throw new Error('Synthetic sweep-only database fault');
+            }
             const result = await client.query(...args);
             if (String(args[0]).includes('tsa.exam_worker_claim')
                 && result.rows[0]?.result?.status === 'IDLE') state.idleClaims += 1;
@@ -156,6 +169,7 @@ test('invalid local runtime configuration is rejected before pool access or list
     executorId: 'invalid-config-test',
     leaseSeconds: 30,
     retrySeconds: 30,
+    sweepBatchSize: 10,
     createRate: CREATE_RATE,
     saveRate: SAVE_RATE,
   };
@@ -278,7 +292,10 @@ test('student HTTP and a separate worker persist login, attempt and released sco
   assert.ok(workerProxy.state.connections >= beforeSubmitConnections);
 
   workerProxy.state.available = true;
+  workerProxy.state.failSweep = true;
   result = await waitForReleasedResult(runtime.origin, studentA, attemptId);
+  assert.ok(workerProxy.state.failedSweeps > 0, 'a sweep error is isolated from grading in the same loop');
+  workerProxy.state.failSweep = false;
   assert.equal(result.response.headers.get('cache-control'), 'no-store');
   const review = parseReleasedResponse(200, result.body);
   assert.equal(review.scoreLabel, 'UNOFFICIAL_PRACTICE');

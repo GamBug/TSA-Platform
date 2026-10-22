@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createAttemptHandler } from '../http/attempts.mjs';
 import { createLocalAuthHandler } from '../http/local-auth.mjs';
+import { createExamSweeper } from '../modules/jobs/exam-sweeper.mjs';
 import { createExamWorker } from '../modules/jobs/exam-worker.mjs';
 import { createLocalSyntheticIdentityService } from '../modules/identity/local-synthetic.mjs';
 import { createPrototypeServer } from '../../apps/practice-prototype/server.mjs';
@@ -46,7 +47,9 @@ function validateRates(createRate, saveRate) {
   };
 }
 
-function validateConfig({ env, port, pollMilliseconds, executorId, leaseSeconds, retrySeconds, createRate, saveRate }) {
+function validateConfig({
+  env, port, pollMilliseconds, sweepBatchSize, executorId, leaseSeconds, retrySeconds, createRate, saveRate,
+}) {
   validateEnvironment(env);
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {
     throw new RangeError('port must be an integer from 0 through 65535');
@@ -54,6 +57,9 @@ function validateConfig({ env, port, pollMilliseconds, executorId, leaseSeconds,
   if (!Number.isSafeInteger(pollMilliseconds)
       || pollMilliseconds < MIN_POLL_MILLISECONDS || pollMilliseconds > MAX_POLL_MILLISECONDS) {
     throw new RangeError(`pollMilliseconds must be from ${MIN_POLL_MILLISECONDS} through ${MAX_POLL_MILLISECONDS}`);
+  }
+  if (!Number.isSafeInteger(sweepBatchSize) || sweepBatchSize < 1 || sweepBatchSize > 100) {
+    throw new RangeError('sweepBatchSize must be from 1 through 100');
   }
   if (typeof executorId !== 'string' || !/^[!-~]{1,128}$/.test(executorId)) {
     throw new TypeError('A printable worker executor identifier is required');
@@ -127,7 +133,7 @@ function closeServer(server) {
   });
 }
 
-function createWorkerLoop(worker, pollMilliseconds) {
+function createWorkerLoop(sweeper, worker, pollMilliseconds) {
   let stopped = false;
   let timer;
   let wakeTimer;
@@ -140,6 +146,11 @@ function createWorkerLoop(worker, pollMilliseconds) {
 
   loopPromise = (async () => {
     while (!stopped) {
+      try {
+        await sweeper.sweepOnce();
+      } catch {
+        // Sweep errors are isolated so already-queued grading remains available.
+      }
       try {
         await worker.runOnce();
       } catch {
@@ -170,6 +181,7 @@ export async function createStudentRuntime({
   env = process.env,
   port = DEFAULT_PORT,
   pollMilliseconds,
+  sweepBatchSize,
   executorId,
   leaseSeconds,
   retrySeconds,
@@ -177,9 +189,10 @@ export async function createStudentRuntime({
   saveRate,
 } = {}) {
   const config = validateConfig({
-    env, port, pollMilliseconds, executorId, leaseSeconds, retrySeconds, createRate, saveRate,
+    env, port, pollMilliseconds, sweepBatchSize, executorId, leaseSeconds, retrySeconds, createRate, saveRate,
   });
   const worker = createExamWorker({ workerPool, executorId, leaseSeconds, retrySeconds });
+  const sweeper = createExamSweeper({ workerPool, executorId, batchSize: sweepBatchSize });
   await assertStudentRuntimePools({ identityPool, examPool, workerPool });
 
   let routes = null;
@@ -223,7 +236,7 @@ export async function createStudentRuntime({
       saveRate: config.rates.saveRate,
     });
     routes = Object.freeze({ authHandler, attemptHandler });
-    workerStop = createWorkerLoop(worker, pollMilliseconds);
+    workerStop = createWorkerLoop(sweeper, worker, pollMilliseconds);
 
     return Object.freeze({
       server,

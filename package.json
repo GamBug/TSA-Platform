@@ -31,6 +31,7 @@
     "test:attempts": "node --test tests/integration/attempts/*.test.mjs",
     "test:scoring": "node --test tests/scoring/*.test.mjs",
     "test:grading": "node --test tests/integration/grading/*.test.mjs",
+    "test:recovery": "node --test tests/integration/recovery/*.test.mjs",
     "test:results": "node --test tests/integration/results/*.test.mjs",
     "test:student": "node --test tests/integration/student-runtime/*.test.mjs tests/integration/student-security/*.test.mjs",
     "dev:track-b": "npm run build && node src/local/track-b.mjs",
