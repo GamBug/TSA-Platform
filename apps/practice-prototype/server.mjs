@@ -14,6 +14,8 @@ const PUBLIC_FILES = new Map([
   ["/", "public/index.html"],
   ["/index.html", "public/index.html"],
   ["/styles.css", "public/styles.css"],
+  ["/fonts.css", "public/fonts.css"],
+  ["/fonts/OFL.txt", "public/fonts/OFL.md"],
   ["/app/main.js", "public/app/main.js"],
   ["/app/persistent-api.js", "public/app/persistent-api.js"],
   ["/app/api.js", "public/app/api.js"],
@@ -23,11 +25,22 @@ const PUBLIC_FILES = new Map([
 const CONTENT_TYPES = {
   "public/index.html": "text/html; charset=utf-8",
   "public/styles.css": "text/css; charset=utf-8",
+  "public/fonts.css": "text/css; charset=utf-8",
+  "public/fonts/OFL.md": "text/plain; charset=utf-8",
   "public/app/main.js": "text/javascript; charset=utf-8",
   "public/app/persistent-api.js": "text/javascript; charset=utf-8",
   "public/app/api.js": "text/javascript; charset=utf-8",
   "public/app/staff.js": "text/javascript; charset=utf-8",
 };
+
+// Only the bundled, independently licensed font files are public assets.
+for (const weight of [400, 500, 600, 700]) {
+  for (const subset of ["latin", "latin-ext", "vietnamese"]) {
+    const file = `be-vietnam-pro-${weight}-${subset}.woff2`;
+    PUBLIC_FILES.set(`/fonts/${file}`, `public/fonts/${file}`);
+    CONTENT_TYPES[`public/fonts/${file}`] = "font/woff2";
+  }
+}
 
 function result(status, headers, body) {
   return { status, headers, body };

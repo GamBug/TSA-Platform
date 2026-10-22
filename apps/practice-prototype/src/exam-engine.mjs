@@ -1,11 +1,38 @@
 import { randomUUID } from "node:crypto";
 
-import { privateQuestionFixture, REPEATED_FIXTURE_NOTICE } from "./private-question-fixture.mjs";
+import { privateQuestionFixture, questionFixtureForOrdinal, REPEATED_FIXTURE_NOTICE } from "./private-question-fixture.mjs";
 
 export const DEMO_DURATION_SECONDS = 6 * 60;
 export const MATH_SLOT_COUNT = 4;
 
 const allowedOptionIds = new Set(privateQuestionFixture.interaction.options.map((option) => option.id));
+
+function isCompleteAnswer(question, answer) {
+  if (question.interaction.type === "SINGLE_CHOICE") return typeof answer === "string";
+  if (answer?.type !== "TRUE_FALSE_GROUP" || answer.statementValues === null || typeof answer.statementValues !== "object") return false;
+  return question.interaction.statements.every(({ id }) =>
+    Object.hasOwn(answer.statementValues, id) && typeof answer.statementValues[id] === "boolean");
+}
+
+function isCorrectAnswer(question, answer) {
+  if (!isCompleteAnswer(question, answer)) return false;
+  if (question.interaction.type === "SINGLE_CHOICE") return answer === question.private.answerKey.optionId;
+  return question.interaction.statements.every(({ id }) => answer.statementValues[id] === question.private.answerKey.statementValues[id]);
+}
+
+function isValidGroupAnswer(question, answer) {
+  if (answer === null || typeof answer !== "object" || Array.isArray(answer) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(answer)) ||
+      answer.type !== "TRUE_FALSE_GROUP" || Object.keys(answer).length !== 2 ||
+      answer.statementValues === null || typeof answer.statementValues !== "object" || Array.isArray(answer.statementValues) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(answer.statementValues))) return false;
+  const allowedIds = new Set(question.interaction.statements.map(({ id }) => id));
+  return Object.entries(answer.statementValues).every(([id, value]) => allowedIds.has(id) && typeof value === "boolean");
+}
+
+function publicGroupValues(statementValues = {}) {
+  return Object.entries(statementValues).map(([statementId, value]) => ({ statementId, value }));
+}
 
 function percent(correctCount, totalCount) {
   const hundredths = Math.floor((correctCount * 10_000 + totalCount / 2) / totalCount);
@@ -13,8 +40,10 @@ function percent(correctCount, totalCount) {
 }
 
 function score(attempt) {
-  const correctCount = attempt.slots.reduce((count, slot) =>
-    count + (attempt.answers.get(slot.slotId) === privateQuestionFixture.private.answerKey.optionId ? 1 : 0), 0);
+  const correctCount = attempt.slots.reduce((count, slot) => {
+    const question = questionFixtureForOrdinal(slot.ordinal);
+    return count + (isCorrectAnswer(question, attempt.answers.get(slot.slotId)) ? 1 : 0);
+  }, 0);
   return {
     label: "KẾT QUẢ LUYỆN TẬP MINH HỌA — KHÔNG CHÍNH THỨC",
     correctCount,
@@ -52,13 +81,21 @@ export function expireIfNeeded(attempt, now) {
   return false;
 }
 
-export function saveMockAnswer(attempt, slotId, optionId, now) {
+export function saveMockAnswer(attempt, slotId, answer, now) {
   expireIfNeeded(attempt, now);
   if (attempt.state !== "IN_PROGRESS") return { saved: false, closed: true };
-  if (!attempt.slots.some((slot) => slot.slotId === slotId)) return { saved: false, unknownSlot: true };
-  if (optionId !== null && !allowedOptionIds.has(optionId)) return { saved: false, unknownOption: true };
-  if (optionId === null) attempt.answers.delete(slotId);
-  else attempt.answers.set(slotId, optionId);
+  const slot = attempt.slots.find((entry) => entry.slotId === slotId);
+  if (!slot) return { saved: false, unknownSlot: true };
+  const question = questionFixtureForOrdinal(slot.ordinal);
+  if (question.interaction.type === "SINGLE_CHOICE") {
+    if (answer !== null && !allowedOptionIds.has(answer)) return { saved: false, unknownOption: true };
+    if (answer === null) attempt.answers.delete(slotId);
+    else attempt.answers.set(slotId, answer);
+  } else {
+    if (answer === null || !isValidGroupAnswer(question, answer)) return { saved: false, unknownAnswer: true };
+    if (Object.keys(answer.statementValues).length === 0) attempt.answers.delete(slotId);
+    else attempt.answers.set(slotId, structuredClone(answer));
+  }
   return { saved: true, closed: false };
 }
 
@@ -95,14 +132,26 @@ export function toPublicAttempt(attempt, now) {
     closedAt: attempt.closedAt,
     closureReason: attempt.closureReason,
     repeatNotice: REPEATED_FIXTURE_NOTICE,
-    slots: attempt.slots.map(({ slotId, ordinal }) => ({
-      slotId,
-      ordinal,
-      content: structuredClone(privateQuestionFixture.content),
-      interaction: structuredClone(privateQuestionFixture.interaction),
-    })),
-    answers: [...attempt.answers].map(([slotId, optionId]) => ({ slotId, optionId })),
-    answeredCount: attempt.answers.size,
+    slots: attempt.slots.map(({ slotId, ordinal }) => {
+      const question = questionFixtureForOrdinal(ordinal);
+      return {
+        slotId,
+        ordinal,
+        content: structuredClone(question.content),
+        interaction: structuredClone(question.interaction),
+      };
+    }),
+    answers: attempt.slots.flatMap(({ slotId, ordinal }) => {
+      const answer = attempt.answers.get(slotId);
+      if (answer === undefined) return [];
+      const question = questionFixtureForOrdinal(ordinal);
+      if (question.interaction.type === "TRUE_FALSE_GROUP") {
+        return [{ slotId, type: "TRUE_FALSE_GROUP", statementValues: publicGroupValues(answer.statementValues) }];
+      }
+      return [{ slotId, optionId: answer }];
+    }),
+    answeredCount: attempt.slots.filter(({ slotId, ordinal }) =>
+      isCompleteAnswer(questionFixtureForOrdinal(ordinal), attempt.answers.get(slotId))).length,
   };
   if (attempt.state === "GRADED") snapshot.result = structuredClone(attempt.result);
   return snapshot;

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { createMockAttempt, saveMockAnswer } from "../src/exam-engine.mjs";
 import { createMockApiService } from "../src/mock-api.mjs";
 
 const startTime = Date.parse("2026-10-19T03:00:00.000Z");
@@ -34,6 +35,13 @@ function createHarness() {
   };
 }
 
+function groupAnswer(statementValues) {
+  return {
+    type: "TRUE_FALSE_GROUP",
+    statementValues: Object.entries(statementValues).map(([statementId, value]) => ({ statementId, value })),
+  };
+}
+
 describe("isolated mock API and in-memory exam session", () => {
   it("advertises the separate profile counts and enables only the synthetic MATH demo", async () => {
     const harness = createHarness();
@@ -60,9 +68,13 @@ describe("isolated mock API and in-memory exam session", () => {
     assert.equal(first.state, "IN_PROGRESS");
     assert.equal(Date.parse(first.deadlineAt) - Date.parse(first.startedAt), 360_000);
     assert.equal(first.slots.length, 4);
-    assert.equal(first.repeatNotice, "4 vị trí lặp lại cùng dữ liệu kiểm thử; không phải đề TSA/học liệu đã duyệt");
+    assert.equal(first.repeatNotice, "Câu 1–3 lặp lại cùng dữ liệu kiểm thử; câu 4 là nhóm đúng/sai tổng hợp; không phải đề TSA/học liệu đã duyệt");
     assert.equal(first.slots[0].content[0].text, "What is x if x + 2 = 5?");
-    assert.deepEqual(first.slots.map((slot) => slot.content), Array.from({ length: 4 }, () => first.slots[0].content));
+    assert.deepEqual(first.slots.slice(0, 3).map((slot) => slot.content), Array.from({ length: 3 }, () => first.slots[0].content));
+    assert.notDeepEqual(first.slots[3].content, first.slots[0].content);
+    assert.equal(first.slots.slice(0, 3).every((slot) => slot.interaction.type === "SINGLE_CHOICE"), true);
+    assert.equal(first.slots[3].interaction.type, "TRUE_FALSE_GROUP");
+    assert.deepEqual(first.slots[3].interaction.statements.map(({ id }) => id), ["s1", "s2"]);
     assert.doesNotMatch(started.body, /answerKey|explanation|Subtract 2 from each side|"optionId":"b"/);
 
     const saved = await harness.call(`/mock/attempts/${first.attemptId}/answers/${first.slots[0].slotId}`, {
@@ -245,13 +257,136 @@ describe("isolated mock API and in-memory exam session", () => {
     const { review } = JSON.parse(released.body);
     assert.deepEqual(Object.keys(review).sort(), ["attemptId", "label", "repeatNotice", "slots"]);
     assert.match(review.label, /PHIÊN DEMO ĐÃ KHÉP LẠI/);
-    assert.equal(review.repeatNotice, "4 vị trí lặp lại cùng dữ liệu kiểm thử; không phải đề TSA/học liệu đã duyệt");
+    assert.equal(review.repeatNotice, "Câu 1–3 lặp lại cùng dữ liệu kiểm thử; câu 4 là nhóm đúng/sai tổng hợp; không phải đề TSA/học liệu đã duyệt");
     assert.equal(review.slots.length, 4);
     assert.deepEqual(Object.keys(review.slots[0]).sort(), ["correctOptionId", "explanation", "ordinal", "slotId"]);
     assert.equal(review.slots[0].correctOptionId, "b");
     assert.deepEqual(review.slots[0].explanation, [{ type: "text", text: "Subtract 2 from each side." }]);
     assert.equal(Object.hasOwn(review, "result"), false);
     assert.equal(Object.hasOwn(review.slots[0], "answerKey"), false);
+    assert.deepEqual(review.slots[3], {
+      slotId: gradedAttempt.slots[3].slotId,
+      ordinal: 4,
+      type: "TRUE_FALSE_GROUP",
+      statementValues: [],
+      correctStatementValues: [{ statementId: "s1", value: true }, { statementId: "s2", value: false }],
+      explanation: [{ type: "text", text: "Solving 2y + 4 = 10 gives y = 3. The first statement is true, while adding 4 to y gives 7, not 10." }],
+    });
+  });
+
+  it("persists partial true/false values without completing a question and rejects invalid group values without mutation", async () => {
+    const harness = createHarness();
+    const { cookie } = await harness.openSession();
+    const started = await harness.call("/mock/attempts", { method: "POST", cookie, body: { domain: "MATH" } });
+    const attempt = JSON.parse(started.body).attempt;
+    const slotId = attempt.slots[3].slotId;
+    const answerPath = `/mock/attempts/${attempt.attemptId}/answers/${slotId}`;
+
+    const partial = await harness.call(answerPath, { method: "PUT", cookie, body: groupAnswer({ s1: true }) });
+    assert.equal(partial.status, 200);
+    assert.equal(JSON.parse(partial.body).attempt.answeredCount, 0);
+    assert.deepEqual(JSON.parse(partial.body).attempt.answers, [{
+      slotId,
+      type: "TRUE_FALSE_GROUP",
+      statementValues: [{ statementId: "s1", value: true }],
+    }]);
+
+    const invalidBodies = [
+      { optionId: "a" },
+      { type: "TRUE_FALSE_GROUP", statementValues: [{ statementId: "unknown", value: true }] },
+      { type: "TRUE_FALSE_GROUP", statementValues: [{ statementId: "s1", value: true }, { statementId: "s1", value: false }] },
+      { type: "TRUE_FALSE_GROUP", statementValues: [{ statementId: "s2", value: 1 }] },
+      { type: "TRUE_FALSE_GROUP", statementValues: [{ statementId: "s2", value: false, extra: true }] },
+    ];
+    for (const body of invalidBodies) {
+      const invalid = await harness.call(answerPath, { method: "PUT", cookie, body });
+      assert.equal(invalid.status, 422, JSON.stringify(body));
+    }
+    const wrongType = await harness.call(`/mock/attempts/${attempt.attemptId}/answers/${attempt.slots[0].slotId}`, {
+      method: "PUT", cookie, body: groupAnswer({ s1: true }),
+    });
+    assert.equal(wrongType.status, 422);
+    const unchanged = await harness.call(`/mock/attempts/${attempt.attemptId}`, { cookie });
+    assert.deepEqual(JSON.parse(unchanged.body).attempt.answers, JSON.parse(partial.body).attempt.answers);
+
+    const completed = await harness.call(answerPath, { method: "PUT", cookie, body: groupAnswer({ s1: true, s2: false }) });
+    assert.equal(JSON.parse(completed.body).attempt.answeredCount, 1);
+    const cleared = await harness.call(answerPath, { method: "PUT", cookie, body: groupAnswer({}) });
+    assert.equal(JSON.parse(cleared.body).attempt.answeredCount, 0);
+    assert.deepEqual(JSON.parse(cleared.body).attempt.answers, []);
+
+    const engineAttempt = createMockAttempt({ now: startTime, createAttemptId: () => attemptIds[0] });
+    const directInvalid = saveMockAnswer(engineAttempt, engineAttempt.slots[3].slotId, {
+      type: "TRUE_FALSE_GROUP",
+      statementValues: { s1: true, unknown: false },
+    }, startTime);
+    assert.deepEqual(directInvalid, { saved: false, unknownAnswer: true });
+    assert.equal(engineAttempt.answers.size, 0);
+  });
+
+  it("scores a complete true/false group as one exact-match question", async () => {
+    const harness = createHarness();
+    const { cookie } = await harness.openSession();
+    const started = await harness.call("/mock/attempts", { method: "POST", cookie, body: { domain: "MATH" } });
+    const attempt = JSON.parse(started.body).attempt;
+
+    for (const slot of attempt.slots.slice(0, 3)) {
+      const saved = await harness.call(`/mock/attempts/${attempt.attemptId}/answers/${slot.slotId}`, {
+        method: "PUT", cookie, body: { optionId: "b" },
+      });
+      assert.equal(saved.status, 200);
+    }
+    const fullGroup = await harness.call(`/mock/attempts/${attempt.attemptId}/answers/${attempt.slots[3].slotId}`, {
+      method: "PUT", cookie, body: groupAnswer({ s1: true, s2: false }),
+    });
+    assert.equal(JSON.parse(fullGroup.body).attempt.answeredCount, 4);
+    const allCorrect = await harness.call(`/mock/attempts/${attempt.attemptId}/submit`, { method: "POST", cookie, body: {} });
+    assert.equal(JSON.parse(allCorrect.body).result.correctCount, 4);
+    assert.equal(JSON.parse(allCorrect.body).result.percentage, "100.00");
+
+    const nextStarted = await harness.call("/mock/attempts", { method: "POST", cookie, body: { domain: "MATH" } });
+    const nextAttempt = JSON.parse(nextStarted.body).attempt;
+    for (const slot of nextAttempt.slots.slice(0, 3)) {
+      await harness.call(`/mock/attempts/${nextAttempt.attemptId}/answers/${slot.slotId}`, {
+        method: "PUT", cookie, body: { optionId: "b" },
+      });
+    }
+    const wrongGroup = await harness.call(`/mock/attempts/${nextAttempt.attemptId}/answers/${nextAttempt.slots[3].slotId}`, {
+      method: "PUT", cookie, body: groupAnswer({ s1: false, s2: false }),
+    });
+    assert.equal(JSON.parse(wrongGroup.body).attempt.answeredCount, 4);
+    const oneWrong = await harness.call(`/mock/attempts/${nextAttempt.attemptId}/submit`, { method: "POST", cookie, body: {} });
+    assert.equal(JSON.parse(oneWrong.body).result.correctCount, 3);
+    assert.equal(JSON.parse(oneWrong.body).result.percentage, "75.00");
+  });
+
+  it("rejects foreign and expired group writes and keeps private group answers behind graded review", async () => {
+    const harness = createHarness();
+    const owner = await harness.openSession();
+    const other = await harness.openSession();
+    const started = await harness.call("/mock/attempts", { method: "POST", cookie: owner.cookie, body: { domain: "MATH" } });
+    const attempt = JSON.parse(started.body).attempt;
+    const groupPath = `/mock/attempts/${attempt.attemptId}/answers/${attempt.slots[3].slotId}`;
+
+    assert.equal((await harness.call(groupPath, { method: "PUT", cookie: other.cookie, body: groupAnswer({ s1: true }) })).status, 404);
+    assert.equal((await harness.call(`/mock/attempts/${attempt.attemptId}/review`, { cookie: owner.cookie })).status, 409);
+    const active = await harness.call(`/mock/attempts/${attempt.attemptId}`, { cookie: owner.cookie });
+    assert.doesNotMatch(active.body, /correctStatementValues|Solving 2y \+ 4 = 10/);
+
+    const partial = await harness.call(groupPath, { method: "PUT", cookie: owner.cookie, body: groupAnswer({ s1: true }) });
+    assert.equal(partial.status, 200);
+    const deadline = Date.parse(attempt.deadlineAt);
+    harness.setNow(deadline);
+    const expiredWrite = await harness.call(groupPath, { method: "PUT", cookie: owner.cookie, body: groupAnswer({ s1: true, s2: false }) });
+    assert.equal(expiredWrite.status, 409);
+    const expired = await harness.call(`/mock/attempts/${attempt.attemptId}`, { cookie: owner.cookie });
+    assert.equal(JSON.parse(expired.body).attempt.result.correctCount, 0);
+    const review = await harness.call(`/mock/attempts/${attempt.attemptId}/review`, { cookie: owner.cookie });
+    assert.equal(review.status, 200);
+    assert.deepEqual(JSON.parse(review.body).review.slots[3].statementValues, [{ statementId: "s1", value: true }]);
+    const foreignReview = await harness.call(`/mock/attempts/${attempt.attemptId}/review`, { cookie: other.cookie });
+    assert.equal(foreignReview.status, 404);
+    assert.doesNotMatch(foreignReview.body, /correctStatementValues|s1|s2|Solving 2y \+ 4 = 10/);
   });
 
   it("confirms cancellation, rejects later writes, and permits an explicit new attempt after cancellation", async () => {

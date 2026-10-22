@@ -70,11 +70,13 @@ export async function readReview(attemptId) {
   return request(`/mock/attempts/${encodeURIComponent(attemptId)}/review`);
 }
 
-export async function saveAnswer(attemptId, slotId, optionId) {
+export async function saveAnswer(attemptId, slotId, answer) {
   requireSession();
   return request(`/mock/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(slotId)}`, {
     method: "PUT",
-    body: { optionId },
+    body: answer !== null && typeof answer === "object" && !Array.isArray(answer)
+      ? answer
+      : { optionId: answer },
   });
 }
 

@@ -36,6 +36,27 @@ describe("local static server public-file boundary", () => {
     assert.equal((await handler({ method: "POST", url: "/app/main.js" })).status, 404);
   });
 
+  it("serves only the licensed bundled font allowlist with its public license", async () => {
+    const handler = createPrototypeHandler();
+    const css = await handler({ method: "GET", url: "/fonts.css" });
+    assert.equal(css.status, 200);
+    assert.doesNotMatch(css.body.toString("utf8"), /https?:\/\//);
+    for (const weight of [400, 500, 600, 700]) {
+      for (const subset of ["latin", "latin-ext", "vietnamese"]) {
+        const response = await handler({ method: "GET", url: `/fonts/be-vietnam-pro-${weight}-${subset}.woff2` });
+        assert.equal(response.status, 200);
+        assert.equal(response.headers["Content-Type"], "font/woff2");
+        assert.equal(response.body.toString("ascii", 0, 4), "wOF2");
+      }
+    }
+    const license = await handler({ method: "GET", url: "/fonts/OFL.txt" });
+    assert.equal(license.status, 200);
+    assert.match(license.body.toString("utf8"), /SIL OPEN FONT LICENSE Version 1.1/);
+    for (const url of ["/fonts/manifest.json", "/fonts/README.md", "/fonts/unregistered.woff2", "/fonts/../src/private-question-fixture.mjs"]) {
+      assert.equal((await handler({ method: "GET", url })).status, 404, url);
+    }
+  });
+
   it("routes mock APIs without exposing source files or accepting non-mock server paths", async () => {
     const handler = createPrototypeHandler();
     const catalog = await handler({ method: "GET", url: "/mock/catalog" });

@@ -8,7 +8,7 @@ import {
   submitMockAttempt,
   toPublicAttempt,
 } from "./exam-engine.mjs";
-import { privateQuestionFixture, REPEATED_FIXTURE_NOTICE } from "./private-question-fixture.mjs";
+import { questionFixtureForOrdinal, REPEATED_FIXTURE_NOTICE } from "./private-question-fixture.mjs";
 
 const MAX_JSON_BYTES = 16 * 1024;
 const SESSION_COOKIE = "practice_demo_session";
@@ -71,6 +71,24 @@ function strictObject(value, keys) {
   return Object.keys(value).every((key) => keys.includes(key));
 }
 
+function groupStatementValues(value, question) {
+  if (!strictObject(value, ["type", "statementValues"]) || !Object.hasOwn(value, "type") || !Object.hasOwn(value, "statementValues") ||
+      value.type !== "TRUE_FALSE_GROUP" || !Array.isArray(value.statementValues)) return null;
+  const allowedIds = new Set(question.interaction.statements.map(({ id }) => id));
+  const values = {};
+  for (const entry of value.statementValues) {
+    if (!strictObject(entry, ["statementId", "value"]) || !Object.hasOwn(entry, "statementId") || !Object.hasOwn(entry, "value") ||
+        typeof entry.statementId !== "string" || !allowedIds.has(entry.statementId) || typeof entry.value !== "boolean" ||
+        Object.hasOwn(values, entry.statementId)) return null;
+    values[entry.statementId] = entry.value;
+  }
+  return { type: "TRUE_FALSE_GROUP", statementValues: values };
+}
+
+function publicGroupValues(statementValues = {}) {
+  return Object.entries(statementValues).map(([statementId, value]) => ({ statementId, value }));
+}
+
 function safeSessionSnapshot(session, now) {
   const attempt = session.activeAttemptId === null ? null : session.attempts.get(session.activeAttemptId) ?? null;
   return { attempt: attempt === null ? null : toPublicAttempt(attempt, now) };
@@ -81,12 +99,26 @@ function toPublicReview(attempt) {
     attemptId: attempt.attemptId,
     label: "ÔN TẬP ĐÁP ÁN CỦA PHIÊN DEMO ĐÃ KHÉP LẠI",
     repeatNotice: REPEATED_FIXTURE_NOTICE,
-    slots: attempt.slots.map(({ slotId, ordinal }) => ({
-      slotId,
-      ordinal,
-      correctOptionId: privateQuestionFixture.private.answerKey.optionId,
-      explanation: structuredClone(privateQuestionFixture.private.explanation),
-    })),
+    slots: attempt.slots.map(({ slotId, ordinal }) => {
+      const question = questionFixtureForOrdinal(ordinal);
+      if (question.interaction.type === "TRUE_FALSE_GROUP") {
+        const answer = attempt.answers.get(slotId);
+        return {
+          slotId,
+          ordinal,
+          type: "TRUE_FALSE_GROUP",
+          statementValues: publicGroupValues(answer?.statementValues),
+          correctStatementValues: publicGroupValues(question.private.answerKey.statementValues),
+          explanation: structuredClone(question.private.explanation),
+        };
+      }
+      return {
+        slotId,
+        ordinal,
+        correctOptionId: question.private.answerKey.optionId,
+        explanation: structuredClone(question.private.explanation),
+      };
+    }),
   };
 }
 
@@ -183,16 +215,28 @@ export function createMockApiService({ now = () => Date.now(), makeSessionId = (
             ? error(413, "PAYLOAD_TOO_LARGE", "Request body is too large.")
             : error(400, "MALFORMED_JSON", "Request body is not valid JSON.");
         }
-        if (!strictObject(value, ["optionId"]) || !(value.optionId === null || typeof value.optionId === "string")) {
-          return error(422, "VALIDATION_ERROR", "Answer must contain one option ID or null.");
-        }
         const slotId = attemptRoute[3];
-        const result = saveMockAnswer(attempt, slotId, value.optionId, now());
-        if (result.unknownSlot || result.unknownOption) return error(422, "VALIDATION_ERROR", "Answer does not match a demo question.");
+        const slot = attempt.slots.find((entry) => entry.slotId === slotId);
+        if (!slot) return error(422, "VALIDATION_ERROR", "Answer does not match a demo question.");
+        const question = questionFixtureForOrdinal(slot.ordinal);
+        let answer;
+        if (question.interaction.type === "SINGLE_CHOICE") {
+          if (!strictObject(value, ["optionId"]) || !Object.hasOwn(value, "optionId") || !(value.optionId === null || typeof value.optionId === "string")) {
+            return error(422, "VALIDATION_ERROR", "Answer must contain one option ID or null.");
+          }
+          answer = value.optionId;
+        } else {
+          answer = groupStatementValues(value, question);
+          if (answer === null) return error(422, "VALIDATION_ERROR", "Answer must contain distinct true/false values for known statements.");
+        }
+        const result = saveMockAnswer(attempt, slotId, answer, now());
+        if (result.unknownSlot || result.unknownOption || result.unknownAnswer) return error(422, "VALIDATION_ERROR", "Answer does not match a demo question.");
         if (result.closed) return error(409, "ATTEMPT_CLOSED", "This demo attempt is closed.");
         return json(200, {
           attempt: toPublicAttempt(attempt, now()),
-          message: value.optionId === null ? "Đã xóa lựa chọn trong phiên demo" : "Đã ghi nhớ trong phiên demo",
+          message: answer === null || (answer.type === "TRUE_FALSE_GROUP" && Object.keys(answer.statementValues).length === 0)
+            ? "Đã xóa lựa chọn trong phiên demo"
+            : "Đã ghi nhớ trong phiên demo",
         });
       }
 

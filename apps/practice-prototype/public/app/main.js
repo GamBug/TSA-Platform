@@ -4,6 +4,24 @@ import { openStaffWorkspace } from "./staff.js";
 const app = document.querySelector("#app");
 const announcements = document.querySelector("#announcements");
 
+function replaceApp(content, { examMode = false, resultMode = false, reviewMode = false, catalogMode = false, introMode = false } = {}) {
+  app.classList.toggle("exam-mode", examMode);
+  app.classList.toggle("result-mode", resultMode);
+  app.classList.toggle("review-mode", reviewMode);
+  app.classList.toggle("catalog-mode", catalogMode);
+  app.classList.toggle("intro-mode", introMode);
+  document.body.classList.toggle("exam-active", examMode);
+  document.body.classList.toggle("review-active", reviewMode);
+  app.replaceChildren(content);
+  if (!examMode && !reviewMode) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+}
+
+function openStaff() {
+  for (const mode of ["exam-mode", "result-mode", "review-mode", "catalog-mode", "intro-mode"]) app.classList.remove(mode);
+  document.body.classList.remove("exam-active", "review-active");
+  openStaffWorkspace(app, renderLanding);
+}
+
 const domainNames = { MATH: "Toán học", READING: "Đọc hiểu", SCIENCE: "Khoa học" };
 const state = {
   catalog: [],
@@ -19,7 +37,12 @@ const state = {
   timerHandle: null,
   warningSent: false,
   checkingExpiry: false,
+  markedAttemptId: null,
+  markedSlotIds: new Set(),
+  navigatorFilter: "all",
 };
+
+const REVIEW_MARKS_STORAGE_PREFIX = "tsa-practice:attempt-review:";
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -42,17 +65,82 @@ function announce(message) {
 }
 
 function showMessage(message, tone = "notice-panel") {
-  const current = app.querySelector("[data-testid='screen-message']");
+  const messageHost = app.querySelector(".exam-content") ?? app;
+  const current = messageHost.querySelector("[data-testid='screen-message']");
   const messageNode = current ?? element("p", tone);
   messageNode.dataset.testid = "screen-message";
   messageNode.textContent = message;
-  if (current === null) app.prepend(messageNode);
+  if (current === null) messageHost.prepend(messageNode);
   announce(message);
 }
 
 function setTimer(value) {
   const timer = app.querySelector("[data-testid='timer']");
   if (timer) timer.textContent = value;
+}
+
+function reviewMarksStorageKey(attemptId) {
+  return `${REVIEW_MARKS_STORAGE_PREFIX}${encodeURIComponent(attemptId)}`;
+}
+
+function loadAttemptReviewState(attempt) {
+  if (state.markedAttemptId === attempt.attemptId) return;
+  state.markedAttemptId = attempt.attemptId;
+  state.markedSlotIds = new Set();
+  state.navigatorFilter = "all";
+  try {
+    const stored = window.sessionStorage.getItem(reviewMarksStorageKey(attempt.attemptId));
+    if (stored === null) return;
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return;
+    const validSlotIds = new Set(attempt.slots.map((slot) => slot.slotId));
+    state.markedSlotIds = new Set(parsed.filter((slotId) => typeof slotId === "string" && validSlotIds.has(slotId)));
+  } catch {
+    state.markedSlotIds = new Set();
+  }
+}
+
+function persistAttemptReviewMarks() {
+  if (state.attempt === null) return false;
+  try {
+    const key = reviewMarksStorageKey(state.attempt.attemptId);
+    if (state.markedSlotIds.size === 0) window.sessionStorage.removeItem(key);
+    else window.sessionStorage.setItem(key, JSON.stringify([...state.markedSlotIds]));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearAttemptReviewState(attemptId = state.markedAttemptId) {
+  if (attemptId !== null) {
+    try {
+      window.sessionStorage.removeItem(reviewMarksStorageKey(attemptId));
+    } catch {}
+  }
+  state.markedAttemptId = null;
+  state.markedSlotIds = new Set();
+  state.navigatorFilter = "all";
+}
+
+function attemptAnswerCounts() {
+  if (state.attempt === null) return { answered: 0, unanswered: 0, marked: 0, total: 0 };
+  const total = state.attempt.slots.length;
+  const answered = state.attempt.slots.filter(isQuestionAnswered).length;
+  const marked = state.attempt.slots.filter((slot) => state.markedSlotIds.has(slot.slotId)).length;
+  return { answered, unanswered: total - answered, marked, total };
+}
+
+function toggleMarkedForReview(slotId) {
+  if (state.attempt === null || state.busy || state.savingSlotId !== null) return;
+  const marked = state.markedSlotIds.has(slotId);
+  if (marked) state.markedSlotIds.delete(slotId);
+  else state.markedSlotIds.add(slotId);
+  const saved = persistAttemptReviewMarks();
+  renderExam();
+  app.querySelector("[data-testid='mark-for-review']")?.focus();
+  const message = marked ? "Đã bỏ đánh dấu xem lại câu hỏi." : "Đã đánh dấu câu hỏi để xem lại.";
+  announce(saved ? message : `${message} Trạng thái chỉ còn trong bộ nhớ của tab này.`);
 }
 
 function clearTimer() {
@@ -112,6 +200,7 @@ function tick() {
 }
 
 function clearAttemptState() {
+  clearAttemptReviewState(state.attempt?.attemptId ?? state.markedAttemptId);
   clearTimer();
   state.attempt = null;
   state.clockAttemptId = null;
@@ -125,12 +214,14 @@ function clearAttemptState() {
 function acceptAttempt(attempt) {
   state.attempt = attempt;
   if (attempt.state === "IN_PROGRESS") {
+    loadAttemptReviewState(attempt);
     startTimer(attempt);
     renderExam();
     return;
   }
   state.savingSlotId = null;
   state.busy = false;
+  clearAttemptReviewState(attempt.attemptId);
   clearTimer();
   if (attempt.state === "GRADED" && attempt.result) {
     renderResult(attempt.result);
@@ -148,17 +239,44 @@ function resumeNotice() {
   return notice;
 }
 
-function header() {
-  const topbar = element("header", "topbar");
+function header(exam = false) {
+  const topbar = element("header", `topbar${exam ? " exam-topbar" : ""}`);
   const brand = element("div", "brand");
-  brand.append(element("span", "brand-mark", "P"));
-  brand.append(element("span", "brand-name", "PHÒNG LUYỆN TẬP"));
-  topbar.append(brand, element("span", "demo-chip", "BẢN DEMO"));
+  brand.append(element("span", "brand-mark", "T"));
+  const brandCopy = element("span", "brand-copy");
+  brandCopy.append(element("span", "brand-name", "TSA PRACTICE"), element("span", "brand-subtitle", "Phòng luyện tập tư duy"));
+  brand.append(brandCopy);
+  topbar.append(brand);
+  if (!exam) {
+    const navigation = element("nav", "topbar-nav");
+    navigation.id = "product-navigation";
+    navigation.setAttribute("aria-label", "Điều hướng bản demo");
+    const openScreen = render => {
+      render();
+      const title = app.querySelector("h1");
+      if (title) { title.tabIndex = -1; title.focus(); }
+    };
+    navigation.append(actionButton("Trang đầu", "nav-home", () => openScreen(renderLanding), "topbar-link"));
+    navigation.append(actionButton("Bài luyện tập", "nav-catalog", () => openScreen(renderCatalog), "topbar-link"));
+    if (state.attempt?.state === "GRADED") {
+      navigation.append(actionButton("Kết quả demo", "nav-result", () => openScreen(() => renderResult(state.attempt.result)), "topbar-link"));
+    }
+    const menu = actionButton("Mở menu", "menu-toggle", () => {
+      const expanded = menu.getAttribute("aria-expanded") !== "true";
+      menu.setAttribute("aria-expanded", String(expanded));
+      menu.textContent = expanded ? "Đóng menu" : "Mở menu";
+      navigation.classList.toggle("is-open", expanded);
+    }, "button secondary small menu-toggle");
+    menu.setAttribute("aria-expanded", "false");
+    menu.setAttribute("aria-controls", navigation.id);
+    topbar.append(navigation, menu);
+  }
+  topbar.append(element("span", "demo-chip", "BẢN DEMO"));
   return topbar;
 }
 
 function footerNote() {
-  return element("p", "footer-note", "Phiên minh họa chạy cục bộ, dùng dữ liệu kiểm thử lặp lại; không phải dịch vụ thi thật, không có tài khoản hay lưu trữ bền vững.");
+  return element("p", "footer-note", "Phiên minh họa chạy cục bộ, gồm ba câu trắc nghiệm lặp lại và một nhóm đúng/sai tổng hợp; không phải dịch vụ thi thật, không có tài khoản hay lưu trữ bền vững.");
 }
 
 function renderLanding() {
@@ -166,18 +284,21 @@ function renderLanding() {
   fragment.append(header());
   const hero = element("section", "hero");
   const copy = element("div");
-  copy.append(element("p", "eyebrow", "LUYỆN TẬP THEO TỪNG LĨNH VỰC"));
-  copy.append(element("h1", "", "Mỗi lượt luyện tập. Một bước tiến."));
-  copy.append(element("p", "hero-copy", "Làm quen với nhịp luyện tập ngắn, tập trung và dễ theo dõi. Phiên demo này minh họa thao tác làm bài; nội dung chưa phải học liệu đã duyệt."));
+  copy.append(element("p", "eyebrow", "LUYỆN THI TƯ DUY"));
+  const title = element("h1", "", "Tập trung vào cách bạn tư duy.");
+  title.tabIndex = -1;
+  copy.append(title);
+  copy.append(element("p", "hero-copy", "Một không gian luyện tập ngắn gọn để làm quen với nhịp thi TSA: chọn một lĩnh vực, theo dõi thời gian và xem lại từng lựa chọn sau khi nộp bài."));
   const actions = element("div", "hero-actions");
   actions.append(actionButton("Chọn bài luyện tập", "catalog-open", () => renderCatalog(), "button primary-light"));
-  actions.append(actionButton("Không gian bản nháp cục bộ", "staff-open", () => openStaffWorkspace(app, renderLanding), "button secondary staff-launch"));
-  actions.append(element("span", "", "Một bài một lần · Có đồng hồ demo"));
+  actions.append(actionButton("Không gian bản nháp cục bộ", "staff-open", openStaff, "button secondary staff-launch"));
+  actions.append(element("span", "hero-caption", "Bản demo cục bộ · không cần tài khoản"));
   copy.append(actions);
   const art = element("div", "hero-art");
   art.append(element("div", "hero-orbit"));
   const card = element("div", "hero-card");
-  card.append(element("span", "mini-label", "PHIÊN TẬP TRUNG"));
+  card.append(element("span", "mini-label", "BẢNG ĐIỀU KHIỂN"));
+  card.append(element("div", "mini-stat", "06:00"));
   card.append(element("div", "mini-line"), element("div", "mini-line short"));
   card.append(element("span", "mini-check", "✓"));
   art.append(card);
@@ -186,9 +307,9 @@ function renderLanding() {
 
   const trust = element("section", "trust-row");
   for (const [icon, title, detail] of [
-    ["01", "Từng bước rõ ràng", "Biết mình đang ở vị trí nào và đã trả lời bao nhiêu."],
-    ["02", "Thời gian dễ theo dõi", "Đồng hồ chỉ dành cho bài demo sáu phút này."],
-    ["03", "Minh bạch dữ liệu", "Bốn vị trí dùng cùng một câu hỏi kiểm thử lặp lại."],
+    ["01", "Điều hướng rõ ràng", "Biết mình đang ở câu nào và còn bao nhiêu câu chưa trả lời."],
+    ["02", "Tự động ghi nhớ", "Mỗi lựa chọn được xác nhận trong phiên demo trước khi chuyển câu."],
+    ["03", "Ôn tập sau khi nộp", "Xem điểm minh họa và lời giải ở một màn hình riêng."],
   ]) {
     const item = element("div", "trust-item");
     item.append(element("span", "trust-icon", icon));
@@ -198,53 +319,208 @@ function renderLanding() {
     trust.append(item);
   }
   fragment.append(trust, footerNote());
-  app.replaceChildren(fragment);
+  replaceApp(fragment);
+}
+
+function renderExamIntro(domain) {
+  const fragment = document.createDocumentFragment();
+  const topbar = header();
+  topbar.querySelector("[data-testid='nav-catalog']")?.classList.add("active");
+  fragment.append(topbar);
+  const page = element("section", "intro-page");
+  page.dataset.testid = "intro";
+  const breadcrumb = element("nav", "intro-breadcrumb");
+  breadcrumb.dataset.testid = "intro-breadcrumb";
+  breadcrumb.setAttribute("aria-label", "Đường dẫn bài luyện tập");
+  const homeCrumb = actionButton("Trang đầu", "intro-breadcrumb-home", () => {
+    renderLanding();
+    app.querySelector("h1")?.focus();
+  }, "intro-breadcrumb-link");
+  const catalogCrumb = actionButton("Bài luyện tập", "intro-breadcrumb-catalog", () => {
+    renderCatalog();
+    app.querySelector("h1")?.focus();
+  }, "intro-breadcrumb-link");
+  breadcrumb.append(homeCrumb, element("span", "intro-breadcrumb-separator", "›"), catalogCrumb,
+    element("span", "intro-breadcrumb-separator", "›"), element("span", "intro-breadcrumb-current", domainNames[domain.domain]));
+  page.append(breadcrumb);
+
+  const card = element("section", "intro-card");
+  card.dataset.testid = "intro-content";
+  const identity = element("div", "intro-identity");
+  identity.append(element("span", "intro-brand-mark", "T"));
+  const identityCopy = element("div", "intro-identity-copy");
+  identityCopy.append(element("span", "intro-brand-name", "TSA Practice"), element("span", "intro-demo-badge", "BẢN DEMO"));
+  identity.append(identityCopy);
+  card.append(identity);
+  const title = element("h1", "intro-title", `${domainNames[domain.domain]} · bài demo`);
+  title.id = "intro-title";
+  title.tabIndex = -1;
+  card.append(title);
+  card.append(element("p", "intro-lead", "Phiên luyện tập cục bộ gồm bốn vị trí minh họa. Câu trả lời và kết quả chỉ dùng để kiểm tra luồng giao diện."));
+
+  const metrics = element("div", "intro-metrics");
+  metrics.dataset.testid = "intro-metadata";
+  for (const [value, label] of [[`${domain.questionCount} câu`, "vị trí demo"], [`${domain.durationSeconds / 60} phút`, "thời lượng demo"]]) {
+    const metric = element("div", "intro-metric");
+    metric.append(element("strong", "", value), element("span", "", label));
+    metrics.append(metric);
+  }
+  card.append(metrics);
+
+  const structure = element("section", "intro-structure");
+  structure.dataset.testid = "intro-structure";
+  structure.append(element("h2", "", "Cấu trúc bài luyện tập"));
+  const structureRows = element("div", "intro-structure-rows");
+  for (const [position, kind, quantity, testId, countTestId] of [
+    ["Vị trí 1–3", "Trắc nghiệm", "3", "intro-structure-single-choice", "intro-sc-count"],
+    ["Vị trí 4", "Đúng/sai", "1", "intro-structure-true-false", "intro-tf-count"],
+  ]) {
+    const row = element("div", "intro-structure-row");
+    row.dataset.testid = testId;
+    const countValue = element("span", "intro-structure-count-value", quantity);
+    countValue.dataset.testid = countTestId;
+    const count = element("span", "intro-structure-count");
+    count.append(countValue, element("span", "intro-structure-count-unit", " câu"));
+    row.append(element("span", "intro-structure-position", position), element("span", "intro-structure-kind", kind), count);
+    structureRows.append(row);
+  }
+  structure.append(structureRows, element("p", "intro-structure-total", `${domain.questionCount} vị trí · một phần độc lập · đồng hồ demo ${domain.durationSeconds / 60} phút`));
+  card.append(structure);
+
+  const rules = element("div", "intro-rules");
+  rules.append(element("h2", "", "Lưu ý khi làm bài"));
+  for (const [title, detail] of [
+    ["Chọn phương án hoặc đúng/sai", "Ba câu trắc nghiệm có một đáp án đúng; câu cuối yêu cầu đánh giá từng mệnh đề. Bạn có thể xóa lựa chọn trước khi nộp."],
+    ["Lựa chọn được lưu", "Trạng thái chỉ được cập nhật sau khi máy chủ demo xác nhận đã ghi nhận."],
+    ["Có thể chuyển câu", "Dùng bảng số câu để quay lại các vị trí còn trống trước khi nộp bài."],
+  ]) {
+    const rule = element("div", "intro-rule");
+    rule.append(element("span", "intro-rule-icon", "✓"));
+    const copy = element("div");
+    copy.append(element("strong", "", title), element("span", "", detail));
+    rule.append(copy);
+    rules.append(rule);
+  }
+  card.append(rules);
+
+  const actions = element("div", "intro-actions");
+  actions.append(actionButton("Quay lại danh sách", "intro-back", () => {
+    renderCatalog();
+    app.querySelector("h1")?.focus();
+  }, "button secondary"));
+  const startLabel = state.attempt?.state === "GRADED"
+    ? "Bắt đầu lượt demo mới"
+    : state.attempt?.state === "IN_PROGRESS"
+      ? "Tiếp tục bài demo"
+      : "Bắt đầu bài demo";
+  const start = actionButton(startLabel, "intro-start", startDemo, "button intro-start");
+  start.disabled = state.busy;
+  actions.append(start);
+  card.insertBefore(actions, structure);
+  page.append(card);
+  fragment.append(page, footerNote());
+  replaceApp(fragment, { introMode: true });
+  app.querySelector("#intro-title")?.focus();
 }
 
 function domainCard(domain) {
-  const card = element("article", domain.available ? "domain-card available" : "domain-card");
+  const card = element("article", `domain-card catalog-ticket${domain.available ? " available" : ""}`);
+  card.dataset.testid = `catalog-card-${domain.domain}`;
   const index = domain.domain === "MATH" ? "01" : domain.domain === "READING" ? "02" : "03";
-  card.append(element("span", "domain-index", index));
+  const domainTopline = element("div", "domain-topline");
+  domainTopline.append(element("span", "domain-index", index));
+  domainTopline.append(element("span", domain.available ? "status-badge ready" : "status-badge", domain.available ? "Sẵn sàng" : "Sắp có"));
+  card.append(domainTopline);
+  card.append(element("p", "domain-overline", `LĨNH VỰC ${index}`));
   card.append(element("h2", "", domainNames[domain.domain]));
-  card.append(element("p", "domain-meta", `${domain.questionCount} vị trí · ${domain.durationSeconds / 60} phút${domain.available ? " (thời lượng demo)" : ""}`));
+  const descriptions = { MATH: "Bài luyện tập tư duy Toán học.", READING: "Bài luyện tập tư duy Đọc hiểu.", SCIENCE: "Bài luyện tập tư duy Khoa học." };
+  card.append(element("p", "domain-meta", descriptions[domain.domain]));
+  const facts = element("div", "domain-facts");
   if (domain.available) {
-    card.append(element("p", "repeat-note", "4 vị trí lặp lại cùng dữ liệu kiểm thử; không phải đề TSA/học liệu đã duyệt."));
+    facts.append(element("span", "", `${domain.questionCount} câu demo`));
+    facts.append(element("span", "", `${domain.durationSeconds / 60} phút`));
+  } else {
+    facts.append(element("span", "", "Chưa có bộ câu hỏi demo"));
+  }
+  const cardFooter = element("div", "catalog-card-footer");
+  cardFooter.append(facts);
+  if (domain.available) {
+    card.append(element("p", "catalog-card-note", "Bản demo gồm 3 câu trắc nghiệm và 1 nhóm đúng/sai; một số câu dùng dữ liệu lặp lại."));
     const completed = state.attempt?.state === "GRADED";
     const startLabel = completed ? "Bắt đầu lượt demo mới" : state.attempt?.state === "IN_PROGRESS" ? "Tiếp tục bài demo" : "Bắt đầu bài demo";
-    card.append(actionButton(startLabel, "demo-start", startDemo, "button"));
-    const start = card.querySelector("[data-testid='demo-start']");
+    const actions = element("div", "domain-actions");
+    actions.append(actionButton("Xem chi tiết", "exam-intro", () => renderExamIntro(domain), "button catalog-details-link"));
+    actions.append(actionButton(startLabel, "demo-start", startDemo, "button secondary small catalog-direct-start"));
+    cardFooter.append(actions);
+    const start = actions.querySelector("[data-testid='demo-start']");
     start.disabled = state.busy;
   } else {
-    card.append(element("p", "repeat-note", "Nội dung demo chưa được chuẩn bị cho lĩnh vực này."));
+    card.append(element("p", "catalog-card-note", "Nội dung demo chưa được chuẩn bị cho lĩnh vực này."));
     const disabled = element("button", "coming-soon", "Chưa có nội dung demo");
     disabled.type = "button";
     disabled.disabled = true;
-    card.append(disabled);
+    cardFooter.append(disabled);
   }
+  card.append(cardFooter);
   return card;
 }
 
 function renderCatalog() {
   const fragment = document.createDocumentFragment();
-  fragment.append(header());
-  const heading = element("section", "page-heading");
-  const headingText = element("div");
-  headingText.append(element("p", "eyebrow", "CHỌN MỘT LĨNH VỰC"));
-  headingText.append(element("h1", "", "Bắt đầu từ đây."));
-  headingText.append(element("p", "", "Mỗi lĩnh vực là một bài luyện tập riêng. Trong bản demo chỉ có một bài Toán học với dữ liệu kiểm thử lặp lại; các mục còn lại đang tắt."));
-  heading.append(headingText, actionButton("Về trang đầu", "home", () => renderLanding(), "button secondary"));
-  fragment.append(heading);
+  const topbar = header();
+  topbar.querySelector("[data-testid='nav-catalog']")?.classList.add("active");
+  fragment.append(topbar);
+  const panel = element("section", "catalog-panel");
+  panel.dataset.testid = "catalog-panel";
+  const panelHeader = element("div", "catalog-panel-header");
+  const heading = element("div", "catalog-panel-heading");
+  heading.append(element("p", "catalog-overline", "BÀI LUYỆN TẬP · BẢN DEMO"));
+  const title = element("h1", "", "Chọn phần muốn luyện.");
+  title.id = "catalog-title";
+  title.tabIndex = -1;
+  heading.append(title, element("p", "catalog-panel-description", "Chọn một lĩnh vực để xem thông tin bài luyện tập cục bộ."));
+  const headerActions = element("div", "catalog-panel-header-actions");
+  const catalogCount = element("span", "catalog-count", `${state.catalog.length} lĩnh vực`);
+  catalogCount.dataset.testid = "catalog-count";
+  catalogCount.setAttribute("role", "status");
+  catalogCount.setAttribute("aria-live", "polite");
+  headerActions.append(catalogCount, actionButton("Trang đầu", "home", () => {
+    renderLanding();
+    app.querySelector("h1")?.focus();
+  }, "button secondary small"));
+  panelHeader.append(heading, headerActions);
+
+  const filters = element("div", "catalog-filters");
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", "Lọc bài demo");
   const grid = element("div", "catalog-grid");
+  grid.dataset.testid = "catalog-grid";
+  function applyFilter(key, activeControl) {
+    const domains = state.catalog.filter(domain => key === "all" || domain.available === (key === "available"));
+    for (const button of filters.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === activeControl));
+    grid.replaceChildren(...domains.map(domainCard));
+    catalogCount.textContent = `${domains.length} lĩnh vực`;
+    announce(`${domains.length} lĩnh vực trong bộ lọc.`);
+  }
+  for (const [key, label] of [["all", "Tất cả"], ["available", "Có thể làm"], ["unavailable", "Chưa có nội dung"]]) {
+    const control = actionButton(label, `catalog-filter-${key}`, () => {
+      applyFilter(key, control);
+      control.focus({ preventScroll: true });
+    }, "button secondary small catalog-filter");
+    control.setAttribute("aria-pressed", String(key === "all"));
+    filters.append(control);
+  }
   for (const domain of state.catalog) grid.append(domainCard(domain));
-  fragment.append(grid);
-  fragment.append(element("p", "demo-disclaimer", "Đây là bản demo giao diện với phiên trong bộ nhớ. Không có tài khoản thật, cơ sở dữ liệu, phân bổ câu hỏi mới, hoặc cam kết lưu dữ liệu sau khi dừng máy chủ."));
+  panel.append(panelHeader, filters, grid);
+  fragment.append(panel);
+  fragment.append(element("p", "demo-disclaimer catalog-disclaimer", "Đây là bản demo cục bộ với bốn vị trí kiểm thử; một số câu lặp lại và kết quả không phải điểm TSA chính thức."));
   const staffCallout = element("section", "staff-callout");
   staffCallout.append(element("div", "", "Không gian nhân viên cục bộ"));
-  staffCallout.append(element("p", "", "Một khu riêng dùng vai trò tổng hợp và PostgreSQL cục bộ để soạn bản nháp. Không kết nối với phiên luyện tập demo."));
-  staffCallout.append(actionButton("Mở không gian bản nháp", "staff-open", () => openStaffWorkspace(app, renderLanding), "button secondary"));
+  staffCallout.append(element("p", "", "Một khu riêng để chuẩn bị và kiểm tra các bản nháp câu hỏi trong môi trường thử nghiệm."));
+  staffCallout.append(actionButton("Mở không gian bản nháp", "staff-open", openStaff, "button secondary"));
   fragment.append(staffCallout);
   fragment.append(footerNote());
-  app.replaceChildren(fragment);
+  replaceApp(fragment, { catalogMode: true });
 }
 
 async function startDemo() {
@@ -265,8 +541,44 @@ async function startDemo() {
   }
 }
 
+function selectedAnswer(slotId) {
+  return state.attempt.answers.find((answer) => answer.slotId === slotId) ?? null;
+}
+
 function selectedOption(slotId) {
-  return state.attempt.answers.find((answer) => answer.slotId === slotId)?.optionId ?? null;
+  return selectedAnswer(slotId)?.optionId ?? null;
+}
+
+function selectedStatementValues(slotId) {
+  const answer = selectedAnswer(slotId);
+  if (answer?.type !== "TRUE_FALSE_GROUP" || !Array.isArray(answer.statementValues)) return {};
+  return Object.fromEntries(answer.statementValues
+    .filter((entry) => entry !== null && typeof entry === "object" && typeof entry.statementId === "string" && typeof entry.value === "boolean")
+    .map(({ statementId, value }) => [statementId, value]));
+}
+
+function isQuestionAnswered(slot) {
+  if (slot.interaction.type !== "TRUE_FALSE_GROUP") return selectedOption(slot.slotId) !== null;
+  const values = selectedStatementValues(slot.slotId);
+  return slot.interaction.statements.length > 0 && slot.interaction.statements.every(({ id }) => Object.hasOwn(values, id));
+}
+
+function hasAnySavedAnswer(slotId) {
+  const answer = selectedAnswer(slotId);
+  if (answer?.type === "TRUE_FALSE_GROUP") return Array.isArray(answer.statementValues) && answer.statementValues.length > 0;
+  return answer?.optionId !== undefined && answer.optionId !== null;
+}
+
+function questionAnswerStatus(slot) {
+  if (isQuestionAnswered(slot)) return "answered";
+  return hasAnySavedAnswer(slot.slotId) ? "partial" : "unanswered";
+}
+
+function trueFalseAnswer(values) {
+  return {
+    type: "TRUE_FALSE_GROUP",
+    statementValues: Object.entries(values).map(([statementId, value]) => ({ statementId, value })),
+  };
 }
 
 function renderOptions(question, saving) {
@@ -280,7 +592,7 @@ function renderOptions(question, saving) {
     input.checked = selectedOption(question.slotId) === option.id;
     input.disabled = saving || state.busy;
     input.dataset.testid = `option-${option.id}`;
-    input.addEventListener("change", () => { void saveSelectedOption(question.slotId, option.id, `option-${option.id}`); });
+    input.addEventListener("change", () => { void saveSelectedAnswer(question.slotId, { optionId: option.id }, `option-${option.id}`); });
     const letter = element("span", "option-letter", option.id.toUpperCase());
     const text = element("span", "option-text", option.content.map((block) => block.text ?? "").join(" "));
     label.append(input, letter, text);
@@ -289,25 +601,69 @@ function renderOptions(question, saving) {
   return list;
 }
 
+function renderTrueFalseGroup(question, saving) {
+  const group = element("div", "true-false-group");
+  group.dataset.testid = "true-false-group";
+  const values = selectedStatementValues(question.slotId);
+  question.interaction.statements.forEach((statement, index) => {
+    const fieldset = element("fieldset", "tf-statement");
+    fieldset.dataset.testid = `tf-statement-${statement.id}`;
+    const prompt = statement.content.map((block) => block.text ?? "").join(" ");
+    const legend = element("legend", "tf-statement-label", `Mệnh đề ${index + 1}`);
+    const copy = element("p", "tf-statement-copy", prompt);
+    const choices = element("div", "tf-choices");
+    choices.setAttribute("role", "radiogroup");
+    choices.setAttribute("aria-label", `Mệnh đề ${index + 1}: ${prompt}`);
+    for (const [value, label] of [[true, "Đúng"], [false, "Sai"]]) {
+      const choice = element("label", `tf-choice${values[statement.id] === value ? " selected" : ""}`);
+      const input = element("input");
+      input.type = "radio";
+      input.name = `answer-${question.slotId}-${statement.id}`;
+      input.value = String(value);
+      input.checked = values[statement.id] === value;
+      input.disabled = saving || state.busy;
+      input.dataset.testid = `tf-${statement.id}-${value ? "true" : "false"}`;
+      input.setAttribute("aria-label", `${prompt}: ${label}`);
+      input.addEventListener("change", () => {
+        const updated = { ...selectedStatementValues(question.slotId), [statement.id]: value };
+        void saveSelectedAnswer(question.slotId, trueFalseAnswer(updated), input.dataset.testid);
+      });
+      choice.append(input, element("span", "tf-choice-label", label));
+      choices.append(choice);
+    }
+    fieldset.append(legend, copy, choices);
+    group.append(fieldset);
+  });
+  return group;
+}
+
 function updateSaveStatus(message, kind = "") {
   const row = app.querySelector("[data-testid='save-status']");
   if (!row) return;
-  row.className = `save-row${kind ? ` ${kind}` : ""}`;
-  row.replaceChildren(element("span", "save-dot"), element("span", "", message));
+  const compact = row.classList.contains("compact-save-row") ? " compact-save-row" : "";
+  row.className = `save-row${compact}${kind ? ` ${kind}` : ""}`;
+  row.title = message;
+  const visibleMessage = kind === "saved" ? "Đã lưu" : kind === "error" ? "Chưa lưu" : message;
+  row.replaceChildren(element("span", "save-dot"), element("span", "", visibleMessage));
+  if (message !== visibleMessage) row.append(element("span", "sr-only", message));
+  app.querySelector("[data-testid='save-error']")?.remove();
+  if (kind === "error") {
+    const notice = element("p", "exam-save-error", `${message} Thử lại thao tác khi có kết nối.`);
+    notice.dataset.testid = "save-error";
+    app.querySelector("[data-testid='question-toolbar']")?.after(notice);
+  }
 }
 
-async function saveSelectedOption(slotId, optionId, restoreFocusTestId) {
+async function saveSelectedAnswer(slotId, answer, restoreFocusTestId) {
   if (state.busy || state.savingSlotId !== null) return;
   state.savingSlotId = slotId;
   const attemptId = state.attempt.attemptId;
   const options = app.querySelectorAll("input[type='radio']");
   for (const input of options) input.disabled = true;
-  for (const control of app.querySelectorAll(
-    ".question-nav button, [data-testid='question-prev'], [data-testid='question-next'], [data-testid='submit-open'], [data-testid='cancel-open'], [data-testid='clear-answer']",
-  )) control.disabled = true;
+  for (const control of app.querySelectorAll(".exam-mode button, .exam-mode input[type='radio']")) control.disabled = true;
   updateSaveStatus("Đang ghi nhớ lựa chọn…");
   try {
-    const response = await api.saveAnswer(attemptId, slotId, optionId);
+    const response = await api.saveAnswer(attemptId, slotId, answer);
     if (state.attempt?.attemptId !== attemptId || state.attempt.state !== "IN_PROGRESS") return;
     state.attempt = response.attempt;
     state.savingSlotId = null;
@@ -329,8 +685,8 @@ async function saveSelectedOption(slotId, optionId, restoreFocusTestId) {
   }
 }
 
-function appendDialog(parent, { id, title, body, cancelTestId, cancelText, confirmTestId, confirmText, confirmAction, danger = false }) {
-  const dialog = element("dialog");
+function appendDialog(parent, { id, title, body, cancelTestId, cancelText, confirmTestId, confirmText, confirmAction, danger = false, confirmFirst = false, className = "" }) {
+  const dialog = element("dialog", className);
   dialog.id = id;
   dialog.setAttribute("aria-labelledby", `${id}-title`);
   const heading = element("h2", "", title);
@@ -352,7 +708,7 @@ function appendDialog(parent, { id, title, body, cancelTestId, cancelText, confi
       confirm.disabled = false;
     }
   }, `button small${danger ? " danger" : ""}`);
-  actions.append(cancel, confirm);
+  actions.append(...(confirmFirst ? [confirm, cancel] : [cancel, confirm]));
   dialog.append(actions);
   parent.append(dialog);
   return dialog;
@@ -361,113 +717,277 @@ function appendDialog(parent, { id, title, body, cancelTestId, cancelText, confi
 function openDialog(id) {
   if (state.busy || state.savingSlotId !== null) return;
   const dialog = app.querySelector(`#${id}`);
-  if (dialog instanceof HTMLDialogElement && !dialog.open) dialog.showModal();
+  if (!(dialog instanceof HTMLDialogElement)) return;
+  if (id === "navigator-dialog") {
+    const counter = app.querySelector("[data-testid='question-counter']");
+    if (dialog.open) {
+      dialog.close();
+      return;
+    }
+    dialog.show();
+    counter?.setAttribute("aria-expanded", "true");
+    dialog.querySelector("[aria-current='step']")?.focus();
+    if (!dialog.querySelector("[aria-current='step']")) dialog.querySelector("[data-testid='navigator-close']")?.focus();
+    return;
+  }
+  if (!dialog.open) dialog.showModal();
+}
+
+function renderNavigatorDialogContent(dialog) {
+  const content = dialog.querySelector("[data-testid='navigator-content']");
+  if (!content || state.attempt === null) return;
+  const counts = attemptAnswerCounts();
+  const filters = [
+    ["all", "Tất cả", counts.total],
+    ["answered", "Đã trả lời", counts.answered],
+    ["unanswered", "Chưa hoàn tất", counts.unanswered],
+    ["marked", "Đánh dấu xem lại", counts.marked],
+  ];
+  const filterGroup = element("div", "navigator-filters");
+  filterGroup.setAttribute("role", "group");
+  filterGroup.setAttribute("aria-label", "Lọc danh sách câu hỏi");
+  for (const [filter, label, count] of filters) {
+    const button = actionButton(`${label} (${count})`, `navigator-filter-${filter}`, () => {
+      state.navigatorFilter = filter;
+      renderNavigatorDialogContent(dialog);
+      dialog.querySelector(`[data-testid='navigator-filter-${filter}']`)?.focus();
+    }, "button secondary small");
+    button.setAttribute("aria-label", `${label}: ${count} câu`);
+    button.setAttribute("aria-pressed", String(state.navigatorFilter === filter));
+    button.disabled = state.busy || state.savingSlotId !== null;
+    filterGroup.append(button);
+  }
+
+  const questionList = element("nav", "question-nav navigator-questions");
+  questionList.setAttribute("aria-label", "Chọn câu hỏi");
+  const visibleSlots = state.attempt.slots
+    .map((slot, index) => ({ slot, index, answered: isQuestionAnswered(slot), partial: questionAnswerStatus(slot) === "partial", marked: state.markedSlotIds.has(slot.slotId) }))
+    .filter(({ answered, marked }) => {
+      if (state.navigatorFilter === "answered") return answered;
+      if (state.navigatorFilter === "unanswered") return !answered;
+      if (state.navigatorFilter === "marked") return marked;
+      return true;
+    });
+  if (visibleSlots.length === 0) {
+    questionList.append(element("p", "navigator-empty", "Không có câu hỏi trong bộ lọc này."));
+  }
+  for (const { slot, index, answered, partial, marked } of visibleSlots) {
+    const classes = [answered ? "answered" : "", partial ? "partial" : "", marked ? "marked" : ""].filter(Boolean).join(" ");
+    const button = element("button", classes, `${slot.ordinal}${marked ? " ★" : ""}`);
+    button.type = "button";
+    button.dataset.testid = `navigator-question-${slot.ordinal}`;
+    button.disabled = state.busy || state.savingSlotId !== null;
+    if (index === state.currentIndex) button.setAttribute("aria-current", "step");
+    button.setAttribute("aria-label", `Đi đến câu ${slot.ordinal}, ${answered ? "đã trả lời" : partial ? "chưa hoàn tất" : "chưa trả lời"}${marked ? ", được đánh dấu xem lại" : ""}${index === state.currentIndex ? ", câu hiện tại" : ""}`);
+    button.addEventListener("click", () => {
+      if (state.busy || state.savingSlotId !== null) return;
+      dialog.dataset.suppressFocusRestore = "true";
+      dialog.close();
+      navigateTo(index);
+    });
+    questionList.append(button);
+  }
+  content.replaceChildren(filterGroup, questionList);
+}
+
+function createNavigatorDialog() {
+  const dialog = element("dialog", "navigator-dialog");
+  dialog.id = "navigator-dialog";
+  dialog.dataset.testid = "navigator-dialog";
+  dialog.setAttribute("aria-labelledby", "navigator-dialog-title");
+  const panel = element("div", "navigator-panel");
+  const heading = element("h2", "", "Đi đến câu hỏi");
+  heading.id = "navigator-dialog-title";
+  const description = element("p", "", "Lọc theo trạng thái rồi chọn câu muốn mở.");
+  const content = element("div", "navigator-dialog-content");
+  content.dataset.testid = "navigator-content";
+  const close = actionButton("Đóng danh sách", "navigator-close", () => dialog.close(), "button secondary small");
+  const actions = element("div", "dialog-actions");
+  actions.append(close);
+  panel.append(heading, description, content, actions);
+  dialog.append(panel);
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && dialog.open) {
+      event.preventDefault();
+      dialog.close();
+    }
+  });
+  dialog.addEventListener("close", () => {
+    // Native close events may arrive after reopening or replacing this screen.
+    if (dialog.open || !dialog.isConnected) return;
+    app.querySelector("[data-testid='question-counter']")?.setAttribute("aria-expanded", "false");
+    if (dialog.dataset.suppressFocusRestore === "true") {
+      delete dialog.dataset.suppressFocusRestore;
+      return;
+    }
+    app.querySelector("[data-testid='question-counter']")?.focus({ preventScroll: true });
+  });
+  renderNavigatorDialogContent(dialog);
+  return dialog;
+}
+
+function examTopbar() {
+  const header = element("header", "exam-topbar");
+  header.dataset.testid = "exam-header";
+  const identity = element("div", "exam-identity");
+  identity.append(element("span", "exam-brand-mark", "T"));
+  const identityCopy = element("span", "exam-identity-copy");
+  identityCopy.append(element("strong", "", "TSA Practice"));
+  const durationMinutes = Math.floor(state.attempt.durationSeconds / 60);
+  identityCopy.append(element("span", "", `Toán học · Demo · ${state.attempt.slots.length} câu · ${durationMinutes} phút`));
+  identity.append(identityCopy);
+
+  const clock = element("div", "exam-clock");
+  clock.append(element("span", "", "THỜI GIAN CÒN LẠI"));
+  const timer = element("strong", "", formatRemaining(state.clockDeadlineMs - performance.now()));
+  timer.dataset.testid = "timer";
+  timer.setAttribute("aria-live", "off");
+  timer.setAttribute("aria-label", "Thời gian còn lại trong bản demo");
+  clock.append(timer);
+
+  const actions = element("div", "exam-header-actions");
+  const exit = actionButton("Thoát", "cancel-open", () => openDialog("cancel-dialog"), "button secondary small exam-exit");
+  exit.setAttribute("aria-label", "Kết thúc phiên demo");
+  exit.disabled = state.busy || state.savingSlotId !== null;
+  const submit = actionButton("Nộp bài", "submit-open", () => openDialog("submit-dialog"), "button small exam-submit");
+  submit.disabled = state.busy || state.savingSlotId !== null;
+  actions.append(exit, submit);
+  header.append(identity, clock, actions);
+  return header;
 }
 
 function renderExam() {
   if (state.attempt === null) return;
   const fragment = document.createDocumentFragment();
-  fragment.append(header());
-  const restored = resumeNotice();
-  if (restored) fragment.append(restored);
-  const examHeader = element("div", "exam-header");
-  const examTitle = element("div", "exam-title");
-  examTitle.append(element("p", "eyebrow", "PHIÊN LUYỆN TẬP ĐỘC LẬP"));
-  examTitle.append(element("h1", "", "Toán học · bài demo"));
-  examTitle.append(element("p", "", "Thời lượng sáu phút chỉ dùng trong bản minh họa này."));
-  const timerCard = element("div", "timer-card");
-  timerCard.append(element("span", "", "Còn lại"));
-  const timer = element("strong", "", "06:00");
-  timer.dataset.testid = "timer";
-  timer.setAttribute("aria-live", "off");
-  timerCard.append(timer);
-  examHeader.append(examTitle, timerCard);
-  fragment.append(examHeader);
-  const repeatAlert = element("p", "repeat-alert", state.attempt.repeatNotice);
-  fragment.append(repeatAlert);
+  const workspace = element("div", "exam-workspace");
+  workspace.append(examTopbar());
 
-  const layout = element("div", "exam-layout");
-  const sidebar = element("aside", "exam-sidebar");
-  const answeredCount = state.attempt.answeredCount;
-  const sidebarHeading = element("div", "sidebar-heading");
-  sidebarHeading.append(element("strong", "", "Vị trí trong bài"));
-  const answeredText = element("span", "", `Đã trả lời ${answeredCount}/${state.attempt.slots.length}`);
-  answeredText.dataset.testid = "answered-count";
-  sidebarHeading.append(answeredText);
-  sidebar.append(sidebarHeading);
-  const nav = element("nav", "question-nav");
-  nav.setAttribute("aria-label", "Chọn vị trí câu hỏi");
-  state.attempt.slots.forEach((slot, index) => {
-    const button = element("button", selectedOption(slot.slotId) === null ? "" : "answered", String(slot.ordinal));
-    button.type = "button";
-    button.dataset.testid = `question-nav-${slot.ordinal}`;
-    button.disabled = state.busy || state.savingSlotId !== null;
-    if (index === state.currentIndex) button.setAttribute("aria-current", "step");
-    button.setAttribute("aria-label", `Đi đến vị trí ${slot.ordinal}${selectedOption(slot.slotId) === null ? " chưa trả lời" : " đã trả lời"}`);
-    button.addEventListener("click", () => navigateTo(index));
-    nav.append(button);
-  });
-  sidebar.append(nav);
-  const progress = element("div", "progress-track");
-  progress.setAttribute("aria-hidden", "true");
-  const fill = element("div", "progress-fill");
-  fill.style.width = `${(answeredCount / state.attempt.slots.length) * 100}%`;
-  progress.append(fill);
-  sidebar.append(progress, element("p", "sidebar-caption", "Có thể chuyển vị trí bất cứ lúc nào. Câu chưa trả lời được tính là sai trong kết quả demo."));
+  const scrollRegion = element("section", "exam-scroll");
+  scrollRegion.dataset.testid = "exam-body";
+  scrollRegion.setAttribute("aria-label", "Bài luyện tập demo");
+  const content = element("div", "exam-content");
+  content.dataset.testid = "exam-content";
+  const restored = resumeNotice();
+  const repeatAlert = element("p", "repeat-alert", `Bản demo · ${state.attempt.repeatNotice}`);
 
   const question = state.attempt.slots[state.currentIndex];
-  const card = element("section", "question-card");
+  const counts = attemptAnswerCounts();
+  const toolbar = element("div", "question-toolbar");
+  toolbar.dataset.testid = "question-toolbar";
+  toolbar.setAttribute("role", "group");
+  toolbar.setAttribute("aria-label", `Câu ${question.ordinal} trên ${state.attempt.slots.length}`);
+  toolbar.append(element("span", "question-number", String(question.ordinal).padStart(2, "0")));
+  toolbar.append(element("span", "question-kind", question.interaction.type === "TRUE_FALSE_GROUP" ? "Đúng / sai" : "Trắc nghiệm"));
+  const markedForReview = state.markedSlotIds.has(question.slotId);
+  const markButton = actionButton(
+    markedForReview ? "★ Đã đánh dấu" : "☆ Đánh dấu",
+    "mark-for-review",
+    () => toggleMarkedForReview(question.slotId),
+    "button secondary small mark-for-review",
+  );
+  markButton.setAttribute("aria-pressed", String(markedForReview));
+  markButton.setAttribute("aria-label", markedForReview ? "Bỏ đánh dấu câu hỏi để xem lại sau" : "Đánh dấu câu hỏi để xem lại sau");
+  markButton.disabled = state.busy || state.savingSlotId !== null;
+  toolbar.append(markButton);
+  const answeredText = element("span", "answered-count", `${counts.answered}/${counts.total} hoàn tất`);
+  answeredText.dataset.testid = "answered-count";
+  toolbar.append(answeredText);
+  const saveRow = element("span", "save-row compact-save-row");
+  saveRow.dataset.testid = "save-status";
+  const saved = hasAnySavedAnswer(question.slotId);
+  saveRow.classList.toggle("saved", saved);
+  saveRow.append(element("span", "save-dot"), element("span", "", saved ? "Đã lưu" : "Chưa chọn"));
+  if (saved) {
+    const fullSavedMessage = "Đã ghi nhớ trong phiên demo";
+    saveRow.title = fullSavedMessage;
+    saveRow.append(element("span", "sr-only", fullSavedMessage));
+  }
+  saveRow.setAttribute("role", "status");
+  saveRow.setAttribute("aria-live", "polite");
+  toolbar.append(saveRow);
+
+  const card = element("section", "question-body question-card");
+  card.dataset.testid = "question-card";
   card.setAttribute("aria-labelledby", "question-title");
-  card.append(element("p", "question-kicker", `VỊ TRÍ ${question.ordinal} / ${state.attempt.slots.length}`));
   const title = element("h2", "", question.content.map((block) => block.text ?? "").join(" "));
   title.id = "question-title";
   title.tabIndex = -1;
-  card.append(title, renderOptions(question, state.savingSlotId === question.slotId));
-  const saveRow = element("div", "save-row");
-  saveRow.dataset.testid = "save-status";
-  const saved = selectedOption(question.slotId) !== null;
-  saveRow.classList.toggle("saved", saved);
-  saveRow.append(element("span", "save-dot"), element("span", "", saved ? "Đã ghi nhớ trong phiên demo" : "Chưa chọn đáp án"));
-  saveRow.setAttribute("role", "status");
-  saveRow.setAttribute("aria-live", "polite");
-  card.append(saveRow);
-  const selected = selectedOption(question.slotId);
+  const instruction = question.interaction.type === "TRUE_FALSE_GROUP"
+    ? "Chọn Đúng hoặc Sai cho từng mệnh đề. Câu chỉ hoàn tất khi đã chọn cho tất cả mệnh đề."
+    : "Chọn một phương án bạn cho là đúng nhất.";
+  const answerControl = question.interaction.type === "TRUE_FALSE_GROUP"
+    ? renderTrueFalseGroup(question, state.savingSlotId === question.slotId)
+    : renderOptions(question, state.savingSlotId === question.slotId);
+  card.append(title, element("p", "question-instruction", instruction), answerControl);
   const clear = actionButton("Xóa lựa chọn", "clear-answer", () => {
-    if (selected !== null) void saveSelectedOption(question.slotId, null, `option-${selected}`);
+    if (question.interaction.type === "TRUE_FALSE_GROUP") {
+      if (hasAnySavedAnswer(question.slotId)) void saveSelectedAnswer(question.slotId, trueFalseAnswer({}), "clear-answer");
+    } else {
+      const selected = selectedOption(question.slotId);
+      if (selected !== null) void saveSelectedAnswer(question.slotId, { optionId: null }, `option-${selected}`);
+    }
   }, "text-button clear-answer");
-  clear.disabled = selected === null || state.busy || state.savingSlotId !== null;
+  clear.disabled = !hasAnySavedAnswer(question.slotId) || state.busy || state.savingSlotId !== null;
   clear.setAttribute("aria-label", "Xóa lựa chọn đã ghi nhận cho vị trí hiện tại");
   card.append(clear);
-  layout.append(sidebar, card);
-  fragment.append(layout);
+  content.append(toolbar);
+  if (restored) content.append(restored);
+  if (state.attempt.repeatNotice) content.append(repeatAlert);
+  content.append(card);
+  scrollRegion.append(content);
 
-  const footer = element("div", "exam-footer");
-  const previous = actionButton("← Trước", "question-prev", () => navigateTo(Math.max(0, state.currentIndex - 1)), "button secondary small");
+  const footer = element("footer", "exam-footer");
+  footer.dataset.testid = "exam-footer";
+  const footerInner = element("div", "exam-footer-inner");
+  const previous = actionButton("← Trước", "question-prev", () => navigateTo(Math.max(0, state.currentIndex - 1)), "button secondary small question-step");
+  previous.setAttribute("aria-label", "Câu trước");
   previous.disabled = state.currentIndex === 0 || state.busy || state.savingSlotId !== null;
-  const footerActions = element("div", "footer-actions");
-  const next = actionButton("Tiếp →", "question-next", () => navigateTo(Math.min(state.attempt.slots.length - 1, state.currentIndex + 1)), "button secondary small");
+  const questionCounter = actionButton(
+    `Câu ${state.currentIndex + 1} / ${state.attempt.slots.length}`,
+    "question-counter",
+    () => openDialog("navigator-dialog"),
+    "button question-counter",
+  );
+  questionCounter.setAttribute("aria-label", `Câu ${state.currentIndex + 1} trên ${state.attempt.slots.length}. Mở danh sách câu hỏi.`);
+  questionCounter.setAttribute("aria-controls", "navigator-dialog");
+  questionCounter.setAttribute("aria-expanded", "false");
+  questionCounter.disabled = state.busy || state.savingSlotId !== null;
+  const next = actionButton("Tiếp →", "question-next", () => navigateTo(Math.min(state.attempt.slots.length - 1, state.currentIndex + 1)), "button secondary small question-step");
+  next.setAttribute("aria-label", "Câu tiếp theo");
   next.disabled = state.currentIndex === state.attempt.slots.length - 1 || state.busy || state.savingSlotId !== null;
-  const cancelOpen = actionButton("Kết thúc", "cancel-open", () => openDialog("cancel-dialog"), "button secondary small");
-  const submitOpen = actionButton("Nộp bài", "submit-open", () => openDialog("submit-dialog"), "button small");
-  cancelOpen.disabled = state.busy || state.savingSlotId !== null;
-  submitOpen.disabled = state.busy || state.savingSlotId !== null;
-  footerActions.append(next, cancelOpen, submitOpen);
-  footer.append(previous, footerActions);
-  fragment.append(footer, footerNote());
+  footerInner.append(previous, questionCounter, next);
+  footer.append(footerInner);
+  workspace.append(scrollRegion, footer);
 
-  const answered = state.attempt.answeredCount;
   const summary = element("div", "submit-summary");
-  summary.append(element("p", "", `Đã trả lời ${answered} trên ${state.attempt.slots.length} vị trí. Vị trí còn trống sẽ được tính là sai trong kết quả minh họa.`));
+  summary.append(element("p", "", `Đã hoàn tất ${counts.answered} trên ${counts.total} câu. ${counts.unanswered > 0 ? `${counts.unanswered} câu chưa hoàn tất sẽ được tính là sai trong kết quả minh họa.` : "Tất cả câu hỏi đều đã được hoàn tất."}`));
+  const countSummary = element("div", "submit-counts submit-counts-inline");
+  for (const [kind, label, count] of [
+    ["answered", "Đã trả lời", counts.answered],
+    ["unanswered", "Chưa hoàn tất", counts.unanswered],
+    ["marked", "Đánh dấu xem lại", counts.marked],
+  ]) {
+    const item = element("div", "submit-count");
+    const value = element("strong", "", String(count));
+    value.dataset.testid = `submit-${kind}-count`;
+    item.append(value, element("span", "", label));
+    countSummary.append(item);
+  }
+  summary.append(countSummary);
   const summaryList = element("ul", "submit-summary-list");
   for (const slot of state.attempt.slots) {
-    const hasAnswer = selectedOption(slot.slotId) !== null;
-    const item = element("li", hasAnswer ? "answered" : "unanswered");
+    const status = questionAnswerStatus(slot);
+    const marked = state.markedSlotIds.has(slot.slotId);
+    const item = element("li", `${status}${marked ? " marked" : ""}`);
     item.append(element("strong", "", `Vị trí ${slot.ordinal}`));
-    item.append(element("span", "", hasAnswer ? "Đã trả lời" : "Chưa trả lời"));
+    const statusText = status === "answered" ? "Đã hoàn tất" : status === "partial" ? "Chưa hoàn tất" : "Chưa trả lời";
+    item.append(element("span", "", `${statusText}${marked ? " · Xem lại" : ""}`));
     summaryList.append(item);
   }
-  summary.append(summaryList);
-  appendDialog(fragment, {
+  const detailDisclosure = element("details", "submit-detail-disclosure");
+  detailDisclosure.append(element("summary", "", "Xem trạng thái từng vị trí"), summaryList);
+  summary.append(detailDisclosure);
+  appendDialog(workspace, {
     id: "submit-dialog",
     title: "Nộp bài luyện tập?",
     body: summary,
@@ -476,8 +996,10 @@ function renderExam() {
     confirmTestId: "submit-confirm",
     confirmText: "Xác nhận nộp",
     confirmAction: submitCurrentAttempt,
+    confirmFirst: true,
+    className: "submit-dialog",
   });
-  appendDialog(fragment, {
+  appendDialog(workspace, {
     id: "cancel-dialog",
     title: "Kết thúc phiên demo?",
     body: "Các lựa chọn đã ghi nhớ vẫn chỉ nằm trong phiên demo này. Bạn sẽ quay lại danh sách bài tập.",
@@ -488,7 +1010,9 @@ function renderExam() {
     confirmAction: cancelCurrentAttempt,
     danger: true,
   });
-  app.replaceChildren(fragment);
+  workspace.append(createNavigatorDialog());
+  fragment.append(workspace);
+  replaceApp(fragment, { examMode: true });
   tick();
 }
 
@@ -527,51 +1051,164 @@ async function cancelCurrentAttempt() {
   }
 }
 
+function releasedAnswerStatus(released) {
+  const sourceSlot = state.attempt.slots.find((slot) => slot.slotId === released.slotId && slot.ordinal === released.ordinal);
+  if (released.type === "TRUE_FALSE_GROUP" && sourceSlot?.interaction.type === "TRUE_FALSE_GROUP") {
+    const selected = Object.fromEntries((released.statementValues ?? []).map(({ statementId, value }) => [statementId, value]));
+    const correct = Object.fromEntries((released.correctStatementValues ?? []).map(({ statementId, value }) => [statementId, value]));
+    const complete = sourceSlot.interaction.statements.every(({ id }) => Object.hasOwn(selected, id));
+    if (!complete) return Object.keys(selected).length > 0 ? "Chưa hoàn tất" : "Bỏ trống";
+    return sourceSlot.interaction.statements.every(({ id }) => selected[id] === correct[id]) ? "Đúng" : "Sai";
+  }
+  const answer = selectedOption(released.slotId);
+  return answer === null ? "Bỏ trống" : answer === released.correctOptionId ? "Đúng" : "Sai";
+}
+
+function releasedQuestionCard(released, { includeExplanation = true } = {}) {
+  const sourceSlot = state.attempt.slots.find((slot) => slot.slotId === released.slotId && slot.ordinal === released.ordinal);
+  if (!sourceSlot) return element("p", "notice-panel", "Nội dung ôn tập không khả dụng.");
+  const item = element("article", "review-item");
+  item.dataset.testid = "review-question";
+  item.append(element("p", "question-kicker", `VỊ TRÍ ${released.ordinal} / ${state.attempt.slots.length} · ${releasedAnswerStatus(released)}`));
+  item.append(element("h2", "", sourceSlot.content.map((block) => block.text ?? "").join(" ")));
+  if (released.type === "TRUE_FALSE_GROUP" && sourceSlot.interaction.type === "TRUE_FALSE_GROUP") {
+    const selected = Object.fromEntries((released.statementValues ?? []).map(({ statementId, value }) => [statementId, value]));
+    const correct = Object.fromEntries((released.correctStatementValues ?? []).map(({ statementId, value }) => [statementId, value]));
+    const statements = element("div", "tf-review-statements");
+    for (const [index, statement] of sourceSlot.interaction.statements.entries()) {
+      const hasSelection = Object.hasOwn(selected, statement.id);
+      const chosenCorrectly = hasSelection && selected[statement.id] === correct[statement.id];
+      const row = element("div", `tf-review-statement${hasSelection ? " selected" : ""}${chosenCorrectly ? " correct" : hasSelection ? " incorrect" : " unanswered"}`);
+      row.dataset.testid = `review-statement-${statement.id}`;
+      row.append(element("strong", "tf-review-label", `Mệnh đề ${index + 1}`));
+      row.append(element("p", "tf-review-copy", statement.content.map((block) => block.text ?? "").join(" ")));
+      row.append(element("span", "tf-review-choice", hasSelection ? `Bạn đã chọn: ${selected[statement.id] ? "Đúng" : "Sai"}` : "Bạn chưa chọn"));
+      row.append(element("span", "tf-review-correct", `Đáp án đúng: ${correct[statement.id] ? "Đúng" : "Sai"}`));
+      statements.append(row);
+    }
+    item.append(statements);
+  } else {
+    const options = element("ul", "review-options");
+    for (const option of sourceSlot.interaction.options) {
+      const optionRow = element("li", option.id === released.correctOptionId ? "correct" : "");
+      optionRow.append(element("span", "option-letter", option.id.toUpperCase()));
+      optionRow.append(element("span", "", option.content.map(block => block.text ?? "").join(" ")));
+      if (option.id === selectedOption(released.slotId)) optionRow.append(element("strong", "review-selected", "Bạn đã chọn"));
+      if (option.id === released.correctOptionId) optionRow.append(element("strong", "review-correct", "Đáp án đúng"));
+      options.append(optionRow);
+    }
+    item.append(options);
+  }
+  if (includeExplanation) {
+    const explanation = element("details", "explanation-disclosure");
+    explanation.dataset.testid = "explanation";
+    const toggle = element("summary", "", "Xem lời giải");
+    explanation.addEventListener("toggle", () => { toggle.textContent = explanation.open ? "Ẩn lời giải" : "Xem lời giải"; });
+    explanation.append(toggle, element("p", "review-explanation", released.explanation.map((block) => block.text ?? "").join(" ")));
+    item.append(explanation);
+  }
+  return item;
+}
+
 function renderResult(result) {
   clearTimer();
   const fragment = document.createDocumentFragment();
   fragment.append(header());
   const restored = resumeNotice();
   if (restored) fragment.append(restored);
-  const card = element("section", "result-card");
+  const card = element("section", "result-card result-ticket");
   card.dataset.testid = "result";
-  card.append(element("span", "result-mark", "✓"));
-  card.append(element("p", "eyebrow", "PHIÊN DEMO ĐÃ KHÉP LẠI"));
+  const hero = element("div", "result-hero");
+  hero.dataset.testid = "result-hero";
+  const score = element("div", "result-score");
+  score.dataset.testid = "result-score";
+  score.setAttribute("role", "img");
+  score.setAttribute("aria-label", `${result.correctCount} trên ${result.totalCount} câu demo, ${result.percentage}%`);
+  score.append(
+    element("strong", "score-number", String(result.correctCount)),
+    element("span", "score-total", `/ ${result.totalCount}`),
+    element("span", "score-percentage", `${Number(result.percentage)}%`),
+  );
+  const summary = element("div", "result-ticket-copy");
+  summary.append(element("p", "result-badge", "PHIẾU KẾT QUẢ · BẢN DEMO"));
   const title = element("h1", "", "Bạn đã hoàn thành.");
   title.id = "result-title";
   title.tabIndex = -1;
-  card.append(title);
-  card.append(element("p", "", result.label));
-  const score = element("div", "result-score");
-  score.append(element("strong", "score-number", `${result.correctCount}/${result.totalCount}`));
-  const scoreCopy = element("div", "score-copy");
-  scoreCopy.append(element("strong", "", `${result.percentage}%`));
-  scoreCopy.append(element("span", "", "Kết quả thực hành minh họa"));
-  score.append(scoreCopy);
-  card.append(score);
-  card.append(element("p", "result-note", "Đây là phép chấm kiểm thử cho bốn vị trí lặp lại. Kết quả không phải điểm TSA chính thức và không đại diện cho năng lực ở một đề thi thực tế."));
-  card.append(actionButton("Ôn tập đáp án", "review-open", () => { void openReview(); }, "button secondary"));
-  card.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button"));
+  summary.append(title, element("p", "result-label", result.label));
+  summary.append(element("p", "result-note", "Số câu đúng trên các vị trí demo. Đây không phải điểm TSA chính thức hay đánh giá năng lực."));
+  summary.append(actionButton("Ôn tập câu hỏi", "review-open", () => { void openReview(); }, "button result-review-action"));
+  hero.append(score, summary);
+  card.append(hero);
+  const stats = element("dl", "result-stats");
+  stats.dataset.testid = "result-stats";
+  const skipped = state.attempt.slots.length - state.attempt.answeredCount;
+  const elapsed = Math.min(state.attempt.durationSeconds, Math.max(0,
+    Math.floor((Date.parse(state.attempt.closedAt) - Date.parse(state.attempt.startedAt)) / 1000)));
+  for (const [label, value] of [["Đúng", result.correctCount], ["Sai đã trả lời", state.attempt.answeredCount - result.correctCount], ["Chưa hoàn tất", skipped], ["Thời gian làm", formatRemaining(elapsed * 1000)]]) {
+    const metric = element("div");
+    metric.append(element("dt", "", label), element("dd", "", String(value)));
+    stats.append(metric);
+  }
+  card.append(stats);
+  card.append(element("p", "result-closure-note", state.attempt.closureReason === "DEADLINE" ? "Hết thời gian demo. Kết quả dùng các lựa chọn đã được máy chủ ghi nhận." : "Đã nộp bài demo. Lựa chọn được giữ nguyên để ôn tập."));
+  const actions = element("div", "result-actions");
+  actions.append(actionButton("Chi tiết đáp án", "result-details-open", () => openReview(true), "button secondary"));
+  actions.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
+  card.append(actions);
+  if (state.review !== null) {
+    const details = element("section", "result-details");
+    details.dataset.testid = "result-details";
+    details.append(element("h2", "", "Chi tiết đáp án · dữ liệu demo"));
+    const filters = element("div", "catalog-filters");
+    filters.setAttribute("role", "group");
+    filters.setAttribute("aria-label", "Lọc chi tiết đáp án");
+    const questions = element("div");
+    questions.dataset.testid = "result-question-list";
+    const incorrect = state.review.slots.filter(slot => releasedAnswerStatus(slot) !== "Đúng");
+    for (const [key, label, slots] of [["all", "Tất cả", state.review.slots], ["incorrect", "Sai / chưa hoàn tất", incorrect]]) {
+      const control = actionButton(`${label} (${slots.length})`, `result-filter-${key}`, () => {
+        for (const button of filters.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === control));
+        questions.replaceChildren(...slots.map(releasedQuestionCard));
+        if (slots.length === 0) questions.append(element("p", "notice-panel", "Không có câu nào trong bộ lọc này."));
+        announce(`${slots.length} câu trong chi tiết đáp án.`);
+      }, "button secondary small");
+      control.setAttribute("aria-pressed", String(key === "all"));
+      filters.append(control);
+    }
+    questions.replaceChildren(...state.review.slots.map(releasedQuestionCard));
+    details.append(filters, questions);
+    card.append(details);
+  }
   fragment.append(card, footerNote());
-  app.replaceChildren(fragment);
+  replaceApp(fragment, { resultMode: true });
   announce(`Kết quả minh họa: ${result.correctCount} trên ${result.totalCount}.`);
 }
 
-async function openReview() {
+async function openReview(inline = false) {
   if (state.busy || state.attempt?.state !== "GRADED") return;
   state.busy = true;
-  const trigger = app.querySelector("[data-testid='review-open']");
+  const trigger = app.querySelector(inline ? "[data-testid='result-details-open']" : "[data-testid='review-open']");
   if (trigger) trigger.disabled = true;
   try {
     const response = await api.readReview(state.attempt.attemptId);
-    state.review = response.review;
     state.busy = false;
-    renderReview();
-    app.querySelector("#review-title")?.focus();
+    if (!trigger?.isConnected) return;
+    state.review = response.review;
+    if (inline) {
+      renderResult(state.attempt.result);
+      const details = app.querySelector("[data-testid='result-details']");
+      details.tabIndex = -1;
+      details.focus();
+    } else {
+      renderReview();
+      app.querySelector("#review-title")?.focus();
+    }
   } catch (error) {
     state.busy = false;
-    if (trigger?.isConnected) trigger.disabled = false;
-    showMessage(error.message || "Chưa mở được phần ôn tập.");
+    if (trigger?.isConnected) {
+      trigger.disabled = false;
+      showMessage(error.message || "Chưa mở được phần ôn tập.");
+    }
   }
 }
 
@@ -579,44 +1216,140 @@ function renderReview() {
   if (state.attempt === null) return renderCatalog();
   if (state.attempt.state !== "GRADED" || state.review === null) return renderResult(state.attempt.result);
   const fragment = document.createDocumentFragment();
-  fragment.append(header());
-  const restored = resumeNotice();
-  if (restored) fragment.append(restored);
-  const card = element("section", "review-card");
-  card.dataset.testid = "review";
-  card.append(element("p", "eyebrow", state.review.label));
-  const title = element("h1", "", "Ôn tập sau khi bài demo đã được chấm.");
+  const shell = element("div", "review-shell");
+  shell.dataset.testid = "review";
+  const headerBar = element("header", "review-topbar");
+  headerBar.dataset.testid = "review-header";
+  const identity = element("div", "review-identity");
+  identity.append(element("span", "review-brand-mark", "T"));
+  const title = element("h1", "", "Ôn tập · Toán học");
   title.id = "review-title";
   title.tabIndex = -1;
-  card.append(title, element("p", "repeat-alert", state.review.repeatNotice));
-  card.append(element("p", "review-disclaimer", "Đáp án và lời giải chỉ được hiển thị sau khi phiên demo đã khép lại. Đây vẫn là dữ liệu kiểm thử lặp lại."));
+  const identityCopy = element("div", "review-identity-copy");
+  identityCopy.append(element("span", "review-identity-label", "TSA Practice"), title);
+  identity.append(identityCopy);
+  headerBar.append(identity, element("span", "review-demo-label", "BẢN DEMO · ĐÁP ÁN ĐÃ MỞ"));
 
-  for (const released of state.review.slots) {
-    const sourceSlot = state.attempt.slots.find((slot) => slot.slotId === released.slotId);
-    if (!sourceSlot || sourceSlot.ordinal !== released.ordinal) continue;
-    const item = element("article", "review-item");
-    item.append(element("p", "question-kicker", `VỊ TRÍ ${released.ordinal} / ${state.attempt.slots.length}`));
-    item.append(element("h2", "", sourceSlot.content.map((block) => block.text ?? "").join(" ")));
-    const options = element("ul", "review-options");
-    for (const option of sourceSlot.interaction.options) {
-      const optionRow = element("li", option.id === released.correctOptionId ? "correct" : "");
-      optionRow.append(element("span", "option-letter", option.id.toUpperCase()));
-      optionRow.append(element("span", "", option.content.map((block) => block.text ?? "").join(" ")));
-      if (option.id === released.correctOptionId) optionRow.append(element("strong", "review-correct", "Đáp án đúng"));
-      options.append(optionRow);
-    }
-    item.append(options);
-    item.append(element("p", "review-explanation", released.explanation.map((block) => block.text ?? "").join(" ")));
-    card.append(item);
-  }
+  const toolbar = element("div", "review-toolbar");
+  toolbar.dataset.testid = "review-toolbar";
+  const position = element("span", "review-position");
+  position.dataset.testid = "review-position";
+  const explanationDetails = element("details", "review-explanation-disclosure");
+  explanationDetails.id = "review-explanation-details";
+  explanationDetails.dataset.testid = "explanation";
+  explanationDetails.setAttribute("aria-controls", "review-explanation-pane");
+  const explanationToggle = element("summary", "button review-explanation-toggle", "Xem lời giải");
+  explanationToggle.dataset.testid = "review-explanation-toggle";
+  explanationToggle.setAttribute("aria-controls", "review-explanation-pane");
+  explanationToggle.setAttribute("aria-expanded", "false");
+  explanationDetails.append(explanationToggle, element("span", "sr-only", "Lời giải đã công bố được hiển thị trong bảng lời giải."));
+  toolbar.append(position, explanationDetails);
 
-  card.append(actionButton("Quay lại kết quả", "back-score", () => {
+  const workspace = element("section", "review-workspace");
+  workspace.dataset.testid = "review-workspace";
+  workspace.setAttribute("aria-label", "Khu vực ôn tập");
+  const questionPane = element("section", "review-question-pane");
+  questionPane.dataset.testid = "review-question-pane";
+  questionPane.setAttribute("aria-label", "Câu hỏi và lựa chọn");
+  const filterGroup = element("div", "review-filters");
+  filterGroup.setAttribute("role", "group");
+  filterGroup.setAttribute("aria-label", "Lọc kết quả ôn tập");
+  const context = element("div", "review-context");
+  context.append(
+    element("p", "review-repeat-notice", state.review.repeatNotice),
+    element("p", "review-disclaimer", "Đáp án và lời giải chỉ được hiển thị sau khi phiên demo đã khép lại. Ba câu trắc nghiệm lặp lại dữ liệu; nhóm đúng/sai là nội dung tổng hợp."),
+  );
+  const content = element("div", "review-question-content");
+  content.setAttribute("aria-live", "polite");
+  questionPane.append(filterGroup, context, content);
+
+  const divider = element("div", "review-pane-divider");
+  divider.setAttribute("aria-hidden", "true");
+  divider.hidden = true;
+  const explanationPane = element("aside", "review-explanation-pane");
+  explanationPane.dataset.testid = "review-explanation-pane";
+  explanationPane.id = "review-explanation-pane";
+  explanationPane.setAttribute("aria-label", "Lời giải đã công bố");
+  explanationPane.hidden = true;
+  const explanationHeading = element("div", "review-explanation-heading");
+  explanationHeading.append(element("strong", "", "Hướng dẫn giải"));
+  const closeExplanation = actionButton("×", "review-explanation-close", () => {
+    setExplanationOpen(false);
+    explanationToggle.focus({ preventScroll: true });
+  }, "button review-explanation-close");
+  closeExplanation.setAttribute("aria-label", "Ẩn lời giải");
+  explanationHeading.append(closeExplanation);
+  const explanationCopy = element("div", "review-explanation-copy");
+  explanationCopy.dataset.testid = "review-explanation-scroll";
+  explanationPane.append(explanationHeading, explanationCopy);
+  workspace.append(questionPane, divider, explanationPane);
+
+  const footer = element("footer", "review-footer");
+  footer.dataset.testid = "review-footer";
+  let filtered = state.review.slots;
+  let current = 0;
+  const previous = actionButton("← Trước", "review-prev", () => { current--; draw(); }, "button secondary small review-step");
+  previous.setAttribute("aria-label", "Câu trước");
+  const counter = element("span", "review-counter review-counter-chip");
+  counter.dataset.testid = "review-counter";
+  counter.setAttribute("role", "status");
+  const next = actionButton("Tiếp →", "review-next", () => { current++; draw(); }, "button secondary small review-step");
+  next.setAttribute("aria-label", "Câu tiếp theo");
+  const returnButton = actionButton("Kết quả", "back-score", () => {
     state.review = null;
     renderResult(state.attempt.result);
     app.querySelector("#result-title")?.focus();
-  }, "button"));
-  fragment.append(card, footerNote());
-  app.replaceChildren(fragment);
+  }, "button back-score");
+  returnButton.setAttribute("aria-label", "Quay lại kết quả");
+  footer.append(previous, counter, next, returnButton);
+
+  let currentReleased = null;
+  function setExplanationOpen(open) {
+    const isOpen = Boolean(open && currentReleased);
+    explanationDetails.open = isOpen;
+    explanationPane.hidden = !isOpen;
+    divider.hidden = !isOpen;
+    workspace.classList.toggle("is-open", isOpen);
+    explanationToggle.tabIndex = currentReleased === null ? -1 : 0;
+    explanationToggle.setAttribute("aria-disabled", String(currentReleased === null));
+    explanationToggle.setAttribute("aria-expanded", String(isOpen));
+    explanationToggle.textContent = isOpen ? "Ẩn lời giải" : "Xem lời giải";
+  }
+
+  explanationDetails.addEventListener("toggle", () => {
+    setExplanationOpen(explanationDetails.open);
+  });
+  function draw() {
+    content.replaceChildren();
+    currentReleased = filtered[current] ?? null;
+    previous.disabled = current <= 0;
+    next.disabled = current >= filtered.length - 1;
+    counter.textContent = filtered.length ? `${current + 1} / ${filtered.length}` : "0 / 0";
+    position.textContent = currentReleased ? `Câu ${currentReleased.ordinal}` : "Không có câu";
+    if (!currentReleased) {
+      explanationCopy.replaceChildren();
+      content.append(element("p", "notice-panel", "Không có câu nào trong bộ lọc này."));
+      setExplanationOpen(false);
+      return;
+    }
+    content.append(releasedQuestionCard(currentReleased, { includeExplanation: false }));
+    explanationCopy.replaceChildren(element("p", "review-explanation", currentReleased.explanation.map((block) => block.text ?? "").join(" ")));
+    setExplanationOpen(false);
+  }
+  for (const [key, label] of [["all", "Tất cả"], ["incorrect", "Sai / bỏ trống"]]) {
+    const control = actionButton(label, `review-filter-${key}`, () => {
+      filtered = state.review.slots.filter(slot => key === "all" || releasedAnswerStatus(slot) !== "Đúng");
+      current = 0;
+      for (const button of filterGroup.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === control));
+      draw();
+    }, "button secondary small review-filter");
+    control.setAttribute("aria-pressed", String(key === "all"));
+    filterGroup.append(control);
+  }
+  draw();
+  shell.append(headerBar, toolbar, workspace, footer);
+  fragment.append(shell);
+  replaceApp(fragment, { reviewMode: true });
 }
 
 function renderFatal(error) {
@@ -626,7 +1359,7 @@ function renderFatal(error) {
   card.append(element("h1", "", "Chưa mở được bài luyện tập."));
   card.append(element("p", "", error?.message || "Hãy kiểm tra máy chủ demo cục bộ rồi tải lại trang."));
   card.append(actionButton("Thử lại", "retry", () => { void initialize(); }, "button"));
-  app.replaceChildren(card);
+  replaceApp(card);
   announce("Chưa mở được bài luyện tập. Hãy thử lại.");
 }
 

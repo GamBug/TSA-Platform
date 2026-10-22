@@ -15,4 +15,26 @@ export const privateQuestionFixture = Object.freeze({
   },
 });
 
-export const REPEATED_FIXTURE_NOTICE = "4 vị trí lặp lại cùng dữ liệu kiểm thử; không phải đề TSA/học liệu đã duyệt";
+export const privateTrueFalseGroupFixture = Object.freeze({
+  content: [{ type: "text", text: "For the equation 2y + 4 = 10, decide whether each statement is true or false." }],
+  interaction: {
+    type: "TRUE_FALSE_GROUP",
+    statements: [
+      { id: "s1", content: [{ type: "text", text: "y = 3" }] },
+      { id: "s2", content: [{ type: "text", text: "y + 4 = 10" }] },
+    ],
+  },
+  private: {
+    answerKey: { type: "TRUE_FALSE_GROUP", statementValues: { s1: true, s2: false } },
+    explanation: [{
+      type: "text",
+      text: "Solving 2y + 4 = 10 gives y = 3. The first statement is true, while adding 4 to y gives 7, not 10.",
+    }],
+  },
+});
+
+export function questionFixtureForOrdinal(ordinal) {
+  return ordinal === 4 ? privateTrueFalseGroupFixture : privateQuestionFixture;
+}
+
+export const REPEATED_FIXTURE_NOTICE = "Câu 1–3 lặp lại cùng dữ liệu kiểm thử; câu 4 là nhóm đúng/sai tổng hợp; không phải đề TSA/học liệu đã duyệt";

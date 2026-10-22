@@ -48,7 +48,8 @@ from the shared-contract tests below. No browser/dependency download occurs.
 Demo: open catalog, start the MATH fixture, choose/clear an answer and navigate.
 Reload to resume the same in-memory attempt/deadline, cancel submission once, then
 confirm, view the separate post-grade explanation, and return to score/catalog.
-The four slots repeat existing synthetic test content and are visibly labeled;
+The first three slots repeat an existing synthetic single-choice fixture; the
+fourth is an original synthetic true/false group. All are visibly labeled;
 this is not approved seed stock or a NEW_ONLY allocation. Session memory, timer,
 saves and results are demonstrations, not durable/authenticated product features.
 Reading/science cards remain unavailable. Do not enter personal information.
