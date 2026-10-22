@@ -768,6 +768,23 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 
 ## OPS-001 — Deployment and data-policy readiness
 
+2026-10-23 isolated logical restore **IMPLEMENTED / VERIFIED** from `4369cb5`:
+private18.6 roles/data archive restored into a genuinely independent fresh cluster;
+all65 application tables plus role/grantor/owner/ACL/89-function/17-RLS-policy
+metadata preserved. QUEUED/RUNNING eligible jobs recover once; revoked jobs cancel;
+old exact fixture-scope approval403, private reads/worker spoof denied, source
+unchanged, successful/corrupt-archive/shutdown-error cleanup verified. Test-only
+helper/tests, no production/foundation/schema/contracts/publication changes.
+Actual focused7/student31/foundations34/grading22/results6/contracts106/consumers11/
+build/typecheck/drift/import PASS. Separate Sol6.1/Medium found cleanup P2, repaired
+and fault-tested; final no remaining P1/P2, independent syntax/whitespace only.
+[Executed commands, bootstrap handling and limits](../reviews/OPS_001_LOGICAL_RESTORE_VERIFICATION.md).
+Sol accountable; all reservations released, owner AGENTS/research preserved.
+Production backups/RPO/RTO/PITR/full OPS remain unaccepted by this drill. Next
+WEB-004 real429 save/retry browser evidence (documented acceptance gap). Recommended
+Sol6.1/High, isolated Luna/XHigh if available with Sol fallback, separate
+Sol6.1/Medium engineering review; lawful inventory/manual AT/Track A remain distinct.
+
 2026-10-22 current-rights outage recovery VERIFIED from `ebb25f2`: normal new-PID
 recovery cancels revoked-passage work and denies content/old-receipt access with
 zero scores/releases. [Evidence](../reviews/EXAM_OUTAGE_RIGHTS_VERIFICATION.md).

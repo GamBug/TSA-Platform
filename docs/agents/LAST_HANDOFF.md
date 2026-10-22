@@ -1,3 +1,49 @@
+# Current handoff — independent PostgreSQL logical restore verified
+
+2026-10-23, `feat/track-b-data-auth`, base `4369cb5`; accountable Sol6.1.
+[Executed restore procedure, review, failures/fixes and limits](../reviews/OPS_001_LOGICAL_RESTORE_VERIFICATION.md).
+New test-only helper/tests use pinned18.6 password-free role export and logical
+dump/restore into a genuinely independent fresh cluster. Private0700 storage/
+0600 archives, shell:false, no private diagnostics. Source stays unchanged.
+All65 application tables, roles/memberships/grantors, owners/effective ACLs,
+89 function settings and17 RLS policies match. Preserve bootstrap probeOID10;
+original role export retained, derived import omits only duplicate bootstrap CREATE.
+Foundation/product/schema/G1 contracts/publication controls remain unchanged.
+
+QUEUED/RUNNING eligible work grades once with exact inputs/digest; revoked work
+cancels without release, foreign reads404. Live old leases respected then fenced
+on actual expiry. Original exact publication scope rejects valid IN_REVIEW approval
+with403PUBLICATION_DISABLED; no replacement scope created. Private reads remain
+RLS/permission restricted; normal exam role cannot claim worker capability.
+Corrupt archive and injected shutdown errors clean owned archive/target directories.
+
+Actual focused7/student31/foundations34/grading22/results6/contracts106/consumers11/
+emitted smoke/build/typecheck/drift/import PASS. Separate native Sol6.1/Medium
+read-only review found cleanup P2, repaired and real-target fault-tested; final no
+remaining P1/P2, independent syntax/whitespace PASS, no independent PG execution.
+Initial role-import/bootstrap, assertion quoting and RLS-expectation failures
+repaired and rerun. This is logical restore of quiescent synthetic state, not
+production failover, host/DB-crash recovery, physical/WAL/PITR, encryption or
+RPO/RTO/SLO acceptance. Existing parent module-type warning remains.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. G1
+accepted; G2/G3 OWNER_ACCEPTED unchanged. Broad goal remains active. Full OPS/pilot,
+lawful inventory, named qualified human review, manual accessibility and Track A
+remain outstanding. No push/merge/deploy/Astra/paid API/live student inference/
+unauthorized publication. Owned target/archive cleanup asserted; no demo left running.
+
+Next executable WEB-004 card: **real PostgreSQL429 save/retry browser journey**.
+Existing save HTTP regressions cover429/no mutation; current browser scenarios
+lack explicit429/Retry-After evidence (repository search). Configure bounded real
+save budgets in isolated original fixture, retain unsaved draft/block navigation
+and submit, explicit same-key retry after actual refill, exactly one persisted
+revision/acknowledgement and correct result. Reuse current API/renderer/clock;
+change product only for reproduced defect, no reference UI redesign/new contract.
+Recommended Sol6.1/High for coupled timing; isolated Luna/XHigh if quota is available
+with Sol fallback, separate Sol6.1/Medium read-only review. Manual AT remains distinct.
+
+---
+
 # Current handoff — passage rights override crashed-worker recovery
 
 2026-10-22, `feat/track-b-data-auth`, base `ebb25f2`; accountable Sol6.1.
