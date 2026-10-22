@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
+import { createSharedReadingFixture } from '../tests/integration/student-runtime/shared-reading-fixture.mjs';
 import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
@@ -13,10 +14,11 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       || env.LOCAL_SYNTHETIC_ONLY !== 'true' || env.STUDENT_FIXTURE_DEMO !== 'true') {
     throw new Error('Disposable student demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true');
   }
-  if (env.STUDENT_FIXTURE_DOMAINS !== undefined && !['true', 'false'].includes(env.STUDENT_FIXTURE_DOMAINS)) {
-    throw new Error('STUDENT_FIXTURE_DOMAINS must be true or false');
+  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING']) {
+    if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) throw new Error(`${flag} must be true or false`);
   }
-  const domains = env.STUDENT_FIXTURE_DOMAINS === 'true';
+  const domains = env.STUDENT_FIXTURE_DOMAINS === 'true', reading = env.STUDENT_FIXTURE_READING === 'true';
+  if (domains && reading) throw new Error('Choose one disposable fixture profile');
   let fixture, workerPool, runtime;
   let closing;
   const close = () => {
@@ -30,7 +32,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     return closing;
   };
   try {
-    fixture = domains ? await createDomainStudentFixture() : await createMixedStudentFixture();
+    fixture = reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture() : await createMixedStudentFixture();
     const login = `fixture_worker_${randomUUID().replaceAll('-', '')}`;
     await fixture.pool.query(`CREATE ROLE ${login} LOGIN`);
     await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -40,7 +42,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
       pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
-    return { origin: runtime.origin, fixtureProfile: domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
+    return { origin: runtime.origin, fixtureProfile: reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Demo startup and cleanup failed'); }
     throw error;

@@ -170,6 +170,7 @@ npm run build
 npm run test:student
 npm run test:student:browser
 npm run test:student:domains
+npm run test:student:reading
 npm run test:student:closed-save
 npm run test:student:keyboard
 npm run test:student:expiry
@@ -205,3 +206,18 @@ the existing mixed-MATH demo. Malformed `STUDENT_FIXTURE_DOMAINS` values are rej
 These standalone fixtures do not establish shared-reading-stimulus/bundle support,
 lawful question inventory, content quality or qualified human review. The retained
 workspace continues to seed no eligible stock.
+
+For an explicitly disposable shared-passage READING2 demonstration:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:reading
+```
+
+Select candidate A and the reading test. Both ordered questions use one original
+Vietnamese passage, a180-second project clock and separate answer scores. Save,
+reload, submit and inspect the released explanations. This profile is mutually
+exclusive with `STUDENT_FIXTURE_DOMAINS=true`; malformed reading flags are rejected
+before fixture creation. Ctrl+C discards the private fixture. It does not create
+retained stock or establish lawful inventory, qualified human content review,
+official examination timing/scoring or manual accessibility acceptance.
+[Executed HTTP/browser and rights-revocation evidence](../../docs/reviews/WEB_001_SHARED_READING_VERIFICATION.md).

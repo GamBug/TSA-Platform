@@ -1,3 +1,50 @@
+# Current handoff — shared-reading student journey demonstrated
+
+2026-10-22, `feat/track-b-data-auth`, base `7cee125`; accountable Sol6.1.
+[Executed commands, review, scope and next card](../reviews/WEB_001_SHARED_READING_VERIFICATION.md).
+Original isolated READING2 taxonomy/blueprint and ordered ALL_OR_NONE passage
+fixture now demonstrate create/start, exact passage on both student slots, saved
+answers, reload with unchanged clocks, submit, leased grading, per-question score,
+released explanations and owned history. Existing production components already
+supported this projection; no renderer, schema, frozen API or publication controls
+were changed. Explicit `demo:student:reading` adds guarded disposable demonstration.
+
+Actual focused HTTP4/student19/assembly49/B031/contracts106/consumers11/emitted smoke/
+build/typecheck/drift/import PASS. Actual Chrome155 shared-reading32-response/seven
+capture journey plus standard and domains78-response regressions PASS. HTTP proves
+one correct/one incorrect =50.00%; browser both correct =100%. Passage-only rights
+revoke cancels CREATED with metadata-only GET and invalidates started/graded
+attempts. Review clears restricted content; future selection denied. Exact sealed
+snapshots/history remain unchanged. Separate native Sol6.1/Medium read-only review
+no P1/P2, independently syntax/whitespace PASS; PG/browser evidence coordinator-only.
+Initial fixture/runtime-option/state-expectation errors repaired and rerun.
+
+Run `NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:reading`.
+Actual npm TTY command served200 with SHARED_READING, Ctrl+C closed listener without
+PG error; npm cancellation exit1 distinct from direct process-group test exit0.
+No owned demonstration left intentionally running. Fixture publication scope is
+postmaster-bound, original synthetic engineering stock; retained workspace seeds
+no eligible inventory and agent review is not human content approval.
+
+All implementing reservations released; owner AGENTS/research byte-preserved and
+unstaged. G1 accepted; G2/G3 OWNER_ACCEPTED unchanged. Full ASSEMBLY/WEB/pilot,
+lawful inventory, named qualified reviewers, manual accessibility and Track A
+remain separate outstanding requirements. No push/merge/deploy/Astra/paid API/live
+student inference/unauthorized publication. Shared-reading Firefox/manual AT not
+run; prior broad backend suites at `7cee125` not rerun as production code unchanged.
+
+Next executable EXAM-002/OPS-001 card: separate OS-process student runtime/worker
+crash and restart against a live isolated PostgreSQL fixture. Preserve acknowledged
+answers and exact clocks; kill only the owned app/worker without graceful drain
+after durable submission, restart restricted pools, prove pending/leased recovery
+and exactly one immutable score/release. Keep the postmaster and test scope alive;
+prior same-process object recreation/postmaster restart is not OS-app-crash proof.
+Use test-only process harness and existing runtime/fencing; no new API or production
+service. Recommended Codex Sol6.1/High while Luna is usage-limited, separate
+Sol6.1/Medium read-only recovery/security review. No next-task execution is claimed.
+
+---
+
 # Current handoff — complete shared-stimulus atomic allocation verified
 
 2026-10-22, `feat/track-b-data-auth`, base `8db27a1`; accountable Sol6.1.

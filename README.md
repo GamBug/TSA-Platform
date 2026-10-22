@@ -174,3 +174,8 @@ Open the printed loopback URL and choose a synthetic candidate. Ctrl+C discards
 this fixture database. This does not provision lawful production stock or satisfy
 qualified human review. See the [student run guide](apps/practice-prototype/README.md#disposable-postgresql-student-demonstration)
 for installation, test commands and scope. Default `dev:b0` remains in-memory mock.
+
+For the isolated shared-passage READING2 journey, use the same opt-in flags with
+`npm run demo:student:reading`. This creates one original disposable passage bundle,
+not retained approved inventory. `npm run test:student:reading` verifies its actual
+PostgreSQL/Chromium journey. See the student run guide above for scope.

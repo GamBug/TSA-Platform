@@ -279,6 +279,23 @@ Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publ
 
 ## ASSEMBLY-001 — Reproducible starter exam assembly
 
+2026-10-22 shared-reading integration **IMPLEMENTED / VERIFIED** from `7cee125`:
+original correct-taxonomy READING2 ALL_OR_NONE passage fixture now runs through
+existing HTTP/client/browser, saved answers/reload, per-question50%/100% scoring,
+owned result/review/history and passage-only rights cancellation/invalidation.
+Exact sealed snapshots/history remain unchanged. Added explicit disposable reading
+demo with production/opt-in/profile guards; no schema/public contract/publication
+capability or retained stock changes. Actual focused4/student19/assembly49/B031/
+contracts106/consumers11/build/typecheck/drift/import and Chromium reading32/default/
+domains78 PASS. Separate read-only Sol6.1/Medium no P1/P2; independently syntax/
+whitespace PASS, no PG/browser execution claim. Accountable implementer Sol6.1;
+[commands, failures/fixes and limits](../reviews/WEB_001_SHARED_READING_VERIFICATION.md).
+All reservations released; AGENTS/research preserved. Full milestone, lawful
+inventory, named human review and manual accessibility remain distinct. Next
+EXAM-002/OPS-001: test-only separate app/worker OS-process crash/restart against
+live isolated PostgreSQL, original clocks/answers and exactly-one graded release.
+Recommended Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium review.
+
 2026-10-22 bundle-aware NEW_ONLY backend **IMPLEMENTED / VERIFIED** from
 `8db27a1`; accountable Sol6.1. Additive SQL018 reuses existing immutable stimulus/
 bundle tables and frozen solver; internal capture emits complete ordered units,
@@ -622,6 +639,14 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
   coordinator completed independent verification and shared-record integration. Documentation-only defaults are overridden only for this assigned B0.
 
 ## WEB-001 — Student vertical slice
+
+2026-10-22 update from `7cee125`: shared-reading HTTP/browser journey and explicit
+disposable demonstration VERIFIED; [evidence](../reviews/WEB_001_SHARED_READING_VERIFICATION.md).
+Correct READING taxonomy, ordered immutable bundle and exact passage on both slots,
+per-question score, saves/reload/released review and passage-only rights restrictions
+verified. Student19/assembly49 + reading32-response/default/domains Chromium and
+static/contract checks PASS; separate engineering review no P1/P2. Full pilot,
+manual accessibility and lawful human-approved inventory remain outstanding.
 
 2026-10-22 independent three-domain slice IMPLEMENTED/VERIFIED from `55bd3b4`:
 original isolated MATH4/READING2/SCIENCE4 fixtures, frozen transport/browser
