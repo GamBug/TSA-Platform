@@ -1143,6 +1143,21 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 warning-window resume **IMPLEMENTED / VERIFIED** from `97694ba`:
+actual45sec reading fixture, observed polite/atomic status warning once per loaded
+document including resume as explicitly required by engine spec, no repeats on
+ticks/save/navigation. Real Honolulu/ICT offsets and reload preserve countdown/
+saved answer/exact clocks/immutable inputs;100% result. Chrome23 responses/three
+screenshots, default reading32/student31/contracts106/consumers11/build/typecheck/
+drift/import/docs PASS. No product defect/change. Separate Sol6.1/Medium no P1/P2,
+syntax/whitespace PASS; PG/browser coordinator-owned. [Evidence and limits](../reviews/WEB_004_WARNING_RESUME_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. Next bounded card
+from independent static discovery: reproduce/fix catalog gating valid owned
+start/resume on mutable future/elapsed offering, accurate admission labels/ICT
+times, blocked new allocation. Static P2 not yet runtime-reproduced; existing
+non-retroactive schedule policy applies. Recommended Sol6.1/High, separate
+Sol6.1/Medium review. Full WEB/human/AT/Track A remain distinct.
+
 2026-10-23 CREATED reservation recovery **IMPLEMENTED / VERIFIED** from `6982af2`:
 actual late browser reproduced unwanted second allocation request and misleading
 content-lock notice. Internal client method now starts/reads the original ID,

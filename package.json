@@ -37,6 +37,7 @@
     "test:student": "node --test tests/integration/student-runtime/*.test.mjs tests/integration/student-security/*.test.mjs",
     "test:student:reservation": "STUDENT_RESERVATION_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:reservation:late": "STUDENT_RESERVATION_LATE_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:warning-resume": "STUDENT_WARNING_RESUME_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:browser": "node scripts/verify-student-browser.mjs",
     "test:student:rate-limit": "STUDENT_RATE_LIMIT_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:rate-limit:expiry": "STUDENT_RATE_LIMIT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs",

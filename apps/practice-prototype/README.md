@@ -171,6 +171,7 @@ npm run test:student
 npm run test:student:browser
 npm run test:student:reservation
 npm run test:student:reservation:late
+npm run test:student:warning-resume
 npm run test:student:domains
 npm run test:student:reading
 npm run test:student:rate-limit
@@ -203,6 +204,13 @@ leaves it unstarted; explicit start targets that attempt. The late case uses a
 real short admission cap with the mandatory600-second TTL unchanged, then extends
 the offering to prove the captured deadline still applies. Expiry shows the
 server's cancellation reason and never allocates a replacement automatically.
+
+The warning-resume command observes the existing polite/atomic status region on
+an actual45-second attempt. It verifies one warning in each loaded document,
+including resume as required by the engine specification, without repeats during
+ticks/save/navigation. Actual Honolulu/ICT timezone overrides and reload preserve
+the original server deadline and acknowledged answer. This is automated semantic
+coverage, not qualified screen-reader acceptance.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline

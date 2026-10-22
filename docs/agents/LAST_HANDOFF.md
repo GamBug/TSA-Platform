@@ -1,3 +1,41 @@
+# Current handoff — warning-window resume verified
+
+2026-10-23, `feat/track-b-data-auth`, base `97694ba`; accountable Sol6.1.
+[Executed scope, separate review and next static finding](../reviews/WEB_004_WARNING_RESUME_VERIFICATION.md).
+Test-only45sec original reading fixture observes actual polite/atomic status
+warning once in each loaded document, including resume explicitly required by
+engine spec. No repeats during ticks/save/navigation; real Honolulu/ICT offsets
+and reload preserve monotonic countdown, exact server clocks, acknowledged answer,
+immutable form/manifest/private+public snapshots/history and100% result. Not a
+persisted cross-document warning count or qualified screen-reader claim.
+
+Actual Chrome23 responses/three screenshots, default reading32, student31,
+contracts106/consumers11/build/typecheck/emitted smoke/drift/import/docs PASS.
+Initial and final warning runs passed. Separate Sol6.1/Medium read-only review
+no P1/P2; syntax/whitespace PASS, no PG/browser execution. No product defect or
+product/schema/contracts/publication changes. Existing module-type/historical
+whitespace warnings remain; Bank/assembly/attempt/foundation/full keyboard/Firefox
+not rerun for this test-only change.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal remains active. G1 accepted; G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot,
+lawful inventory, qualified human review, manual AT/native zoom and Track A remain
+outstanding. No push/merge/deploy/Astra/paid API/live student inference/unauthorized
+publication. Owned browser/runtime/PostgreSQL fixtures cleaned.
+
+Next executable WEB-001/004 card: **catalog admission-state and owned resume**.
+Separate reviewer static P2: main.js gates card actions on domain.available,
+hiding valid owned CREATED/IN_PROGRESS start/resume after ordinary offering edits.
+API_CONTRACTS.md preserves existing start/resume independent of those edits.
+Runtime reproduction NOT RUN. Reproduce future/elapsed ordinary offering windows,
+fix only necessary client gates/accurate labels/ICT times, block new creation,
+preserve original owned attempt/deadline/history and existing rights/security
+restrictions. Current reservation tests cover extension, not this converse.
+Recommended Sol6.1/High while Luna remains usage-limited; separate Sol6.1/Medium
+read-only review. No new API/schema/policy or Bank expansion is needed.
+
+---
+
 # Current handoff — reserved start targets the original attempt
 
 2026-10-23, `feat/track-b-data-auth`, base `6982af2`; accountable Sol6.1.
