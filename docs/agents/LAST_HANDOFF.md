@@ -1,3 +1,37 @@
+# Current handoff — closed-save reconciliation repaired and verified
+
+2026-10-22, `feat/track-b-data-auth`, base `f5ec6cf`; accountable Sol6.1.
+[Actual evidence](../reviews/WEB_001_CLOSED_SAVE_RECONCILIATION_VERIFICATION.md).
+Independent audit reproduced stale-tab ATTEMPT_CLOSED offering write retry.
+UI now offers authoritative read; failed reads preserve drafts; terminal acceptance
+keeps pending state long enough to explain server-recorded scoring. Late reads
+cannot replace newer identity/attempt. Reviewer found uncertain lost-ACK ambiguity;
+neutral notice avoids falsely claiming committed changes were excluded. No
+schema/Bank/solver/frozen contract or UI reconstruction changes.
+
+Actual callback12/B031/student9/attempt28/results6/contracts106/consumers11/build/
+typecheck/drift/import/docs PASS. Actual Chromium two-tab rejected write plus
+committed-lost-ACK45 inspected responses, default/keyboard/expiry and Firefox PASS.
+Separate read-only Sol6.1/Medium independently executed callback12 PASS and final
+review no P1/P2; browser/PG evidence is coordinator-only. Initial backgrounded-page
+capture timeout repaired with Page.bringToFront. Manual AT/native zoom NOT RUN.
+
+Owner AGENTS/research preserved/unstaged with hashes in evidence; reservations
+released. G1 accepted; G2/G3 OWNER_ACCEPTED. Lawful stock/qualified human rights
+and content review/Track A/manual accessibility remain outstanding. No push/merge/
+deploy/Astra/paid model APIs/live student LLM/unauthorized publication.
+
+Next executable engineering card: original isolated MATH4/READING2/SCIENCE4
+browser-backed catalog/create/start/save/reload/submit/result/history journeys;
+prove separate clocks, H1 cross-domain blocking and no automatic chaining.
+Existing full browser evidence is MATH4. Reuse frozen handlers/current supported
+content types; no retained stock seed. Standalone reading fixtures must not claim
+the separate required shared reading stimulus/bundle acceptance. Recommended
+Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium engineering review.
+Qualified manual screen-reader/native200% zoom packet remains a distinct human task.
+
+---
+
 # Current handoff — live grading lease survives actual PostgreSQL restart
 
 2026-10-22, `feat/track-b-data-auth`, base `04bff31`; accountable Sol6.1.

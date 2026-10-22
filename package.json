@@ -36,6 +36,7 @@
     "test:directory": "node --test tests/integration/directory/*.test.mjs",
     "test:student": "node --test tests/integration/student-runtime/*.test.mjs tests/integration/student-security/*.test.mjs",
     "test:student:browser": "node scripts/verify-student-browser.mjs",
+    "test:student:closed-save": "STUDENT_CLOSED_SAVE_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:keyboard": "STUDENT_ACCESSIBILITY_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:expiry": "STUDENT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:firefox": "node scripts/verify-student-firefox.mjs",

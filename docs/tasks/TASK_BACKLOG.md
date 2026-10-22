@@ -607,6 +607,23 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
 
 ## WEB-001 — Student vertical slice
 
+2026-10-22 closed-save reconciliation IMPLEMENTED/VERIFIED from `f5ec6cf`:
+ATTEMPT_CLOSED offers an authoritative read; read failures preserve pending edits,
+terminal reads explain server-recorded scoring, delayed reads cannot replace a
+new identity/attempt. Separate audit caught uncertain-ACK message ambiguity;
+neutral notice and regression fixed it before acceptance. Actual callback12/B031/
+student9/attempt28/results6/contracts106/consumers11/build/typecheck/drift/import/
+docs PASS; Chromium two-tab45 inspected responses/default/keyboard/expiry and
+Firefox PASS. Separate read-only Sol6.1/Medium actual callback12 PASS, no open P1/P2.
+[Evidence](../reviews/WEB_001_CLOSED_SAVE_RECONCILIATION_VERIFICATION.md). Sol accountable,
+owner files preserved, reservations released. WEB-001 remains IN_PROGRESS.
+Next engineering card: original isolated three-domain MATH4/READING2/SCIENCE4
+browser journey using frozen APIs, separate clocks, cross-domain H1, save/reload/
+submit/results/history and no chaining. Shared reading stimulus/bundle and lawful
+human inventory remain distinct gaps; standalone fixtures must not imply full
+acceptance. Recommended Sol6.1/High while Luna is usage-limited, separate
+Sol6.1/Medium engineering reviewer; qualified manual AT remains pending.
+
 2026-10-22 restart evidence IMPLEMENTED/VERIFIED from `e5dafee`: actual disposable
 postmaster restart preserves queued job ID/dedup, manifest/sealed snapshots/keys,
 answers/digest, history/clocks; old fixture scope inactive; previous session,

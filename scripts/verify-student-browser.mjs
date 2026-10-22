@@ -13,8 +13,9 @@ import { createSourceService } from '../src/modules/sources/service.mjs';
 
 const expiryTest = process.env.STUDENT_EXPIRY_TEST === 'true';
 const accessibilityTest = process.env.STUDENT_ACCESSIBILITY_TEST === 'true';
-assert.equal(expiryTest && accessibilityTest, false, 'expiry and accessibility modes run separately');
-const defaultArtifacts = accessibilityTest
+const closedSaveTest = process.env.STUDENT_CLOSED_SAVE_TEST === 'true';
+assert.ok([expiryTest, accessibilityTest, closedSaveTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -449,7 +450,87 @@ try {
   } else {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
-    if (expiryTest) {
+    if (closedSaveTest) {
+      await click('demo-start');
+      await waitFor(`Boolean(document.getElementById('question-title'))`, 'active attempt before another tab submits');
+      const view = await evaluate(`fetch('/api/v1/attempts').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json())`);
+      checkPrivate(view);
+      const index = view.slots.findIndex((slot) => slot.interaction.type === 'SINGLE_CHOICE');
+      assert.ok(index >= 0);
+      for (let step = 0; step < index; step++) await click('question-next');
+      await click('option-b');
+      await waitFor(`Boolean(${query('option-b')}.checked && ${query('save-status')}.classList.contains('saved'))`, 'one acknowledged answer before closure');
+      const attemptId = view.attemptId, slotId = view.slots[index].slotId;
+      const answer = async () => (await fixture.pool.query('SELECT value,revision FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2', [attemptId, slotId])).rows[0];
+      const before = await answer();
+      await openSecondTab();
+      workerState.available = false;
+      await secondClick('submit-open'); await secondClick('submit-confirm');
+      await secondWaitFor(`Boolean(${query('grading-pending')})`, 'another tab closes the exam');
+      assert.equal((await fixture.pool.query('SELECT state FROM tsa.attempts WHERE id=$1', [attemptId])).rows[0].state, 'SUBMITTED');
+      await command('Page.bringToFront');
+      await click('option-c');
+      await waitFor(`Boolean(${query('save-error')}) && ${query('save-error')}.textContent.includes('đã đóng')`, 'closed save offers authoritative read');
+      assert.match(await evaluate(`${query('save-error-action')}.textContent`), /Tải lại trạng thái/);
+      assert.equal(await evaluate(`${query('option-c')}.checked && Boolean(${query('answer-unsaved')}) && ${query('submit-open')}.disabled`), true);
+      assert.deepEqual(await answer(), before, 'rejected write cannot mutate closed answers');
+      await capture('closed-save-unacknowledged');
+      await command('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0, connectionType: 'none' });
+      await click('save-error-action');
+      await waitFor(`Boolean(${query('save-error')}) && ${query('save-error')}.textContent.includes('Chưa tải lại')`, 'failed state read keeps pending edit');
+      assert.equal(await evaluate(`${query('option-c')}.checked && Boolean(${query('answer-unsaved')})`), true);
+      assert.match(await evaluate(`${query('save-error-action')}.textContent`), /Tải lại trạng thái/);
+      await command('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: 10000000, uploadThroughput: 10000000, connectionType: 'wifi' });
+      await click('save-error-action');
+      await waitFor(`Boolean(${query('grading-pending')})`, 'explicit read reaches the authoritative submitted state');
+      assert.equal(await evaluate('document.body.innerText.includes("máy chủ đã ghi nhận trước khi đóng bài")'), true);
+      assert.equal(await evaluate(`Boolean(${query('option-c')} || ${query('answer-unsaved')})`), false);
+      assert.deepEqual(await answer(), before);
+      await capture('closed-save-reconciled-pending');
+      workerState.available = true;
+      await waitFor(`Boolean(${query('result')})`, 'the original frozen answer is graded');
+      assert.equal((await fixture.pool.query(`SELECT s.percentage::text AS percentage FROM tsa.attempts a JOIN tsa.score_runs s ON s.id=a.latest_score_id WHERE a.id=$1`, [attemptId])).rows[0].percentage, '25.00');
+      assert.deepEqual(await answer(), before);
+      const rejected = responseRecords.filter((item) => item.status === 409 && item.url.includes(`/answers/${slotId}`));
+      assert.ok(rejected.length >= 1, 'actual PostgreSQL ATTEMPT_CLOSED response observed');
+      await browserCommand('Target.closeTarget', { targetId: secondTargetId });
+      secondSocket.close(); secondSocket = null; secondTargetId = null;
+      await click('persistent-logout'); await click('persistent-login-studentB');
+      await waitFor(`Boolean(${query('demo-start')})`, 'second candidate for lost-acknowledgement case');
+      await click('demo-start');
+      await waitFor(`Boolean(document.getElementById('question-title'))`, 'second independently allocated attempt');
+      const nextView = await evaluate(`fetch('/api/v1/attempts').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json())`);
+      const nextIndex = nextView.slots.findIndex((slot) => slot.interaction.type === 'SINGLE_CHOICE');
+      assert.ok(nextIndex >= 0);
+      for (let step = 0; step < nextIndex; step++) await click('question-next');
+      await evaluate(`(()=>{const original=window.fetch.bind(window);window.__lostCommittedClosedAck=false;window.fetch=async(input,init={})=>{const response=await original(input,init);if(init.method==='PUT'&&response.ok&&!window.__lostCommittedClosedAck){window.__lostCommittedClosedAck=true;await response.arrayBuffer();throw new TypeError('Synthetic committed save acknowledgement loss');}return response;};})()`);
+      await click('option-b');
+      await waitFor(`Boolean(${query('save-error')}) && Boolean(${query('answer-unsaved')})`, 'server save commits while this tab loses acknowledgement');
+      assert.equal(await evaluate('window.__lostCommittedClosedAck'), true);
+      const committed = await fixture.pool.query('SELECT value,revision FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2', [nextView.attemptId, nextView.slots[nextIndex].slotId]);
+      assert.equal(committed.rows[0].value.optionId, 'b'); assert.equal(committed.rows[0].revision, '1');
+      await openSecondTab(); workerState.available = false;
+      await secondClick('submit-open'); await secondClick('submit-confirm');
+      await secondWaitFor(`Boolean(${query('grading-pending')})`, 'second tab submits the committed but unacknowledged answer');
+      await command('Page.bringToFront');
+      await click('multiple-choice-discard');
+      await waitFor(`Boolean(${query('grading-pending')})`, 'uncertain save reconciliation reaches terminal state');
+      assert.equal(await evaluate('document.body.innerText.includes("máy chủ đã ghi nhận trước khi đóng bài")'), true);
+      assert.equal(await evaluate('document.body.innerText.includes("không được tính vào kết quả")'), false);
+      workerState.available = true;
+      await waitFor(`Boolean(${query('result')})`, 'committed unacknowledged answer is scored');
+      assert.equal((await fixture.pool.query(`SELECT s.percentage::text AS percentage FROM tsa.attempts a JOIN tsa.score_runs s ON s.id=a.latest_score_id WHERE a.id=$1`, [nextView.attemptId])).rows[0].percentage, '25.00');
+      await capture('closed-save-lost-acknowledgement-result');
+      report.attemptId = attemptId;
+      report.lostAcknowledgementAttemptId = nextView.attemptId;
+      report.checks = [
+        'A second real browser tab submits; stale first-tab save receives409 and offers authoritative read instead of write retry',
+        'A failed offline read preserves unacknowledged choice and offers another read; no closed answer mutation',
+        'Successful read reaches submitted/pending state and explains scoring uses server-recorded answers',
+        'A committed save with a lost acknowledgement is graded after other-tab submission without a false exclusion claim',
+        'Recovery grades the original frozen saved answer25.00%, without accepting the rejected change',
+      ];
+    } else if (expiryTest) {
     await click('demo-start');
     await waitFor(`Boolean(document.getElementById('question-title'))`, 'persisted short-duration attempt');
     const view = await evaluate(`fetch('/api/v1/attempts').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json())`);
@@ -778,6 +859,7 @@ try {
     assert.equal(requestRecords.filter(({ url, method }) => method === 'POST' && new URL(url).pathname === submitPath).length, 0,
       'deadline expiry was reconciled without a POST submit request');
   }
+  if (closedSaveTest) report.checkedApiResponses = checkedResponses;
   if (accessibilityTest) {
     report.checkedApiResponses = checkedResponses;
     report.keyboardTrace = keyboardTrace;

@@ -365,7 +365,7 @@ function acceptAttempt(attempt) {
     if (attempt.state === "GRADED") {
       stopGradePolling();
       clearTimer();
-      if (hadPendingChanges) state.resumeNotice = "Một thay đổi chưa được máy chủ xác nhận và không được tính vào kết quả.";
+      if (hadPendingChanges) state.resumeNotice = "Tab này chưa nhận được xác nhận cho một thay đổi. Kết quả chỉ dùng câu trả lời máy chủ đã ghi nhận trước khi đóng bài.";
       state.pendingMultipleChoice = null;
       state.pendingAnswer = null;
       if (attempt.result) renderResult(attempt.result);
@@ -375,7 +375,7 @@ function acceptAttempt(attempt) {
     if (["SUBMITTED", "EXPIRED"].includes(attempt.state)) {
       clearTimer();
       clearAttemptReviewState(attempt.attemptId);
-      if (hadPendingChanges) state.resumeNotice = "Một thay đổi chưa được máy chủ xác nhận và không được tính vào kết quả.";
+      if (hadPendingChanges) state.resumeNotice = "Tab này chưa nhận được xác nhận cho một thay đổi. Kết quả chỉ dùng câu trả lời máy chủ đã ghi nhận trước khi đóng bài.";
       state.pendingMultipleChoice = null;
       state.pendingAnswer = null;
       if (attempt.gradingStatus === "FAILED_FINAL") {
@@ -1291,19 +1291,23 @@ function updateSaveStatus(message, kind = "", action = null, actionLabel = "Tả
 async function reloadAttemptAfterSaveConflict() {
   const identityGeneration = state.identityGeneration;
   if (!persistentMode || !state.attempt || state.busy || state.savingSlotId !== null) return;
-  const attemptId = state.attempt.attemptId;
+  const originalAttempt = state.attempt;
+  const attemptId = originalAttempt.attemptId;
   state.busy = true;
   for (const control of app.querySelectorAll("button, input")) control.disabled = true;
   updateSaveStatus("Tải lại trạng thái đã lưu từ máy chủ…");
   try {
     const data = await api.readAttempt(attemptId);
-    if (identityGeneration !== state.identityGeneration) return;
-    state.pendingAnswer = null;
-    state.pendingMultipleChoice = null;
-    state.resumeNotice = "Đã tải lại trạng thái đã lưu. Chọn lại câu trả lời nếu muốn thử lưu lần nữa.";
+    if (identityGeneration !== state.identityGeneration || state.attempt !== originalAttempt) return;
+    // Terminal acceptance must see pending edits to explain unresolved saves.
+    if (data.attempt.state === "IN_PROGRESS") {
+      state.pendingAnswer = null;
+      state.pendingMultipleChoice = null;
+      state.resumeNotice = "Đã tải lại trạng thái đã lưu. Chọn lại câu trả lời nếu muốn thử lưu lần nữa.";
+    }
     acceptAttempt(data.attempt);
   } catch (error) {
-    if (identityGeneration !== state.identityGeneration) return;
+    if (identityGeneration !== state.identityGeneration || state.attempt !== originalAttempt) return;
     state.busy = false;
     if (!handlePersistentError(error)) {
       renderExam();
@@ -1354,16 +1358,21 @@ async function saveSelectedAnswer(slotId, answer, restoreFocusTestId) {
     state.savingSlotId = null;
     renderExam();
     const revisionConflict = persistentMode && error.code === "REVISION_CONFLICT";
-    const message = revisionConflict
+    const attemptClosed = persistentMode && error.code === "ATTEMPT_CLOSED";
+    const needsReload = revisionConflict || attemptClosed;
+    const message = attemptClosed
+      ? "Máy chủ đã đóng bài luyện tập. Lựa chọn này chưa được xác nhận; tải lại trạng thái để xem bài đã gửi."
+      : revisionConflict
       ? "Lựa chọn chưa được xác nhận vì trạng thái đã lưu thay đổi ở nơi khác. Tải lại câu trả lời đã lưu trước khi chọn lại."
       : error.message || "Lựa chọn chưa được ghi nhận.";
     const retryMultipleChoice = state.pendingMultipleChoice?.slotId === slotId
       && (state.pendingMultipleChoice.clearRequested || state.pendingMultipleChoice.optionIds.length > 0);
     const retrySingleAnswer = state.pendingAnswer?.slotId === slotId;
-    const action = revisionConflict
+    const action = needsReload
       ? reloadAttemptAfterSaveConflict
       : retryMultipleChoice ? retryPendingMultipleChoice : retrySingleAnswer ? retryPendingAnswer : null;
-    const actionLabel = revisionConflict ? "Tải lại câu trả lời đã lưu" : "Thử lưu lựa chọn đang chờ";
+    const actionLabel = attemptClosed ? "Tải lại trạng thái bài"
+      : revisionConflict ? "Tải lại câu trả lời đã lưu" : "Thử lưu lựa chọn đang chờ";
     updateSaveStatus(message, "error", action, actionLabel);
     announce(message);
     app.querySelector(`[data-testid='${restoreFocusTestId}']`)?.focus();

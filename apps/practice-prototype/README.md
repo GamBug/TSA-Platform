@@ -169,6 +169,7 @@ Automated actual PostgreSQL browser commands:
 npm run build
 npm run test:student
 npm run test:student:browser
+npm run test:student:closed-save
 npm run test:student:keyboard
 npm run test:student:expiry
 npm run test:student:firefox
@@ -179,3 +180,10 @@ browser. See [persistent integration](../../docs/reviews/WEB_004_PERSISTENT_STUD
 and [keyboard/cross-browser evidence](../../docs/reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md)
 for executed scope and limitations. Keyboard AX/reflow checks do not establish
 qualified screen-reader testing, native page zoom or WCAG conformance.
+
+The closed-save regression uses two real browser tabs against an isolated
+PostgreSQL fixture. One tab submits while the other tries to save; an offline
+state-read retry preserves its pending edit. A second scenario loses a committed
+save acknowledgement before other-tab submission. Reconciliation explains that
+scoring uses server-recorded answers and does not falsely label that saved answer
+as excluded. These fixtures establish workflow behavior, not human approval.
