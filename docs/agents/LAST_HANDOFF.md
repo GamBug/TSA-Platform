@@ -1,3 +1,43 @@
+# Current handoff — passage rights override crashed-worker recovery
+
+2026-10-22, `feat/track-b-data-auth`, base `ebb25f2`; accountable Sol6.1.
+[Executed evidence, separate review and next card](../reviews/EXAM_OUTAGE_RIGHTS_VERIFICATION.md).
+Test-only extension to existing process-recovery file: actual SIGKILL and reaped
+child, passage-source REVOKED decision through independent restricted Bank service
+while child is dead, then new-PID same-origin normal runtime. Primary question
+source stays OWNED. Current holds invalidate the attempt, deny owner GET/result/
+matching-submit-key410, foreign404 and future allocation422. QUEUED/RUNNING work
+cancels after appropriate claim/lease expiry with zero scores/items/releases/grade
+audits. Exact manifest/form/passage/private keys/answers/history/clocks retained.
+
+Actual focused2/student24/grading22/results6/contracts106/consumers11/emitted smoke/
+build/typecheck/drift/import PASS. New cases passed first run. Separate native
+Sol6.1/Medium read-only review no P1/P2, independent syntax/whitespace PASS; PG
+execution coordinator-owned. Live leases are not stolen; claiming invalidated work
+for cleanup is allowed, load/finish prevents restricted scoring. Withdrawal takes
+precedence over receipt replay. Child/product/schema/contracts/publication controls
+unchanged; no reproduced production defect. Parent module-type warning unchanged.
+
+Owner AGENTS/research byte-preserved and unstaged; reservations released. G1
+accepted; G2/G3 OWNER_ACCEPTED unchanged. Full OPS/EXAM/pilot, lawful inventory,
+named qualified human review, manual accessibility and Track A remain outstanding.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+No host/DB-crash, backup/restore or production-recovery claim. Children are cleaned
+before parent PG fixture closure; no owned app intentionally left running.
+
+Next bounded OPS-001 card: original-synthetic **private PostgreSQL backup/restore
+integrity drill**. Inspect existing fixture support; pg_dump and pg_restore18.6
+availability verified, actual restoration NOT RUN. Restore into an isolated target;
+verify exact manifests/sealed public+private inputs/answers/history/durable jobs,
+restricted-role re-attestation, ownership/current rights and exactly-one pending
+job recovery. Old postmaster/database-bound fixture scope must not authorize new
+publication after restoration. Keep archive private; remove owned temporary data.
+No production backup/retention decision/inventory/publication/deployment implied.
+Recommended Codex Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium
+read-only restoration/security review. No next-task implementation is claimed.
+
+---
+
 # Current handoff — actual app/worker OS-process crash recovery verified
 
 2026-10-22, `feat/track-b-data-auth`, base `ab3ab18`; accountable Sol6.1.

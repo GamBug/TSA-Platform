@@ -419,6 +419,20 @@ Reconciliation acceptance (CR-01/HI-01/03/MD-04/05): implement the scoped H1/H2/
 
 ## EXAM-002 — Submission, expiry and recovery
 
+2026-10-22 rights-during-outage **IMPLEMENTED / VERIFIED** from `ebb25f2`:
+actual SIGKILL downtime followed by passage-only REVOKED command and normal new-PID
+runtime recovery. Owner GET/result/matching-submit-key410, foreign404, futurestock422;
+QUEUED/RUNNING work cancels under current rights, with zero scores/items/releases/
+grade audits and exact sealed inputs/history retained. Child/product/schema/public
+contracts unchanged. Focused2/student24/grading22/results6/contracts106/consumers11/
+build/typecheck/drift/import PASS. Separate read-only Sol6.1/Medium no P1/P2,
+independent syntax/whitespace only; coordinator owns PG evidence.
+[Commands and limits](../reviews/EXAM_OUTAGE_RIGHTS_VERIFICATION.md).
+Sol accountable; reservations released, owner AGENTS/research preserved. Next
+OPS-001 original-synthetic private backup/restore drill; dump/restore tools18.6
+available, actual restoration not yet verified. Recommended Sol6.1/High while Luna
+is usage-limited, separate Sol6.1/Medium security/recovery review.
+
 2026-10-22 separate OS-process recovery **IMPLEMENTED / VERIFIED** from `ab3ab18`:
 actual SIGKILL/new-PID restart preserves acknowledged shared-reading saves, session,
 clocks and exact sealed manifest/form/keys/history. QUEUED, RUNNING and after-grade-
@@ -753,6 +767,12 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 - Priority P0 before pilot; complexity L; risks: mock-only confidence, insufficient load assumptions. Status: BLOCKED (integrated implementation). Suggested implementer: QA/integration engineer; review: independent security/architecture reviewer. Actual assignee: none.
 
 ## OPS-001 — Deployment and data-policy readiness
+
+2026-10-22 current-rights outage recovery VERIFIED from `ebb25f2`: normal new-PID
+recovery cancels revoked-passage work and denies content/old-receipt access with
+zero scores/releases. [Evidence](../reviews/EXAM_OUTAGE_RIGHTS_VERIFICATION.md).
+Next executable card: isolated original-synthetic backup/restore integrity drill;
+pinned pg_dump/pg_restore18.6 available, no actual restore or production claim yet.
 
 2026-10-22 bounded app-process recovery evidence from `ab3ab18` is VERIFIED:
 actual SIGKILL/new-PID restart with live PostgreSQL, acknowledged saves and
