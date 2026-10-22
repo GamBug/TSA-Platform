@@ -1,3 +1,44 @@
+# Current handoff — independent MATH/READING/SCIENCE journeys verified
+
+2026-10-22, `feat/track-b-data-auth`, base `55bd3b4`; accountable Sol6.1.
+[Executed evidence and next dependency audit](../reviews/WEB_001_THREE_DOMAIN_VERIFICATION.md).
+Original disposable MATH4/READING2/SCIENCE4 fixtures now exercise actual frozen
+transport/browser selection, separate clocks/forms, global H1, save/reload,
+exact lost-submit-key replay, independent100% result/visible explanations/history
+and no automatic chaining. Repaired actual missing persistent result-domain label.
+No Bank/schema/solver/contract changes or UI reconstruction.
+
+Actual student12/local15/B031/contracts106/consumers11/build/typecheck/drift/import/
+docs PASS; Chrome domains78 inspected responses/eight screenshots, default,
+keyboard75/zero mismatches/18AX, expiry/closed and Firefox156 PASS. Separate
+read-only Sol6.1/Medium no open P1/P2; corrected its hidden-explanation assertion
+finding before final run. PG/browser execution is coordinator evidence.
+Initial fixture/harness failures and fixes are recorded honestly in the evidence.
+
+Run `NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:domains`.
+Actual TTY command served200/catalog3, Ctrl+C closed owned listener without PG
+errors; npm cancellation exit1 distinct from direct group-test exit0. Explicitly
+disposable original engineering stock; retained workspace still seeds no eligible
+questions. Standalone reading is NOT shared-reading-bundle or human acceptance.
+
+Owner AGENTS/research bytes preserved/unstaged; all reservations released. G1
+accepted; G2/G3 OWNER_ACCEPTED unchanged. Lawful inventory/qualified rights/content
+humans/shared reading/Track A/manual AT remain. No push/merge/deploy/Astra/paid API/
+live student inference/unauthorized publication.
+
+Next bounded ASSEMBLY-001/002 card: bundle-aware internal stock capture and atomic
+sealing using existing immutable stimulus/bundle tables and frozen multi-member
+solver. Independent audit found SQL009 singleton filter, candidate-stock singleton
+units, SQL010 multi-member rejection/bundle ID omission, snapshot-builder null
+stimulus. Existing public contracts/delivery/scoring already carry shared stimuli;
+no new public API/auth capability justified by the audit. Verify ordered complete
+membership, current rights, history/equivalence exclusions, immutable snapshots
+and all-or-none rollback with isolated original fixtures before browser wiring.
+Recommended Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium critical
+SQL review. Qualified human content and manual accessibility remain distinct.
+
+---
+
 # Current handoff — closed-save reconciliation repaired and verified
 
 2026-10-22, `feat/track-b-data-auth`, base `f5ec6cf`; accountable Sol6.1.

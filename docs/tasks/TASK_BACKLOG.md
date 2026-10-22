@@ -607,6 +607,24 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
 
 ## WEB-001 — Student vertical slice
 
+2026-10-22 independent three-domain slice IMPLEMENTED/VERIFIED from `55bd3b4`:
+original isolated MATH4/READING2/SCIENCE4 fixtures, frozen transport/browser
+selection, own clocks/forms, H1 cross-domain blocking without history consumption,
+reload, exact lost-submit-key replay, separate100% results/visible explanations/
+history and no chaining. Repaired actual missing persistent result-domain label.
+Explicit disposable domains demo plus actual terminal/catalog/shutdown verified;
+retained inventory untouched. Actual student12/local15/B031/contracts106/consumer11/
+build/typecheck/drift/import/docs PASS; Chrome domains78 responses/eight captures,
+default/keyboard/expiry/closed and Firefox PASS. Separate read-only Sol6.1/Medium
+no open P1/P2; hidden-explanation assertion strengthened before final PASS.
+[Evidence and next shared-reading card](../reviews/WEB_001_THREE_DOMAIN_VERIFICATION.md).
+Sol accountable, owner work preserved, reservations released. Overall IN_PROGRESS:
+standalone reading is not shared-stimulus/bundle, lawful human inventory or full
+accessibility acceptance. Next bounded ASSEMBLY-001/002: existing immutable bundle/
+stimulus tables through internal stock capture and atomic sealing, preserve frozen
+solver/contracts/authorization; isolated order/rights/history/rollback evidence.
+Recommended Sol6.1/High while Luna is usage-limited; separate Sol6.1/Medium SQL review.
+
 2026-10-22 closed-save reconciliation IMPLEMENTED/VERIFIED from `f5ec6cf`:
 ATTEMPT_CLOSED offers an authoritative read; read failures preserve pending edits,
 terminal reads explain server-recorded scoring, delayed reads cannot replace a

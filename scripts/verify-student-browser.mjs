@@ -6,6 +6,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { runDomainJourney } from './student-domain-journey.mjs';
+import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
@@ -14,8 +16,9 @@ import { createSourceService } from '../src/modules/sources/service.mjs';
 const expiryTest = process.env.STUDENT_EXPIRY_TEST === 'true';
 const accessibilityTest = process.env.STUDENT_ACCESSIBILITY_TEST === 'true';
 const closedSaveTest = process.env.STUDENT_CLOSED_SAVE_TEST === 'true';
-assert.ok([expiryTest, accessibilityTest, closedSaveTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
+assert.ok([expiryTest, accessibilityTest, closedSaveTest, domainsTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -360,9 +363,9 @@ async function runAccessibilityJourney() {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
-  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, expiryTest ? 8 : 600,
-    'the fixture retains its default duration unless expiry mode opts in');
+  fixture = domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
+  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, expiryTest ? 8 : domainsTest ? 360 : 600,
+    'scenario-specific duration is explicit; ordinary mixed fixture retains its default');
   const login = `browser_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
   workerPool = createDatabasePool({ ...fixture.harness.database.connectionConfig, user: login });
@@ -450,7 +453,10 @@ try {
   } else {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
-    if (closedSaveTest) {
+    if (domainsTest) {
+      workerState.available = true;
+      await runDomainJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });
+    } else if (closedSaveTest) {
       await click('demo-start');
       await waitFor(`Boolean(document.getElementById('question-title'))`, 'active attempt before another tab submits');
       const view = await evaluate(`fetch('/api/v1/attempts').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json())`);
@@ -859,7 +865,7 @@ try {
     assert.equal(requestRecords.filter(({ url, method }) => method === 'POST' && new URL(url).pathname === submitPath).length, 0,
       'deadline expiry was reconciled without a POST submit request');
   }
-  if (closedSaveTest) report.checkedApiResponses = checkedResponses;
+  if (closedSaveTest || domainsTest) report.checkedApiResponses = checkedResponses;
   if (accessibilityTest) {
     report.checkedApiResponses = checkedResponses;
     report.keyboardTrace = keyboardTrace;

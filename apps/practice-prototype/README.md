@@ -169,6 +169,7 @@ Automated actual PostgreSQL browser commands:
 npm run build
 npm run test:student
 npm run test:student:browser
+npm run test:student:domains
 npm run test:student:closed-save
 npm run test:student:keyboard
 npm run test:student:expiry
@@ -187,3 +188,20 @@ state-read retry preserves its pending edit. A second scenario loses a committed
 save acknowledgement before other-tab submission. Reconciliation explains that
 scoring uses server-recorded answers and does not falsely label that saved answer
 as excluded. These fixtures establish workflow behavior, not human approval.
+
+For the explicitly disposable three-domain demonstration:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:domains
+```
+
+Select MATH4, READING2 or SCIENCE4 explicitly in the printed student catalog.
+The original synthetic fixtures configure independent360/180/360-second clocks;
+these are project timings, not official examination rules. Only one active attempt
+is permitted across domains. Each result names its domain and has its own score,
+review and history entry; completing a test does not start another automatically.
+Ctrl+C discards this owned temporary database. Omit the domains command to retain
+the existing mixed-MATH demo. Malformed `STUDENT_FIXTURE_DOMAINS` values are rejected.
+These standalone fixtures do not establish shared-reading-stimulus/bundle support,
+lawful question inventory, content quality or qualified human review. The retained
+workspace continues to seed no eligible stock.

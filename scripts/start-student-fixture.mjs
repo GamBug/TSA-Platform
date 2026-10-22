@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
+import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
@@ -12,6 +13,10 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       || env.LOCAL_SYNTHETIC_ONLY !== 'true' || env.STUDENT_FIXTURE_DEMO !== 'true') {
     throw new Error('Disposable student demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true');
   }
+  if (env.STUDENT_FIXTURE_DOMAINS !== undefined && !['true', 'false'].includes(env.STUDENT_FIXTURE_DOMAINS)) {
+    throw new Error('STUDENT_FIXTURE_DOMAINS must be true or false');
+  }
+  const domains = env.STUDENT_FIXTURE_DOMAINS === 'true';
   let fixture, workerPool, runtime;
   let closing;
   const close = () => {
@@ -25,7 +30,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     return closing;
   };
   try {
-    fixture = await createMixedStudentFixture();
+    fixture = domains ? await createDomainStudentFixture() : await createMixedStudentFixture();
     const login = `fixture_worker_${randomUUID().replaceAll('-', '')}`;
     await fixture.pool.query(`CREATE ROLE ${login} LOGIN`);
     await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -35,7 +40,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
       pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
-    return { origin: runtime.origin, close };
+    return { origin: runtime.origin, fixtureProfile: domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Demo startup and cleanup failed'); }
     throw error;
@@ -58,7 +63,7 @@ async function runWorker() {
     demo = await startStudentFixtureDemo();
     if (stopRequested) await stop();
     else process.stdout.write(`${JSON.stringify({ event: 'ready', url: `${demo.origin}/?student=postgres`,
-      mode: 'DISPOSABLE_SYNTHETIC_ONLY', note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
+      mode: 'DISPOSABLE_SYNTHETIC_ONLY', fixtureProfile: demo.fixtureProfile, note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
   } catch (error) {
     process.stderr.write(`${error.message}\n`); process.exitCode = 1;
     if (process.connected) process.disconnect();

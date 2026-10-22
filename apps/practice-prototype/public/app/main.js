@@ -1927,6 +1927,11 @@ function renderResult(result) {
   const title = element("h1", "", "Bạn đã hoàn thành.");
   title.id = "result-title";
   title.tabIndex = -1;
+  if (persistentMode) {
+    const domain = element("p", "result-label", `Bài luyện tập độc lập · ${domainNames[state.attempt.domain] || state.attempt.domain} · ${result.totalCount} câu`);
+    domain.dataset.testid = "result-domain";
+    summary.append(domain);
+  }
   summary.append(title, element("p", "result-label", result.label));
   summary.append(element("p", "result-note", persistentMode
     ? "Kết quả luyện tập không chính thức đã được máy chủ phát hành cho hồ sơ tổng hợp này. Không đại diện cho điểm TSA chính thức hay đánh giá năng lực."

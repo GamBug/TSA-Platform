@@ -36,11 +36,13 @@
     "test:directory": "node --test tests/integration/directory/*.test.mjs",
     "test:student": "node --test tests/integration/student-runtime/*.test.mjs tests/integration/student-security/*.test.mjs",
     "test:student:browser": "node scripts/verify-student-browser.mjs",
+    "test:student:domains": "STUDENT_DOMAINS_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:closed-save": "STUDENT_CLOSED_SAVE_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:keyboard": "STUDENT_ACCESSIBILITY_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:expiry": "STUDENT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:firefox": "node scripts/verify-student-firefox.mjs",
     "demo:student": "npm run build && node scripts/start-student-fixture.mjs",
+    "demo:student:domains": "npm run build && STUDENT_FIXTURE_DOMAINS=true node scripts/start-student-fixture.mjs",
     "dev:track-b": "npm run build && node src/local/track-b.mjs",
     "test:local": "node --test tests/integration/local/*.test.mjs",
     "test:track-b:browser": "node scripts/verify-track-b-browser.mjs"
