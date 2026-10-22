@@ -15,6 +15,7 @@ const PUBLIC_FILES = new Map([
   ["/index.html", "public/index.html"],
   ["/styles.css", "public/styles.css"],
   ["/app/main.js", "public/app/main.js"],
+  ["/app/persistent-api.js", "public/app/persistent-api.js"],
   ["/app/api.js", "public/app/api.js"],
   ["/app/staff.js", "public/app/staff.js"],
 ]);
@@ -23,6 +24,7 @@ const CONTENT_TYPES = {
   "public/index.html": "text/html; charset=utf-8",
   "public/styles.css": "text/css; charset=utf-8",
   "public/app/main.js": "text/javascript; charset=utf-8",
+  "public/app/persistent-api.js": "text/javascript; charset=utf-8",
   "public/app/api.js": "text/javascript; charset=utf-8",
   "public/app/staff.js": "text/javascript; charset=utf-8",
 };
