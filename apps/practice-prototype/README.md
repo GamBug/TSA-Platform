@@ -169,6 +169,8 @@ Automated actual PostgreSQL browser commands:
 npm run build
 npm run test:student
 npm run test:student:browser
+npm run test:student:reservation
+npm run test:student:reservation:late
 npm run test:student:domains
 npm run test:student:reading
 npm run test:student:rate-limit
@@ -195,6 +197,12 @@ commands use disposable original synthetic reading fixtures, not approved invent
 The expiry variants keep the second correct choice pending until the actual eight-
 second deadline. The timer reconciles expiry, and only the first acknowledged
 answer is scored (50%); the unsaved draft is never retried or submitted.
+
+The reservation commands exercise an already allocated CREATED attempt. Reload
+leaves it unstarted; explicit start targets that attempt. The late case uses a
+real short admission cap with the mandatory600-second TTL unchanged, then extends
+the offering to prove the captured deadline still applies. Expiry shows the
+server's cancellation reason and never allocates a replacement automatically.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline

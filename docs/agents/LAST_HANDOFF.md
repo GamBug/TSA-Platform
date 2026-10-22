@@ -1,3 +1,41 @@
+# Current handoff — reserved start targets the original attempt
+
+2026-10-23, `feat/track-b-data-auth`, base `6982af2`; accountable Sol6.1.
+[Reproduced failures, fix, actual commands, separate review and limits](../reviews/WEB_004_RESERVATION_RECOVERY_VERIFICATION.md).
+Real browser reproduced late reserved-start calling general allocation flow:
+second allocation request and misleading content-lock notice. Internal client
+method now POSTs original /start then reads original ID, including committed
+FORM_UNAVAILABLE cancellation. Cancellation reason retained; TTL expiry explicit.
+No frozen API/backend/schema/publication changes or replacement selection.
+
+Actual CREATED600sec reservation reloads twice without implicit start/content/
+running clocks; explicit start saves two answers and grades100%. Late case captures
+actual12sec admission cap then ordinary extension; stored bound remains, current
+offering open at expiry, original start cancels without replacement/answers/jobs/
+scores. Immutable form/manifest/public+private snapshots/history retained. Actual
+lost committed-start-ACK retry reuses key/body/clocks; foreign start404. Both
+browser modes happy24/late17 responses, student31/attempt28/B031/contracts106/
+consumers11/build/typecheck/emitted smoke/drift/import/docs + default/keyboard/
+Firefox PASS. Separate Sol6.1/Medium no findings; actual independent API3/state12/
+syntax/whitespace PASS, no independent PG/browser execution. Baseline failures
+recorded honestly. Existing module-type/historical whitespace warnings remain.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal remains active. G1 accepted; G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot,
+lawful inventory, named qualified human review, manual AT/native zoom and Track A
+remain outstanding. No push/merge/deploy/Astra/paid API/live student inference/
+unauthorized publication. Owned browser/runtime/PostgreSQL fixtures cleaned.
+
+Next executable WEB-001/004 card: **resume inside <=60-second warning window**.
+Verify accessible warning plus monotonic countdown/original deadline through
+reload and timezone changes. Existing browser clock/timezone checks lack explicit
+warning-on-resume evidence. Use original isolated fixture and existing clocks/
+contracts; product changes only for reproduced defects. Recommended Sol6.1/High
+while Luna remains usage-limited; separate Sol6.1/Medium read-only engineering
+review. This does not replace qualified manual assistive-technology acceptance.
+
+---
+
 # Current handoff — real429 pending answer excluded at deadline
 
 2026-10-23, `feat/track-b-data-auth`, base `f75f704`; accountable Sol6.1.

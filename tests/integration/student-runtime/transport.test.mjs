@@ -18,7 +18,7 @@ test('browser transport uses actual auth rotation, typed revisions, replay and P
     env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0, pollMilliseconds: 20,
     sweepBatchSize: 10, executorId: 'client-transport-test', leaseSeconds: 30, retrySeconds: 1,
     createRate: rate, saveRate: { user: rate, attempt: rate } });
-  const jar = new Map(), calls = []; let loseAck = false;
+  const jar = new Map(), calls = []; let loseAck = false, loseStartAck = false;
   const fetchImpl = async (path, options = {}) => {
     const headers = new Headers(options.headers);
     headers.set('origin', runtime.origin);
@@ -30,6 +30,7 @@ test('browser transport uses actual auth rotation, typed revisions, replay and P
       else jar.delete(pair.slice(0, separator));
     }
     calls.push({ path, method: options.method, key: headers.get('idempotency-key'), csrf: headers.get('x-csrf-token'), body: options.body });
+    if (loseStartAck && options.method === 'POST' && path.endsWith('/start') && response.ok) { loseStartAck = false; await response.arrayBuffer(); throw new Error('Synthetic lost committed start acknowledgement'); }
     if (loseAck && options.method === 'PUT' && response.ok) { loseAck = false; await response.arrayBuffer(); throw new Error('Synthetic lost committed acknowledgement'); }
     return response;
   };
@@ -79,5 +80,21 @@ test('browser transport uses actual auth rotation, typed revisions, replay and P
   await api.logout(); assert.equal(jar.has('tsa_local_session'), false);
   await api.loginCandidate('studentB'); assert.notEqual(jar.get('tsa_local_session'), originalSession);
   await assert.rejects(api.readAttempt(attempt.attemptId), { code: 'NOT_FOUND' });
+  await assert.rejects(api.startReservedAttempt(attempt.attemptId), { code: 'NOT_FOUND' });
+  const reservedResponse = await fetchImpl('/api/v1/attempts', { method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-csrf-token': jar.get('tsa_local_csrf'), 'idempotency-key': randomUUID() },
+    body: JSON.stringify({ blueprintVersionId: f.blueprint.versionId }) });
+  assert.equal(reservedResponse.status, 201);
+  const reserved = await reservedResponse.json();
+  loseStartAck = true;
+  await assert.rejects(api.startReservedAttempt(reserved.attemptId), { code: 'TEMPORARILY_UNAVAILABLE' });
+  const clocks = async () => (await f.pool.query('SELECT started_at::text,deadline_at::text FROM tsa.attempts WHERE id=$1', [reserved.attemptId])).rows[0];
+  const committedStart = await clocks(); assert.ok(committedStart.started_at); assert.ok(committedStart.deadline_at);
+  const retriedStart = await api.startReservedAttempt(reserved.attemptId);
+  assert.equal(retriedStart.attempt.attemptId, reserved.attemptId); assert.equal(retriedStart.attempt.state, 'IN_PROGRESS');
+  assert.deepEqual(await clocks(), committedStart);
+  const startRetries = calls.filter((item) => item.path === `/api/v1/attempts/${reserved.attemptId}/start`);
+  assert.equal(startRetries.length, 2); assert.equal(startRetries[0].key, startRetries[1].key); assert.equal(startRetries[0].body, startRetries[1].body);
+  assert.equal((await f.pool.query('SELECT count(*)::int AS n FROM tsa.attempts')).rows[0].n, 2);
   assert.ok(calls.every((item) => !item.path.startsWith('/mock')));
 });

@@ -395,7 +395,9 @@ function acceptAttempt(attempt) {
     if (["CANCELLED", "INVALIDATED"].includes(attempt.state)) {
       const reason = attempt.closureReason;
       clearAttemptState();
-      renderPersistentBlocked(reason === "RIGHTS_BLOCKED" || reason === "FORM_WITHDRAWN"
+      renderPersistentBlocked(reason === "START_TTL_EXPIRED"
+        ? "Bài luyện tập đã hết thời hạn bắt đầu. Bài đã được hủy; không có bài thay thế nào được tạo tự động."
+        : reason === "RIGHTS_BLOCKED" || reason === "FORM_WITHDRAWN"
         ? `Bài luyện tập này đã bị khóa và nội dung không còn khả dụng.${hadPendingChanges ? " Thay đổi chưa được xác nhận trong tab này đã không được gửi đi." : ""}`
         : `Bài luyện tập này đã kết thúc và không thể tiếp tục.${hadPendingChanges ? " Thay đổi chưa được xác nhận trong tab này đã không được gửi đi." : ""}`);
       return;
@@ -483,10 +485,9 @@ async function startReservedAttempt() {
   const identityGeneration = state.identityGeneration;
   if (!persistentMode || state.busy || state.attempt?.state !== "CREATED") return;
   const attempt = state.attempt;
-  const profile = state.catalog.find((entry) => entry.domain === attempt.domain);
   state.busy = true;
   try {
-    const response = await api.startDemo(attempt.domain, attempt.blueprintVersionId ?? profile?.blueprintVersionId);
+    const response = await api.startReservedAttempt(attempt.attemptId);
     if (identityGeneration !== state.identityGeneration) return;
     void refreshPersistentHistory();
     state.resumeNotice = response.resumed ? "Đã tiếp tục bài đã được giữ" : "";

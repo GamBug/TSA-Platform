@@ -1143,6 +1143,21 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 CREATED reservation recovery **IMPLEMENTED / VERIFIED** from `6982af2`:
+actual late browser reproduced unwanted second allocation request and misleading
+content-lock notice. Internal client method now starts/reads the original ID,
+preserves cancellationReason and shows START_TTL_EXPIRED explicitly. Real600sec
+reservation reloads twice unstarted; explicit start grades100%. Real12sec admission
+cap remains after ordinary extension, late start cancels without replacement,
+questions/answers/jobs/scores; immutable inputs/history retained. Actual happy24/
+late17 browser responses, lost-start-ACK+foreign-start focused1/student31/attempt28/
+B031/contracts106/consumers11/build/typecheck/drift/import/docs and default/keyboard/
+Firefox PASS. Separate Sol6.1/Medium no findings; independent API3/state12/syntax/
+whitespace PASS, PG/browser coordinator-owned. [Evidence and baseline failures](../reviews/WEB_004_RESERVATION_RECOVERY_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. Next bounded card:
+warning-window resume/timezone browser evidence. Recommended Sol6.1/High, separate
+Sol6.1/Medium review. Full WEB/human inventory/manual AT/Track A remain distinct.
+
 2026-10-23 pending429/deadline browser boundary **IMPLEMENTED / VERIFIED** from
 `f75f704`: both real USER_SAVE/ATTEMPT_SAVE modes retain an unsaved correct choice,
 then existing timer reconciles actual eight-second expiry without retries/submit.

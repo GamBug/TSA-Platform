@@ -125,7 +125,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       attemptId: view.attemptId, formId: view.formId, domain: view.domain, state: view.state,
       formMode: view.formMode, reuseMode: view.reuseMode, startBefore: view.startBefore,
       serverNow: view.serverNow, startedAt: view.startedAt, deadlineAt: view.deadlineAt,
-      closedAt: view.closure.closedAt, closureReason: view.closure.terminalReason,
+      closedAt: view.closure.closedAt, closureReason: view.closure.cancellationReason ?? view.closure.terminalReason,
       gradingStatus: view.closure.gradingStatus,
       questionCount: view.sections.reduce((sum, section) => sum + section.count, 0),
       durationSeconds: view.startedAt && view.deadlineAt ? (Date.parse(view.deadlineAt) - Date.parse(view.startedAt)) / 1000 : 0,
@@ -209,6 +209,16 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     }
     return { ...await readAttempt(existing.attemptId), resumed };
   }
+  async function startReservedAttempt(attemptId) {
+    // A reservation action must never fall through to a replacement allocation.
+    try { await mutation(`/api/v1/attempts/${encodeURIComponent(attemptId)}/start`, {}); }
+    catch (error) {
+      if (error.code !== 'FORM_UNAVAILABLE') throw error;
+      // Start commits cancellation before returning410; read its safe reason.
+      return { ...await readAttempt(attemptId), resumed: true };
+    }
+    return { ...await readAttempt(attemptId), resumed: true };
+  }
   async function saveAnswer(attemptId, slotId, input) {
     const cached = attempts.get(attemptId);
     const slot = cached?.view.slots.find((item) => item.slotId === slotId);
@@ -267,7 +277,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
           statementValues: group(item.response?.values) } : {}), explanation: clone(item.explanation) })) } };
   }
   return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog,
-    startDemo, readAttempt, saveAnswer, submitAttempt, readReview,
+    startDemo, startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
     loadHistory: () => pages('/api/v1/attempts') });
 }
 
