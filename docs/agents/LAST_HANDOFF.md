@@ -1,3 +1,42 @@
+# Current handoff — catalog preserves valid owned start/resume
+
+2026-10-23, `feat/track-b-data-auth`, base `76af373`; accountable Sol6.1.
+[Reproduced defect, fix, actual commands, failures and review](../reviews/WEB_004_ADMISSION_RESUME_VERIFICATION.md).
+Future ordinary window hid valid owned CREATED start: real browser reproduced P2.
+Client card/details/filter now retain owned start/resume, disable future new-start,
+show accurate future label and ICT dates. SQL017 omits elapsed offerings; that
+behavior is preserved, original owned callout resume demonstrated instead. No
+invented expired entries, frozen API/schema/backend/publication changes.
+
+Actual original reservation starts once after future edit, saved answer/clocks/
+manifest/form/public+private snapshots/history survive future/elapsed edits, one
+committed attempt and100% result. Separate candidate actual409/410 negatives;
+disabled controls verified with native CDP pointer/hit-test. Final Chrome40
+responses/four screenshots, student31/attempt28/directory9/B031/contracts106/
+consumers11/build/typecheck/emitted smoke/drift/import/docs + default/keyboard/
+domains PASS. Initial harness wait-for-expired-card error fixed; concurrent CDP
+timeout and student30-pass/one-cancel batch recorded, confirmed stopped then
+unchanged commands passed separately. No timeout increase/capacity claim.
+Separate Sol6.1/Medium no remaining P1/P2, independent state12/syntax/whitespace;
+no independent PG/browser run. Existing module-type/whitespace warnings remain.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal active. G1 accepted, G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot, lawful
+inventory, qualified human review, manual AT/native zoom and Track A outstanding.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+Owned browser/runtime/PostgreSQL fixtures cleaned.
+
+Next executable WEB-001/004 card: **two-tab allocation conflict recovery**. Existing
+raw409 domain probe does not exercise actual client catch/recovery with two empty
+client histories. Hold only genuine history responses until both clients ready,
+release normal requests, verify one201/one409 and same owned attempt in both tabs,
+one form/history assignment, original clocks and safe responses. Existing real-DB
+barrier tests remain locking evidence; no mocked409/new retry guarantee or policy.
+Recommended Sol6.1/High while Luna remains usage-limited, separate Sol6.1/Medium
+read-only engineering review. No Bank expansion or reference UI work.
+
+---
+
 # Current handoff — warning-window resume verified
 
 2026-10-23, `feat/track-b-data-auth`, base `97694ba`; accountable Sol6.1.

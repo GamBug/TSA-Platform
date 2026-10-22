@@ -1143,6 +1143,22 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 catalog ordinary admission/owned resume **IMPLEMENTED / VERIFIED** from
+`76af373`: actual future-window reservation card defect reproduced and fixed.
+Valid owned start/resume survives ordinary offering edits in card/details/filter;
+new candidate controls disabled, future label/ICT facts accurate. Elapsed entries
+remain omitted by SQL017; existing owned callout resumes same attempt. Explicit
+new409/410 probes, one committed attempt/one start, unchanged inputs/clocks,
+100% result. Final Chrome40 responses/four screenshots; student31/attempt28/
+directory9/B031/contracts106/consumers11/build/typecheck/drift/import/docs and
+Chrome default/keyboard/domains PASS. Initial harness/CDP failures and student
+30-pass/one-cancel batch recorded; separate unchanged reruns passed. Separate
+Sol6.1/Medium no P1/P2; state12/syntax/whitespace independent, no PG/browser run.
+[Evidence and discovery correction](../reviews/WEB_004_ADMISSION_RESUME_VERIFICATION.md).
+Sol accountable, reservations released, owner files preserved. Next two-tab
+same-candidate allocation conflict/recovery browser card; recommended Sol6.1/High,
+separate Sol6.1/Medium review. Full WEB/human/AT/Track A remain distinct.
+
 2026-10-23 warning-window resume **IMPLEMENTED / VERIFIED** from `97694ba`:
 actual45sec reading fixture, observed polite/atomic status warning once per loaded
 document including resume as explicitly required by engine spec, no repeats on

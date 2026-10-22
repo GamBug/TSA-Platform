@@ -172,6 +172,7 @@ npm run test:student:browser
 npm run test:student:reservation
 npm run test:student:reservation:late
 npm run test:student:warning-resume
+npm run test:student:admission
 npm run test:student:domains
 npm run test:student:reading
 npm run test:student:rate-limit
@@ -211,6 +212,13 @@ including resume as required by the engine specification, without repeats during
 ticks/save/navigation. Actual Honolulu/ICT timezone overrides and reload preserve
 the original server deadline and acknowledged answer. This is automated semantic
 coverage, not qualified screen-reader acceptance.
+
+The admission command changes ordinary offering windows after a reservation.
+Future windows still expose the original owned start/resume and ICT dates while
+blocking new creation. Elapsed offerings remain absent from the server catalog;
+the owned-attempt control resumes the original exam with its saved answer and
+clocks. A separate candidate exercises the actual future409 and elapsed410 guards.
+These ordinary edits do not override rights, withdrawal or security restrictions.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline

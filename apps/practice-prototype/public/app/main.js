@@ -860,7 +860,7 @@ function renderExamIntro(domain) {
     persistentMode ? (persistentStart ?? (() => showMessage("Hoàn tất hoặc đọc lại bài đang làm trước khi bắt đầu bài khác."))) : () => startDemo(domain),
     "button intro-start",
   );
-  start.disabled = state.busy || (persistentMode && activePersistentAttempt !== null && !sameActiveDomain);
+  start.disabled = state.busy || (persistentMode && ((activePersistentAttempt !== null && !sameActiveDomain) || (!domain.available && !sameActiveDomain)));
   actions.append(start);
   card.insertBefore(actions, structure);
   page.append(card);
@@ -870,19 +870,21 @@ function renderExamIntro(domain) {
 }
 
 function domainCard(domain) {
+  const activeAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
+  const sameActiveDomain = activeAttempt?.domain === domain.domain;
   const card = element("article", `domain-card catalog-ticket${domain.available ? " available" : ""}`);
   card.dataset.testid = `catalog-card-${domain.domain}`;
   const index = domain.domain === "MATH" ? "01" : domain.domain === "READING" ? "02" : "03";
   const domainTopline = element("div", "domain-topline");
   domainTopline.append(element("span", "domain-index", index));
-  domainTopline.append(element("span", domain.available ? "status-badge ready" : "status-badge", domain.available ? "Sẵn sàng" : "Sắp có"));
+  domainTopline.append(element("span", domain.available ? "status-badge ready" : "status-badge", domain.available ? "Sẵn sàng" : persistentMode ? "Chưa mở" : "Sắp có"));
   card.append(domainTopline);
   card.append(element("p", "domain-overline", `LĨNH VỰC ${index}`));
   card.append(element("h2", "", domainName(domain)));
   const descriptions = { MATH: "Bài luyện tập tư duy Toán học.", READING: "Bài luyện tập tư duy Đọc hiểu.", SCIENCE: "Bài luyện tập tư duy Khoa học." };
   card.append(element("p", "domain-meta", persistentMode ? "Bài luyện tập độc lập trong danh mục PostgreSQL cục bộ." : descriptions[domain.domain]));
   const facts = element("div", "domain-facts");
-  if (domain.available) {
+  if (domain.available || persistentMode) {
     facts.append(element("span", "", `${domain.questionCount} câu${persistentMode ? "" : " demo"}`));
     facts.append(element("span", "", `${Math.ceil(domain.durationSeconds / 60)} phút`));
     if (persistentMode && (domain.availableFrom || domain.availableUntil)) {
@@ -894,15 +896,15 @@ function domainCard(domain) {
   }
   const cardFooter = element("div", "catalog-card-footer");
   cardFooter.append(facts);
-  if (domain.available) {
+  if (domain.available || persistentMode) {
     card.append(element("p", "catalog-card-note", persistentMode
-      ? "Số câu và thời lượng độc lập với các bài khác. Danh mục không cam kết có đủ nội dung sau khi bạn chọn bắt đầu."
+      ? !domain.available ? "Khung này chưa mở cho lượt mới. Bài đã giữ hoặc đang làm dùng thời hạn máy chủ đã lưu."
+      : "Số câu và thời lượng độc lập với các bài khác. Danh mục không cam kết có đủ nội dung sau khi bạn chọn bắt đầu."
       : "Bản demo gồm 3 câu trắc nghiệm và 1 nhóm đúng/sai; một số câu dùng dữ liệu lặp lại."));
     const completed = state.attempt?.state === "GRADED";
     const startLabel = completed ? "Bắt đầu lượt demo mới" : state.attempt?.state === "IN_PROGRESS" ? "Tiếp tục bài demo" : "Bắt đầu bài demo";
     const actions = element("div", "domain-actions");
     actions.append(actionButton("Xem chi tiết", "exam-intro", () => renderExamIntro(domain), "button catalog-details-link"));
-    const activeAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
     if (activeAttempt) {
       const sameDomain = activeAttempt.domain === domain.domain;
       const activeLabel = sameDomain
@@ -920,7 +922,7 @@ function domainCard(domain) {
     }
     cardFooter.append(actions);
     const start = actions.querySelector("[data-testid='demo-start']");
-    if (start && !start.disabled) start.disabled = state.busy;
+    if (start && !start.disabled) start.disabled = state.busy || (persistentMode && !domain.available && !sameActiveDomain);
   } else {
     card.append(element("p", "catalog-card-note", persistentMode ? "Đề nghị này đang đóng theo danh mục máy chủ." : "Nội dung demo chưa được chuẩn bị cho lĩnh vực này."));
     const disabled = element("button", "coming-soon", persistentMode ? "Chưa mở" : "Chưa có nội dung demo");
@@ -969,7 +971,10 @@ function renderCatalog() {
   const grid = element("div", "catalog-grid");
   grid.dataset.testid = "catalog-grid";
   function applyFilter(key, activeControl) {
-    const domains = state.catalog.filter(domain => key === "all" || domain.available === (key === "available"));
+    const domains = state.catalog.filter(domain => {
+      const ownedActive = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) && state.attempt.domain === domain.domain;
+      return key === "all" || (domain.available || ownedActive) === (key === "available");
+    });
     for (const button of filters.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === activeControl));
     grid.replaceChildren(...domains.map(domainCard));
     catalogCount.textContent = `${domains.length} lĩnh vực`;

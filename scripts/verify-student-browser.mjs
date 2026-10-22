@@ -6,6 +6,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { runAdmissionJourney } from './student-admission-journey.mjs';
 import { runWarningResumeJourney } from './student-warning-resume-journey.mjs';
 import { runReservationJourney } from './student-reservation-journey.mjs';
 import { runRateLimitExpiryJourney } from './student-rate-limit-expiry-journey.mjs';
@@ -19,6 +20,7 @@ import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 import { createSourceService } from '../src/modules/sources/service.mjs';
 
+const admissionTest = process.env.STUDENT_ADMISSION_TEST === 'true';
 const warningResumeTest = process.env.STUDENT_WARNING_RESUME_TEST === 'true';
 const reservationLateTest = process.env.STUDENT_RESERVATION_LATE_TEST === 'true';
 const reservationTest = process.env.STUDENT_RESERVATION_TEST === 'true' || reservationLateTest;
@@ -31,8 +33,8 @@ const rateScope = process.env.STUDENT_RATE_LIMIT_SCOPE ?? 'USER_SAVE';
 if (rateLimitTest) assert.ok(['USER_SAVE', 'ATTEMPT_SAVE'].includes(rateScope), 'explicit supported rate scope');
 const readingTest = process.env.STUDENT_READING_TEST === 'true';
 const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
-assert.ok([warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+assert.ok([admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -377,8 +379,8 @@ async function runAccessibilityJourney() {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture(warningResumeTest ? { durationSeconds: 45 } : rateLimitExpiryTest ? { durationSeconds: 8 } : {}) : domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
-  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (reservationTest || readingTest || rateLimitTest) ? 180 : domainsTest ? 360 : 600,
+  fixture = admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture(warningResumeTest ? { durationSeconds: 45 } : rateLimitExpiryTest ? { durationSeconds: 8 } : {}) : domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
+  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (admissionTest || reservationTest || readingTest || rateLimitTest) ? 180 : domainsTest ? 360 : 600,
     'scenario-specific duration is explicit; ordinary mixed fixture retains its default');
   const login = `browser_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -468,7 +470,10 @@ try {
   } else {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
-    if (warningResumeTest) {
+    if (admissionTest) {
+      workerState.available = true;
+      await runAdmissionJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, requestRecords });
+    } else if (warningResumeTest) {
       workerState.available = true;
       await runWarningResumeJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });
     } else if (reservationTest) {
@@ -892,7 +897,7 @@ try {
     assert.equal(requestRecords.filter(({ url, method }) => method === 'POST' && new URL(url).pathname === submitPath).length, 0,
       'deadline expiry was reconciled without a POST submit request');
   }
-  if (closedSaveTest || domainsTest || readingTest || rateLimitTest || reservationTest || warningResumeTest) report.checkedApiResponses = checkedResponses;
+  if (closedSaveTest || domainsTest || readingTest || rateLimitTest || reservationTest || warningResumeTest || admissionTest) report.checkedApiResponses = checkedResponses;
   if (accessibilityTest) {
     report.checkedApiResponses = checkedResponses;
     report.keyboardTrace = keyboardTrace;
