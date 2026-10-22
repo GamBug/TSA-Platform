@@ -4,6 +4,7 @@ import {
   AnswerAckSchema,
   AnswerPathParamsSchema,
   AnswerSubmissionRequestSchema,
+  AuthorizedReleasedReviewSchema,
   ClosureSchema,
   CreateAttemptSchema,
   CreationReceiptSchema,
@@ -106,7 +107,8 @@ function parseGuard(value, attemptId, userId) {
   if (!source || Object.keys(source).some((key) => !allowed.has(key))
       || source.attemptId !== attemptId || source.ownerId !== userId
       || !['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED', 'GRADED', 'CANCELLED', 'INVALIDATED'].includes(source.state)
-      || typeof source.withdrawn !== 'boolean' || source.releaseAuthorized !== false
+      || typeof source.withdrawn !== 'boolean' || typeof source.releaseAuthorized !== 'boolean'
+      || (source.releaseAuthorized && source.state !== 'GRADED')
       || typeof source.revision !== 'string' || source.revision.length === 0) {
     reject(503, 'TEMPORARILY_UNAVAILABLE');
   }
@@ -195,6 +197,13 @@ function toSubmitResult(result) {
 function normalizeRead(value, attemptId, userId) {
   if (value === null || value === undefined) return null;
   return parseReadResult(value, attemptId, userId);
+}
+
+function parseReleasedReview(value, attemptId) {
+  const source = record(value);
+  const parsed = source === null ? null : AuthorizedReleasedReviewSchema.safeParse(source);
+  if (!parsed?.success || parsed.data.attemptId !== attemptId) reject(503, 'TEMPORARILY_UNAVAILABLE');
+  return parsed.data;
 }
 
 /**
@@ -291,7 +300,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
   }
 
   async function readOnClient(client, principal, attemptId) {
-    const result = await client.query('SELECT tsa.exam_attempt_read($1) AS result', [attemptId]);
+    const result = await client.query('SELECT tsa.exam_attempt_access($1) AS result', [attemptId]);
     return normalizeRead(result.rows[0]?.result, attemptId, principal.userId);
   }
 
@@ -431,8 +440,18 @@ export function createAttemptService({ examPool, identityService, createRate, sa
           }
           return latest.view;
         },
-        loadReleasedReview: async () => {
-          throw new BankCommandError(503, 'TEMPORARILY_UNAVAILABLE');
+        loadReleasedReview: async ({ attemptId, userId, access }) => {
+          const guard = latest?.guard;
+          if (!active || userId !== principal.userId || !guard
+              || guard.attemptId !== attemptId || guard.ownerId !== userId
+              || guard.state !== 'GRADED' || guard.withdrawn || guard.releaseAuthorized !== true
+              || !access || access.attemptId !== attemptId || access.ownerId !== userId
+              || access.state !== guard.state || access.withdrawn !== guard.withdrawn
+              || access.releaseAuthorized !== guard.releaseAuthorized || access.revision !== guard.revision) {
+            throw new BankCommandError(503, 'TEMPORARILY_UNAVAILABLE');
+          }
+          const result = await client.query('SELECT tsa.exam_released_review($1) AS result', [attemptId]);
+          return parseReleasedReview(result.rows[0]?.result, attemptId);
         },
       });
       try {
