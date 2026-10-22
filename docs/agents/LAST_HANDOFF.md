@@ -1,3 +1,39 @@
+# Current handoff — actual PostgreSQL save-rate-limit browser coverage
+
+2026-10-23, `feat/track-b-data-auth`, base `d6eaee0`; accountable Sol6.1.
+[Implemented scope, executed commands, independent review and limits](../reviews/WEB_004_RATE_LIMIT_VERIFICATION.md).
+New test-only reading journey and two explicit commands independently cover real
+USER_SAVE/ATTEMPT_SAVE exhaustion:200/429/429/200, matching Retry-After10, retained
+unsaved choice/navigation+submit guards, actual refill and same-key/body retry,
+revision1 and unchanged clocks. Submission succeeds100% with one job while save
+capacity stays depleted and neither save bucket changes. No product defect or
+product/schema/G1/publication change. No mocked429/clock/budget mutation.
+
+Actual both Chrome modes20 responses/four screenshots each, default/reading
+browser, attempts28/student31/contracts106/consumers11/emitted smoke/build/typecheck/
+drift/import/docs PASS. Separate Sol6.1/Medium read-only reviewer found missing
+submission-budget evidence; repaired, final no concrete findings, independent
+syntax/whitespace PASS. PG/browser execution coordinator-owned. Pending screenshot
+visually inspected. Historical module-type/whitespace warnings remain. Bank/
+assembly/foundation full suites and Firefox not rerun for this test-only change.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. G1
+accepted; G2/G3 OWNER_ACCEPTED unchanged. Broad goal remains active. Full WEB-004/
+OPS/pilot, lawful inventory, qualified human review, manual AT/native zoom and
+Track A remain outstanding. No push/merge/deploy/Astra/paid API/live student
+inference/unauthorized publication. Owned browser/runtime/PG fixtures cleaned.
+
+Next executable WEB-004/EXAM-002 card: **deadline expiry during actual429 pending
+save**. Existing browser paths cover rate-limit and expiry separately. Combine
+using original isolated fixture and real budget; retain acknowledged answers,
+exclude the pending unsaved answer, reconcile authoritative closure, preserve
+clocks/history and produce one score/release from original inputs. Reuse current
+contracts; product fixes only for reproduced defects, no new policy/UI redesign.
+Recommended Sol6.1/High while Luna is usage-limited; separate Sol6.1/Medium
+read-only engineering review. Manual AT remains a separate human prerequisite.
+
+---
+
 # Current handoff — independent PostgreSQL logical restore verified
 
 2026-10-23, `feat/track-b-data-auth`, base `4369cb5`; accountable Sol6.1.

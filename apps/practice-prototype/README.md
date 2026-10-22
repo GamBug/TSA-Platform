@@ -171,6 +171,8 @@ npm run test:student
 npm run test:student:browser
 npm run test:student:domains
 npm run test:student:reading
+npm run test:student:rate-limit
+npm run test:student:rate-limit:attempt
 npm run test:student:closed-save
 npm run test:student:keyboard
 npm run test:student:expiry
@@ -182,6 +184,12 @@ browser. See [persistent integration](../../docs/reviews/WEB_004_PERSISTENT_STUD
 and [keyboard/cross-browser evidence](../../docs/reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md)
 for executed scope and limitations. Keyboard AX/reflow checks do not establish
 qualified screen-reader testing, native page zoom or WCAG conformance.
+
+The two rate-limit commands exercise USER_SAVE and ATTEMPT_SAVE independently
+against actual PostgreSQL budgets and wall-clock refill. An unacknowledged choice
+stays visibly unsaved and blocks navigation/submission; explicit same-key retry
+saves once. Submission succeeds without modifying either save budget. These
+commands use disposable original synthetic reading fixtures, not approved inventory.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline

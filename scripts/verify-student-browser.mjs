@@ -6,6 +6,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { runRateLimitJourney } from './student-rate-limit-journey.mjs';
 import { runReadingJourney } from './student-reading-journey.mjs';
 import { createSharedReadingFixture } from '../tests/integration/student-runtime/shared-reading-fixture.mjs';
 import { runDomainJourney } from './student-domain-journey.mjs';
@@ -18,10 +19,13 @@ import { createSourceService } from '../src/modules/sources/service.mjs';
 const expiryTest = process.env.STUDENT_EXPIRY_TEST === 'true';
 const accessibilityTest = process.env.STUDENT_ACCESSIBILITY_TEST === 'true';
 const closedSaveTest = process.env.STUDENT_CLOSED_SAVE_TEST === 'true';
+const rateLimitTest = process.env.STUDENT_RATE_LIMIT_TEST === 'true';
+const rateScope = process.env.STUDENT_RATE_LIMIT_SCOPE ?? 'USER_SAVE';
+if (rateLimitTest) assert.ok(['USER_SAVE', 'ATTEMPT_SAVE'].includes(rateScope), 'explicit supported rate scope');
 const readingTest = process.env.STUDENT_READING_TEST === 'true';
 const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
-assert.ok([expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+assert.ok([expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -366,8 +370,8 @@ async function runAccessibilityJourney() {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = readingTest ? await createSharedReadingFixture() : domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
-  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, expiryTest ? 8 : readingTest ? 180 : domainsTest ? 360 : 600,
+  fixture = readingTest || rateLimitTest ? await createSharedReadingFixture() : domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
+  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, expiryTest ? 8 : (readingTest || rateLimitTest) ? 180 : domainsTest ? 360 : 600,
     'scenario-specific duration is explicit; ordinary mixed fixture retains its default');
   const login = `browser_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -380,7 +384,8 @@ try {
   const options = { identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool: workerProxy,
     env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0, pollMilliseconds: 30,
     sweepBatchSize: 10, executorId: 'student-browser', leaseSeconds: 30, retrySeconds: 1,
-    createRate: rate, saveRate: { user: rate, attempt: rate } };
+    createRate: rate, saveRate: { user: rateLimitTest && rateScope === 'USER_SAVE' ? { capacity: 1, refillPerSecond: 0.1 } : rate,
+      attempt: rateLimitTest && rateScope === 'ATTEMPT_SAVE' ? { capacity: 1, refillPerSecond: 0.1 } : rate } };
   runtime = await createStudentRuntime(options); workerState.available = false;
   browser = spawn(process.env.STUDENT_BROWSER ?? '/snap/bin/chromium', ['--headless', '--disable-gpu',
     '--disable-background-networking', '--no-first-run', '--no-default-browser-check',
@@ -456,7 +461,10 @@ try {
   } else {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
-    if (readingTest) {
+    if (rateLimitTest) {
+      workerState.available = true;
+      await runRateLimitJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, scope: rateScope });
+    } else if (readingTest) {
       workerState.available = true;
       await runReadingJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });
     } else if (domainsTest) {
@@ -871,7 +879,7 @@ try {
     assert.equal(requestRecords.filter(({ url, method }) => method === 'POST' && new URL(url).pathname === submitPath).length, 0,
       'deadline expiry was reconciled without a POST submit request');
   }
-  if (closedSaveTest || domainsTest || readingTest) report.checkedApiResponses = checkedResponses;
+  if (closedSaveTest || domainsTest || readingTest || rateLimitTest) report.checkedApiResponses = checkedResponses;
   if (accessibilityTest) {
     report.checkedApiResponses = checkedResponses;
     report.keyboardTrace = keyboardTrace;

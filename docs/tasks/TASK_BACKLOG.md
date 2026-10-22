@@ -1143,6 +1143,21 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 real save-rate-limit browser coverage **IMPLEMENTED / VERIFIED** from
+`d6eaee0`: isolated USER_SAVE and ATTEMPT_SAVE each produce actual200/429/429/200,
+retain pending draft/navigation guards, same-key explicit retry after real refill,
+revision1, unchanged clocks and unthrottled100% submit/result with both save
+buckets unchanged. Existing production workflow needed no change. Actual both
+Chrome modes20 responses/four screenshots each, default/reading browser,
+attempt28/student31/contracts106/consumers11/build/typecheck/drift/import/docs PASS.
+Separate Sol6.1/Medium review requested stronger submit-budget assertion, repaired;
+final no concrete findings, independent syntax/whitespace only. Sol accountable;
+reservations released, owner AGENTS/research preserved. [Evidence and commands](../reviews/WEB_004_RATE_LIMIT_VERIFICATION.md).
+Next bounded card: actual deadline expiry during429 pending save; existing paths
+are verified separately. Recommended Sol6.1/High while Luna is usage-limited,
+separate Sol6.1/Medium read-only review. Manual AT/lawful inventory/Track A remain
+outstanding; full WEB-004 acceptance is unchanged.
+
 2026-10-22 clean-checkout continuation IMPLEMENTED/VERIFIED under
 [autonomous authority](../decisions/LOCAL_STUDENT_INTEGRATION_AUTHORITY_2026_10_22.md).
 Baseline `02f2b61`, integration/demo `cf193e4`, portability `53b2c86`, terminal
