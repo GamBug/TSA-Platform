@@ -596,6 +596,18 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
 
 ## WEB-001 — Student vertical slice
 
+2026-10-22 restart evidence IMPLEMENTED/VERIFIED from `e5dafee`: actual disposable
+postmaster restart preserves queued job ID/dedup, manifest/sealed snapshots/keys,
+answers/digest, history/clocks; old fixture scope inactive; previous session,
+foreign-owner denial, submit replay and exactly one score/release PASS. Actual
+student9/foundation34/Bank94/assembly23/attempt28/grading21/recovery16/results6/
+directory9/auth5 PASS. Separate read-only Sol6.1/Medium no open P1/P2; two initial
+test defects corrected before final pass; no independent PG execution claim.
+[Evidence](../reviews/EXAM_POSTMASTER_RESTART_VERIFICATION.md). Sol accountable;
+reservations released; owner work preserved. No product code/publication change.
+Next bounded EXAM-002 card: persisted RUNNING lease/fencing across actual disposable
+postmaster restart. Recommended Sol6.1/High, separate Sol6.1/Medium review.
+
 2026-10-22 bounded retained local composition IMPLEMENTED/VERIFIED from `ed953aa`:
 explicit opt-in, separate restricted exam/worker credentials, owner closed before
 attestation/serving, frozen route/worker reuse, terminal-safe retained lifecycle.

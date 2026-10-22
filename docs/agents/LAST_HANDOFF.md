@@ -1,3 +1,31 @@
+# Current handoff — queued grading survives actual PostgreSQL restart
+
+2026-10-22, `feat/track-b-data-auth`, base `e5dafee`; accountable Sol6.1.
+[Test/review evidence](../reviews/EXAM_POSTMASTER_RESTART_VERIFICATION.md).
+Test-only helper and student-runtime regression: real owned postmaster restart,
+exact queued job/manifest/sealed keys/answers/digest/history/clocks persistence,
+old synthetic publication scope inactive, previous session and owner boundary,
+submission replay, then exactly one successful grade/release. No product/schema/
+contract/publication changes. App objects recreated in same Node process; no OS
+app-process-crash or retained approved stock claim.
+
+Actual student9/foundation34/Bank94/assembly23/attempt28/grading21/recovery16/
+results6/directory9/auth5 PASS. Separate Sol6.1/Medium static review no open P1/P2;
+initial smart-shutdown timeout and DTO assertion failure corrected before pass.
+Independent PG run not claimed. Build/contracts/browser evidence belongs to prior
+runtime batch below; not rerun for test-only changes. Docs/scoped diff PASS.
+
+Retained student/staff mode is checkpoint `e5dafee`; fresh catalog stays empty.
+Owner AGENTS/research preserved/unstaged, reservations released. G1 accepted;
+G2/G3 OWNER_ACCEPTED. Lawful inventory/qualified humans/Track A/manual AT remain
+outstanding. No push/merge/deploy/Astra/paid APIs/unauthorized publication.
+Next concrete EXAM-002 card: actual disposable postmaster restart with a RUNNING
+job lease, verify durable fencing/reclaim and single release; never renew fixture
+publication scope. Recommended Sol6.1/High while Luna is usage-limited, separate
+Sol6.1/Medium engineering reviewer; human content review remains distinct.
+
+---
+
 # Current handoff — retained local student workspace verified
 
 2026-10-22, `feat/track-b-data-auth`, base `ed953aa`; accountable Sol6.1.

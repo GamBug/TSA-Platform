@@ -110,6 +110,7 @@ function createWorkerPoolProxy(pool) {
   const state = {
     available: true,
     failSweep: false,
+    failClaims: false,
     connections: 0,
     active: 0,
     maxActive: 0,
@@ -127,6 +128,9 @@ function createWorkerPoolProxy(pool) {
         state.maxActive = Math.max(state.maxActive, state.active);
         return {
           async query(...args) {
+            if (String(args[0]).includes('tsa.exam_worker_claim') && state.failClaims) {
+              throw new Error('Synthetic grading-claim outage');
+            }
             if (String(args[0]).includes('tsa.exam_worker_sweep') && state.failSweep) {
               state.failedSweeps += 1;
               throw new Error('Synthetic sweep-only database fault');
@@ -336,4 +340,114 @@ test('student HTTP and a separate worker persist login, attempt and released sco
   await restartedRuntime.close();
   restartedRuntime = null;
   assert.equal((await workerPool.query('SELECT 1 AS caller_pool_usable')).rows[0].caller_pool_usable, 1);
+});
+
+test('queued grading, sealed snapshots and ownership survive an actual disposable PostgreSQL postmaster restart', { timeout: 35_000 }, async (t) => {
+  const fixture = await createAllocationFixture({ questionCount: 4, blueprintCount: 4 });
+  const database = fixture.harness.database;
+  let runtime;
+  let workerPool;
+  t.after(async () => {
+    await runtime?.close();
+    await workerPool?.end();
+    await fixture.close();
+  });
+  await database.pool.query('CREATE ROLE restart_worker LOGIN');
+  await database.pool.query('GRANT tsa_exam_worker TO restart_worker');
+  workerPool = createDatabasePool({ ...database.connectionConfig, user: 'restart_worker' });
+  const disconnects = [];
+  let restarting = false;
+  for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) {
+    pool.on('error', (error) => {
+      assert.equal(restarting, true, 'idle pool error must be confined to the deliberate database restart');
+      assert.equal(error.code, '57P01');
+      disconnects.push(error.code);
+    });
+  }
+  const workerProxy = createWorkerPoolProxy(workerPool);
+  workerProxy.state.failClaims = true;
+  const options = runtimeOptions(fixture, workerProxy.pool);
+  runtime = await createStudentRuntime(options);
+  const student = await login(runtime.origin, 'studentA');
+  const other = await login(runtime.origin, 'studentB');
+  const created = await send(runtime.origin, '/api/v1/attempts', student, {
+    method: 'POST', body: { blueprintVersionId: fixture.blueprint.versionId },
+  });
+  assert.equal(created.response.status, 201);
+  const { attemptId } = parseAttemptResponse('createAttempt', 201, created.body);
+  const started = await send(runtime.origin, `/api/v1/attempts/${attemptId}/start`, student, { method: 'POST', body: {} });
+  assert.equal(started.response.status, 200);
+  const view = parseAttemptResponse('getAttempt', 200, (await send(runtime.origin, `/api/v1/attempts/${attemptId}`, student)).body);
+  for (const slot of view.slots) {
+    const save = await send(runtime.origin, `/api/v1/attempts/${attemptId}/answers/${slot.slotId}`, student, {
+      method: 'PUT', body: { expectedRevision: 0, value: { type: 'SINGLE_CHOICE', optionId: 'b' } },
+    });
+    assert.equal(save.response.status, 200);
+  }
+  const idleDeadline = Date.now() + 2_000;
+  while (workerProxy.state.active > 0 && Date.now() < idleDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.equal(workerProxy.state.active, 0, 'drain any pre-fault checked-out grading operation before submitting');
+  const submitKey = key('restart-submit');
+  const submitted = await send(runtime.origin, `/api/v1/attempts/${attemptId}/submit`, student, {
+    method: 'POST', body: {}, keyValue: submitKey,
+  });
+  assert.equal(submitted.response.status, 200);
+  assert.equal(submitted.body.state, 'SUBMITTED');
+  await runtime.close(); runtime = null;
+  const snapshot = async () => (await database.pool.query(`SELECT
+    (SELECT jsonb_agg(to_jsonb(s) ORDER BY s.ordinal) FROM tsa.form_slots s WHERE s.form_id=a.form_id) AS slots,
+    (SELECT jsonb_agg(to_jsonb(k) ORDER BY k.slot_id) FROM tsa_private.form_slot_secrets k WHERE k.form_id=a.form_id) AS keys,
+    (SELECT to_jsonb(f) FROM tsa.forms f WHERE f.id=a.form_id) AS form,
+    (SELECT jsonb_agg(to_jsonb(ans) ORDER BY ans.slot_id) FROM tsa.answers ans WHERE ans.attempt_id=a.id) AS answers,
+    (SELECT to_jsonb(r) FROM tsa.assembly_runs r JOIN tsa.forms f ON f.assembly_run_id=r.id WHERE f.id=a.form_id) AS assembly,
+    (SELECT jsonb_agg(to_jsonb(h) ORDER BY h.question_id) FROM tsa.student_question_history h WHERE h.first_attempt_id=a.id) AS history,
+    jsonb_build_object('createdAt',a.created_at,'startBeforeAt',a.start_before_at,'startedAt',a.started_at,
+      'deadlineAt',a.deadline_at,'closedAt',a.closed_at) AS clocks,
+    tsa.exam_grading_input_hash(a.id) AS digest
+    FROM tsa.attempts a WHERE a.id=$1`, [attemptId])).rows[0];
+  const before = await snapshot();
+  const beforeStart = (await database.pool.query('SELECT pg_postmaster_start_time()::text AS started')).rows[0].started;
+  const queued = (await database.pool.query('SELECT id,state,dedup_key FROM tsa.jobs WHERE attempt_id=$1', [attemptId])).rows;
+  assert.equal(queued.length, 1); assert.equal(queued[0].state, 'QUEUED');
+  restarting = true;
+  await database.restart();
+  // Reconnect each caller-owned pool before leaving the known disconnect window.
+  for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) await pool.query('SELECT 1');
+  restarting = false;
+  assert.notEqual((await database.pool.query('SELECT pg_postmaster_start_time()::text AS started')).rows[0].started, beforeStart);
+  assert.deepEqual(await snapshot(), before, 'sealed form, manifest, history, clocks, answers and digest persist exactly');
+  assert.deepEqual((await database.pool.query('SELECT id,state,dedup_key FROM tsa.jobs WHERE attempt_id=$1', [attemptId])).rows, queued);
+  const bankClient = await fixture.bankPool.connect();
+  try {
+    await bankClient.query('BEGIN');
+    await bankClient.query("SELECT set_config('tsa.bank_fixture_scope',$1,true)", [fixture.fixtureScopeId]);
+    assert.equal((await bankClient.query('SELECT tsa.bank_fixture_scope_active() AS active')).rows[0].active, false,
+      'restarting never reauthorizes old synthetic publication scope');
+    await bankClient.query('ROLLBACK');
+  } finally { bankClient.release(); }
+  // Keep the worker unavailable until ownership and pending-result privacy are checked.
+  runtime = await createStudentRuntime(options);
+  const pending = await send(runtime.origin, `/api/v1/attempts/${attemptId}/result`, student);
+  assert.equal(pending.response.status, 409);
+  assert.doesNotMatch(JSON.stringify(pending.body), /answerKey|correctAnswer|explanation|provenance/);
+  const denied = await send(runtime.origin, `/api/v1/attempts/${attemptId}/result`, other);
+  assert.equal(denied.response.status, 404);
+  const replay = await send(runtime.origin, `/api/v1/attempts/${attemptId}/submit`, student, {
+    method: 'POST', body: {}, keyValue: submitKey,
+  });
+  assert.equal(replay.response.status, 200); assert.deepEqual(replay.body, submitted.body);
+  workerProxy.state.failClaims = false;
+  const result = await waitForReleasedResult(runtime.origin, student, attemptId);
+  const review = parseReleasedResponse(200, result.body);
+  assert.equal(review.percentage, '100.00');
+  await runtime.close(); runtime = null;
+  assert.deepEqual(await snapshot(), before);
+  const completed = (await database.pool.query(`SELECT j.id,j.state,
+    (SELECT count(*)::int FROM tsa.score_runs s WHERE s.attempt_id=j.attempt_id) AS scores,
+    (SELECT count(*)::int FROM tsa.result_releases r WHERE r.attempt_id=j.attempt_id AND r.revoked_at IS NULL) AS releases
+    FROM tsa.jobs j WHERE j.attempt_id=$1`, [attemptId])).rows;
+  assert.deepEqual(completed, [{ id: queued[0].id, state: 'SUCCEEDED', scores: 1, releases: 1 }]);
+  assert.ok(disconnects.length > 0, 'the old postmaster actually disconnected existing idle clients');
 });

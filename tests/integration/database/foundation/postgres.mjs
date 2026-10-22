@@ -76,7 +76,7 @@ async function waitForChildClose(child, timeoutMs) {
 
 /** Starts a private PostgreSQL 18.6 cluster on a private Unix socket, with no TCP listener. */
 export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, pgBin } = {}) {
-  const deadline = performance.now() + timeoutMs;
+  let deadline = performance.now() + timeoutMs;
   const remaining = (cap = COMMAND_TIMEOUT_MS) => {
     const time = Math.floor(deadline - performance.now());
     if (time <= 0) throw new Error(`Disposable PostgreSQL exceeded ${timeoutMs} ms`);
@@ -120,18 +120,9 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
     if (!poolClosed) throw new Error('PostgreSQL pool did not finish closing within its cleanup bound');
   };
 
-  try {
-    await chmod(root, 0o700);
-    await mkdir(dataDir, { mode: 0o700 });
-    await mkdir(socketDir, { mode: 0o700 });
-    await chmod(dataDir, 0o700);
-    await chmod(socketDir, 0o700);
-    const init = await run(binaries.initdb, [
-      '--locale=C', '--encoding=UTF8', '--auth-local=trust', '--auth-host=reject',
-      '--username=probe', '--no-instructions', `--pgdata=${dataDir}`,
-    ], { timeoutMs: remaining() });
-    if (init.code !== 0) throw new Error(`Disposable PostgreSQL initdb failed: ${init.stderr}\n${init.stdout}`);
-
+  const config = { host: socketDir, port, user: 'probe', database: 'postgres', application_name: 'tsa-bank-core-test' };
+  const startServer = async () => {
+    spawnError = undefined;
     server = spawn(binaries.postgres, [
       '-D', dataDir,
       '-c', 'listen_addresses=',
@@ -145,7 +136,6 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
     server.stderr.setEncoding('utf8');
     server.stderr.on('data', (chunk) => { serverLog += chunk; });
     server.once('error', (error) => { spawnError = error; });
-    const config = { host: socketDir, port, user: 'probe', database: 'postgres', application_name: 'tsa-bank-core-test' };
     pool = createDatabasePool(config, { max: 4, connectionTimeoutMillis: 1_000, applicationName: 'tsa-bank-core-test' });
     let ready = false;
     while (!ready && performance.now() < deadline) {
@@ -164,7 +154,40 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
       }
     }
     if (!ready) throw new Error(`Disposable PostgreSQL did not start: ${serverLog}`);
-    return { pool, connectionConfig: config, version: '18.6', temporaryDirectory: root, stop };
+  };
+
+  try {
+    await chmod(root, 0o700);
+    await mkdir(dataDir, { mode: 0o700 });
+    await mkdir(socketDir, { mode: 0o700 });
+    await chmod(dataDir, 0o700);
+    await chmod(socketDir, 0o700);
+    const init = await run(binaries.initdb, [
+      '--locale=C', '--encoding=UTF8', '--auth-local=trust', '--auth-host=reject',
+      '--username=probe', '--no-instructions', `--pgdata=${dataDir}`,
+    ], { timeoutMs: remaining() });
+    if (init.code !== 0) throw new Error(`Disposable PostgreSQL initdb failed: ${init.stderr}\n${init.stdout}`);
+
+    await startServer();
+    let restarting = false;
+    return {
+      get pool() { return pool; }, connectionConfig: config, version: '18.6', temporaryDirectory: root, stop,
+      // Test-only graceful postmaster restart. Caller must quiesce services and
+      // handle expected idle-client disconnects in its own application pools.
+      async restart() {
+        if (stopped || restarting) throw new Error('Disposable PostgreSQL is stopped or restarting');
+        restarting = true;
+        try {
+          const oldPool = pool; pool = null;
+          await oldPool.end();
+          // PostgreSQL fast shutdown flushes durable state and disconnects idle clients.
+          server.kill('SIGINT');
+          if (!(await waitForChildClose(server, 3_000))) throw new Error('Owned PostgreSQL did not stop for restart');
+          deadline = performance.now() + timeoutMs;
+          await startServer();
+        } finally { restarting = false; }
+      },
+    };
   } catch (error) {
     try { await stop(); }
     catch (cleanupError) { error.cleanupError = cleanupError; }
