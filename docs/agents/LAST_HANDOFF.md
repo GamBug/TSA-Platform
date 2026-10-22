@@ -1,3 +1,35 @@
+# Current handoff — live grading lease survives actual PostgreSQL restart
+
+2026-10-22, `feat/track-b-data-auth`, base `04bff31`; accountable Sol6.1.
+[Actual evidence](../reviews/EXAM_RUNNING_LEASE_RESTART_VERIFICATION.md).
+Added one isolated test: full RUNNING job/lease survives real clean postmaster
+restart, second executor cannot steal live lease, actual PostgreSQL expiry permits
+higher-token reclaim, stale executor load/finish fenced, exactly one score/release.
+Old synthetic publication scope inactive. No product/schema/contract changes.
+
+Actual focused1/grading22/scoring5 PASS; separate read-only Sol6.1/Medium no P1/P2,
+syntax/scoped diff PASS; no independent PG run claimed. Prior broader actual
+regressions are recorded below; no unnecessary rerun for one test-only addition.
+Docs PASS with preserved historical whitespace warning. No hosted CI/manual AT.
+This is clean PG-process restart, not an OS app/ungraceful database crash test.
+
+Local checkpoints: `e5dafee` retained student/staff composition; `04bff31` queued
+postmaster recovery. Run retained mode using the guide below; fresh catalog stays
+empty. Current code seeds no eligible stock and grants no publication authority.
+Owner AGENTS/research byte-preserved/unstaged; all reservations released.
+G1 accepted; G2/G3 OWNER_ACCEPTED unchanged. Lawful inventory/qualified human rights
+and content review/Track A/manual accessibility evidence remain outstanding.
+No push/merge/deploy/Astra/paid APIs/live student LLM/unauthorized publication.
+
+Next acceptance card: execute qualified manual screen-reader/native200% zoom
+[packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md), currently NOT EXECUTED,
+and repair actual findings. Real retained exam demonstration requires lawful
+reviewed inventory and authorized provisioning; do not manufacture acceptance
+with fixture stock. Recommended Sol6.1/High for concrete engineering fixes while
+Luna is usage-limited, separate Sol6.1/Medium plus qualified human AT reviewer.
+
+---
+
 # Current handoff — queued grading survives actual PostgreSQL restart
 
 2026-10-22, `feat/track-b-data-auth`, base `e5dafee`; accountable Sol6.1.

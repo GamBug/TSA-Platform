@@ -386,6 +386,17 @@ Reconciliation acceptance (CR-01/HI-01/03/MD-04/05): implement the scoped H1/H2/
 
 ## EXAM-002 — Submission, expiry and recovery
 
+2026-10-22 bounded RUNNING-lease restart evidence IMPLEMENTED/VERIFIED from
+`04bff31`: exact job/lease persists through actual postmaster restart, live lease
+cannot be stolen, actual PG expiry permits higher-token reclaim, stale load/finish
+fenced, zero premature scores and exactly one score/release. Stale synthetic
+publication scope remains inactive. Actual focused1/grading22/scoring5 PASS;
+separate read-only Sol6.1/Medium no P1/P2. [Evidence](../reviews/EXAM_RUNNING_LEASE_RESTART_VERIFICATION.md).
+Sol accountable; owner work preserved, reservations released. No product/schema/
+contract/publication changes. Next acceptance work: qualified manual AT packet,
+then concrete fixes with Sol6.1/High and separate Sol6.1/Medium review; lawful
+reviewed inventory remains prerequisite for a real retained demonstration.
+
 2026-10-22 bounded trusted expiry recovery **IMPLEMENTED / VERIFIED** from `bc3ed0a`.
 Recommended/actual accountable Codex Sol owns SQL016 and real-PG race/fault tests,
 package/migration expectations/shared records. Native Luna/XHigh owns isolated

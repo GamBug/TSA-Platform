@@ -278,3 +278,64 @@ test("student role cannot spoof a live worker lease or read private grading data
     await client.query("SELECT tsa.exam_worker_claim($1::text,$2::integer)", ["grader-runtime-test", 30]);
   }, { role: "tsa_exam" }), (error) => error.code === "42501");
 });
+
+test("running grading lease survives a real PostgreSQL restart and fences the old executor after real expiry", { timeout: 35_000 }, async (t) => {
+  const { fixture, workerPool, attemptId } = await setup(t);
+  const database = fixture.harness.database;
+  const firstWorker = createExamWorker({ workerPool, executorId: "restart-first", leaseSeconds: 10, retrySeconds: 1 });
+  const secondWorker = createExamWorker({ workerPool, executorId: "restart-second", leaseSeconds: 30, retrySeconds: 1 });
+  const firstLease = await firstWorker.claim();
+  assert.equal(firstLease.status, "CLAIMED");
+  const initial = await firstWorker.load(firstLease);
+  assert.equal(initial.status, "READY");
+  const computed = scoreAttempt(initial);
+  const job = async () => (await database.pool.query("SELECT to_jsonb(j) AS value FROM tsa.jobs j WHERE id=$1", [firstLease.dispatch.jobId])).rows[0].value;
+  const before = await job();
+  assert.equal(before.state, "RUNNING");
+  const originalPostmaster = (await database.pool.query("SELECT pg_postmaster_start_time()::text AS value")).rows[0].value;
+  const disconnects = [];
+  let restarting = true;
+  for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) {
+    pool.on("error", (error) => {
+      assert.equal(restarting, true);
+      assert.equal(error.code, "57P01");
+      disconnects.push(error.code);
+    });
+  }
+  await database.restart();
+  for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) await pool.query("SELECT 1");
+  restarting = false;
+  assert.notEqual((await database.pool.query("SELECT pg_postmaster_start_time()::text AS value")).rows[0].value, originalPostmaster);
+  assert.deepEqual(await job(), before, "restart does not reset or shorten the persisted lease");
+  const live = (await database.pool.query("SELECT clock_timestamp()<lease_until AS value FROM tsa.jobs WHERE id=$1", [firstLease.dispatch.jobId])).rows[0].value;
+  assert.equal(live, true, "the persisted lease remains live after restart");
+  assert.deepEqual(await secondWorker.claim(), { status: "IDLE" }, "a new executor cannot steal a live lease after restart");
+  const bankClient = await fixture.bankPool.connect();
+  try {
+    await bankClient.query("BEGIN");
+    await bankClient.query("SELECT set_config('tsa.bank_fixture_scope',$1,true)", [fixture.fixtureScopeId]);
+    assert.equal((await bankClient.query("SELECT tsa.bank_fixture_scope_active() AS value")).rows[0].value, false);
+    await bankClient.query("ROLLBACK");
+  } finally { bankClient.release(); }
+  const deadline = Date.now() + 12_000;
+  while ((await database.pool.query("SELECT clock_timestamp()<lease_until AS value FROM tsa.jobs WHERE id=$1", [firstLease.dispatch.jobId])).rows[0].value) {
+    assert.ok(Date.now() < deadline, "real PostgreSQL lease must expire within the test bound");
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  const secondLease = await secondWorker.claim();
+  assert.equal(secondLease.status, "CLAIMED");
+  assert.equal(secondLease.dispatch.jobId, firstLease.dispatch.jobId);
+  assert.ok(BigInt(secondLease.leaseToken) > BigInt(firstLease.leaseToken));
+  assert.deepEqual(await firstWorker.load(firstLease), { status: "LOST_LEASE" });
+  assert.deepEqual(await firstWorker.finish(firstLease, computed), { status: "LOST_LEASE" });
+  assert.equal((await database.pool.query("SELECT count(*)::int AS n FROM tsa.score_runs WHERE attempt_id=$1", [attemptId])).rows[0].n, 0);
+  const loaded = await secondWorker.load(secondLease);
+  assert.equal(loaded.status, "READY");
+  assert.deepEqual(scoreAttempt(loaded), computed);
+  const finished = await secondWorker.finish(secondLease, computed);
+  assert.equal(finished.status, "GRADED");
+  await assertGraded(database.pool, attemptId);
+  assert.deepEqual(await secondWorker.claim(), { status: "IDLE" });
+  assert.equal((await database.pool.query("SELECT count(*)::int AS n FROM tsa.score_runs WHERE attempt_id=$1", [attemptId])).rows[0].n, 1);
+  assert.ok(disconnects.length > 0);
+});
