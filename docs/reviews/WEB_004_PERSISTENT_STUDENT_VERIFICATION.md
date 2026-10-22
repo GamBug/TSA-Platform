@@ -53,6 +53,9 @@ The new PostgreSQL test proves actual candidate session/CSRF rotation, lost comm
 save acknowledgement replaying one revision, second-tab revision conflict, clear,
 all three response types, queued grading/result/history and foreign ownership denial.
 The browser proves explicit candidate login, actual safe mixed-type question delivery,
+actual offline save failure with no database write and explicit same-key reconnect
+retry, and a second Chromium tab committing a newer revision that the stale tab
+cannot overwrite before explicit reload/reconciliation,
 lost committed acknowledgement with explicit retry, unsaved selection guards, delayed
 old-account history rejection after A-to-B login, original clocks/answers after fresh
 document reload, countdown resistance to forward/backward wall-clock and timezone
@@ -70,7 +73,12 @@ transport/client/tests and final changes, independently executed transport3, sta
 identity2 and real-PG transport1, and ran syntax/scoped whitespace checks. Two P2
 findings (old navigation index and late account history response) were reproduced,
 fixed and independently retested. Final report: no open P1/P2. It read coordinator
-Chromium evidence and inspected mobile output; it did not rerun Chromium.
+Chromium evidence and inspected mobile output; it did not rerun Chromium. The
+separate reviewer also inspected the final offline/second-tab assertions and
+resource cleanup, reporting no open findings. Luna executed the expanded actual
+Chromium/PostgreSQL journey successfully; Sol independently reran the final script
+with exit0. The final socket-cleanup finding is closed. Neither run is a human
+content review or screen-reader test.
 
 Earlier in this same continuation, unchanged backend regressions passed directory9,
 Bank94, assembly23, foundations34, attempts28, grading21, results6, recovery16, auth5,
@@ -93,17 +101,25 @@ Owner baselines for `main.js`, `api.js` and `server.mjs` were preserved under
 `308046c611091dfc06b283e756c035a7fbd203f91553a0b36c083dbc37217b8b`.
 No push, merge, deployment, paid API, Astra, live student LLM or publication occurred.
 
+Clean-source checkpoint verification: `e8a5f5b` was cloned with --no-hardlinks to
+`/tmp/tsa-student-e8a5f5b-clean`; build/student6/B0 14 PASS without the owner changes.
+The clean prototype count differs from worktree21 because owner regressions and
+the UI-dependent state tests remain unstaged. Offline npm ci failed ENOTCACHED for
+zod4.1.12; the successful checks used a copy of already-installed pinned dependencies,
+not a successful fresh installation. The first hardlink clone failed across devices.
+
 ## Remaining acceptance and next task
 
-WEB-004 remains IN_PROGRESS: full browser multi-tab conflict/reconnect/expiry,
-keyboard/zoom and qualified screen-reader verification are outstanding. Synthetic
+WEB-004 remains IN_PROGRESS: browser deadline-expiry/recovery boundaries,
+keyboard/zoom and qualified screen-reader verification are outstanding. Offline
+reconnect and actual second-tab revision conflict are now verified above. Synthetic
 Chromium evidence is not full accessibility, production OIDC/worker operation or
 formal EXAM/SCORE/WEB acceptance. Raw TeX is preserved rather than typeset. Only the
 currently supported standalone NEW_ONLY profiles are integrated. No fixed/repeat or
 combined domain workflow is invented. Track A remains incomplete.
 
-Next executable card: finish the bounded WEB-004 browser conflict/reconnect/expiry
-and clock/accessibility regressions against this existing integration, then make a
+Next executable card: finish the bounded WEB-004 browser deadline-expiry and
+keyboard/zoom/accessibility regressions against this existing integration, then make a
 safe UI checkpoint once the owner baseline can be included under explicit ownership.
 Recommended native Luna/XHigh for isolated test implementation if available,
 Sol6.1/High fallback; Sol integrates and separate Sol6.1/Medium reviews. No new Bank
