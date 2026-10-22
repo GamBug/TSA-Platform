@@ -4,14 +4,19 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 
 const artifacts = path.resolve(process.env.STUDENT_FIREFOX_ARTIFACT_DIR ?? '/tmp/tsa-student-firefox-evidence');
-await mkdir('.local', { recursive: true });
-const profileRoot = await mkdtemp(path.resolve('.local/student-firefox-'));
+// Snap Firefox cannot use the host's /tmp checkout as a profile root.
+// A new owned profile in its common directory also works from a clean /tmp clone.
+const profileParent = path.resolve(process.env.STUDENT_FIREFOX_PROFILE_ROOT
+  ?? path.join(homedir(), 'snap', 'firefox', 'common'));
+await mkdir(profileParent, { recursive: true });
+const profileRoot = await mkdtemp(path.join(profileParent, 'tsa-student-test-'));
 let fixture, workerPool, runtime, driver, sessionId, endpoint, driverError;
 let driverLog = '';
 const workerState = { available: true };

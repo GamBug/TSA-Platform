@@ -967,7 +967,7 @@ New evidence docs receive separate link/whitespace checks. No WCAG/pixel-perfect
 [Detailed executed evidence](../reviews/WEB_B0_3_VERIFICATION.md) records actual
 intermediate failures and repairs: detached catalog button lookup, breadcrumb
 focus, nested main, weak count assertion, obsolete native close events, readable
-mobile errors and browse-only scroll reset. [Research](../research/VN_EXAMS_UI_GAP_ANALYSIS.md)
+mobile errors and browse-only scroll reset. `docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md` (owner local research, not checkpointed)
 records current measured1024px catalog group/768px detail outer and native viewport/
 scrollbar discrepancies. Private ignored `tmp/vn-exams-ui-20261020/` contains owner
 PNG provenance, reference/local hashes, `local-complete/` report and comparison.html.

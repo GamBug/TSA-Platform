@@ -519,7 +519,7 @@ Reconciliation acceptance (§7.10): integer quotient/remainder rounding must pro
   bank/history/official score or section locks. Unobserved tools/formats require
   legitimately accessible interaction evidence. No further reference attempt is
   authorized. Frozen contracts/auth/DB/reuse/scoring unchanged by this UI phase.
-- [Research/gap classification](../research/VN_EXAMS_UI_GAP_ANALYSIS.md).
+- `docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md` (owner local research, not checkpointed).
 
 ## WEB-B0.2 — Research-informed examination UX
 
