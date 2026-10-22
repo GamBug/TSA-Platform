@@ -6,6 +6,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { runAllocationRaceJourney } from './student-allocation-race-journey.mjs';
 import { runAdmissionJourney } from './student-admission-journey.mjs';
 import { runWarningResumeJourney } from './student-warning-resume-journey.mjs';
 import { runReservationJourney } from './student-reservation-journey.mjs';
@@ -20,6 +21,7 @@ import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 import { createSourceService } from '../src/modules/sources/service.mjs';
 
+const allocationRaceTest = process.env.STUDENT_ALLOCATION_RACE_TEST === 'true';
 const admissionTest = process.env.STUDENT_ADMISSION_TEST === 'true';
 const warningResumeTest = process.env.STUDENT_WARNING_RESUME_TEST === 'true';
 const reservationLateTest = process.env.STUDENT_RESERVATION_LATE_TEST === 'true';
@@ -33,8 +35,8 @@ const rateScope = process.env.STUDENT_RATE_LIMIT_SCOPE ?? 'USER_SAVE';
 if (rateLimitTest) assert.ok(['USER_SAVE', 'ATTEMPT_SAVE'].includes(rateScope), 'explicit supported rate scope');
 const readingTest = process.env.STUDENT_READING_TEST === 'true';
 const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
-assert.ok([admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+assert.ok([allocationRaceTest, admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -379,8 +381,8 @@ async function runAccessibilityJourney() {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture(warningResumeTest ? { durationSeconds: 45 } : rateLimitExpiryTest ? { durationSeconds: 8 } : {}) : domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
-  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (admissionTest || reservationTest || readingTest || rateLimitTest) ? 180 : domainsTest ? 360 : 600,
+  fixture = allocationRaceTest || admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture(warningResumeTest ? { durationSeconds: 45 } : rateLimitExpiryTest ? { durationSeconds: 8 } : {}) : domainsTest ? await createDomainStudentFixture() : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
+  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (allocationRaceTest || admissionTest || reservationTest || readingTest || rateLimitTest) ? 180 : domainsTest ? 360 : 600,
     'scenario-specific duration is explicit; ordinary mixed fixture retains its default');
   const login = `browser_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -423,7 +425,7 @@ try {
   browserSocket = new WebSocket(ws);
   await once(browserSocket, 'open');
   browserCommand = commandChannel(browserSocket);
-  async function openSecondTab() {
+  async function openSecondTab({ expectCatalog = false } = {}) {
     const created = await browserCommand('Target.createTarget', { url: 'about:blank' });
     secondTargetId = created.targetId;
     let target;
@@ -459,7 +461,7 @@ try {
     await secondCommand('Page.enable'); await secondCommand('Runtime.enable'); await secondCommand('Network.enable');
     await secondCommand('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
     await secondCommand('Page.navigate', { url: `${runtime.origin}/?student=postgres` });
-    await secondWaitFor("Boolean(document.getElementById('question-title'))", 'same candidate resumes attempt in second tab');
+    await secondWaitFor(expectCatalog ? `Boolean(${query('catalog-grid')})` : "Boolean(document.getElementById('question-title'))", expectCatalog ? 'same candidate opens empty catalog in second tab' : 'same candidate resumes attempt in second tab');
   }
   await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${runtime.origin}/?student=postgres` });
@@ -470,7 +472,11 @@ try {
   } else {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
-    if (admissionTest) {
+    if (allocationRaceTest) {
+      workerState.available = true;
+      await runAllocationRaceJourney({ evaluate, command, click, query, waitFor, fixture, capture, report,
+        openSecondTab, second: () => ({ evaluate: secondEvaluate, waitFor: secondWaitFor, click: secondClick, command: secondCommand }) });
+    } else if (admissionTest) {
       workerState.available = true;
       await runAdmissionJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, requestRecords });
     } else if (warningResumeTest) {
@@ -897,7 +903,7 @@ try {
     assert.equal(requestRecords.filter(({ url, method }) => method === 'POST' && new URL(url).pathname === submitPath).length, 0,
       'deadline expiry was reconciled without a POST submit request');
   }
-  if (closedSaveTest || domainsTest || readingTest || rateLimitTest || reservationTest || warningResumeTest || admissionTest) report.checkedApiResponses = checkedResponses;
+  if (closedSaveTest || domainsTest || readingTest || rateLimitTest || reservationTest || warningResumeTest || admissionTest || allocationRaceTest) report.checkedApiResponses = checkedResponses;
   if (accessibilityTest) {
     report.checkedApiResponses = checkedResponses;
     report.keyboardTrace = keyboardTrace;
@@ -925,7 +931,7 @@ try {
   }
   let visible = '';
   try { visible = await evaluate('document.body.innerText.slice(0,2400)'); } catch {}
-  process.stderr.write(`${JSON.stringify({ error: error.message, visible, errors }, null, 2)}\n`);
+  process.stderr.write(`${JSON.stringify({ error: error.message, scenarioStage: report.allocationRaceStage, visible, errors }, null, 2)}\n`);
   throw error;
 } finally {
   clearTimeout(timeout); secondSocket?.close(); browserSocket?.close(); socket?.close();

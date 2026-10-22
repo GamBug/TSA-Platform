@@ -1,3 +1,40 @@
+# Current handoff — two-tab allocation conflict recovery verified
+
+2026-10-23, `feat/track-b-data-auth`, base `61314b4`; accountable Sol6.1.
+[Executed client/DB evidence, failures, review and limits](../reviews/WEB_004_ALLOCATION_RACE_VERIFICATION.md).
+Two real same-candidate tabs hold only genuine200 empty-history responses, release
+normal requests and receive distinct-key201/409. Both recover the same original
+owned attempt/form/clocks; one manifest/history assignment/creation receipt.
+Cross-tab acknowledged saves/reloads yield one100% job/score/release, two revision1
+answers/two history rows, exact immutable inputs retained. No product defect or
+product/schema/API/publication changes. Not instrumented DB critical-section
+overlap; existing real-DB barrier tests remain separate locking evidence.
+
+Final Chrome36 responses/three screenshots, default/closed-save45 browser,
+student31/contracts106/consumers11/build/typecheck/emitted smoke/drift/import/docs
+PASS. Two initial screenshot CDP timeouts localized with stage diagnostics and
+fixed by foregrounding the appropriate tab before capture/reload/interactions;
+no timeout increase/product fix. Separate Sol6.1/Medium read-only no P1/P2,
+independent syntax/whitespace PASS; no independent PG/browser execution. Existing
+module-type/historical whitespace warnings remain. Full Bank/assembly/attempt/
+foundation/directory/keyboard/Firefox not rerun for this test-only change.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal active; G1 accepted/G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot, lawful
+inventory, qualified human review, manual AT/native zoom and Track A outstanding.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+Owned browser/runtime/PostgreSQL fixtures cleaned.
+
+Next executable WEB-001/004 card: **two successive NEW_ONLY forms then shortage**.
+Demonstrate two actual browser allocations/results with no repeated stable IDs or
+equivalence groups, then truthful exhaustion with no reuse/generation fallback.
+Use original isolated stock and existing bundle/publication gates; no lawful human
+inventory claim. Existing backend history/shortage tests remain separate evidence.
+Recommended Sol6.1/High while Luna remains usage-limited; separate Sol6.1/Medium
+read-only engineering review. No Bank expansion/reference UI/new contract needed.
+
+---
+
 # Current handoff — catalog preserves valid owned start/resume
 
 2026-10-23, `feat/track-b-data-auth`, base `76af373`; accountable Sol6.1.

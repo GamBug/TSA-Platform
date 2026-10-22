@@ -173,6 +173,7 @@ npm run test:student:reservation
 npm run test:student:reservation:late
 npm run test:student:warning-resume
 npm run test:student:admission
+npm run test:student:allocation-race
 npm run test:student:domains
 npm run test:student:reading
 npm run test:student:rate-limit
@@ -219,6 +220,12 @@ blocking new creation. Elapsed offerings remain absent from the server catalog;
 the owned-attempt control resumes the original exam with its saved answer and
 clocks. A separate candidate exercises the actual future409 and elapsed410 guards.
 These ordinary edits do not override rights, withdrawal or security restrictions.
+
+The allocation-race command opens two tabs for the same candidate. Both pause
+only genuine empty-history responses, then send ordinary distinct-key creation
+requests. A real201/409 pair recovers the same attempt/form/clocks; acknowledged
+answers cross reloads and both tabs reach the same100% result. This verifies client
+conflict recovery; the existing PostgreSQL barrier tests establish locking behavior.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline

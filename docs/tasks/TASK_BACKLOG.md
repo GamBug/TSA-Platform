@@ -1143,6 +1143,20 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 two-tab allocation recovery **IMPLEMENTED / VERIFIED** from `61314b4`:
+both clients hold genuine empty-history responses, then actual distinct-key201/409
+recover same owned attempt/form/clocks. One form/manifest/creation receipt/history
+assignment; first-tab save reloads in second, second submits and first reloads100%.
+Final onejob/score/release, two revision1answers/history rows. Test-only changes;
+no product defect. Final Chrome36 responses/three screenshots, default/closed45
+browser, student31/contracts106/consumers11/build/typecheck/drift/import/docs PASS.
+Two initial background-capture CDP timeouts repaired with foreground selection,
+no timeout increase; failures recorded. Separate Sol6.1/Medium no P1/P2, independent
+syntax/whitespace only. [Evidence and scope](../reviews/WEB_004_ALLOCATION_RACE_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. Next two successive
+NEW_ONLY browser forms/results then shortage without fallback. Recommended
+Sol6.1/High, separate Sol6.1/Medium review. Full WEB/human/AT/Track A remain distinct.
+
 2026-10-23 catalog ordinary admission/owned resume **IMPLEMENTED / VERIFIED** from
 `76af373`: actual future-window reservation card defect reproduced and fixed.
 Valid owned start/resume survives ordinary offering edits in card/details/filter;
