@@ -146,7 +146,7 @@ async function readJson(request) {
   catch { throw new BankCommandError(400, 'MALFORMED_JSON'); }
 }
 
-/** Loopback-only student create/start/save/GET adapter using the frozen student routes. */
+/** Loopback-only student create/start/save/submit/GET adapter using frozen routes. */
 export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate } = {}) {
   if (!identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function'
@@ -220,11 +220,12 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
       if (url.search !== '') throw new BankCommandError(422, 'VALIDATION_ERROR');
 
       const startMatch = url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)\/start$/);
+      const submitMatch = url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)\/submit$/);
       const isCreate = url.pathname === '/api/v1/attempts';
-      if (!isCreate && !startMatch) return routeResponse('createAttempt', 404, {
+      if (!isCreate && !startMatch && !submitMatch) return routeResponse('createAttempt', 404, {
         error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} },
       }, requestId);
-      operation = isCreate ? 'createAttempt' : 'startAttempt';
+      operation = isCreate ? 'createAttempt' : startMatch ? 'startAttempt' : 'submitAttempt';
 
       const principal = await identityService.validateMutation(request);
       if (!principal) {
@@ -244,7 +245,9 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
       const body = await readJson(request);
       const result = isCreate
         ? await service.create(principal, key, body)
-        : await service.start(principal, startMatch[1], key, body);
+        : startMatch
+          ? await service.start(principal, startMatch[1], key, body)
+          : await service.submit(principal, submitMatch[1], key, body);
       return routeResponse(operation, result.status, result.body, requestId, result.status === 429
         ? { 'Retry-After': String(result.body?.error?.details?.retryAfterSeconds ?? 1) }
         : {});

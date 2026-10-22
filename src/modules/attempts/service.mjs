@@ -4,6 +4,7 @@ import {
   AnswerAckSchema,
   AnswerPathParamsSchema,
   AnswerSubmissionRequestSchema,
+  ClosureSchema,
   CreateAttemptSchema,
   CreationReceiptSchema,
   EmptyCommandBodySchema,
@@ -181,6 +182,16 @@ function toAnswerResult(result) {
   reject(503, 'TEMPORARILY_UNAVAILABLE');
 }
 
+function toSubmitResult(result) {
+  if (result.status === 'SUBMITTED' || result.status === 'REPLAY' || result.status === 'CLOSED') {
+    const parsed = ClosureSchema.safeParse(result.receipt);
+    if (!parsed.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
+    return { status: 200, body: parsed.data, replayed: result.status === 'REPLAY' };
+  }
+  if (result.status === 'ERROR') failCommand(result.code, result);
+  reject(503, 'TEMPORARILY_UNAVAILABLE');
+}
+
 function normalizeRead(value, attemptId, userId) {
   if (value === null || value === undefined) return null;
   return parseReadResult(value, attemptId, userId);
@@ -266,6 +277,15 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query(
         'SELECT tsa.exam_answer_save($1,$2,$3,$4,$5::jsonb) AS result',
         [attemptId, slotId, key, bodyHash, JSON.stringify(request)]);
+      return statusResult(result.rows[0]?.result);
+    }, { role: 'tsa_exam' });
+  }
+
+  async function runSubmit(principal, attemptId, key, bodyHash) {
+    return withTransaction(examPool, async (client) => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+      const result = await client.query(
+        'SELECT tsa.exam_attempt_submit($1,$2,$3) AS result', [attemptId, key, bodyHash]);
       return statusResult(result.rows[0]?.result);
     }, { role: 'tsa_exam' });
   }
@@ -364,6 +384,28 @@ export function createAttemptService({ examPool, identityService, createRate, sa
     reject(409, 'CONCURRENT_MODIFICATION');
   }
 
+  async function submit(principal, attemptIdInput, key, input = {}) {
+    requireActor(identityService, principal, 'candidate.attempt.read');
+    const attemptId = parseAttemptId(attemptIdInput);
+    if (!IdempotencyKeySchema.safeParse(key).success) reject(422, 'VALIDATION_ERROR');
+    const parsedBody = EmptyCommandBodySchema.safeParse(input);
+    if (!parsedBody.success) reject(422, 'VALIDATION_ERROR');
+    const bodyHash = jsonDigest(parsedBody.data);
+
+    for (let attempt = 0; attempt < START_RETRIES; attempt += 1) {
+      let result;
+      try {
+        result = await runSubmit(principal, attemptId, key, bodyHash);
+      } catch (error) {
+        if (isRetryableTransactionConflict(error)) continue;
+        if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
+        throw error;
+      }
+      return toSubmitResult(result);
+    }
+    reject(409, 'CONCURRENT_MODIFICATION');
+  }
+
   async function withReadBoundary(principal, callback) {
     requireActor(identityService, principal, 'candidate.attempt.read');
     if (typeof callback !== 'function') throw new TypeError('Read boundary callback is required');
@@ -416,5 +458,5 @@ export function createAttemptService({ examPool, identityService, createRate, sa
     }
   }
 
-  return Object.freeze({ create, start, save, read, withReadBoundary });
+  return Object.freeze({ create, start, save, submit, read, withReadBoundary });
 }

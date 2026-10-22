@@ -248,12 +248,13 @@ test('loopback HTTP creates, starts and returns only owned safe projections with
   parseRouteResponse('getAttempt', 410, restrictedGet.body);
   assert.equal(JSON.stringify(restrictedGet.body).includes('Synthetic'), false);
 
-  const missingImplementation = await fetchJson(origin, `/api/v1/attempts/${attemptA}/submit`, {
+  const restrictedSubmit = await fetchJson(origin, `/api/v1/attempts/${attemptA}/submit`, {
     method: 'POST',
-    headers: authHeaders(origin, browsers.studentA, { key: key('not-yet-implemented-submit') }),
+    headers: authHeaders(origin, browsers.studentA, { key: key('restricted-submit') }),
     body: {},
   });
-  assert.equal(missingImplementation.response.status, 404);
-  assert.equal(missingImplementation.body.error.code, 'NOT_FOUND');
-  assertNoPrivateKeys(missingImplementation.body);
+  assert.equal(restrictedSubmit.response.status, 410);
+  assert.equal(restrictedSubmit.body.error.code, 'CONTENT_WITHDRAWN');
+  parseRouteResponse('submitAttempt', 410, restrictedSubmit.body);
+  assertNoPrivateKeys(restrictedSubmit.body);
 });

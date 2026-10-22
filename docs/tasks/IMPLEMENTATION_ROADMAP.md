@@ -1,5 +1,10 @@
 # Implementation roadmap
 
+Current owner disposition, 2026-10-21: **G2/G3 OWNER_ACCEPTED**.
+[Authority and remaining implementation/evidence limits](../decisions/G2_G3_OWNER_ACCEPTANCE_2026_10_21.md).
+Earlier unaccepted gate statements below describe historical checkpoints.
+
+
 Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
 implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
 [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) is satisfied. Scoped owner record:
