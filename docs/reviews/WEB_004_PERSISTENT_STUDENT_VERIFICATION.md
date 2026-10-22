@@ -108,18 +108,45 @@ the UI-dependent state tests remain unstaged. Offline npm ci failed ENOTCACHED f
 zod4.1.12; the successful checks used a copy of already-installed pinned dependencies,
 not a successful fresh installation. The first hardlink clone failed across devices.
 
+## Actual deadline-expiry continuation
+
+`STUDENT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs`: PASS in actual
+Luna and independent coordinator Sol runs on Chromium155/PostgreSQL18.6. Default
+browser journey also rerun by Luna: PASS. `npm run test:student`:6/6 PASS again.
+The fixture accepts a bounded optional duration before blueprint hashing/allocation;
+default600 is unchanged. Expiry mode uses8 seconds in an isolated disposable DB.
+
+One correct SC answer is acknowledged before the original deadline. SQL verifies
+page departure still precedes that deadline; the page stays away while actual DB
+time crosses it and the worker/sweeper capability is unavailable. Reload performs
+owned history and attempt reads, producing EXPIRED/PENDING with closure exactly at
+the original deadline. It does not establish which read caused reconciliation.
+Repeated reload creates no duplicate job or submit POST. Recovery completes the
+original digest-bound job and releases exactly1/4,25.00%, four score items and one
+active result release. PostgreSQL timestamp text, sealed form/snapshot hashes,
+manifest hash, assignment history, saved answer/revision and grading digest remain
+unchanged before/after closure and grading. At least five actual API responses are
+privacy-inspected. No sealed clock or question is mutated to accelerate time.
+
+Separate Sol6.1/Medium independently inspected both final test files and closed the
+raw DTO-field, reconciliation-causality and response-count findings; no open P1/P2.
+It did not execute Chromium. Earlier assertions were corrected before the final
+successful runs; an initial sandboxed fixture launch could not bind its PG socket
+and was not counted as a pass. Normal and expiry artifacts are separated under
+`/tmp/tsa-student-browser-evidence` and its `expiry` subdirectory.
+
 ## Remaining acceptance and next task
 
-WEB-004 remains IN_PROGRESS: browser deadline-expiry/recovery boundaries,
-keyboard/zoom and qualified screen-reader verification are outstanding. Offline
+WEB-004 remains IN_PROGRESS: broader keyboard/zoom, qualified screen-reader and
+second-engine verification are outstanding. Real deadline expiry/recovery, offline
 reconnect and actual second-tab revision conflict are now verified above. Synthetic
 Chromium evidence is not full accessibility, production OIDC/worker operation or
 formal EXAM/SCORE/WEB acceptance. Raw TeX is preserved rather than typeset. Only the
 currently supported standalone NEW_ONLY profiles are integrated. No fixed/repeat or
 combined domain workflow is invented. Track A remains incomplete.
 
-Next executable card: finish the bounded WEB-004 browser deadline-expiry and
-keyboard/zoom/accessibility regressions against this existing integration, then make a
+Next executable card: finish the bounded WEB-004 keyboard/zoom/accessibility
+regressions against this existing integration, then make a
 safe UI checkpoint once the owner baseline can be included under explicit ownership.
 Recommended native Luna/XHigh for isolated test implementation if available,
 Sol6.1/High fallback; Sol integrates and separate Sol6.1/Medium reviews. No new Bank

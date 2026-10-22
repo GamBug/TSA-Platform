@@ -5,7 +5,10 @@ import { createAllocationFixture } from '../assembly/fixtures.mjs';
 import { bankRequest } from '../bank/harness.mjs';
 
 /** Disposable postmaster-scoped engineering inventory, never a persistent stock seed. */
-export async function createMixedStudentFixture() {
+export async function createMixedStudentFixture({ durationSeconds = 600 } = {}) {
+  if (!Number.isSafeInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 21_600) {
+    throw new RangeError('Fixture durationSeconds must be an integer from 1 through 21600.');
+  }
   const f = await createAllocationFixture({ questionCount: 0, blueprintCount: 4 });
   try {
     const text = (value) => [{ type: 'text', text: value }];
@@ -52,6 +55,7 @@ export async function createMixedStudentFixture() {
     const oldBlueprint = f.blueprint;
     const config = structuredClone(oldBlueprint.config);
     config.name = 'Bài luyện tập PostgreSQL tổng hợp';
+    config.sections[0].durationSeconds = durationSeconds;
     config.allowedTypes = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE_GROUP'];
     const id = randomUUID(), versionId = randomUUID();
     const contentHash = `sha256:${createHash('sha256').update(canonicalize(config)).digest('hex')}`;
