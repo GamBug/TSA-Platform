@@ -419,6 +419,21 @@ Reconciliation acceptance (CR-01/HI-01/03/MD-04/05): implement the scoped H1/H2/
 
 ## EXAM-002 — Submission, expiry and recovery
 
+2026-10-22 separate OS-process recovery **IMPLEMENTED / VERIFIED** from `ab3ab18`:
+actual SIGKILL/new-PID restart preserves acknowledged shared-reading saves, session,
+clocks and exact sealed manifest/form/keys/history. QUEUED, RUNNING and after-grade-
+COMMIT worker-ack interruption recover exactly one score/release/audit; live lease
+cannot be stolen and old tokens are fenced after real PG expiry. PostgreSQL stays
+alive and fixture scope unchanged. Test-only files, no runtime/schema/contracts/
+publication changes. Focused3/student22/grading22/recovery16/results6/scoring5/
+contracts106/consumers11/build/typecheck/drift/import PASS. Separate Sol6.1/Medium
+read-only review no P1/P2; independent syntax/whitespace only, PG coordinator-owned.
+[Executed evidence and limits](../reviews/EXAM_OS_PROCESS_RECOVERY_VERIFICATION.md).
+Accountable Sol6.1; reservations released, owner AGENTS/research preserved. No host/
+DB-crash or production-service claim. Next current-rights-during-outage recovery
+negatives with existing Bank holds, immutable snapshots and no unauthorized release.
+Recommended Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium review.
+
 2026-10-22 bounded RUNNING-lease restart evidence IMPLEMENTED/VERIFIED from
 `04bff31`: exact job/lease persists through actual postmaster restart, live lease
 cannot be stolen, actual PG expiry permits higher-token reclaim, stale load/finish
@@ -738,6 +753,12 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 - Priority P0 before pilot; complexity L; risks: mock-only confidence, insufficient load assumptions. Status: BLOCKED (integrated implementation). Suggested implementer: QA/integration engineer; review: independent security/architecture reviewer. Actual assignee: none.
 
 ## OPS-001 — Deployment and data-policy readiness
+
+2026-10-22 bounded app-process recovery evidence from `ab3ab18` is VERIFIED:
+actual SIGKILL/new-PID restart with live PostgreSQL, acknowledged saves and
+QUEUED/RUNNING/committed-grade recovery. [Commands and limits](../reviews/EXAM_OS_PROCESS_RECOVERY_VERIFICATION.md).
+This is not production supervision, host/database-crash, backup/restore or full
+OPS acceptance. Next test current rights restrictions during a crashed worker outage.
 
 Phase 02.75 acceptance: test a bounded 500-draft batch beside exam traffic, resource limits/pools/job allowlists, factory killed/provider unavailable and month-long simulated outage. Obtain measured latency/resource acceptance envelope from owner; shared DB failure remains a common risk. Compact active-account history retention is separately approved.
 

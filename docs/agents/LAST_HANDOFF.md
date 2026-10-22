@@ -1,3 +1,42 @@
+# Current handoff — actual app/worker OS-process crash recovery verified
+
+2026-10-22, `feat/track-b-data-auth`, base `ab3ab18`; accountable Sol6.1.
+[Executed verification, review and scope](../reviews/EXAM_OS_PROCESS_RECOVERY_VERIFICATION.md).
+Test-only child runs existing combined student HTTP runtime/poller with distinct
+restricted identity/exam/worker pools via IPC. Parent owns original isolated reading
+fixture and keeps PostgreSQL alive. Actual SIGKILL/new-PID same-port restarts preserve
+acknowledged answers, session cookies, original clocks, immutable manifest/form/
+passage/private keys and assignment history. No runtime/schema/public API/contract/
+publication changes; no retained inventory or human-review claim.
+
+QUEUED, RUNNING and after-grade-COMMIT worker-ack interruption recover exactly one
+job/score/release/grading audit. Live old lease cannot be stolen; recovery after
+actual PG expiry has a higher fencing token and old load/finish probes lose the
+lease. Exact already-committed score/items/release/job survives worker-ack loss.
+Actual focused3/student22/grading22/recovery16/results6/scoring5/contracts106/
+consumers11/emitted smoke/build/typecheck/drift/import PASS. Separate native
+Sol6.1/Medium read-only review no P1/P2, independent syntax/whitespace PASS; no
+independent PG or browser execution. Initial test variable/status expectations
+repaired and rerun. Worker-level acknowledgement interruption is not a database
+wire failure. Host/DB crash, backup/restore and production supervision not verified.
+
+All reservations released; owner AGENTS/research byte-preserved and unstaged.
+G1 accepted; G2/G3 OWNER_ACCEPTED unchanged. Full EXAM/OPS/pilot, lawful inventory,
+named qualified human review, manual accessibility and Track A remain outstanding.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+No owned test app process intentionally left running; children reaped before PG
+fixture cleanup. Existing module-type warning remains in parent tests only.
+
+Next bounded EXAM-002/OPS-001 card: passage rights revoked while crashed app/worker
+is down, before QUEUED/RUNNING recovery. Use existing separated Bank command and
+holds, then restart restricted runtime; assert no unauthorized delivery, score or
+explanations, exact sealed inputs/history retained. Reuse this test-only harness;
+change production code only for a reproduced defect, no new public API/invalidation
+policy/publication capability. Recommended Sol6.1/High while Luna is usage-limited,
+separate Sol6.1/Medium read-only security/recovery review.
+
+---
+
 # Current handoff — shared-reading student journey demonstrated
 
 2026-10-22, `feat/track-b-data-auth`, base `7cee125`; accountable Sol6.1.
