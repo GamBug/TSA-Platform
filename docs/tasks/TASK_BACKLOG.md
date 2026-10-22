@@ -279,6 +279,22 @@ Phase 02.75 acceptance: singleton/confirmed equivalence adjudication before publ
 
 ## ASSEMBLY-001 — Reproducible starter exam assembly
 
+2026-10-22 bundle-aware NEW_ONLY backend **IMPLEMENTED / VERIFIED** from
+`8db27a1`; accountable Sol6.1. Additive SQL018 reuses existing immutable stimulus/
+bundle tables and frozen solver; internal capture emits complete ordered units,
+final SQL rechecks full membership/history/equivalence/rights/conflicts, counts
+member quotas/source caps, persists bundle IDs and exact stimulus snapshots.
+Metadata writes use existing publication guard/revision. No applied migration,
+public contract, grant, publication or UI redesign changes. Actual focused26 and
+fullassembly49 PASS; [full verification and separate engineering review](../reviews/ASSEMBLY_BUNDLE_ALLOCATION_VERIFICATION.md).
+All implementing reservations released. Owner AGENTS/research preserved.
+Full ASSEMBLY-001/002 acceptance remains open; historical singleton-only statements
+below describe prior checkpoints and are superseded for NEW_ONLY bundle allocation.
+Next: correct-taxonomy original READING2 shared-passage HTTP/client/browser journey,
+then lawful human-reviewed inventory and qualified manual accessibility evidence.
+Recommended Sol6.1/High while Luna is usage-limited; separate Sol6.1/Medium integration
+review. Synthetic workflow and agent engineering review are not human approval.
+
 2026-10-21 bounded atomic allocation **IMPLEMENTED / VERIFIED**, local checkpoint
 **`6fc219e`** from `c0b42b5`; full ASSEMBLY-001/002 remain IN_PROGRESS for broader scope
 and acceptance. [Owner scope](../decisions/OPEN_DECISIONS.md#atomic-allocation-engineering-authorization--2026-10-21).
@@ -1003,6 +1019,12 @@ scope authorizes synthetic preparation without supplying missing people/rights.
 - Required verification: real-DB concurrent approve/withdraw serialization, workflow transition matrix, authorization/BOLA fixtures, equivalence merge/history preservation and safe error projection tests. Suggested agent capability: HIGH (Sol). Risk: High — rights and publication integrity. Status: IN_PROGRESS; workflow/equivalence engineering verified in416b621/d9812b3, remaining asset/hold and real-publication acceptance outstanding. Named independent humans and lawful inventory gate real publication/G2, not engineering.
 
 ## ASSEMBLY-002 — Per-student NEW_ONLY allocation transaction
+
+2026-10-22 update: complete ordered shared-stimulus units now use the same atomic
+NEW_ONLY commit, current restrictions and retained history. Focused26/fullassembly49
+real-PG PASS; [SQL018 evidence and scope](../reviews/ASSEMBLY_BUNDLE_ALLOCATION_VERIFICATION.md).
+Full acceptance remains open; next shared-READING2 HTTP/browser demonstration.
+This supersedes historical bundle-unsupported limitations for the current backend.
 
 2026-10-21 standalone NEW_ONLY atomic transaction **IMPLEMENTED / VERIFIED** with
 ASSEMBLY-001 above (checkpoint **`6fc219e`** from `c0b42b5`). User-row/shared publication

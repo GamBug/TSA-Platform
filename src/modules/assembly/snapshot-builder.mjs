@@ -28,7 +28,7 @@ export async function buildAllocationPlan(examPool, principal, captured) {
     const input = byVersion.get(slot.questionVersionId);
     const slotId = randomUUID();
     const publicSnapshot = StudentSlotSchema.parse({ slotId, sectionId: slot.sectionId,
-      ordinal: slot.ordinal + 1, stimulus: null, content: input.content, interaction: input.interaction });
+      ordinal: slot.ordinal + 1, stimulus: input.stimulus, content: input.content, interaction: input.interaction });
     const privateSnapshot = { answerKey: input.answerKey, explanation: input.explanation, policyVersion: input.policyVersion };
     plan.snapshots.push({ slotId, questionVersionId: slot.questionVersionId,
       publicSnapshot, publicBytes: Buffer.from(canonicalize(publicSnapshot)).toString('utf8'), publicHash: jsonDigest(publicSnapshot),

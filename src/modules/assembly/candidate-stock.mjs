@@ -21,7 +21,7 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
   let blueprint;
   try { blueprint = BlueprintConfigSchema.parse(stock.blueprint); }
   catch { reject(422, 'VALIDATION_ERROR'); }
-  if (stock.candidates.length > 10_000) reject(503, 'SEARCH_EXHAUSTED');
+  if (stock.overflow || stock.candidates.length > 10_000) reject(503, 'SEARCH_EXHAUSTED');
   const rightsVersions = stock.rightsVersions.map(({ sourceId, versionId, decision }) => ({
     sourceId, versionId,
     contentHash: `sha256:${createHash('sha256').update(canonicalize(decision)).digest('hex')}`,
@@ -31,7 +31,7 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
     blueprintVersionId, blueprintHash: stock.blueprintHash, blueprint, seed,
     reuseMode: 'NEW_ONLY', bankRevision: stock.bankRevision, rightsVersions,
     historyQuestionIds: stock.historyQuestionIds, historyGroupIds: stock.historyGroupIds,
-    units: stock.candidates.map((member) => ({ id: member.versionId, sectionId: blueprint.sections[0].id, members: [member] })),
+    units: stock.units,
     conflicts: stock.conflicts, limits,
   };
   let parsed;

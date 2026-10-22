@@ -1,3 +1,46 @@
+# Current handoff — complete shared-stimulus atomic allocation verified
+
+2026-10-22, `feat/track-b-data-auth`, base `8db27a1`; accountable Sol6.1.
+[Executed verification, review and next card](../reviews/ASSEMBLY_BUNDLE_ALLOCATION_VERIFICATION.md).
+Additive SQL018 and two internal adapters reuse existing immutable stimulus/bundle
+storage and frozen solver. Capture emits only complete ordered eligible units;
+final commit independently validates unit IDs/order/completeness, current rights/
+history/equivalence/conflicts and per-member quotas/source caps. Exact passage
+snapshots and bundle IDs seal atomically with attempt/history/receipt. No applied
+migration, G1 contract, public API, publication grant or UI redesign changes.
+
+Actual focused26/fullassembly49, Bank94, foundations34, auth5, attempts28, grading22,
+recovery16, results6, directory9, student12, local15, scoring5, B031, contracts106,
+consumers11, emitted smoke/build/typecheck/drift/import PASS. Chromium default and
+three-domain78-response journeys PASS. Separate native Sol6.1/Medium read-only
+review found no P1/P2; independently ran syntax/whitespace checks, no PG/browser
+execution claimed. Initial test/fixture and migration-expectation failures were
+repaired and rerun; evidence records them.
+
+Actual PG waiter tests prove metadata/rights writes cannot cross final seal:
+precommit changes force replan; a queued passage-rights writer cancels committed
+CREATED delivery, retaining exact snapshots/history. Existing separate-student
+concurrency and all-or-none rollback tests remain passing. Original synthetic
+fixtures use existing disposable postmaster-bound scope and separated workflow;
+no retained stock or human approval is implied.
+
+Owner AGENTS/research byte-preserved and unstaged; reservations released. G1
+accepted; G2/G3 OWNER_ACCEPTED unchanged. Full ASSEMBLY-001/002, lawful inventory,
+named qualified human review, manual accessibility and Track A remain distinct.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+The active goal reports usageLimited; no completion or budget override is claimed.
+
+Next bounded executable card: original correct-taxonomy READING2 shared-passage
+ALL_OR_NONE bundle through frozen HTTP/client/browser: create/start, exact passage
+on both ordered slots, save/reload, submit, leased grade, released result/review,
+history, and passage-rights denial without sealed-content replacement. Current
+bundle PG tests use generic MATH4 stock; standalone three-domain browser evidence
+does not establish this reading journey. Reuse current runtime/worker/renderer;
+no new public contract or capability. Recommended Sol6.1/High while Luna remains
+usage-limited; separate Sol6.1/Medium read-only integration/security review.
+
+---
+
 # Current handoff — independent MATH/READING/SCIENCE journeys verified
 
 2026-10-22, `feat/track-b-data-auth`, base `55bd3b4`; accountable Sol6.1.
