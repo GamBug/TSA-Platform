@@ -5,10 +5,10 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const script = new URL('../../../scripts/start-student-fixture.mjs', import.meta.url);
-function launch(overrides) {
+function launch(overrides, detached = false) {
   const child = spawn(process.execPath, [fileURLToPath(script)], {
     env: { ...process.env, NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true', STUDENT_FIXTURE_DEMO: 'true', ...overrides },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe'], detached,
   });
   let output = '', errors = '';
   child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
@@ -18,19 +18,27 @@ function launch(overrides) {
   return { child, exited, get output() { return output; }, get errors() { return errors; } };
 }
 
-test('disposable demo refuses production and missing explicit fixture opt-in', { timeout: 15_000 }, async () => {
+async function stopChild(p) {
+  if (p.child.exitCode !== null || p.child.signalCode !== null) return;
+  p.child.kill('SIGTERM');
+  let timer;
+  try { await Promise.race([p.exited, new Promise((resolve) => { timer = setTimeout(resolve, 3000); })]); }
+  finally { clearTimeout(timer); }
+  if (p.child.exitCode === null && p.child.signalCode === null) { p.child.kill('SIGKILL'); await p.exited; }
+}
+
+test('disposable demo refuses production and missing explicit fixture opt-in', { timeout: 15_000 }, async (t) => {
   for (const env of [{ NODE_ENV: 'production' }, { STUDENT_FIXTURE_DEMO: '' }, { LOCAL_SYNTHETIC_ONLY: '' }]) {
-    const p = launch(env); const [code] = await p.exited;
+    const p = launch(env); t.after(() => stopChild(p));
+    const [code] = await p.exited;
     assert.equal(code, 1); assert.equal(p.output, '');
     assert.match(p.errors, /requires NODE_ENV=test/);
   }
 });
 
-test('disposable demo serves the integrated student client and gracefully releases its owned runtime', { timeout: 30_000 }, async (t) => {
-  const p = launch({});
-  t.after(async () => {
-    if (p.child.exitCode === null && p.child.signalCode === null) { p.child.kill('SIGTERM'); await p.exited; }
-  });
+test('disposable demo serves the integrated student client and releases its owned runtime when SIGINT reaches its terminal process group', { timeout: 30_000 }, async (t) => {
+  const p = launch({}, true);
+  t.after(() => stopChild(p));
   const end = Date.now() + 15_000; let ready;
   while (Date.now() < end && !ready) {
     const line = p.output.split('\n').find((text) => text.startsWith('{'));
@@ -48,7 +56,7 @@ test('disposable demo serves the integrated student client and gracefully releas
   assert.match(main, /createPersistentApi/);
   const session = await fetch(new URL('/local-auth/session', url));
   assert.equal(session.status, 200); assert.equal((await session.json()).authenticated, false);
-  p.child.kill('SIGINT'); const [code, signal] = await p.exited;
+  process.kill(-p.child.pid, 'SIGINT'); const [code, signal] = await p.exited;
   assert.equal(code, 0, p.errors); assert.equal(signal, null);
   await assert.rejects(fetch(url), 'the stopped loopback listener must be unavailable');
 });

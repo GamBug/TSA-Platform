@@ -1,5 +1,7 @@
 // Explicit disposable engineering demo, never a persistent inventory seed.
 import { randomUUID } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
@@ -40,16 +42,18 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
   }
 }
 
-if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
-  let demo, stopping = false, stopRequested = false;
+async function runWorker() {
+  let demo, stopping = false, stopRequested = process.connected === false;
   const stop = async () => {
     stopRequested = true;
     if (!demo || stopping) return;
     stopping = true;
     try { await demo.close(); process.exitCode = 0; }
     catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
+    finally { if (process.connected) process.disconnect(); }
   };
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
+  process.once('disconnect', stop);
   try {
     demo = await startStudentFixtureDemo();
     if (stopRequested) await stop();
@@ -57,5 +61,30 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
       mode: 'DISPOSABLE_SYNTHETIC_ONLY', note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
   } catch (error) {
     process.stderr.write(`${error.message}\n`); process.exitCode = 1;
+    if (process.connected) process.disconnect();
+  }
+}
+
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  if (process.argv[2] === '--disposable-worker') {
+    await runWorker();
+  } else {
+    // Keep the fixture postmaster out of the terminal's Ctrl+C process group.
+    // The supervisor forwards signals to the worker PID, which closes pools
+    // before stopping its owned database through the existing fixture cleanup.
+    const worker = spawn(process.execPath, [fileURLToPath(import.meta.url), '--disposable-worker'], {
+      detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], env: process.env,
+    });
+    worker.stdout.pipe(process.stdout); worker.stderr.pipe(process.stderr);
+    let stopping = false;
+    const stop = (signal) => {
+      if (stopping) return;
+      stopping = true;
+      if (worker.exitCode === null && worker.signalCode === null) worker.kill(signal);
+    };
+    process.on('SIGINT', () => stop('SIGINT'));
+    process.on('SIGTERM', () => stop('SIGTERM'));
+    worker.once('error', (error) => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
+    worker.once('close', (code, signal) => { process.exitCode = signal ? 1 : code ?? 1; });
   }
 }
