@@ -33,6 +33,7 @@
     "test:grading": "node --test tests/integration/grading/*.test.mjs",
     "test:recovery": "node --test tests/integration/recovery/*.test.mjs",
     "test:results": "node --test tests/integration/results/*.test.mjs",
+    "test:directory": "node --test tests/integration/directory/*.test.mjs",
     "test:student": "node --test tests/integration/student-runtime/*.test.mjs tests/integration/student-security/*.test.mjs",
     "dev:track-b": "npm run build && node src/local/track-b.mjs",
     "test:local": "node --test tests/integration/local/*.test.mjs",

@@ -7,6 +7,7 @@ import {
 import { createHttpBoundaryHandler } from '../../packages/contracts/dist/internal.js';
 import { BankCommandError } from '../modules/bank/common.mjs';
 import { createAttemptService } from '../modules/attempts/service.mjs';
+import { createStudentDirectoryService } from '../modules/attempts/directory.mjs';
 
 const MAX_JSON_BYTES = 64 * 1024;
 
@@ -155,6 +156,7 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
   const service = createAttemptService({ examPool, identityService, createRate, saveRate });
+  const directory = createStudentDirectoryService({ examPool, identityService });
 
   return async function handleAttemptRequest(request) {
     const requestId = randomUUID();
@@ -167,6 +169,21 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
       }
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
+
+      if (method === 'GET' && (url.pathname === '/api/v1/catalog' || url.pathname === '/api/v1/attempts')) {
+        const isCatalog = url.pathname === '/api/v1/catalog';
+        operation = isCatalog ? 'catalog' : 'attemptHistory';
+        const principal = await identityService.authenticate(request);
+        if (!principal) {
+          return routeResponse(operation, 401, {
+            error: { code: 'UNAUTHENTICATED', message: 'Authentication is required', requestId, details: {} },
+          }, requestId);
+        }
+        const page = isCatalog
+          ? await directory.catalog(principal, url.searchParams)
+          : await directory.history(principal, url.searchParams);
+        return routeResponse(operation, 200, page, requestId);
+      }
 
       if (method === 'GET' && /^\/api\/v1\/attempts\/[^/]+(?:\/result)?$/.test(url.pathname)) {
         const principal = await identityService.authenticate(request);
