@@ -37,6 +37,8 @@
     "test:student": "node --test tests/integration/student-runtime/*.test.mjs tests/integration/student-security/*.test.mjs",
     "test:student:browser": "node scripts/verify-student-browser.mjs",
     "test:student:rate-limit": "STUDENT_RATE_LIMIT_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:rate-limit:expiry": "STUDENT_RATE_LIMIT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:rate-limit:expiry:attempt": "STUDENT_RATE_LIMIT_EXPIRY_TEST=true STUDENT_RATE_LIMIT_SCOPE=ATTEMPT_SAVE node scripts/verify-student-browser.mjs",
     "test:student:rate-limit:attempt": "STUDENT_RATE_LIMIT_TEST=true STUDENT_RATE_LIMIT_SCOPE=ATTEMPT_SAVE node scripts/verify-student-browser.mjs",
     "test:student:reading": "STUDENT_READING_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:domains": "STUDENT_DOMAINS_TEST=true node scripts/verify-student-browser.mjs",

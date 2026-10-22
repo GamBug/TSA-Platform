@@ -1143,6 +1143,21 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 pending429/deadline browser boundary **IMPLEMENTED / VERIFIED** from
+`f75f704`: both real USER_SAVE/ATTEMPT_SAVE modes retain an unsaved correct choice,
+then existing timer reconciles actual eight-second expiry without retries/submit.
+Exact deadline/form/manifest/private+public snapshots/history and one acknowledged
+answer preserved; one original-input job/score/release50%, unchanged budgets and
+reload result. No product defect/change. Both Chrome24 responses/four screenshots,
+existing refill/reading/expiry journeys, assembly49/student31/contracts106/consumer11/
+build/typecheck/drift/import/docs PASS. Separate Sol6.1/Medium requested late-request
+assertions, repaired and both modes rerun; final no findings, syntax/whitespace
+only. [Executed evidence](../reviews/WEB_004_PENDING_SAVE_EXPIRY_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. Next bounded card:
+CREATED browser reservation/reload, explicit start and late-start cancellation.
+Recommended Sol6.1/High, separate Sol6.1/Medium review. Full acceptance/human
+inventory/manual AT/Track A remain outstanding.
+
 2026-10-23 real save-rate-limit browser coverage **IMPLEMENTED / VERIFIED** from
 `d6eaee0`: isolated USER_SAVE and ATTEMPT_SAVE each produce actual200/429/429/200,
 retain pending draft/navigation guards, same-key explicit retry after real refill,

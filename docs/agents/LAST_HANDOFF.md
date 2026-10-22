@@ -1,3 +1,41 @@
+# Current handoff — real429 pending answer excluded at deadline
+
+2026-10-23, `feat/track-b-data-auth`, base `f75f704`; accountable Sol6.1.
+[Implemented scope, actual commands, separate review and limits](../reviews/WEB_004_PENDING_SAVE_EXPIRY_VERIFICATION.md).
+New test-only browser journey combines actual USER_SAVE/ATTEMPT_SAVE429 with
+original eight-second reading deadline. Existing timer reconciles exact expiry
+while correct second choice is unsaved. No late retry/submit, no rejected answer/
+receipt, unchanged budgets/form/manifest/public+private snapshots/history/clocks.
+One original-input job/score/release50%, repeated owned read and reload consistent.
+Test-only duration option preserves default180sec; no product defect or product/
+schema/frozen contract/publication change. No fake clock/429 or bucket mutation.
+
+Actual both Chrome modes24 responses/four screenshots each, existing refill/
+reading/expiry browser journeys, assembly49/student31/contracts106/consumers11/
+build/typecheck/emitted smoke/drift/import/docs PASS. Separate Sol6.1/Medium
+read-only review requested no-late-request assertions through grading/result;
+repaired, both modes rerun, final no findings and syntax/whitespace PASS. No
+independent PG/browser execution claim. Coordinator inspected expired-pending
+notice screenshot. Bank/attempt/foundation full suites and Firefox not rerun for
+this test-only change. Existing module-type/historical whitespace warnings remain.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal remains active. G1 accepted; G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot,
+lawful inventory, named qualified human review, manual AT/native zoom and Track A
+remain outstanding. No push/merge/deploy/Astra/paid API/live student inference/
+unauthorized publication. Owned browser/runtime/PostgreSQL fixtures cleaned.
+
+Next executable WEB-001/004 card: **CREATED reservation browser recovery**. Existing
+backend admission regressions exist; browser path lacks explicit coverage. Reload
+a reserved attempt without starting it, explicitly start with original TTL/form/
+history intact, and verify late-start cancellation without questions/replacement
+allocation. Use existing contracts/policy and original isolated fixtures; product
+changes only for reproduced defects. Recommended Sol6.1/High while Luna remains
+usage-limited; separate Sol6.1/Medium read-only engineering review. This is not
+new policy, qualified human review or formal full WEB acceptance.
+
+---
+
 # Current handoff — actual PostgreSQL save-rate-limit browser coverage
 
 2026-10-23, `feat/track-b-data-auth`, base `d6eaee0`; accountable Sol6.1.

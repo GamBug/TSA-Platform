@@ -6,7 +6,8 @@ import { bankRequest } from '../bank/harness.mjs';
 import { createAllocationFixture } from './fixtures.mjs';
 
 /** Original private disposable inventory; no retained provisioning or human approval. */
-export async function createBundleFixture({ bundleCount = 2, memberCount = 2, ordinals, materialize = true, mismatchedStimulus = false, section = 'MATH' } = {}) {
+export async function createBundleFixture({ bundleCount = 2, memberCount = 2, ordinals, materialize = true, mismatchedStimulus = false, section = 'MATH', durationSeconds = 180 } = {}) {
+  if (!Number.isSafeInteger(durationSeconds) || durationSeconds <= 0) throw new RangeError('Positive integral fixture duration required');
   if (!['MATH', 'READING'].includes(section)) throw new RangeError('Unsupported bundle fixture section');
   const f = await createAllocationFixture({ questionCount: 0, blueprintCount: 4 });
   try {
@@ -26,7 +27,7 @@ export async function createBundleFixture({ bundleCount = 2, memberCount = 2, or
       taxonomy = { taxonomyVersionId, domainId, skillIds: [skillId] };
       const config = structuredClone(f.blueprint.config), oldVersion = f.blueprint.versionId;
       Object.assign(config, { name: 'Bài đọc hiểu có đoạn dẫn tổng hợp', taxonomyVersionId,
-        sections: [{ id: 'reading-bundle', section, count: 2, durationSeconds: 180 }],
+        sections: [{ id: 'reading-bundle', section, count: 2, durationSeconds }],
         quotas: [{ sectionId: 'reading-bundle', dimension: 'SKILL', value: skillId, min: 1, max: 2 }] });
       const id = randomUUID(), versionId = randomUUID(), contentHash = jsonDigest(config);
       await f.pool.query('INSERT INTO tsa.blueprints(id,name) VALUES($1,$2)', [id, config.name]);

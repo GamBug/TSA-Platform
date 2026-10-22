@@ -173,6 +173,8 @@ npm run test:student:domains
 npm run test:student:reading
 npm run test:student:rate-limit
 npm run test:student:rate-limit:attempt
+npm run test:student:rate-limit:expiry
+npm run test:student:rate-limit:expiry:attempt
 npm run test:student:closed-save
 npm run test:student:keyboard
 npm run test:student:expiry
@@ -190,6 +192,9 @@ against actual PostgreSQL budgets and wall-clock refill. An unacknowledged choic
 stays visibly unsaved and blocks navigation/submission; explicit same-key retry
 saves once. Submission succeeds without modifying either save budget. These
 commands use disposable original synthetic reading fixtures, not approved inventory.
+The expiry variants keep the second correct choice pending until the actual eight-
+second deadline. The timer reconciles expiry, and only the first acknowledged
+answer is scored (50%); the unsaved draft is never retried or submitted.
 
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline
