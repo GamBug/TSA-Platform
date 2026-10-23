@@ -342,7 +342,7 @@ test('student HTTP and a separate worker persist login, attempt and released sco
   assert.equal((await workerPool.query('SELECT 1 AS caller_pool_usable')).rows[0].caller_pool_usable, 1);
 });
 
-test('queued grading, sealed snapshots and ownership survive an actual disposable PostgreSQL postmaster restart', { timeout: 35_000 }, async (t) => {
+for (const shutdownMode of ['fast', 'immediate']) test(shutdownMode === 'fast' ? 'queued grading, sealed snapshots and ownership survive an actual disposable PostgreSQL postmaster restart' : 'queued grading and exact sealed inputs recover after immediate PostgreSQL shutdown and WAL recovery', { timeout: 35_000 }, async (t) => {
   const fixture = await createAllocationFixture({ questionCount: 4, blueprintCount: 4 });
   const database = fixture.harness.database;
   let runtime;
@@ -360,7 +360,7 @@ test('queued grading, sealed snapshots and ownership survive an actual disposabl
   for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) {
     pool.on('error', (error) => {
       assert.equal(restarting, true, 'idle pool error must be confined to the deliberate database restart');
-      assert.equal(error.code, '57P01');
+      assert.ok(shutdownMode === 'fast' ? error.code === '57P01' : ['57P01', '57P02'].includes(error.code) || error.message === 'Connection terminated unexpectedly');
       disconnects.push(error.code);
     });
   }
@@ -411,8 +411,13 @@ test('queued grading, sealed snapshots and ownership survive an actual disposabl
   const beforeStart = (await database.pool.query('SELECT pg_postmaster_start_time()::text AS started')).rows[0].started;
   const queued = (await database.pool.query('SELECT id,state,dedup_key FROM tsa.jobs WHERE attempt_id=$1', [attemptId])).rows;
   assert.equal(queued.length, 1); assert.equal(queued[0].state, 'QUEUED');
+  for (const pool of [database.pool, fixture.harness.authPool, fixture.examPool, workerPool]) {
+    assert.deepEqual((await pool.query("SELECT current_setting('fsync') AS fsync,current_setting('full_page_writes') AS full_page_writes,current_setting('synchronous_commit') AS synchronous_commit")).rows[0],
+      { fsync: 'on', full_page_writes: 'on', synchronous_commit: 'on' });
+  }
   restarting = true;
-  await database.restart();
+  const restarted = await database.restart({ shutdownMode });
+  assert.deepEqual(restarted, { shutdownMode, recoveryObserved: shutdownMode === 'immediate' });
   // Reconnect each caller-owned pool before leaving the known disconnect window.
   for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) await pool.query('SELECT 1');
   restarting = false;

@@ -279,7 +279,7 @@ test("student role cannot spoof a live worker lease or read private grading data
   }, { role: "tsa_exam" }), (error) => error.code === "42501");
 });
 
-test("running grading lease survives a real PostgreSQL restart and fences the old executor after real expiry", { timeout: 35_000 }, async (t) => {
+for (const shutdownMode of ["fast", "immediate"]) test(shutdownMode === "fast" ? "running grading lease survives a real PostgreSQL restart and fences the old executor after real expiry" : "running grading lease survives immediate PostgreSQL shutdown with WAL recovery and fences the old executor", { timeout: 35_000 }, async (t) => {
   const { fixture, workerPool, attemptId } = await setup(t);
   const database = fixture.harness.database;
   const firstWorker = createExamWorker({ workerPool, executorId: "restart-first", leaseSeconds: 10, retrySeconds: 1 });
@@ -290,6 +290,15 @@ test("running grading lease survives a real PostgreSQL restart and fences the ol
   assert.equal(initial.status, "READY");
   const computed = scoreAttempt(initial);
   const job = async () => (await database.pool.query("SELECT to_jsonb(j) AS value FROM tsa.jobs j WHERE id=$1", [firstLease.dispatch.jobId])).rows[0].value;
+  const snapshot = async () => (await database.pool.query(`SELECT to_jsonb(f) AS form,to_jsonb(ar) AS manifest,
+    (SELECT jsonb_agg(to_jsonb(s) ORDER BY s.ordinal) FROM tsa.form_slots s WHERE s.form_id=f.id) AS slots,
+    (SELECT jsonb_agg(to_jsonb(k) ORDER BY k.slot_id) FROM tsa_private.form_slot_secrets k WHERE k.form_id=f.id) AS keys,
+    (SELECT jsonb_agg(to_jsonb(ans) ORDER BY ans.slot_id) FROM tsa.answers ans WHERE ans.attempt_id=a.id) AS answers,
+    (SELECT jsonb_agg(to_jsonb(h) ORDER BY h.question_id) FROM tsa.student_question_history h WHERE h.first_attempt_id=a.id) AS history,
+    jsonb_build_object('createdAt',a.created_at,'startBefore',a.start_before_at,'startedAt',a.started_at,
+      'deadlineAt',a.deadline_at,'closedAt',a.closed_at) AS clocks,tsa.exam_grading_input_hash(a.id) AS digest
+    FROM tsa.attempts a JOIN tsa.forms f ON f.id=a.form_id JOIN tsa.assembly_runs ar ON ar.id=f.assembly_run_id WHERE a.id=$1`, [attemptId])).rows[0];
+  const originalInputs = await snapshot();
   const before = await job();
   assert.equal(before.state, "RUNNING");
   const originalPostmaster = (await database.pool.query("SELECT pg_postmaster_start_time()::text AS value")).rows[0].value;
@@ -298,15 +307,21 @@ test("running grading lease survives a real PostgreSQL restart and fences the ol
   for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) {
     pool.on("error", (error) => {
       assert.equal(restarting, true);
-      assert.equal(error.code, "57P01");
+      assert.ok(shutdownMode === "fast" ? error.code === "57P01" : ["57P01", "57P02"].includes(error.code) || error.message === "Connection terminated unexpectedly");
       disconnects.push(error.code);
     });
   }
-  await database.restart();
+  for (const pool of [database.pool, fixture.examPool, workerPool]) {
+    assert.deepEqual((await pool.query("SELECT current_setting('fsync') AS fsync,current_setting('full_page_writes') AS full_page_writes,current_setting('synchronous_commit') AS synchronous_commit")).rows[0],
+      { fsync: "on", full_page_writes: "on", synchronous_commit: "on" });
+  }
+  const restarted = await database.restart({ shutdownMode });
+  assert.deepEqual(restarted, { shutdownMode, recoveryObserved: shutdownMode === "immediate" });
   for (const pool of [fixture.harness.authPool, fixture.bankPool, fixture.examPool, workerPool]) await pool.query("SELECT 1");
   restarting = false;
   assert.notEqual((await database.pool.query("SELECT pg_postmaster_start_time()::text AS value")).rows[0].value, originalPostmaster);
   assert.deepEqual(await job(), before, "restart does not reset or shorten the persisted lease");
+  assert.deepEqual(await snapshot(), originalInputs, "restart preserves exact immutable inputs, answers, history and clocks");
   const live = (await database.pool.query("SELECT clock_timestamp()<lease_until AS value FROM tsa.jobs WHERE id=$1", [firstLease.dispatch.jobId])).rows[0].value;
   assert.equal(live, true, "the persisted lease remains live after restart");
   assert.deepEqual(await secondWorker.claim(), { status: "IDLE" }, "a new executor cannot steal a live lease after restart");
@@ -335,6 +350,7 @@ test("running grading lease survives a real PostgreSQL restart and fences the ol
   const finished = await secondWorker.finish(secondLease, computed);
   assert.equal(finished.status, "GRADED");
   await assertGraded(database.pool, attemptId);
+  assert.deepEqual(await snapshot(), originalInputs, "recovery grading preserves original immutable inputs/history/clocks");
   assert.deepEqual(await secondWorker.claim(), { status: "IDLE" });
   assert.equal((await database.pool.query("SELECT count(*)::int AS n FROM tsa.score_runs WHERE attempt_id=$1", [attemptId])).rows[0].n, 1);
   assert.ok(disconnects.length > 0);

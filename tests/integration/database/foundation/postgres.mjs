@@ -70,8 +70,12 @@ function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 async function waitForChildClose(child, timeoutMs) {
   if (child.exitCode !== null || child.signalCode !== null) return true;
-  const closed = new Promise((resolve) => child.once('close', () => resolve(true)));
-  return Promise.race([closed, delay(timeoutMs).then(() => false)]);
+  return new Promise((resolve) => {
+    const onClose = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    const finish = (closed) => { clearTimeout(timer); child.removeListener('close', onClose); resolve(closed); };
+    child.once('close', onClose);
+  });
 }
 
 /** Starts a private PostgreSQL 18.6 cluster on a private Unix socket, with no TCP listener. */
@@ -154,6 +158,7 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
       }
     }
     if (!ready) throw new Error(`Disposable PostgreSQL did not start: ${serverLog}`);
+    return { recoveryObserved: /database system was interrupted/.test(serverLog) && /redo starts at/.test(serverLog) };
   };
 
   try {
@@ -172,19 +177,22 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
     let restarting = false;
     return {
       get pool() { return pool; }, connectionConfig: config, version: '18.6', temporaryDirectory: root, stop,
-      // Test-only graceful postmaster restart. Caller must quiesce services and
+      // Test-only fast (default) or immediate restart of this owned postmaster.
+      // Caller must quiesce application services and
       // handle expected idle-client disconnects in its own application pools.
-      async restart() {
+      async restart({ shutdownMode = 'fast' } = {}) {
+        if (!['fast', 'immediate'].includes(shutdownMode)) throw new TypeError('Unsupported disposable PostgreSQL shutdown mode');
         if (stopped || restarting) throw new Error('Disposable PostgreSQL is stopped or restarting');
         restarting = true;
         try {
           const oldPool = pool; pool = null;
           await oldPool.end();
-          // PostgreSQL fast shutdown flushes durable state and disconnects idle clients.
-          server.kill('SIGINT');
-          if (!(await waitForChildClose(server, 3_000))) throw new Error('Owned PostgreSQL did not stop for restart');
+          // Immediate shutdown deliberately skips normal shutdown processing.
+          if (!server.kill(shutdownMode === 'immediate' ? 'SIGQUIT' : 'SIGINT')) throw new Error('Owned PostgreSQL did not accept shutdown signal');
+          if (!(await waitForChildClose(server, shutdownMode === 'immediate' ? 8_000 : 3_000))) throw new Error('Owned PostgreSQL did not stop for restart');
           deadline = performance.now() + timeoutMs;
-          await startServer();
+          const startup = await startServer();
+          return { shutdownMode, ...startup };
         } finally { restarting = false; }
       },
     };

@@ -1,3 +1,40 @@
+# Current handoff — immediate PostgreSQL recovery verified
+
+2026-10-23, `feat/track-b-data-auth`, base `c74cc6d`; accountable Sol6.1.
+[Implementation, exact commands, review and limitations](../reviews/EXAM_IMMEDIATE_POSTGRES_RECOVERY_VERIFICATION.md).
+Test-only immediate SIGQUIT option preserves default fast restart. Actual WAL
+interruption/redo and changed postmaster observed with durability settings on.
+Committed marker survives; separate real open transaction rolls back. QUEUED and
+RUNNING app work retain exact sealed input/history/clocks/jobs. Live lease cannot
+be stolen; actual expiry permits higher fence, rejects old executor and yields
+one score/release. Old synthetic publication scope stays inactive.
+
+Focused1+2/foundation35/grading23/student32/recovery16/results6/contracts106/
+consumers11/typecheck/build/emitted smoke/drift/import/docs PASS. Separate
+Sol6.1/Medium final no concrete P1/P2; independent four-file syntax/whitespace,
+no independent PG run. First passing foundation run exposed retained watchdog
+delay; timer cleanup repaired and all final checks passed. Existing non-failing
+module-detection/historical whitespace warnings remain. Full Bank/assembly/
+attempt/directory/browser not rerun for this helper-only change.
+
+App services quiesced before restart; foundation uses independent open TX.
+No app-COMMIT crash/host power-loss/disk failure/PITR/RPO/RTO/production capacity
+claim. No product/schema/API/publication authorization changed. Reservations
+released; owner AGENTS/research byte-preserved and unstaged. Broad goal remains
+active, G1 accepted/G2/G3 OWNER_ACCEPTED. No push/merge/deploy/Astra/paid APIs/live
+student inference/unauthorized publication or fabricated human evidence.
+
+Next concrete EXAM-002/OPS-001 task: inspect live database-unavailability behavior
+against frozen failure contracts, then exercise only uncovered paths/repair actual
+defects. Existing restart cases stop HTTP/worker loops, so do not establish live
+HTTP/poller survival. Preserve acknowledged answers/clocks, safe errors and retry
+semantics. Recommended Sol6.1/High while Luna is usage-limited, separate
+Sol6.1/Medium read-only engineering review. Human accessibility reviewer/platform,
+lawful rights/content-reviewed inventory, operational targets and Track A remain
+separate outstanding inputs; full WEB/OPS/pilot acceptance not claimed.
+
+---
+
 # Current handoff — pre-start timing policy disclosed
 
 2026-10-23, `feat/track-b-data-auth`, base `94b9c17`; accountable Sol6.1.

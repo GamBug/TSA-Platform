@@ -768,6 +768,20 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 
 ## OPS-001 — Deployment and data-policy readiness
 
+2026-10-23 abrupt PG recovery **IMPLEMENTED / VERIFIED** from `c74cc6d`:
+owned immediate SIGQUIT/restart with actual interruption/redo markers, durability
+settings on; confirmed commit retained and separate open transaction rolled back.
+QUEUED/RUNNING modes preserve exact inputs/history/clocks/jobs, live leases and
+fencing after actual expiry, one score/release and inactive old fixture scope.
+Default fast restart preserved. Focused1+2/foundation35/grading23/student32/
+recovery16/results6/contracts106/consumers11/build/typecheck/drift/import/docs PASS.
+Separate Sol6.1/Medium final no P1/P2, independent syntax/whitespace only.
+[Commands, scope and review](../reviews/EXAM_IMMEDIATE_POSTGRES_RECOVERY_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. No product/schema/
+API/host-power-loss/RPO/RTO/full OPS acceptance claim. Next inspect untested live
+database-unavailability behavior against frozen failure contracts. Recommended
+Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium read-only review.
+
 2026-10-23 isolated logical restore **IMPLEMENTED / VERIFIED** from `4369cb5`:
 private18.6 roles/data archive restored into a genuinely independent fresh cluster;
 all65 application tables plus role/grantor/owner/ACL/89-function/17-RLS-policy
