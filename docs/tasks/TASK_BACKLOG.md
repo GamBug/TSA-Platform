@@ -1143,6 +1143,21 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 pre-start timing disclosure **IMPLEMENTED / VERIFIED** from `94b9c17`:
+actual baseline lacked required notice. Shared persistent notice before catalog/
+CREATED/details start explains offline/reload/no-grace and truthful uncertain-save
+state; aria-describedby links controls. No new gate/timer/auth/API change; mock
+unchanged. Fresh post-host-restart Chrome default/reserved24/admission40/keyboard
+76focus/18AX/22responses, B031/contracts106/consumers11/build/typecheck/drift/import/
+docs PASS. Interrupted handles/logs not counted as passes. Separate Sol6.1/Medium
+no P1/P2; state12/syntax/whitespace independent. [Evidence](../reviews/WEB_004_PRESTART_TIMING_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. Manual packet
+updated, qualified-human outcomes still NOT TESTED; owner reviewer/platform input
+requested. Bounded student audit found no further concrete product gap, not full
+acceptance. Independent next EXAM-002/OPS-001 card: owned isolated abrupt PG
+shutdown/recovery, durability/immutable inputs/leases/scope checks; no deployment/
+capacity/power-loss claim. Recommended Sol6.1/High, separate Sol6.1/Medium review.
+
 2026-10-23 successive NEW_ONLY **IMPLEMENTED / VERIFIED** from `88a09ea`: second
 original synthetic reading passage preserves default sample, isolated two-bundle
 fixture. Two browser forms use disjoint stableIDs/versions/current canonical groups

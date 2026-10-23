@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 /** Ordinary schedule edits affect new admission, not captured existing clocks. */
-export async function runAdmissionJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, requestRecords }) {
+export async function runAdmissionJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, requestRecords, assertTimingNotice }) {
   const create = () => evaluate(`fetch('/api/v1/attempts',{method:'POST',headers:{'content-type':'application/json','x-csrf-token':decodeURIComponent(document.cookie.split('; ').find(s=>s.startsWith('tsa_local_csrf=')).split('=')[1]),'idempotency-key':crypto.randomUUID()},body:JSON.stringify({blueprintVersionId:${JSON.stringify(fixture.blueprint.versionId)}})}).then(async r=>({status:r.status,body:await r.json()}))`);
   const allocated = await create(); assert.equal(allocated.status, 201);
   const { attemptId } = allocated.body;
@@ -47,7 +47,7 @@ export async function runAdmissionJourney({ evaluate, command, click, query, wai
       facts = await windowFacts(label);
       await disabledPointer('demo-start');
       assert.equal(creates(), before, 'disabled new-start sends no allocation request');
-      await click('exam-intro');
+      await click('exam-intro'); await assertTimingNotice('intro-start');
       assert.match(await evaluate(`${query('intro-structure')}.textContent`), /Mở:.*ICT.*Đóng:.*ICT/);
       await disabledPointer('intro-start'); assert.equal(creates(), before);
     } else {
@@ -69,7 +69,7 @@ export async function runAdmissionJourney({ evaluate, command, click, query, wai
   await catalog('CREATED');
   await click('catalog-filter-available');
   assert.equal(await evaluate(`Boolean(${query('catalog-card-READING')})`), true, 'available filter retains a valid owned attempt');
-  const beforeStart = creates(); await click('exam-intro');
+  const beforeStart = creates(); await click('exam-intro'); await assertTimingNotice('intro-start');
   assert.equal(await evaluate(`${query('intro-start')}.disabled`), false);
   await click('intro-start'); await waitFor("Boolean(document.getElementById('question-title'))", 'reserved start ignores later ordinary offering edit');
   assert.equal(creates(), beforeStart); assert.equal(starts().length, 1);

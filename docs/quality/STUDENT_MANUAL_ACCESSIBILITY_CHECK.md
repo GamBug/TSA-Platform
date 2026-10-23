@@ -22,6 +22,18 @@ Ctrl+C removes this database; restart the command for a fresh independent run.
 The default deadline is ten minutes and is not extended for the review. If more
 review time is needed, restart a fresh fixture rather than modifying sealed clocks.
 
+For the separate shared-passage check, stop the first fixture and run:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:reading
+```
+
+This original two-question fixture lasts three minutes. Restart a fresh fixture
+for additional review time; never extend a sealed clock. Current automated timing
+notice/description evidence is recorded in
+[pre-start verification](../reviews/WEB_004_PRESTART_TIMING_VERIFICATION.md).
+These added checks remain NOT TESTED by a qualified human.
+
 Record reviewer identity, date, OS, browser/version, assistive technology/version,
 input method, zoom setting and evidence location. Leave actual/outcome fields blank
 until tested. Human accessibility review is not question-content/rights approval.
@@ -31,6 +43,8 @@ until tested. Human accessibility review is not question-content/rights approval
 | Check | Expected observable behavior | Actual / evidence / issue |
 |---|---|---|
 | Explicit login and catalog | Candidate controls have useful names; route change reaches catalog heading; start is reachable by keyboard | NOT TESTED |
+| Pre-start timing disclosure | Catalog/direct start, reserved start and details convey continuous server time, offline/reload do not pause or extend it, no grace, and uncertainty of unconfirmed saves; linked button description is understandable without confusing duplication | NOT TESTED |
+| Shared reading passage | In the reading fixture, passage context remains understandable for both questions, saved answers and released review | NOT TESTED |
 | Start and question navigation | Question heading receives focus; previous/next and question drawer are reachable; focused controls remain perceivable | NOT TESTED |
 | Single choice | Radio group/options are understandable; arrows/Space work and saved state is announced after acknowledgement | NOT TESTED |
 | Multiple choice | Checkbox names and selection minimum are understandable; below-minimum draft is unsaved and blocks navigation/submission | NOT TESTED |

@@ -455,6 +455,13 @@ async function refreshGradeStatus(attemptId, { finalCheck = false } = {}) {
   }
 }
 
+function renderTimingNotice() {
+  const notice = element("p", "notice-panel", "Đồng hồ máy chủ chạy liên tục sau khi bắt đầu. Mất kết nối hoặc tải lại trang không dừng đồng hồ, không kéo dài hạn nộp và không có thời gian gia hạn. Bài được chấm theo câu trả lời máy chủ đã ghi nhận; lựa chọn chưa được xác nhận có thể chưa được lưu.");
+  notice.id = "attempt-timing-notice";
+  notice.dataset.testid = "timing-notice";
+  return notice;
+}
+
 function renderCreatedAttempt() {
   const attempt = state.attempt;
   const profile = state.catalog.find((entry) => entry.domain === attempt.domain);
@@ -473,7 +480,10 @@ function renderCreatedAttempt() {
   card.append(facts);
   card.append(element("p", "notice-panel", `Bắt đầu trước ${formatAdmissionTime(attempt.startBefore) || "thời hạn do máy chủ lưu"}.`));
   const actions = element("div", "intro-actions");
-  actions.append(actionButton("Bắt đầu bài luyện tập", "created-start", startReservedAttempt, "button intro-start"));
+  card.append(renderTimingNotice());
+  const start = actionButton("Bắt đầu bài luyện tập", "created-start", startReservedAttempt, "button intro-start");
+  start.setAttribute("aria-describedby", "attempt-timing-notice");
+  actions.append(start);
   actions.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
   card.append(actions);
   fragment.append(card, footerNote());
@@ -819,7 +829,7 @@ function renderExamIntro(domain) {
   for (const [title, detail] of persistentMode ? [
     ["Làm theo từng câu", "Loại câu hỏi và lựa chọn được mô tả cùng nội dung đã gửi bởi máy chủ."],
     ["Chờ xác nhận lưu", "Một lựa chọn chỉ được đánh dấu đã lưu sau khi máy chủ xác nhận."],
-    ["Thời hạn chạy liên tục", "Thời gian ngoại tuyến cũng tính; đồng hồ máy chủ quyết định thời điểm kết thúc."],
+    ["Thời hạn chạy liên tục", "Thời gian ngoại tuyến cũng tính; tải lại không kéo dài hạn nộp và không có thời gian gia hạn."],
   ] : [
     ["Chọn phương án hoặc đúng/sai", "Ba câu trắc nghiệm có một đáp án đúng; câu cuối yêu cầu đánh giá từng mệnh đề. Bạn có thể xóa lựa chọn trước khi nộp."],
     ["Lựa chọn được lưu", "Trạng thái chỉ được cập nhật sau khi máy chủ demo xác nhận đã ghi nhận."],
@@ -862,6 +872,10 @@ function renderExamIntro(domain) {
   );
   start.disabled = state.busy || (persistentMode && ((activePersistentAttempt !== null && !sameActiveDomain) || (!domain.available && !sameActiveDomain)));
   actions.append(start);
+  if (persistentMode) {
+    start.setAttribute("aria-describedby", "attempt-timing-notice");
+    card.insertBefore(renderTimingNotice(), structure);
+  }
   card.insertBefore(actions, structure);
   page.append(card);
   fragment.append(page, footerNote());
@@ -922,6 +936,7 @@ function domainCard(domain) {
     }
     cardFooter.append(actions);
     const start = actions.querySelector("[data-testid='demo-start']");
+    if (persistentMode && start) start.setAttribute("aria-describedby", "attempt-timing-notice");
     if (start && !start.disabled) start.disabled = state.busy || (persistentMode && !domain.available && !sameActiveDomain);
   } else {
     card.append(element("p", "catalog-card-note", persistentMode ? "Đề nghị này đang đóng theo danh mục máy chủ." : "Nội dung demo chưa được chuẩn bị cho lĩnh vực này."));
@@ -989,7 +1004,9 @@ function renderCatalog() {
     filters.append(control);
   }
   for (const domain of state.catalog) grid.append(domainCard(domain));
-  panel.append(panelHeader, filters, grid);
+  panel.append(panelHeader);
+  if (persistentMode) panel.append(renderTimingNotice());
+  panel.append(filters, grid);
   if (persistentMode && state.attempt) {
     const current = element("section", "staff-callout persistent-current-attempt");
     current.dataset.testid = "persistent-current-attempt";

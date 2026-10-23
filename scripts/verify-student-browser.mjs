@@ -131,6 +131,14 @@ async function click(id) {
   await command('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point });
   await command('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point });
 }
+async function assertTimingNotice(startId) {
+  const evidence = await evaluate(`(()=>{const notice=${query('timing-notice')},button=${query(startId)};if(!notice||!button)return null;const b=notice.getBoundingClientRect(),style=getComputedStyle(notice);return{text:notice.textContent,visible:b.width>0&&b.height>0&&style.visibility!=='hidden'&&style.display!=='none',before:Boolean(notice.compareDocumentPosition(button)&Node.DOCUMENT_POSITION_FOLLOWING),described:button.getAttribute('aria-describedby')===notice.id}})()`);
+  assert.notEqual(evidence, null, 'required offline/no-grace notice exists before start');
+  assert.match(evidence.text, /Mất kết nối.*tải lại/); assert.match(evidence.text, /không dừng.*không kéo dài.*không có thời gian gia hạn/);
+  assert.match(evidence.text, /máy chủ đã ghi nhận/); assert.match(evidence.text, /chưa được xác nhận có thể chưa được lưu/);
+  assert.equal(evidence.visible, true); assert.equal(evidence.before, true); assert.equal(evidence.described, true);
+  (report.timingNoticeChecks ??= []).push({ startId, visible: true, beforeControl: true, described: true });
+}
 async function capture(name) {
   await evaluate('document.fonts.ready.then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))');
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'), true, 'no horizontal overflow');
@@ -474,6 +482,7 @@ try {
   } else {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
+    await assertTimingNotice('demo-start');
     if (newOnlyTest) {
       workerState.available = true;
       await runNewOnlyJourney({ evaluate, click, query, waitFor, fixture, capture, report });
@@ -483,12 +492,12 @@ try {
         openSecondTab, second: () => ({ evaluate: secondEvaluate, waitFor: secondWaitFor, click: secondClick, command: secondCommand }) });
     } else if (admissionTest) {
       workerState.available = true;
-      await runAdmissionJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, requestRecords });
+      await runAdmissionJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, requestRecords, assertTimingNotice });
     } else if (warningResumeTest) {
       workerState.available = true;
       await runWarningResumeJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });
     } else if (reservationTest) {
-      await runReservationJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, workerState, requestRecords, late: reservationLateTest });
+      await runReservationJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, workerState, requestRecords, late: reservationLateTest, assertTimingNotice });
     } else if (rateLimitTest) {
       workerState.available = !rateLimitExpiryTest;
       const journey = rateLimitExpiryTest ? runRateLimitExpiryJourney : runRateLimitJourney;

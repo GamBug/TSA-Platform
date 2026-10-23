@@ -1,3 +1,47 @@
+# Current handoff — pre-start timing policy disclosed
+
+2026-10-23, `feat/track-b-data-auth`, base `94b9c17`; accountable Sol6.1.
+[Baseline, product fix, fresh commands/review and next work](../reviews/WEB_004_PRESTART_TIMING_VERIFICATION.md).
+Actual baseline lacked mandatory offline/no-grace disclosure. Shared static notice
+now precedes persistent catalog, CREATED and intro start controls with linked
+aria-describedby. Continuous server time, offline/reload/no extension/grace and
+truthful uncertain-save wording; no lost-ACK exclusion promise. No new modal/gate,
+clock/auth/API/schema/publication logic; mock unchanged.
+
+Host restarted during checks: missing handles/temp logs, worktree intact. Do not
+count interrupted checks as passes. Fresh default/reserved24/admission40/keyboard
+76focus/18AX/22responses, B031/contracts106/consumers11/build/typecheck/emitted smoke/
+drift/import/docs PASS. Coordinator inspected notice above reserved-start button.
+Separate Sol6.1/Medium final no P1/P2; current state12/syntax/whitespace independent,
+no independent PG/browser run. Rendered geometry/linkage not qualified AT proof.
+Existing module-type/historical whitespace warnings remain. Full student/Bank/
+assembly/attempt/foundation/directory/Firefox not rerun for static notice change.
+
+Bounded student-path audit found no further concrete product behavior gap, not
+formal WEB/EXAM/SCORE acceptance or exhaustive bug-free proof. Stop synthetic
+browser variants without an actual requirement gap. Manual accessibility packet
+updated for timing-description/shared passage; human outcomes NOT TESTED, owner
+asked for qualified reviewer/platform. No reviewer identity/result fabricated.
+
+Reservations released; owner AGENTS/research byte-preserved and unstaged. Broad
+goal active; G1 accepted/G2/G3 OWNER_ACCEPTED unchanged. Full WEB/OPS/pilot, lawful
+inventory, qualified human review, manual AT/native zoom and Track A outstanding.
+No push/merge/deploy/Astra/paid API/live student inference/unauthorized publication.
+Owned fresh browser/runtime/PostgreSQL fixtures cleaned.
+
+Next independent executable EXAM-002/OPS-001 card: **abrupt PostgreSQL shutdown
+recovery** on owned isolated synthetic fixture. Existing PG fast restart, app
+SIGKILL and logical restore do not prove this. Inspect/assert fsync/full-page/
+synchronous-commit settings; exercise immediate shutdown/restart for confirmed
+queued/leased jobs, exact snapshots/answers/history/clocks, lease fencing, single
+score/release and invalidated old postmaster-bound fixture publication scope.
+Reuse existing helpers/contracts, retain graceful default behavior; no production
+DB, host/power-loss/RPO/RTO/capacity/deployment claim. Recommended Sol6.1/High while
+Luna remains usage-limited; separate Sol6.1/Medium read-only engineering review.
+Human accessibility assignment remains a separate pending acceptance input.
+
+---
+
 # Current handoff — successive NEW_ONLY and exhaustion verified
 
 2026-10-23, `feat/track-b-data-auth`, base `88a09ea`; accountable Sol6.1.

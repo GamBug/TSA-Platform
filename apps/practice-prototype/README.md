@@ -234,6 +234,12 @@ actual unseen-inventory shortage. The failed allocation leaves both prior forms,
 history and released scores unchanged; no reuse or generation fallback is added.
 These test-only passages are not qualified human-reviewed production inventory.
 
+Persistent catalog, reserved-start and details screens disclose continuous server
+time, offline/reload behavior and no grace before start. Unconfirmed saves remain
+uncertain; results use server-recorded answers. Existing default, reservation and
+admission browser commands check the rendered notice and its start-control
+accessible description. No extra confirmation step is required.
+
 The closed-save regression uses two real browser tabs against an isolated
 PostgreSQL fixture. One tab submits while the other tries to save; an offline
 state-read retry preserves its pending edit. A second scenario loses a committed

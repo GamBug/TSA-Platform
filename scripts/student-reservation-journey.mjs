@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 /** Real CREATED recovery; admission cap shortens the wait, never the600s policy. */
-export async function runReservationJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, workerState, requestRecords, late }) {
+export async function runReservationJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, workerState, requestRecords, late, assertTimingNotice }) {
   if (late) await fixture.pool.query(`UPDATE tsa.blueprint_offerings SET available_until=clock_timestamp()+interval '12 seconds',revision=revision+1 WHERE blueprint_version_id=$1`, [fixture.blueprint.versionId]);
   const reserved = await evaluate(`fetch('/api/v1/attempts',{method:'POST',headers:{'content-type':'application/json','x-csrf-token':decodeURIComponent(document.cookie.split('; ').find(s=>s.startsWith('tsa_local_csrf=')).split('=')[1]),'idempotency-key':crypto.randomUUID()},body:JSON.stringify({blueprintVersionId:${JSON.stringify(fixture.blueprint.versionId)}})}).then(async r=>({status:r.status,body:await r.json()}))`);
   assert.equal(reserved.status, 201); const { attemptId, formId, startBefore } = reserved.body;
@@ -27,6 +27,7 @@ export async function runReservationJourney({ evaluate, command, click, query, w
     await waitFor(`performance.timeOrigin!==${before} && Boolean(${query('created-attempt')})`, 'reload restores reservation without starting');
     assert.equal(await evaluate(`Boolean(document.getElementById('question-title')) || Boolean(${query('timer')})`), false);
     assert.match(await evaluate(`${query('created-attempt')}.textContent`), /Bắt đầu trước.*ICT/);
+    await assertTimingNotice('created-start');
     assert.deepEqual((await fixture.pool.query('SELECT state,started_at,deadline_at FROM tsa.attempts WHERE id=$1', [attemptId])).rows[0], { state: 'CREATED', started_at: null, deadline_at: null });
     assert.deepEqual(await immutable(), original); assert.equal(creationCount(), 1); assert.equal(starts().length, 0);
   }
