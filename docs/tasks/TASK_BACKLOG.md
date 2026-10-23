@@ -1201,6 +1201,16 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 product-completion mission: accountable implementer Codex root;
+IN_PROGRESS. Starting HEAD `b4a8097`, owner AGENTS.md modification and untracked
+research note preserved. Reserved writer scope: public student renderer/styles,
+static asset allowlist, dependency manifest/lock if necessary, existing browser
+checks, demo guide and coordinated records. Frozen timing/scoring/DTO/roles stay
+unchanged. Next repair observed raw-TeX/table readability, verify actual desktop/
+mobile journeys and reproducible three-domain launcher. Recommended Codex Sol6.1/
+High for integration, separate Sol6.1/Medium read-only review; existing subscriptions
+only. Formal accessibility and real-content acceptance remain human inputs.
+
 2026-10-23 grading-failure evidence **IMPLEMENTED / VERIFIED** from `6f7e980`:
 independent audit identified missing real HTTP/browser failed-grading evidence.
 Actual trusted worker retry/backoff/final-failure commands show truthful
@@ -1401,6 +1411,14 @@ Luna is usage-limited, separate Sol6.1/Medium review when available.
 - Required verification: browser multi-tab/offline/reconnect/expiry journeys, keyboard/zoom/screen-reader checks, response/hydration/bundle leakage scan and controlled-clock boundary tests. Suggested agent capability: MEDIUM (Terra). Risk: High — timing/key leakage. Status: IN_PROGRESS for the bounded local integration above; full EXAM/SCORE/WEB acceptance remains outstanding.
 
 ## TEST-002 — Independent critical-invariant and security regression harness
+
+2026-10-23 final HTTP review **INDEPENDENTLY_REVIEWED**: separate native
+`/root/lifecycle_review`, Sol6.1/Medium, reviewed exact `db9c51c..b4a8097` hashes;
+no concrete findings. Independently syntax/whitespace/diagnostic1/actual HTTP4
+PASS (279 responses/28 denied probes). Restricted socket setup initially failed;
+approved unrestricted rerun passed. Service models/broad regressions not rerun
+by reviewer. [Final closure](../reviews/TEST_002_HTTP_LIFECYCLE_VERIFICATION.md#final-independent-review-closure--2026-10-23).
+The pending account below is historical; full TEST-002 remains IN_PROGRESS.
 
 2026-10-23 generated HTTP lifecycle **IMPLEMENTED / COORDINATOR_VERIFIED /
 FINAL_REVIEW_PENDING** from `db9c51c`: actual runtime/auth/cookie/CSRF mutations

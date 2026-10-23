@@ -2,6 +2,21 @@
 
 Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions; ADR-004 H1, H2, H3, the MVP Start TTL and non-retroactive ordinary admission-schedule edits have separate, scoped HUMAN OWNER approvals. Independent review by Antigravity is documented in [ARCHITECTURE_REVIEW_001](../reviews/ARCHITECTURE_REVIEW_001.md); Codex's disposition and changes are in [REVIEW_RESOLUTION_001](../reviews/REVIEW_RESOLUTION_001.md). Neither review is owner approval. Phase 02.75 remains documentation-only by default; the scoped G0 implementation authorization below is the explicit owner authorization for development work and does not authorize paid LLM API calls, production readiness or unresolved ADR changes.
 
+## Track B product-completion execution — 2026-10-23
+
+- Approval identity: human repository owner; date 2026-10-23, Asia/Bangkok.
+- Durable evidence: current owner mission, “AUTONOMOUS TRACK B PRODUCT COMPLETION”:
+  “The human owner has authorized autonomous engineering execution within the
+  established Track B development scope”; “Execute the plan.”
+- Scope: local code, dependencies, PostgreSQL, browser verification, synthetic
+  fixtures, bounded refactoring, documentation, independent agents and local
+  commits; prioritize complete student demo, then authorized staff functionality.
+- Prohibitions retained: push/remote merge/deploy, unapproved frozen-contract
+  changes, unauthorized real content/publication, fabricated rights/human review,
+  Astra/paid model APIs, live student LLM requests and unrelated destructive work.
+- This is engineering execution authority, not qualified accessibility/content
+  acceptance, production readiness or approval of new staff routes/privileges.
+
 ## Lightweight process
 
 Keep significant decisions here until size warrants individual `ADR-NNN-title.md` files in this directory. Each ADR records problem, alternatives, tradeoffs, choice, consequences, migration/rollback and status. Trivial internal naming does not require an ADR. Human approval must record approver, date, exact ADR revision/content scope, conditions and a durable reference or a faithfully recorded owner instruction. If the instruction originated in chat, copy its actionable approval wording into this record; do not depend on chat accessibility. An independent agent review is advice, never owner approval.
