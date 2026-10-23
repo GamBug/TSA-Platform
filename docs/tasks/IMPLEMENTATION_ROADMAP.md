@@ -5,8 +5,8 @@ then the authorized staff subset. Three independently timed persistent domain
 journeys and visible math/table/mobile repairs have automated evidence and
 independent engineering review. [Demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md)
 and [current verification](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md).
-Final clean-checkout reproduction is being refreshed. Existing-route staff metadata
-filters/pages are in progress; private preview/evidence requires the
+Final clean-checkout reproduction PASS at `be4705d`; the bounded local student presentation milestone is complete. Existing-route staff metadata
+filters/pages are independently reviewed and verified; private preview/evidence requires the
 [staff contract decision](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
 Qualified content/rights/accessibility and production requirements remain separate.
 Historical proposed sequencing below is retained, not current gate status.

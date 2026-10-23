@@ -79,7 +79,7 @@ Missing-dependency fallback was structurally reviewed, not simulated by reviewer
 | Three-domain persistent student journey | AUTOMATED_PASS |
 | Math/table/mobile status fixes | AUTOMATED_PASS / INDEPENDENTLY_REVIEWED |
 | Final TEST-002 HTTP extension | INDEPENDENTLY_REVIEWED; full TEST-002 remains IN_PROGRESS |
-| Clean-checkout final demo | Pending final checkpoint reproduction; results appended when executed |
+| Clean-checkout final demo | AUTOMATED_PASS at `be4705d`; executed reproduction below |
 | Staff metadata subset | Implementation assigned separately; full review UI requires decision |
 | Qualified screen reader/native zoom/formal accessibility | MANUAL_CHECK_PENDING; no conformance assertion |
 | Real30-item inventory, rights and independent content review | HUMAN_APPROVAL_REQUIRED |
@@ -91,3 +91,36 @@ rerun for this frontend-only change; earlier bounded evidence remains distinct.
 No hosted CI, real-content qualification, full Technical MVP or production claim.
 Next finish clean-checkout reproduction and integrate the existing-route staff
 metadata slice; do not invent privileged read routes or human evidence.
+
+## Clean-checkout reproduction — be4705d
+
+Coordinator created a fresh local clone with no hardlinks at
+`/tmp/tsa-product-clean-t5ui3tz8`, HEAD `be4705d`. Actual sequential commands:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:student:domains
+npm run test:student:firefox
+node --test tests/integration/student-runtime/fixture-demo.test.mjs
+npm run docs:check
+git status --short
+```
+
+All exited0. Install added24/audited26 packages with zero reported advisories;
+three-domain Chromium PASS78 inspected API responses; Firefox156 PASS; launcher
+PASS7 including all three fixture profiles, explicit opt-in negatives and terminal
+process-group SIGINT shutdown. Docs zero errors/one historical whitespace warning.
+Clean-clone final Git status had no changes. No files were patched in the clone.
+
+Exact root npm launcher printed a loopback student URL and independently served
+HTML/auth/math/license200. Ctrl+C closed that listener; a subsequent fetch failed
+as expected. npm returned1 on interactive cancellation, while direct launcher
+shutdown tests returned0; cancellation is not reported as a clean npm exit.
+
+The bounded local **student demo milestone is complete**: reproducible start,
+explicit synthetic login, three persistent independent-domain journeys, confirmed
+save/reload, submit/grade/released review, truthful errors, desktop/mobile browser
+checks, relevant tests and supervisor walkthrough. This is not full WEB-004,
+TEST-002, Technical MVP, real-content, accessibility or production acceptance.
+Staff work continues separately under the authorized metadata scope.

@@ -92,6 +92,28 @@ same server and read the attempt again before retrying. Never report an uncertai
 save or submission as confirmed. The launcher is local-only; remote access and
 production deployment are outside this guide.
 
+## Optional staff demonstration
+
+Stop the disposable student launcher. In a separate browser profile/private window
+(localhost cookies are shared across ports), start the retained synthetic staff app:
+
+```sh
+NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b
+```
+
+Open the printed URL, choose the staff workspace and the synthetic AUTHOR. Create
+a DRAFT with the existing private template, then filter the version-summary list
+by state or domain and load further pages when available. Rows show exact version
+and content hash; they do not provide private question inspection or rights/review
+evidence. A synthetic REVIEWER can browse permitted summaries and cannot create
+or act as a qualified human approver. Student access is denied at the API too.
+
+Source rights remain UNKNOWN. Do not claim publication or content acceptance.
+Ctrl+C stops this server and owned database, but this separate retained mode keeps
+its ignored `.local/track-b` data; it is not the disposable student's reset behavior.
+The unimplemented private inspection/review interface needs the
+[staff contract decision](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
+
 ## Reproduce verification
 
 From the installed repository root:

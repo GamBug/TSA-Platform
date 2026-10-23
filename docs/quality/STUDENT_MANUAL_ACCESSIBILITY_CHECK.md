@@ -49,7 +49,7 @@ until tested. Human accessibility review is not question-content/rights approval
 | Single choice | Radio group/options are understandable; arrows/Space work and saved state is announced after acknowledgement | NOT TESTED |
 | Multiple choice | Checkbox names and selection minimum are understandable; below-minimum draft is unsaved and blocks navigation/submission | NOT TESTED |
 | True/false groups | Each statement and true/false choice is understandable independently; acknowledged state survives navigation | NOT TESTED |
-| Mathematics | Vietnamese alternative and TeX content are understandable without relying only on visual layout; record duplicate/confusing reading | NOT TESTED |
+| Mathematics | Native MathML formula and authored Vietnamese alternative are understandable; supplied alternatives should avoid duplicate reading. Missing/unsupported rendering retains escaped text. Record confusing reading in exam and released review | NOT TESTED |
 | Table | Caption, column headers and cell relationships can be navigated and understood with assistive technology | NOT TESTED |
 | Submission dialog | Dialog name/summary are understandable; Tab/Shift+Tab remain inside; Escape returns to trigger; confirmation is explicit | NOT TESTED |
 | Pending/result transition | Pending status is understandable; released result focus reaches its heading; score is labelled unofficial practice | NOT TESTED |

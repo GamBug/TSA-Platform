@@ -750,6 +750,19 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-23 existing-route subset **AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**:
+actual Luna/XHigh staff.js/browser implementation, root integration. State/section
+filters,20-row cursor pages, exact version/hash and truthful status; no new routes
+or privileges. Separate actual Sol6.1/Medium found P2 return/reopen stale response,
+delegate repaired per-container lifetime guards and actual browser regression;
+final independent reproduction/staff browser PASS, no unresolved findings.
+Coordinator final staff browser PASS; delegate local15/contracts106/static PASS.
+[Exact scope, finding and evidence](../reviews/WEB_002_METADATA_BROWSER_VERIFICATION.md).
+Writer reservations released; earlier IN_PROGRESS reservation below is historical.
+Full task remains BLOCKED for approved private inspection/evidence/diagnostics
+contracts and required qualified human/content evidence; do not conflate metadata
+state with publication eligibility or synthetic reviewer with qualified approval.
+
 2026-10-23 metadata subset **IN_PROGRESS**, root accountable, actual native
 Luna/XHigh `/root/staff_metadata` owns only `public/app/staff.js` and existing
 staff browser harness; root owns shared styles/records. Current mission authorizes
@@ -767,7 +780,7 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 - Prerequisites: BANK-001, ASSEMBLY-001, AUTH-001; contract approval before separate frontend implementation. Files: src/app staff routes, staff components, tests/e2e/staff/**.
 - Deliverables: functional review queue with version/hash and rights evidence. Acceptance: staff sees exact reviewed version; no silent revision approval; denied roles fail via API too.
 - Required tests: author→independent reviewer→assembly journey, stale review, quarantine/withdrawal, keyboard navigation and XSS fixtures.
-- Priority P1; complexity M; risks: privileged data leaking to shared client bundle. Status: BLOCKED (bank/auth). Suggested implementer: frontend engineer; review: independent security/content workflow reviewer. Actual assignee: none.
+- Priority P1; complexity M; risks: privileged data leaking to shared client bundle. Status: BLOCKED for full private-inspection/review contract; existing metadata subset verified. Suggested implementer: frontend engineer; review: independent security/content workflow reviewer. Actual accountable integrator: Codex root; bounded native Luna/XHigh implementation and Sol6.1/Medium independent engineering review recorded above.
 
 ## TEST-001 — Integrated pilot release evidence
 
@@ -1211,6 +1224,14 @@ publication and formal acceptance separately gated.
 - Required verification: browser fixtures for success, both shortage codes, search exhaustion, conflict/retry and keyboard/screen-reader flow; contract-negative parsing test. Suggested agent capability: MEDIUM (Terra). Risk: Medium — unsafe UX could bypass policy. Status: PROPOSED, blocked on ASSEMBLY-002.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
+
+2026-10-23 bounded local **STUDENT DEMO MILESTONE COMPLETE**, checkpoint `be4705d`:
+fresh no-hardlink clone npm ci/build, Chromium three-domain78, Firefox156 and
+launcher7 PASS; docs pass and clone Git status clean. No database patches.
+[Observed clean reproduction and limits](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md#clean-checkout-reproduction--be4705d).
+This closes the owner's immediate presentation milestone only. Full WEB-004/
+TEST-002 and qualified accessibility/real-content/production acceptance remain
+open. Continue authorized staff metadata subset, then its private-contract decision.
 
 2026-10-23 student product polish **AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**:
 local native MathML replaces raw TeX, semantic readable tables, mobile full save
