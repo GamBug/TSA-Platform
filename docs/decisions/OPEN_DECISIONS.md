@@ -21,6 +21,15 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 
 **PROPOSED / HUMAN_APPROVAL_REQUIRED**:
 [staff read-contract decision packet](WEB_002_STAFF_READ_PROPOSAL.md).
+Exact first increment: [B1.2 DTO/access/rights/read-only proposal](WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md).
+The owner's subsequent `NEXT` authorized continued preparation; it did not specify
+option B, reviewer scope or private-field approval. Approval identity/date/scope
+for this proposed contract remains absent.
+Separate engineering design review is complete, with two concrete issues repaired;
+[record and proposal hash](../reviews/WEB_002_B1_CONTRACT_DESIGN_REVIEW.md).
+B1.2 explicitly includes the narrow proposed migration019 authorship predicate.
+An approval question was sent for this whole revision; no owner answer is recorded.
+
 Existing metadata filtering/pagination uses current route/roles under the product
 mission. Private preview/evidence/eligibility/diagnostics need an explicit bounded
 contract/authorization choice. No approval or reviewer identity is inferred.

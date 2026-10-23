@@ -750,6 +750,25 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-23 B1 design increment **INDEPENDENTLY_REVIEWED / HUMAN_APPROVAL_REQUIRED**:
+[exact B1.2](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md) now specifies private
+GET/DTO, current-role matrix, rights-gated preview and bounded read-only behavior.
+Separate actual Sol6.1/Medium found inaccessible audit evidence and implicit
+current-AUTHOR membership; both repaired in B1.2 with an explicit narrow migration019
+Boolean predicate and current-role checks. Final no blocking design findings;
+[exact review/scope](../reviews/WEB_002_B1_CONTRACT_DESIGN_REVIEW.md). Docs/whitespace
+PASS, runtime tests NOT_EXECUTED for documentation-only work. Root ownership of
+proposal/shared records; reservations released after checkpoint. No implementation
+or approval inferred from `NEXT`; explicit B1.2 approval question pending.
+
+2026-10-23 continuation from `0e9b4fa`: root accountable for the documentation-only
+B1 private-inspection contract proposal. Reserved files: the staff decision packet,
+new exact contract proposal, and coordinated backlog/state/handoff. `NEXT` continues
+engineering work; it is not recorded as approval of unresolved private route/role
+choices. No runtime or contract-package changes before explicit approval.
+Recommended Codex Sol6.1/High for authorization/data projection design, separate
+Sol6.1/Medium read-only review; existing subscriptions only, no paid API.
+
 2026-10-23 existing-route subset **AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**:
 actual Luna/XHigh staff.js/browser implementation, root integration. State/section
 filters,20-row cursor pages, exact version/hash and truthful status; no new routes

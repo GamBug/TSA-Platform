@@ -24,6 +24,16 @@ context needed for a responsible human review screen. The API specification's
 staff table is PROPOSED; the frozen shared registry covers student/released routes.
 A normal synthetic reviewer cannot substitute for a qualified named human.
 
+## Exact bounded contract now available
+
+The [B1.2 private inspection proposal](WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md)
+turns the first useful option-B increment into an exact DTO, role/ownership matrix,
+rights-gated preview, error/bounds policy and implementation acceptance checklist.
+It recommends all independently reviewable IN_REVIEW versions without inventing
+assignments. AUTHOR_OWN requires trusted local creation evidence; imported creator
+claims do not grant access. Raw private evidence/review decisions remain later work.
+This remains PROPOSED; no runtime access or owner approval follows from preparing it.
+
 ## Decision requested
 
 Choose the next approved private staff contract before implementing new routes.

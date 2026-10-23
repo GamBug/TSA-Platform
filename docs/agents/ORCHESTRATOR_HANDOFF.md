@@ -1,3 +1,18 @@
+# Current baton — B1.2 owner decision pending, 2026-10-23
+
+Root prepared/repaired [exact private staff inspection proposal](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md)
+from `0e9b4fa`; actual separate Sol6.1/Medium review found no remaining blockers
+following two repairs. [Review record/hash](../reviews/WEB_002_B1_CONTRACT_DESIGN_REVIEW.md).
+Docs checks PASS; no application changes or runtime tests. Explicit owner approval
+question pending; do not infer authorization from `NEXT`. On approval record exact
+B1.2 disposition first, then implement private GET/DTO/roles/narrow019 function.
+Recommended Sol6.1/High integration, available Luna/XHigh bounded UI with Sol fallback,
+separate Sol6.1/Medium review; existing subscriptions only, no paid API/Astra.
+Owner AGENTS/research unchanged and unstaged; reservations released. Previous
+completed synthetic demo/metadata handoff follows.
+
+---
+
 # Orchestrator handoff — 2026-10-23
 
 Accountable: Codex root. Start branch `feat/track-b-data-auth`, HEAD `b4a8097`;

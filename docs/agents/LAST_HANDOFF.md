@@ -1,3 +1,32 @@
+# Handoff — next private staff contract ready for owner decision
+
+2026-10-23, root accountable, branch `feat/track-b-data-auth`, starting `0e9b4fa`.
+Owner `NEXT` continued engineering preparation. No new private-access approval is
+inferred. The [exact B1.2 proposal](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md)
+now fixes route, private DTO, current staff-role/ownership predicates, independent
+queued-reviewer scope, current-rights preview blocks, read-only behavior, limits,
+errors and narrow proposed019 Boolean authorship function. No runtime/code/grant/
+migration/contract-package implementation was performed.
+
+Actual separate `/root/lifecycle_review`, Sol6.1/Medium, found two P2 design gaps
+in B1.1 (Bank could not read required audit, current AUTHOR role implicit); root
+repaired them in B1.2. Final no blocking design findings; reviewer confirmed one
+explicit B1.2 approval covers the bounded implementation. [Review/hash/evidence](../reviews/WEB_002_B1_CONTRACT_DESIGN_REVIEW.md).
+Coordinator docs/scoped whitespace PASS; runtime tests NOT_EXECUTED for docs-only
+work. Owner AGENTS/research unchanged/excluded. All writer reservations released.
+
+An explicit B1.2 approval question is pending. Do not treat default selection,
+`NEXT`, elapsed time or independent review as owner approval. If the owner approves,
+record identity/date/exact B1.2 scope/evidence in OPEN_DECISIONS, then implement
+within that revision and obtain actual runtime/security review. Recommended Codex
+Sol6.1/High for private data/auth integration; available Luna/XHigh for bounded UI,
+Sol fallback; separate Sol6.1/Medium review. Existing subscriptions only; no paid
+API/Astra/push/merge/deployment. Earlier demo/staff-metadata verification below
+remains distinct and unchanged; real content/accessibility/production inputs remain
+human dependencies.
+
+---
+
 # Handoff — Track B student presentation and staff metadata
 
 2026-10-23, Asia/Bangkok. Accountable integrator: Codex root. Branch
