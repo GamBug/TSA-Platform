@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createPrototypeServer } from '../apps/practice-prototype/server.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
+import { createReviewBrowserFixture } from '../tests/integration/bank/review-browser-fixture.mjs';
 
 const artifacts = path.resolve(process.env.TRACK_B_ARTIFACT_DIR ?? path.join(tmpdir(), 'tsa-track-b-browser-evidence'));
 const browserExecutable = process.env.TRACK_B_BROWSER ?? '/snap/bin/chromium';
@@ -17,6 +18,7 @@ await chmod(scratch, 0o700);
 const profile = await mkdtemp(path.join(tmpdir(), 'tsa-track-b-chromium-'));
 await chmod(profile, 0o700);
 let runtime;
+let reviewFixture;
 let mockServer;
 let browser;
 let socket;
@@ -177,7 +179,7 @@ try {
   await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
   await click('staff-login');
   await waitFor(`Boolean(${query('draft-create')} && ${query('staff-question-list')})`, 'AUTHOR draft workspace');
-  assert.match(await evaluate('document.body.innerText'), /UNKNOWN/);
+  assert.match(await evaluate('document.body.innerText'), /LOCAL_SYNTHETIC_ONLY/);
 
   await evaluate(`(()=>{
     window.__trackBOriginalFetch=window.fetch.bind(window);
@@ -203,6 +205,7 @@ try {
   assert.equal(idempotencyKeys[0], idempotencyKeys[1], 'unchanged retry reuses the original Idempotency-Key');
   const listAfterRetry = await evaluate(`fetch('/api/v1/questions?state=DRAFT&limit=100').then(r=>r.json()).then(r=>r.items)`);
   assert.equal(listAfterRetry.length, 1, 'lost-response retry creates only one committed draft');
+  const createdVersionId = listAfterRetry[0].versionId;
   assert.deepEqual(Object.keys(listAfterRetry[0]).sort(), [
     'contentHash', 'interactionType', 'questionId', 'section', 'state', 'versionId',
   ], 'staff list exposes only safe question metadata');
@@ -258,6 +261,72 @@ try {
   assert.equal(new URL(paginatedListRequests.at(-1)).searchParams.has('cursor'), true, 'load-more follows the server cursor');
   assert.equal(await evaluate(`document.body.innerText.includes('Phiên bản') && document.body.innerText.includes('sha256:')`), true, 'each row displays the exact version and content hash');
   report.checks.push('PostgreSQL metadata list paginates 21 drafts with the server cursor and keyboard-accessible load-more');
+
+  const reviewButtonSelector = `[data-testid="staff-review-inspect"][data-version-id="${createdVersionId}"]`;
+  const reviewButton = `document.querySelector(${JSON.stringify(reviewButtonSelector)})`;
+  const reviewPath = `/api/v1/question-versions/${encodeURIComponent(createdVersionId)}/review-context`;
+  const reviewUrl = `${runtime.origin}${reviewPath}`;
+  async function ensureCreatedReviewButton() {
+    if (await evaluate(`Boolean(${reviewButton})`)) return;
+    const canLoadMore = await evaluate(`Boolean(${query('staff-load-more')} && !${query('staff-load-more')}.hidden)`);
+    if (!canLoadMore) throw new Error('The AUTHOR draft inspection button is not present on the current metadata pages');
+    await click('staff-load-more');
+    await waitFor(`Boolean(${reviewButton})`, 'AUTHOR draft inspection button on the next metadata page');
+  }
+  assert.equal(await evaluate(`Boolean(${reviewButton})`), true, 'each metadata row has an explicit inspection button for its exact version');
+  const reviewRequestsBeforeHover = requests.filter((url) => url === reviewUrl).length;
+  await evaluate(`${reviewButton}.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}))`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(requests.filter((url) => url === reviewUrl).length, reviewRequestsBeforeHover, 'hovering a metadata row does not prefetch private context');
+  await evaluate(`${reviewButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`Boolean(${query('staff-review-context')}?.innerText.includes('Chỉ hiển thị metadata'))`, 'blocked retained-draft private context');
+  assert.equal(await evaluate(`document.activeElement.id`), 'staff-review-title', 'inspection moves keyboard focus to the private-context heading');
+  assert.equal(requests.filter((url) => url === reviewUrl).length, reviewRequestsBeforeHover + 1, 'explicit selection makes one exact-version GET');
+  const blockedContext = await evaluate(`fetch(${JSON.stringify(reviewPath)},{cache:'no-store'}).then(async response=>({status:response.status,body:await response.json()}))`);
+  assert.equal(blockedContext.status, 200);
+  assert.equal(blockedContext.body.version.versionId, createdVersionId);
+  assert.equal(blockedContext.body.workflow.state, 'DRAFT');
+  assert.equal(blockedContext.body.preview.status, 'BLOCKED');
+  assert.equal(blockedContext.body.preview.reason, 'RIGHTS_BLOCKED');
+  assert.equal(Object.hasOwn(blockedContext.body.preview, 'question'), false, 'blocked retained source returns no question, key or explanation object');
+  assert.equal(blockedContext.body.sources.some((source) => source.currentRights?.status === 'UNKNOWN'), true, 'retained source keeps its actual UNKNOWN rights decision');
+  const blockedPanelText = await evaluate(`${query('staff-review-context')}.innerText`);
+  assert.equal(blockedPanelText.includes('LOCAL_SYNTHETIC_ONLY'), true, 'private context discloses the synthetic-only environment');
+  assert.equal(blockedPanelText.includes(blockedContext.body.version.contentHash), true, 'private context shows the exact immutable content hash');
+  assert.equal(blockedPanelText.includes(`revision ${blockedContext.body.workflow.revision}`), true, 'private context shows the workflow revision');
+  assert.equal(blockedPanelText.includes('UNKNOWN'), true, 'private context shows the retained UNKNOWN status without promoting it');
+  assert.equal(blockedPanelText.includes('Synthetic browser verification fixture.'), false, 'blocked panel does not render the draft explanation');
+  assert.equal(blockedPanelText.includes('Nội dung câu hỏi riêng'), false, 'blocked panel does not render the question body');
+  await evaluate(`${query('staff-review-close')}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`!${query('staff-review-context')}`, 'keyboard close of private context');
+  assert.equal(await evaluate(`document.activeElement===${reviewButton}`), true, 'closing returns focus to the exact version button');
+  assert.equal(await evaluate(`${reviewButton}.getAttribute('aria-expanded')`), 'false');
+  await evaluate(`(()=>{
+    window.__trackBFailNextReviewContext=true;
+    const original=window.fetch;
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      if(url.pathname===${JSON.stringify(reviewPath)}&&window.__trackBFailNextReviewContext){
+        window.__trackBFailNextReviewContext=false;
+        return new Response(JSON.stringify({error:{code:'TEMPORARILY_UNAVAILABLE'}}),{status:503,headers:{'content-type':'application/json'}});
+      }
+      return original(input,init);
+    };
+  })()`);
+  await evaluate(`${reviewButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`Boolean(${query('staff-review-context')}?.innerText.includes('chưa thể hoàn tất'))`, 'review-context temporary error');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-retry')})`), true, 'private-context error exposes an explicit retry control');
+  assert.equal(await evaluate(`${query('staff-review-context')}.innerText.includes('Synthetic browser verification fixture.')`), false, 'error panel contains no stale private content');
+  await click('staff-review-retry');
+  await waitFor(`Boolean(${query('staff-review-context')}?.innerText.includes('Chỉ hiển thị metadata'))`, 'review-context retry after temporary failure');
+  assert.equal(await evaluate(`${query('staff-review-context')}.innerText.includes('Synthetic browser verification fixture.')`), false);
+  await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
+  await waitFor(`!${query('staff-review-context')}`, 'Escape close of private context');
+  assert.equal(await evaluate(`document.activeElement===${reviewButton}`), true, 'Escape returns keyboard focus to the triggering version');
+  report.checks.push('retained UNKNOWN-rights draft is blocked metadata-only; exact version, workflow revision and source rights display without private content; inspection is explicit, retryable, and keyboard closable');
 
   await evaluate(`(()=>{
     const state=document.querySelector('#staff-state-filter');
@@ -429,6 +498,7 @@ try {
   await waitFor(`document.body.innerText.includes('không có quyền xem bản nháp')`, 'candidate-specific denial');
   assert.equal(await evaluate(`Boolean(${query('staff-question-list')})`), false);
   assert.equal(await evaluate(`Boolean(${query('staff-refresh')})`), false);
+  assert.equal(await evaluate(`Boolean(${query('staff-review-inspect')})`), false, 'candidate has no private inspection control');
   assert.equal(requests.filter((url) =>
     url === `${runtime.origin}/local/workspace/template` || url.startsWith(`${runtime.origin}/api/v1/questions?`)).length,
   staffDataRequestsBeforeCandidate, 'candidate opening triggers neither template nor list queries');
@@ -439,6 +509,11 @@ try {
   assert.equal(deniedList.body.error.code, 'FORBIDDEN');
   report.checks.push('candidate direct metadata API access is denied with 403 FORBIDDEN');
 
+  const deniedReviewContext = await evaluate(`fetch(${JSON.stringify(reviewPath)},{cache:'no-store'}).then(async response=>({status:response.status,body:await response.json()}))`);
+  assert.equal(deniedReviewContext.status, 403, 'candidate direct private-context API access is denied with 403');
+  assert.equal(deniedReviewContext.body.error.code, 'FORBIDDEN');
+  report.checks.push('candidate direct exact-version review-context access is denied with 403 FORBIDDEN');
+
   await click('staff-logout');
   await waitFor(`Boolean(${query('staff-login')})`, 'login after candidate logout');
   await evaluate(`${query('actor-select')}.value='reviewer'`);
@@ -446,8 +521,198 @@ try {
   await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===20)`, 'synthetic reviewer metadata access');
   assert.equal(await evaluate(`document.body.innerText.includes('không đại diện cho người rà soát độc lập đủ điều kiện')`), true, 'synthetic reviewer is not represented as a qualified human');
   assert.equal(await evaluate(`Boolean(${query('draft-create')})`), false, 'reviewer role does not receive author creation controls');
-  assert.equal(await evaluate(`document.body.innerText.includes('không có nội dung câu hỏi, đáp án, lời giải riêng hoặc bằng chứng rà soát')`), true, 'staff metadata notice discloses unavailable private preview and review evidence');
-  report.checks.push('synthetic REVIEWER sees safe metadata only, without author actions or qualified-human claims');
+  assert.equal(await evaluate(`document.body.innerText.includes('nội dung riêng chỉ được yêu cầu khi bạn chọn đúng phiên bản')`), true, 'staff notice explains that private context is fetched only after explicit selection');
+  report.checks.push('synthetic REVIEWER sees safe metadata and explicit per-version access, without author actions or qualified-human claims');
+
+  reviewFixture = await createReviewBrowserFixture();
+  await command('Page.navigate', { url: reviewFixture.origin });
+  await waitFor(`document.readyState==='complete'&&document.documentElement.lang==='vi'`, 'disposable AVAILABLE review fixture');
+  await click('staff-open');
+  await waitFor(`Boolean(${query('staff-login')})`, 'disposable fixture staff login');
+  await evaluate(`${query('actor-select')}.value='author'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'AVAILABLE fixture draft metadata');
+  const expectedQuestionTexts = [
+    'Bản xem trước tổng hợp 1; không phải nội dung kỳ thi.',
+    'Bản xem trước tổng hợp 2; không phải nội dung kỳ thi.',
+    'Bản xem trước tổng hợp 3; không phải nội dung kỳ thi.',
+  ];
+  assert.equal(reviewFixture.questions.length >= 3, true, 'disposable fixture provides all three interaction types');
+  const availableReviewUrls = reviewFixture.questions.map((item) =>
+    `${reviewFixture.origin}/api/v1/question-versions/${encodeURIComponent(item.versionId)}/review-context`);
+  assert.equal(requests.some((url) => availableReviewUrls.includes(url)), false, 'AVAILABLE review-context is not prefetched while opening the staff workspace');
+  const interactionTypes = new Set();
+  for (const [index, fixtureQuestion] of reviewFixture.questions.slice(0, 3).entries()) {
+    const buttonSelector = `[data-testid="staff-review-inspect"][data-version-id="${fixtureQuestion.versionId}"]`;
+    const inspectButton = `document.querySelector(${JSON.stringify(buttonSelector)})`;
+    const path = `/api/v1/question-versions/${encodeURIComponent(fixtureQuestion.versionId)}/review-context`;
+    const url = `${reviewFixture.origin}${path}`;
+    assert.equal(await evaluate(`Boolean(${inspectButton})`), true, 'AVAILABLE fixture row exposes exact-version inspection');
+    await evaluate(`${inspectButton}.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}))`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(requests.includes(url), false, 'hover does not request AVAILABLE private context');
+    await evaluate(`${inspectButton}.focus()`);
+    await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+    await waitFor(`${query('staff-review-context')}?.innerText.includes(${JSON.stringify(expectedQuestionTexts[index])})`, `AVAILABLE question ${index + 1} preview`);
+    assert.equal(await evaluate(`document.activeElement.id`), 'staff-review-title', 'AVAILABLE context receives keyboard focus');
+    assert.equal(requests.filter((requestUrl) => requestUrl === url).length, 1, 'one explicit selection makes one exact-version GET');
+    const response = await evaluate(`fetch(${JSON.stringify(path)},{cache:'no-store'}).then(async response=>({status:response.status,body:await response.json()}))`);
+    assert.equal(response.status, 200);
+    assert.equal(response.body.version.versionId, fixtureQuestion.versionId);
+    assert.equal(response.body.preview.status, 'AVAILABLE');
+    assert.equal(response.body.environment, 'LOCAL_SYNTHETIC_ONLY');
+    assert.equal(response.body.publicationEligibility, 'NOT_EVALUATED');
+    assert.equal(response.body.rightsEvidenceIncluded, false);
+    const question = response.body.preview.question;
+    interactionTypes.add(question.interaction.type);
+    const panelText = await evaluate(`${query('staff-review-context')}.innerText`);
+    assert.equal(panelText.includes(response.body.version.contentHash), true, 'AVAILABLE view shows exact content hash');
+    assert.equal(panelText.includes(`revision ${response.body.workflow.revision}`), true, 'AVAILABLE view shows workflow revision');
+    assert.equal(panelText.includes(response.body.sources[0].currentRights.status), true, 'AVAILABLE view shows current rights status');
+    assert.equal(panelText.includes(response.body.sources[0].currentRights.decisionId), true, 'AVAILABLE view shows exact current rights decision metadata');
+    assert.equal(panelText.includes('không xác nhận quyền sử dụng hợp pháp'), true, 'AVAILABLE view discloses limits on legal qualification');
+    const expectedAnswer = question.answerKey.type === 'SINGLE_CHOICE' ? question.answerKey.optionId
+      : question.answerKey.type === 'MULTIPLE_CHOICE' ? question.answerKey.optionIds.join(', ')
+        : question.interaction.statements.map((statement) => `${statement.id}: ${question.answerKey.values[statement.id] ? 'Đúng' : 'Sai'}`).join(' · ');
+    assert.equal(panelText.includes(expectedAnswer), true, 'AVAILABLE view renders the answer key for this exact version');
+    assert.equal(panelText.includes('Lời giải tổng hợp riêng để kiểm thử giao diện'), true, 'AVAILABLE view renders the private explanation');
+    assert.equal(await evaluate(`${query('staff-review-context')}.querySelectorAll('img,iframe,script,object,embed').length`), 0, 'safe preview creates no active media or HTML nodes');
+    if (index === 0) {
+      assert.equal(await evaluate(`${query('staff-review-context')}.querySelectorAll('.content-math').length`), 1, 'local math renderer handles the explicit math block');
+      await waitFor(`Boolean(${query('staff-review-context')}?.querySelector('.content-math[data-math-state="rendered"] math msup'))`, 'staff native MathML superscript');
+      assert.equal(await evaluate(`${query('staff-review-context')}.querySelector('table.content-table caption')?.textContent`), 'Bảng tổng hợp riêng');
+      assert.equal(await evaluate(`${query('staff-review-context')}.querySelectorAll('table.content-table th[scope="col"]').length`), 2, 'table uses semantic column headings');
+      assert.equal(await evaluate(`Boolean(${query('staff-review-context')}.querySelector('.content-table-scroll[role="region"][tabindex="0"]'))`), true, 'table overflow has a keyboard-focusable labeled region');
+      await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+      await evaluate(`document.querySelector('.staff-review-preview').scrollIntoView({block:'start'})`);
+      report.privatePreviewMobile = await evaluate(`({innerWidth,documentWidth:document.documentElement.scrollWidth,visualScale:visualViewport.scale})`);
+      assert.equal(report.privatePreviewMobile.innerWidth,375,'private metadata must not expand the mobile layout viewport');
+      await noHorizontalOverflow();
+      await screenshot('staff-private-preview-mobile');
+      await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+      await evaluate(`document.querySelector('.staff-review-preview').scrollIntoView({block:'start'})`);
+      await screenshot('staff-private-preview-desktop');
+    }
+    await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
+    await waitFor(`!${query('staff-review-context')}`, `keyboard close of AVAILABLE question ${index + 1}`);
+    assert.equal(await evaluate(`document.activeElement===${inspectButton}`), true, 'closing the AVAILABLE view restores focus to its exact row button');
+  }
+  assert.deepEqual([...interactionTypes].sort(), ['MULTIPLE_CHOICE', 'SINGLE_CHOICE', 'TRUE_FALSE_GROUP']);
+  report.checks.push('separate disposable rights-valid fixture renders all three interaction types, local math, accessible table, exact rights metadata and private keys/explanations without unsafe DOM or external loads');
+
+  if (reviewFixture.questions.length > 3) {
+    const unsupportedQuestion = reviewFixture.questions[3];
+    const unsupportedButtonSelector = `[data-testid="staff-review-inspect"][data-version-id="${unsupportedQuestion.versionId}"]`;
+    const unsupportedButton = `document.querySelector(${JSON.stringify(unsupportedButtonSelector)})`;
+    const unsupportedPath = `/api/v1/question-versions/${encodeURIComponent(unsupportedQuestion.versionId)}/review-context`;
+    await evaluate(`${unsupportedButton}.focus()`);
+    await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+    await waitFor(`Boolean(${query('staff-review-context')}?.innerText.includes('Chỉ hiển thị metadata'))`, 'unsafe-content metadata-only response');
+    const unsupportedResponse = await evaluate(`fetch(${JSON.stringify(unsupportedPath)},{cache:'no-store'}).then(async response=>({status:response.status,body:await response.json()}))`);
+    assert.equal(unsupportedResponse.status, 200);
+    assert.equal(unsupportedResponse.body.preview.status, 'BLOCKED');
+    assert.equal(unsupportedResponse.body.preview.reason, 'CONTENT_UNSUPPORTED');
+    assert.equal(Object.hasOwn(unsupportedResponse.body.preview, 'question'), false, 'unsupported-content response omits the full question graph');
+    assert.equal(await evaluate(`${query('staff-review-context')}.querySelectorAll('img,iframe,script,object,embed').length`), 0, 'unsafe blocked content creates no active DOM nodes');
+    await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
+    await waitFor(`!${query('staff-review-context')}`, 'close unsupported-content inspection');
+    report.checks.push('real unsafe-content fixture returns CONTENT_UNSUPPORTED metadata-only with no active or external media');
+  }
+
+  const availableQuestion = reviewFixture.questions[0];
+  const availablePath = `/api/v1/question-versions/${encodeURIComponent(availableQuestion.versionId)}/review-context`;
+  const availableButtonSelector = `[data-testid="staff-review-inspect"][data-version-id="${availableQuestion.versionId}"]`;
+  const availableButton = `document.querySelector(${JSON.stringify(availableButtonSelector)})`;
+  await evaluate(`(()=>{
+    window.__trackBHoldNextReviewResponse=true;
+    window.__trackBReviewResponseHeld=false;
+    window.__trackBHeldReviewStatus=null;
+    window.__trackBReleaseReviewResponse=null;
+    window.__trackBHoldNextLogoutResponse=true;
+    window.__trackBLogoutResponseHeld=false;
+    window.__trackBReleaseLogoutResponse=null;
+    const original=window.fetch;
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      const response=await original(input,init);
+      if(url.pathname===${JSON.stringify(availablePath)}&&window.__trackBHoldNextReviewResponse){
+        window.__trackBHoldNextReviewResponse=false;
+        const payload=await response.clone().json();
+        window.__trackBHeldReviewStatus=payload.preview.status;
+        window.__trackBReviewResponseHeld=true;
+        await new Promise(resolve=>window.__trackBReleaseReviewResponse=resolve);
+        return new Response(JSON.stringify(payload),{status:response.status,headers:{'content-type':'application/json'}});
+      }
+      if(url.pathname==='/local-auth/logout'&&window.__trackBHoldNextLogoutResponse){
+        window.__trackBHoldNextLogoutResponse=false;
+        window.__trackBLogoutResponseHeld=true;
+        await new Promise(resolve=>window.__trackBReleaseLogoutResponse=resolve);
+      }
+      return response;
+    };
+  })()`);
+  await evaluate(`${availableButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor('window.__trackBReviewResponseHeld===true', 'AVAILABLE private response held before logout');
+  assert.equal(await evaluate('window.__trackBHeldReviewStatus'), 'AVAILABLE', 'late-response case holds a real AVAILABLE server response');
+  await click('staff-logout');
+  await waitFor('window.__trackBLogoutResponseHeld===true', 'logout response held after the private view cleared');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-context')})`), false, 'logout clears the private view before its network response');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(expectedQuestionTexts[0])})`), false, 'logout removes the question text immediately');
+  await evaluate('window.__trackBReleaseLogoutResponse()');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login after clearing AVAILABLE private view on logout');
+  await evaluate(`${query('actor-select')}.value='reviewer'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'reviewer identity after logout');
+  await evaluate('window.__trackBReleaseReviewResponse()');
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(await evaluate(`Boolean(${query('staff-review-context')})`), false, 'late AUTHOR response cannot reinsert private content after logout and reviewer login');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(expectedQuestionTexts[0])})`), false, 'late AVAILABLE response remains absent after identity change');
+  report.checks.push('a real AVAILABLE response arriving after logout and AUTHOR-to-REVIEWER identity change cannot restore private content');
+
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login before return/reopen response test');
+  await evaluate(`${query('actor-select')}.value='author'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'AUTHOR identity before return/reopen response test');
+  await evaluate(`(()=>{
+    window.__trackBHoldNextReturnReview=true;
+    window.__trackBReturnReviewHeld=false;
+    window.__trackBHeldReturnReviewStatus=null;
+    window.__trackBReleaseReturnReview=null;
+    const original=window.fetch;
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      const response=await original(input,init);
+      if(url.pathname===${JSON.stringify(availablePath)}&&window.__trackBHoldNextReturnReview){
+        window.__trackBHoldNextReturnReview=false;
+        const payload=await response.clone().json();
+        window.__trackBHeldReturnReviewStatus=payload.preview.status;
+        window.__trackBReturnReviewHeld=true;
+        await new Promise(resolve=>window.__trackBReleaseReturnReview=resolve);
+        return new Response(JSON.stringify(payload),{status:response.status,headers:{'content-type':'application/json'}});
+      }
+      return response;
+    };
+  })()`);
+  await evaluate(`${availableButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor('window.__trackBReturnReviewHeld===true', 'AVAILABLE private response held before return');
+  assert.equal(await evaluate('window.__trackBHeldReturnReviewStatus'), 'AVAILABLE');
+  await click('staff-return');
+  await waitFor(`Boolean(${query('staff-open')})`, 'landing after return clears the private view');
+  await click('staff-open');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'reopened AUTHOR workspace');
+  await evaluate('window.__trackBReleaseReturnReview()');
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(await evaluate(`Boolean(${query('staff-review-context')})`), false, 'late response from the exited workspace cannot restore private content after reopen');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(expectedQuestionTexts[0])})`), false, 'reopened workspace contains metadata only until another explicit inspection');
+  await evaluate(`${availableButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`${query('staff-review-context')}?.innerText.includes(${JSON.stringify(expectedQuestionTexts[0])})`, 'explicit reinspection after workspace reopen');
+  await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
+  await waitFor(`!${query('staff-review-context')}`, 'close of reopened private inspection');
+  report.checks.push('return/reopen invalidates a pending real AVAILABLE response and a later explicit inspection works');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });
@@ -457,7 +722,8 @@ try {
   assert.equal(await evaluate(`Boolean(${query('staff-login')})`), false);
   report.checks.push('mock-only B0 link reports workspace unavailable instead of a fake login');
   assert.equal(errors.length, 0, JSON.stringify(errors));
-  assert.deepEqual(requests.filter((url) => /^https?:/.test(url) && !url.startsWith(`${runtime.origin}/`) && !url.startsWith(`${mockOrigin}/`)), []);
+  assert.deepEqual(requests.filter((url) => /^https?:/.test(url) && !url.startsWith(`${runtime.origin}/`)
+    && !url.startsWith(`${reviewFixture.origin}/`) && !url.startsWith(`${mockOrigin}/`)), []);
   report.checks.push('no uncaught browser errors or external page requests');
   await writeFile(path.join(artifacts, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ result: 'PASS', ...report }, null, 2));
@@ -472,6 +738,7 @@ try {
   socket?.close();
   await stopChild(browser).catch((error) => { console.error(error); process.exitCode = 1; });
   if (mockServer?.listening) await new Promise((resolve) => mockServer.close(resolve));
+  if (reviewFixture) await reviewFixture.close().catch((error) => { console.error(error); process.exitCode = 1; });
   if (runtime) await runtime.close().catch((error) => { console.error(error); process.exitCode = 1; });
   await rm(profile, { recursive: true, force: true }).catch(() => {});
   await rm(scratch, { recursive: true, force: true }).catch((error) => { console.error(error); process.exitCode = 1; });

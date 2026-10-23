@@ -12,6 +12,11 @@ Executed keyboard/reflow and Firefox checks (2026-10-22) are recorded in
 Half-width reflow and AX smoke checks do not establish native zoom, qualified
 screen-reader testing or WCAG conformance. See that record for actual limitations.
 
+Executed private staff B1 evidence (2026-10-23):
+[role/rights/read-only/upgrade/browser checks](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md).
+These are local synthetic engineering checks, separate from human content,
+accessibility and production acceptance.
+
 ## Layers and release policy
 
 Unit tests cover pure scoring, response normalization, blueprint validators and policy transitions. Property tests are useful for answer-set permutations, randomized state sequences and assembly invariants; a large random sample is evidence, not mathematical proof. Integration tests use real PostgreSQL and exercise transaction ordering, uniqueness, triggers, queue leases and rollback. SQLite/mocked repositories cannot establish these properties.

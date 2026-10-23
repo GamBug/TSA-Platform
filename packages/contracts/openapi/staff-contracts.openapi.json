@@ -1,0 +1,1831 @@
+{
+  "components": {
+    "parameters": {},
+    "schemas": {
+      "StaffForbiddenResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "FORBIDDEN"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffNotFoundResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "NOT_FOUND"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffReviewContext": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER",
+              "AUTHOR_OWN",
+              "REVIEW_QUEUE"
+            ],
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string"
+          },
+          "preview": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "question": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "answerKey": {
+                        "oneOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "optionId": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "type": {
+                                "enum": [
+                                  "SINGLE_CHOICE"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "optionId"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "optionIds": {
+                                "items": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "minItems": 1,
+                                "type": "array"
+                              },
+                              "type": {
+                                "enum": [
+                                  "MULTIPLE_CHOICE"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "optionIds"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "TRUE_FALSE_GROUP"
+                                ],
+                                "type": "string"
+                              },
+                              "values": {
+                                "additionalProperties": {
+                                  "type": "boolean"
+                                },
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "values"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "content": {
+                        "items": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "text": {
+                                  "maxLength": 20000,
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "text"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "text"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "accessibleText": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "display": {
+                                  "type": "boolean"
+                                },
+                                "tex": {
+                                  "maxLength": 4000,
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "math"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "tex",
+                                "display",
+                                "accessibleText"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "caption": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "items": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "maxItems": 20,
+                                  "minItems": 1,
+                                  "type": "array"
+                                },
+                                "rows": {
+                                  "items": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "type": "array"
+                                  },
+                                  "maxItems": 100,
+                                  "minItems": 1,
+                                  "type": "array"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "table"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "caption",
+                                "headers",
+                                "rows"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "alt": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "assetVersionId": {
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                  "type": "string"
+                                },
+                                "caption": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "image"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "assetVersionId",
+                                "alt"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "maxItems": 100,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "explanation": {
+                        "items": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "text": {
+                                  "maxLength": 20000,
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "text"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "text"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "accessibleText": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "display": {
+                                  "type": "boolean"
+                                },
+                                "tex": {
+                                  "maxLength": 4000,
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "math"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "tex",
+                                "display",
+                                "accessibleText"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "caption": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "items": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "maxItems": 20,
+                                  "minItems": 1,
+                                  "type": "array"
+                                },
+                                "rows": {
+                                  "items": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "type": "array"
+                                  },
+                                  "maxItems": 100,
+                                  "minItems": 1,
+                                  "type": "array"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "table"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "caption",
+                                "headers",
+                                "rows"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "alt": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "assetVersionId": {
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                  "type": "string"
+                                },
+                                "caption": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "image"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "assetVersionId",
+                                "alt"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "maxItems": 100,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "interaction": {
+                        "oneOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "options": {
+                                "items": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "content": {
+                                      "items": {
+                                        "oneOf": [
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "text": {
+                                                "maxLength": 20000,
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "text"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "text"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "accessibleText": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "display": {
+                                                "type": "boolean"
+                                              },
+                                              "tex": {
+                                                "maxLength": 4000,
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "math"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "tex",
+                                              "display",
+                                              "accessibleText"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "caption": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "headers": {
+                                                "items": {
+                                                  "minLength": 1,
+                                                  "type": "string"
+                                                },
+                                                "maxItems": 20,
+                                                "minItems": 1,
+                                                "type": "array"
+                                              },
+                                              "rows": {
+                                                "items": {
+                                                  "items": {
+                                                    "type": "string"
+                                                  },
+                                                  "type": "array"
+                                                },
+                                                "maxItems": 100,
+                                                "minItems": 1,
+                                                "type": "array"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "table"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "caption",
+                                              "headers",
+                                              "rows"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "alt": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "assetVersionId": {
+                                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                "type": "string"
+                                              },
+                                              "caption": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "image"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "assetVersionId",
+                                              "alt"
+                                            ],
+                                            "type": "object"
+                                          }
+                                        ]
+                                      },
+                                      "maxItems": 100,
+                                      "minItems": 1,
+                                      "type": "array"
+                                    },
+                                    "id": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "content"
+                                  ],
+                                  "type": "object"
+                                },
+                                "maxItems": 10,
+                                "minItems": 2,
+                                "type": "array"
+                              },
+                              "type": {
+                                "enum": [
+                                  "SINGLE_CHOICE"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "options"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "maxSelections": {
+                                "minimum": 1,
+                                "type": "integer"
+                              },
+                              "minSelections": {
+                                "minimum": 1,
+                                "type": "integer"
+                              },
+                              "options": {
+                                "items": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "content": {
+                                      "items": {
+                                        "oneOf": [
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "text": {
+                                                "maxLength": 20000,
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "text"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "text"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "accessibleText": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "display": {
+                                                "type": "boolean"
+                                              },
+                                              "tex": {
+                                                "maxLength": 4000,
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "math"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "tex",
+                                              "display",
+                                              "accessibleText"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "caption": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "headers": {
+                                                "items": {
+                                                  "minLength": 1,
+                                                  "type": "string"
+                                                },
+                                                "maxItems": 20,
+                                                "minItems": 1,
+                                                "type": "array"
+                                              },
+                                              "rows": {
+                                                "items": {
+                                                  "items": {
+                                                    "type": "string"
+                                                  },
+                                                  "type": "array"
+                                                },
+                                                "maxItems": 100,
+                                                "minItems": 1,
+                                                "type": "array"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "table"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "caption",
+                                              "headers",
+                                              "rows"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "alt": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "assetVersionId": {
+                                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                "type": "string"
+                                              },
+                                              "caption": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "image"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "assetVersionId",
+                                              "alt"
+                                            ],
+                                            "type": "object"
+                                          }
+                                        ]
+                                      },
+                                      "maxItems": 100,
+                                      "minItems": 1,
+                                      "type": "array"
+                                    },
+                                    "id": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "content"
+                                  ],
+                                  "type": "object"
+                                },
+                                "maxItems": 10,
+                                "minItems": 2,
+                                "type": "array"
+                              },
+                              "type": {
+                                "enum": [
+                                  "MULTIPLE_CHOICE"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "options",
+                              "minSelections",
+                              "maxSelections"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "statements": {
+                                "items": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "content": {
+                                      "items": {
+                                        "oneOf": [
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "text": {
+                                                "maxLength": 20000,
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "text"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "text"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "accessibleText": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "display": {
+                                                "type": "boolean"
+                                              },
+                                              "tex": {
+                                                "maxLength": 4000,
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "math"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "tex",
+                                              "display",
+                                              "accessibleText"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "caption": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "headers": {
+                                                "items": {
+                                                  "minLength": 1,
+                                                  "type": "string"
+                                                },
+                                                "maxItems": 20,
+                                                "minItems": 1,
+                                                "type": "array"
+                                              },
+                                              "rows": {
+                                                "items": {
+                                                  "items": {
+                                                    "type": "string"
+                                                  },
+                                                  "type": "array"
+                                                },
+                                                "maxItems": 100,
+                                                "minItems": 1,
+                                                "type": "array"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "table"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "caption",
+                                              "headers",
+                                              "rows"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "alt": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "assetVersionId": {
+                                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                "type": "string"
+                                              },
+                                              "caption": {
+                                                "minLength": 1,
+                                                "type": "string"
+                                              },
+                                              "type": {
+                                                "enum": [
+                                                  "image"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "assetVersionId",
+                                              "alt"
+                                            ],
+                                            "type": "object"
+                                          }
+                                        ]
+                                      },
+                                      "maxItems": 100,
+                                      "minItems": 1,
+                                      "type": "array"
+                                    },
+                                    "id": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "content"
+                                  ],
+                                  "type": "object"
+                                },
+                                "maxItems": 10,
+                                "minItems": 1,
+                                "type": "array"
+                              },
+                              "type": {
+                                "enum": [
+                                  "TRUE_FALSE_GROUP"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "statements"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "language": {
+                        "enum": [
+                          "vi-VN"
+                        ],
+                        "type": "string"
+                      },
+                      "scoringPolicyVersion": {
+                        "type": "string"
+                      },
+                      "stimulus": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "content": {
+                            "items": {
+                              "oneOf": [
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "text": {
+                                      "maxLength": 20000,
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "enum": [
+                                        "text"
+                                      ],
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "text"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "accessibleText": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "display": {
+                                      "type": "boolean"
+                                    },
+                                    "tex": {
+                                      "maxLength": 4000,
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "enum": [
+                                        "math"
+                                      ],
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "tex",
+                                    "display",
+                                    "accessibleText"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "caption": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "headers": {
+                                      "items": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                      },
+                                      "maxItems": 20,
+                                      "minItems": 1,
+                                      "type": "array"
+                                    },
+                                    "rows": {
+                                      "items": {
+                                        "items": {
+                                          "type": "string"
+                                        },
+                                        "type": "array"
+                                      },
+                                      "maxItems": 100,
+                                      "minItems": 1,
+                                      "type": "array"
+                                    },
+                                    "type": {
+                                      "enum": [
+                                        "table"
+                                      ],
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "caption",
+                                    "headers",
+                                    "rows"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "alt": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "assetVersionId": {
+                                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                      "type": "string"
+                                    },
+                                    "caption": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "enum": [
+                                        "image"
+                                      ],
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "assetVersionId",
+                                    "alt"
+                                  ],
+                                  "type": "object"
+                                }
+                              ]
+                            },
+                            "maxItems": 100,
+                            "minItems": 1,
+                            "type": "array"
+                          },
+                          "contentHash": {
+                            "pattern": "^sha256:[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "versionId": {
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "versionId",
+                          "contentHash",
+                          "content"
+                        ],
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "language",
+                      "content",
+                      "interaction",
+                      "answerKey",
+                      "explanation",
+                      "scoringPolicyVersion",
+                      "stimulus"
+                    ],
+                    "type": "object"
+                  },
+                  "status": {
+                    "enum": [
+                      "AVAILABLE"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "question"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "enum": [
+                      "RIGHTS_BLOCKED",
+                      "CONTENT_UNSUPPORTED",
+                      "WORKFLOW_HELD"
+                    ],
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "BLOCKED"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "reason"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "publicationEligibility": {
+            "enum": [
+              "NOT_EVALUATED"
+            ],
+            "type": "string"
+          },
+          "rightsEvidenceIncluded": {
+            "enum": [
+              false
+            ],
+            "type": "boolean"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-review-context/1"
+            ],
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "contentHash": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "currentRights": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowedUses": {
+                      "items": {
+                        "enum": [
+                          "DISPLAY",
+                          "ADAPT",
+                          "GENERATE",
+                          "TRAIN"
+                        ],
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "decisionId": {
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "exclusiveMinimum": 0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "OWNED",
+                        "LICENSED",
+                        "OPEN_LICENSE",
+                        "PUBLIC_DOMAIN",
+                        "REFERENCE_ONLY",
+                        "UNKNOWN",
+                        "REVOKED"
+                      ],
+                      "type": "string"
+                    },
+                    "territory": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "validFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "validTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "decisionId",
+                    "revision",
+                    "status",
+                    "allowedUses",
+                    "territory",
+                    "validFrom",
+                    "validTo"
+                  ],
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "origin": {
+                  "enum": [
+                    "OWNED",
+                    "EXTERNAL",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sourceVersionId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sourceVersionId",
+                "contentHash",
+                "origin",
+                "currentRights"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "version": {
+            "additionalProperties": false,
+            "properties": {
+              "contentHash": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "parentVersionId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "questionId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "section": {
+                "enum": [
+                  "MATH",
+                  "READING",
+                  "SCIENCE"
+                ],
+                "type": "string"
+              },
+              "versionId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "versionNo": {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "questionId",
+              "versionId",
+              "versionNo",
+              "parentVersionId",
+              "section",
+              "contentHash"
+            ],
+            "type": "object"
+          },
+          "workflow": {
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              "state": {
+                "enum": [
+                  "DRAFT",
+                  "IN_REVIEW",
+                  "APPROVED",
+                  "REJECTED",
+                  "QUARANTINED",
+                  "RETIRED"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "state",
+              "revision"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "observedAt",
+          "accessBasis",
+          "environment",
+          "version",
+          "workflow",
+          "sources",
+          "preview",
+          "rightsEvidenceIncluded",
+          "publicationEligibility"
+        ],
+        "type": "object"
+      },
+      "StaffReviewContextPathParams": {
+        "additionalProperties": false,
+        "properties": {
+          "versionId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versionId"
+        ],
+        "type": "object"
+      },
+      "StaffTemporarilyUnavailableResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "TEMPORARILY_UNAVAILABLE"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffUnauthenticatedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "UNAUTHENTICATED"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffValidationErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "VALIDATION_ERROR"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "One private inspection operation for the local synthetic staff runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+    "title": "TSA Platform private staff API contracts",
+    "version": "staff-review-context/1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/question-versions/{versionId}/review-context": {
+      "get": {
+        "operationId": "staffReviewContext",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffReviewContext"
+                }
+              }
+            },
+            "description": "Private review context for an exact question version",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks a permitted staff basis",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "Version is not visible to this staff principal",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Malformed path or unexpected query/body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored projection or dependency closure is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a bounded private staff review context"
+      }
+    }
+  },
+  "webhooks": {}
+}

@@ -19,6 +19,10 @@
     "./internal": {
       "types": "./src/internal.ts",
       "default": "./src/internal.ts"
+    },
+    "./staff": {
+      "types": "./src/staff.ts",
+      "default": "./src/staff.ts"
     }
   },
   "dependencies": {

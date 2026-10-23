@@ -1,5 +1,14 @@
 # Implementation roadmap
 
+Current B1.2 staff increment, 2026-10-23: owner-approved private version inspection,
+read-only role/rights guards and narrow019 authorship predicate are implemented and
+independently reviewed, with actual PostgreSQL/Chromium/Firefox evidence.
+[Runtime verification](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md) and
+[staff demonstration](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+Clean-checkout reproduction is the final checkpoint step. Full staff evidence/
+review/publication/diagnostics and human inventory/accessibility remain separate;
+B1 approval does not grant those capabilities. Prior sequencing below is historical.
+
 Current execution focus, 2026-10-23: complete the local Track B presentation,
 then the authorized staff subset. Three independently timed persistent domain
 journeys and visible math/table/mobile repairs have automated evidence and

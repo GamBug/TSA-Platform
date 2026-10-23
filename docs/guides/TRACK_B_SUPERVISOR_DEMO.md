@@ -102,17 +102,35 @@ NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b
 ```
 
 Open the printed URL, choose the staff workspace and the synthetic AUTHOR. Create
-a DRAFT with the existing private template, then filter the version-summary list
-by state or domain and load further pages when available. Rows show exact version
-and content hash; they do not provide private question inspection or rights/review
-evidence. A synthetic REVIEWER can browse permitted summaries and cannot create
-or act as a qualified human approver. Student access is denied at the API too.
+a DRAFT, filter the version list and choose **Kiểm tra riêng phiên bản**. The server
+returns exact version/hash/workflow and current source-rights metadata. The retained
+source remains UNKNOWN, so its content preview is blocked truthfully. Raw rights
+evidence, review decisions and publication controls are not supplied by B1.
 
-Source rights remain UNKNOWN. Do not claim publication or content acceptance.
-Ctrl+C stops this server and owned database, but this separate retained mode keeps
-its ignored `.local/track-b` data; it is not the disposable student's reset behavior.
-The unimplemented private inspection/review interface needs the
-[staff contract decision](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
+For a complete disposable private-preview demonstration, stop retained mode and run:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review
+```
+
+Open the printed root URL (without `student=postgres`), choose **Không gian bản nháp
+cục bộ**, then synthetic AUTHOR **Tác giả tổng hợp**. Inspect the four versions
+explicitly: three show the supported interactions, locally typeset math, table,
+private key and explanation; the unsafe synthetic version shows a metadata-only
+CONTENT_UNSUPPORTED block. Close the view by its control or Escape; return/logout
+clears private content. These private reads are denied to ordinary students.
+
+The isolated fixture's rights records are simulations, not a lawful real-content
+attestation or qualified human review. It creates no published inventory. The
+synthetic REVIEWER has only server-authorized access to independent IN_REVIEW
+versions; it cannot act as a qualified approver through this interface.
+
+Ctrl+C deletes the **disposable** staff fixture database. By contrast,
+`dev:track-b` stops its owned server/database and **retains** ignored `.local/track-b`
+data. Use separate browser profiles/private windows between modes because cookies
+are shared across localhost ports. The [B1 authority](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23)
+grants inspection only; later evidence/review/rights/diagnostic workflows need their
+own scoped contracts and authorization.
 
 ## Reproduce verification
 
@@ -124,6 +142,9 @@ npm run test:student
 npm run test:student:domains
 npm run test:student:keyboard
 npm run test:student:firefox
+npm run test:staff:review
+npm run test:track-b:browser
+npm run test:staff:firefox
 ```
 
 The domain check exercises real PostgreSQL allocation/save/reload/submission/

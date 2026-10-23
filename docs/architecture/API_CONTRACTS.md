@@ -72,6 +72,21 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Approved B1.2 private inspection addendum — 2026-10-23
+
+The human owner approved the exact [B1.2 contract](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md)
+by its committed hash; [durable authority](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).
+Only `GET /question-versions/{versionId}/review-context` and its narrow019 Boolean
+authorship predicate/private staff namespace are approved by that disposition.
+Current BANK_MANAGER, trusted local AUTHOR_OWN, or independent IN_REVIEW reviewer
+scope applies; sources/held/unsafe content gates may return metadata with no preview.
+The response is `staff-review-context/1`, no-store, read-only and local synthetic-only.
+Ordinary students and student-runtime composition gain no access. Raw evidence,
+review/publication/rights/quarantine/diagnostic/media operations remain outside B1.
+The broader proposed staff table below is not approved wholesale by this addendum.
+[Implemented/observed verification](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md).
+
+
 | Method/path | Role | Typed request → response |
 |---|---|---|
 | POST `/sources` | AUTHOR | `{title:string,canonicalUri:string|null,origin:"OWNED"|"EXTERNAL"}` → 201 `{sourceId:UUID}` |

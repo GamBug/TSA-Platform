@@ -750,6 +750,34 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-23 B1.2 **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** from
+`5f916af`: approved private inspection GET/strict staff namespace/artifact,
+read-only current-role/own-audit/independent-queue access, complete mixed namespace
+source/ancestor/stimulus rights gating and content-free blocks. Migration019 adds
+only Bank-executable Boolean author probe, preserves raw audit denial and data.
+UI supports exact-version metadata/preview and safe late-response disposal;
+strict375px check exposed/repaired mobile auto-zoom. Disposable staff launcher
+supports browser-only presentation without retained-rights promotion.
+[Executed commands/findings/limits](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md):
+focused15/Bank107/foundation37/auth5/local15/student34/contracts117/consumer11/B032/
+built/drift/import PASS; actual staffChrome19checks/7screenshots/domains78 and
+optionalFirefox156 staff+student PASS (desktop1280/narrowactual500). Separate
+read-only reviewer found/rechecked two P2 implementation defects and mobile repair;
+final no findings; independent read12/upgrade1/contract13/Chrome/CLI2 PASS,
+Firefox slice syntax reviewed only. Root owns final clean-checkout reproduction;
+delegate reservations released. Full WEB-002 remains open for B2 evidence/review/
+rights/diagnostic contracts and qualified human prerequisites; B1 grants none.
+
+2026-10-23 **B1.2 APPROVED / IMPLEMENTATION IN_PROGRESS**, starting `5f916af`;
+root accountable under exact owner instruction “next. Approve B1.2 as a whole to
+begin implementation”. [Authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).
+Root reserves migration019, Bank read service/HTTP/local composition, integration/
+security tests and coordinated records. Bounded delegates may exclusively own
+private contract files or staff UI/browser files after explicit assignment.
+Frozen B1.2 scope/student contracts stable; owner AGENTS/research preserved.
+Recommended Codex Sol6.1/High integration, available Luna/XHigh bounded implementation,
+separate Sol6.1/Medium read-only review; no paid APIs/Astra.
+
 2026-10-23 B1 design increment **INDEPENDENTLY_REVIEWED / HUMAN_APPROVAL_REQUIRED**:
 [exact B1.2](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md) now specifies private
 GET/DTO, current-role matrix, rights-gated preview and bounded read-only behavior.
@@ -799,7 +827,7 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 - Prerequisites: BANK-001, ASSEMBLY-001, AUTH-001; contract approval before separate frontend implementation. Files: src/app staff routes, staff components, tests/e2e/staff/**.
 - Deliverables: functional review queue with version/hash and rights evidence. Acceptance: staff sees exact reviewed version; no silent revision approval; denied roles fail via API too.
 - Required tests: author→independent reviewer→assembly journey, stale review, quarantine/withdrawal, keyboard navigation and XSS fixtures.
-- Priority P1; complexity M; risks: privileged data leaking to shared client bundle. Status: BLOCKED for full private-inspection/review contract; existing metadata subset verified. Suggested implementer: frontend engineer; review: independent security/content workflow reviewer. Actual accountable integrator: Codex root; bounded native Luna/XHigh implementation and Sol6.1/Medium independent engineering review recorded above.
+- Priority P1; complexity M; risks: privileged data leaking to shared client bundle. Status: IN_PROGRESS; approved B1 private inspection verified, further private-evidence/review/rights/diagnostic contracts and full acceptance remain outstanding. Suggested implementer: frontend engineer; review: independent security/content workflow reviewer. Actual accountable integrator: Codex root; bounded native Luna/XHigh implementation and Sol6.1/Medium independent engineering review recorded above.
 
 ## TEST-001 — Integrated pilot release evidence
 

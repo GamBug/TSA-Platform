@@ -77,6 +77,18 @@ See the [prototype walkthrough and limitations](apps/practice-prototype/README.m
 
 ## PostgreSQL-backed local staff workspace
 
+B1 now provides explicit, server-authorized version inspection with current rights
+metadata and rights-gated private preview. Retained UNKNOWN sources stay blocked.
+For an isolated original synthetic preview in a fresh disposable database:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review
+```
+
+Use the [staff walkthrough](docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+Inspection grants no qualified review, rights attestation or publication capability.
+
+
 Use the same frontend with real local identity and Bank draft APIs. Requires the
 pinned Node/npm toolchain, installed PostgreSQL18.6 binaries, and `npm ci`.
 `PG_BIN` can select the PostgreSQL bin directory. From the repository root:

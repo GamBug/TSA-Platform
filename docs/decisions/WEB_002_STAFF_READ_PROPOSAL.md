@@ -7,7 +7,15 @@ Codex Sol6.1 / High for private DTO/authorization integration; bounded frontend
 work may use available Luna / XHigh, otherwise Sol directly. Proposed independent
 review: separate Sol6.1 / Medium. Existing subscriptions only, no paid model API.
 
-## Current authorized capability
+## Current B1.2 owner disposition — 2026-10-23
+
+The human owner explicitly approved B1.2 as a whole. [Exact authority/hash](OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).
+The first bounded inspection increment is implemented; [runtime evidence](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md).
+The original options below are historical design context. Broader private evidence,
+review decisions, rights/diagnostics and publication privileges remain unapproved
+by B1.2. Do not interpret approval of this increment as approval of option C.
+
+## Previous metadata-only capability
 
 The existing local staff app creates AUTHOR drafts and reads metadata using
 `GET /api/v1/questions` with state/section/cursor/limit. The endpoint independently

@@ -4,6 +4,7 @@ import { BankCommandError } from '../modules/bank/common.mjs';
 import { createQuestionService } from '../modules/bank/questions.mjs';
 import { createPublicationService } from '../modules/bank/publication.mjs';
 import { createSourceService } from '../modules/sources/service.mjs';
+import { createReviewContextService } from '../modules/bank/review-context.mjs';
 
 const MAX_JSON_BYTES = 1024 * 1024;
 
@@ -166,12 +167,14 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
+  if (typeof enableReviewContext !== 'boolean') throw new TypeError('Private inspection opt-in must be boolean');
+  const reviewContext = enableReviewContext ? await createReviewContextService({ bankPool, identityService }) : null;
   const [sources, questions, publication] = await Promise.all([
     createSourceService({ bankPool, identityService }),
     createQuestionService({ bankPool, identityService }),
@@ -184,6 +187,18 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
       if (!requestIsTrusted(request, trusted)) return errorResponse(403, 'FORBIDDEN', requestId);
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
+      if (reviewContext && /^\/api\/v1\/question-versions\/[^/]+\/review-context$/.test(url.pathname)) {
+        if (method !== 'GET') return errorResponse(404, 'NOT_FOUND', requestId);
+        const principal = await identityService.authenticate(request);
+        if (!principal) return errorResponse(401, 'UNAUTHENTICATED', requestId);
+        if (!identityService.mayPerform(principal, 'bank.question.read')) return errorResponse(403, 'FORBIDDEN', requestId);
+        if (url.search || request.body !== null || request.headers.has('transfer-encoding')
+            || (request.headers.has('content-length') && request.headers.get('content-length') !== '0')) {
+          return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        }
+        const versionId = url.pathname.split('/')[4];
+        return jsonResponse(200, await reviewContext.read(principal, versionId), requestId);
+      }
       if (method === 'GET' && url.pathname === '/api/v1/questions') {
         const principal = await identityService.authenticate(request);
         if (!principal) return errorResponse(401, 'UNAUTHENTICATED', requestId);

@@ -17,7 +17,36 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
+## WEB-002 B1.2 — owner-approved private inspection, 2026-10-23
+
+- Status: **APPROVED IN SCOPE** by the human repository owner, 2026-10-23,
+  Asia/Bangkok. Durable evidence is the exact current instruction:
+  “next. Approve B1.2 as a whole to begin implementation”.
+- Approved immutable scope: [B1.2 contract](WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md),
+  as committed in `5f916af`, SHA-256
+  `94d81d1c574dff0b9d8c9338a3559d1c88aa9629f17743a1171bdc2c9b074392`.
+  Its historical PROPOSED/approval-none footer is superseded by this owner record;
+  keep approved specification bytes stable for exact scope comparison.
+- Authorizes the local synthetic-only private GET/strict staff DTO, current
+  BANK_MANAGER/AUTHOR_OWN/independent-IN_REVIEW access matrix, rights-gated preview,
+  read-only graph/rights snapshot, additive private staff subpath/artifact and
+  migration019 Boolean authorship predicate exactly as specified.
+- Existing metadata/student/released contracts, scoring/timing/reuse rules, raw
+  audit restrictions and non-staff database grants remain stable. No review,
+  publication, rights-edit, quarantine, media or diagnostics capability is granted.
+- No real-content rights, qualified human review, accessibility acceptance,
+  production readiness, push/merge/deployment, paid API or Astra authority follows.
+- Accountable integrator: Codex root. Implement and independently review actual
+  runtime behavior before recording verified B1 completion. Design review alone
+  remains design evidence, not runtime acceptance.
+
 ## WEB-002 private staff inspection — pending 2026-10-23
+
+Historical pending-B1 account below is superseded by the explicit B1.2 owner
+approval above. [B1 implementation/runtime evidence](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md)
+is separate from approval. Broader private evidence/review/rights/diagnostics
+remain future scoped decisions; no whole-ADR/publication acceptance is inferred.
+
 
 **PROPOSED / HUMAN_APPROVAL_REQUIRED**:
 [staff read-contract decision packet](WEB_002_STAFF_READ_PROPOSAL.md).

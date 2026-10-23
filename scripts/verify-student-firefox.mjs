@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
+import { createReviewBrowserFixture } from '../tests/integration/bank/review-browser-fixture.mjs';
 
 const artifacts = path.resolve(process.env.STUDENT_FIREFOX_ARTIFACT_DIR ?? '/tmp/tsa-student-firefox-evidence');
 // Snap Firefox cannot use the host's /tmp checkout as a profile root.
@@ -17,7 +18,7 @@ const profileParent = path.resolve(process.env.STUDENT_FIREFOX_PROFILE_ROOT
   ?? path.join(homedir(), 'snap', 'firefox', 'common'));
 await mkdir(profileParent, { recursive: true });
 const profileRoot = await mkdtemp(path.join(profileParent, 'tsa-student-test-'));
-let fixture, workerPool, runtime, driver, sessionId, endpoint, driverError;
+let fixture, staffFixture, workerPool, runtime, driver, sessionId, endpoint, driverError;
 let driverLog = '';
 const workerState = { available: true };
 const report = { checks: [], screenshots: [] };
@@ -53,6 +54,117 @@ async function capture(name) {
   const data = await wd('GET', '/screenshot');
   const filename = path.join(artifacts, `${name}.png`);
   await writeFile(filename, Buffer.from(data, 'base64')); report.screenshots.push(filename);
+}
+async function setViewport(width, height, label) {
+  const requested = await wd('POST', '/window/rect', { width, height });
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const measured = await evaluate(`({innerWidth,outerWidth,scrollWidth:document.documentElement.scrollWidth,scale:window.visualViewport?.scale ?? null})`);
+  assert.equal(measured.innerWidth, width, `${label} viewport innerWidth matches requested ${width}px`);
+  assert.equal(measured.scrollWidth <= measured.innerWidth, true, `${label} has no horizontal overflow`);
+  if (measured.scale !== null) assert.equal(measured.scale, 1, `${label} visual viewport is not auto-zoomed`);
+  return { requestedOuterWidth: width, returnedOuterWidth: requested.width, ...measured };
+}
+async function runStaffReviewJourney() {
+  // Clear the completed student fixture's same-origin cookies before opening a
+  // fresh isolated staff database and authenticating its synthetic AUTHOR.
+  await wd('DELETE', '/cookie');
+  assert.deepEqual(await wd('GET', '/cookie'), [], 'student fixture cookies cleared before staff auth');
+
+  staffFixture = await createReviewBrowserFixture();
+  await wd('POST', '/url', { url: `${staffFixture.origin}/` });
+  await waitFor(`location.href===${JSON.stringify(`${staffFixture.origin}/`)} && Boolean(${query('staff-open')})`, 'staff launcher at fixture root URL');
+  assert.equal(await evaluate('new URL(location.href).searchParams.has("student")'), false, 'staff root has no student mode query');
+  // The launcher can initialize its mock demo session while the module loads.
+  // Clear that host-scoped cookie after load and directly before staff auth.
+  await wd('DELETE', '/cookie');
+  assert.deepEqual(await wd('GET', '/cookie'), [], 'new staff fixture starts without browser cookies');
+  await setViewport(1280, 900, 'staff desktop');
+  await capture('staff-launcher');
+
+  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__staffReviewCalls=[];window.fetch=async(...args)=>{const response=await original(...args);const requestUrl=typeof args[0]==='string'?args[0]:args[0].url;const url=new URL(requestUrl,location.href);if(url.pathname.startsWith('/api/v1/question-versions/')&&url.pathname.endsWith('/review-context'))window.__staffReviewCalls.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
+  await click('staff-open');
+  await waitFor(`Boolean(${query('actor-select')} && ${query('staff-login')})`, 'synthetic staff login form');
+  assert.equal(await evaluate(`${query('actor-select')}.value='author'`), 'author', 'select synthetic AUTHOR actor');
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')} && ${query('staff-list-status')}.textContent.includes('bản ghi metadata'))`, 'staff metadata list loaded');
+
+  const selected = staffFixture.questions[0];
+  assert.match(selected.versionId, /^[0-9a-f-]{36}$/i, 'fixture version 0 has an exact UUID');
+  const versionSelector = `[data-testid="staff-review-inspect"][data-version-id="${selected.versionId}"]`;
+  assert.deepEqual(await evaluate('window.__staffReviewCalls'), [], 'metadata browsing does not prefetch private review context');
+  await waitFor(`Boolean(document.querySelector(${JSON.stringify(versionSelector)}))`, 'exact version 0 inspect control');
+  const inspect = await wd('POST', '/element', { using: 'css selector', value: versionSelector });
+  await wd('POST', `/element/${inspect['element-6066-11e4-a52e-4f735466cecf']}/click`, {});
+  await waitFor(`Boolean(${query('staff-review-context')} && document.querySelector('.staff-review-preview .review-item'))`, 'AVAILABLE staff preview rendered');
+
+  const calls = await evaluate('window.__staffReviewCalls');
+  assert.equal(calls.length, 1, 'one explicit private request after exact-version selection');
+  assert.equal(calls[0].path, `/api/v1/question-versions/${selected.versionId}/review-context`);
+  assert.equal(calls[0].status, 200);
+  assert.equal(calls[0].body.version.versionId, selected.versionId);
+  assert.equal(calls[0].body.version.contentHash, selected.contentHash);
+  assert.equal(calls[0].body.preview.status, 'AVAILABLE');
+  assert.equal(calls[0].body.preview.question.interaction.type, 'SINGLE_CHOICE');
+  await waitFor(`Boolean(document.querySelector('.staff-review-preview .content-math[data-math-state="rendered"] math msup'))`, 'Firefox native MathML superscript in staff preview');
+  const rendered = await evaluate(`(()=>{const panel=${query('staff-review-context')};const pair=(label)=>{const term=[...panel.querySelectorAll('.staff-review-metadata dt')].find(node=>node.textContent===label);return term?.nextElementSibling?.textContent??null;};const answer=[...panel.querySelectorAll('.review-item h4')].find(node=>node.textContent==='Đáp án trong phiên bản này')?.nextElementSibling?.textContent??null;const explanation=[...panel.querySelectorAll('.review-item h4')].find(node=>node.textContent==='Lời giải riêng')?.nextElementSibling?.innerText??null;return {question:panel.querySelector('.staff-review-preview .review-item .content-text')?.textContent??null,math:Boolean(panel.querySelector('.staff-review-preview .content-math[data-math-state="rendered"] math msup')),table:panel.querySelector('.staff-review-preview table caption')?.textContent??null,options:[...panel.querySelectorAll('.staff-review-preview .review-options .option-letter')].map(node=>node.textContent.toLowerCase()),answer,explanation,version:pair('Phiên bản'),hash:pair('Hash phiên bản'),viewport:{innerWidth,outerWidth,scale:window.visualViewport?.scale??null}}})()`);
+  assert.equal(rendered.question, 'Bản xem trước tổng hợp 1; không phải nội dung kỳ thi.');
+  assert.equal(rendered.math, true, 'native MathML rendered');
+  assert.equal(rendered.table, 'Bảng tổng hợp riêng');
+  assert.deepEqual(rendered.options, ['a', 'b'], 'single-choice options rendered');
+  assert.equal(rendered.answer, 'b');
+  assert.match(rendered.explanation, /Lời giải tổng hợp riêng để kiểm thử giao diện/);
+  assert.equal(rendered.version, `1 · ${selected.versionId}`);
+  assert.equal(rendered.hash, selected.contentHash);
+
+  const desktopViewport = await setViewport(1280, 900, 'staff desktop review');
+  await evaluate(`(()=>{${query('staff-review-context')}.scrollIntoView({block:'start',inline:'nearest'});return true})()`);
+  await capture('staff-review-desktop');
+  await evaluate(`(()=>{document.querySelector('.staff-review-preview').scrollIntoView({block:'start',inline:'nearest'});return true})()`);
+  await capture('staff-review-preview-desktop');
+  let narrowViewport = await wd('POST', '/window/rect', { width: 375, height: 1000 });
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  let narrowMeasured = await evaluate(`({innerWidth,outerWidth,scrollWidth:document.documentElement.scrollWidth,scale:window.visualViewport?.scale??null})`);
+  let narrowRequested = 375;
+  if (narrowMeasured.innerWidth !== 375) {
+    narrowRequested = 450;
+    narrowViewport = await wd('POST', '/window/rect', { width: narrowRequested, height: 1000 });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    narrowMeasured = await evaluate(`({innerWidth,outerWidth,scrollWidth:document.documentElement.scrollWidth,scale:window.visualViewport?.scale??null})`);
+  }
+  const narrowWidthHonored = narrowMeasured.innerWidth === narrowRequested;
+  if (!narrowWidthHonored) {
+    assert.equal(narrowRequested, 450, 'Firefox could not honor 375px; the documented 450px fallback was requested');
+    assert.equal(narrowMeasured.innerWidth, narrowMeasured.outerWidth, 'record Firefox’s actual minimum narrow viewport');
+  }
+  assert.equal(narrowMeasured.scrollWidth <= narrowMeasured.innerWidth, true, 'staff narrow review has no horizontal overflow');
+  if (narrowMeasured.scale !== null) assert.equal(narrowMeasured.scale, 1, 'staff narrow viewport is not auto-zoomed');
+  await evaluate(`(()=>{${query('staff-review-context')}.scrollIntoView({block:'start',inline:'nearest'});return true})()`);
+  await capture(`staff-review-narrow-${narrowMeasured.innerWidth}`);
+  await evaluate(`(()=>{document.querySelector('.staff-review-preview').scrollIntoView({block:'start',inline:'nearest'});return true})()`);
+  await capture(`staff-review-preview-narrow-${narrowMeasured.innerWidth}`);
+
+  const escape = '\uE00C';
+  await wd('POST', '/actions', { actions: [{ type: 'key', id: 'staff-keyboard', actions: [
+    { type: 'keyDown', value: escape }, { type: 'keyUp', value: escape },
+  ] }] });
+  await waitFor(`Boolean(${query('staff-review-host')}.hidden && ${query('staff-review-host')}.children.length===0)`, 'Escape removes private review panel');
+  const restoredFocus = await evaluate(`document.activeElement?.getAttribute('data-version-id')`);
+  assert.equal(restoredFocus, selected.versionId, 'W3C Escape closes and restores focus to exact row control');
+
+  await wd('POST', `/element/${inspect['element-6066-11e4-a52e-4f735466cecf']}/click`, {});
+  await waitFor(`Boolean(document.querySelector('.staff-review-preview') && document.querySelector('.staff-review-preview').innerText.includes('Lời giải tổng hợp riêng'))`, 'reopen private preview before logout');
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'staff synthetic logout returns to login');
+  const privateDomCleared = await evaluate(`!document.body.innerText.includes('Bản xem trước tổng hợp 1; không phải nội dung kỳ thi.')&&!document.body.innerText.includes('Lời giải tổng hợp riêng để kiểm thử giao diện')&&!document.querySelector('[data-testid="staff-review-context"]')`);
+  assert.equal(privateDomCleared, true, 'logout clears private review DOM');
+  await capture('staff-logout-cleared');
+
+  report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
+    requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
+    widthRequestHonored: narrowWidthHonored, ...narrowMeasured,
+  } };
+  report.checks.push('Staff B1 synthetic AUTHOR opens only exact version 0 on explicit activation; AVAILABLE SC, native MathML, table, key, explanation, version and hash verified');
+  report.checks.push('Staff 1280px desktop and best-supported narrow Firefox viewport screenshots; W3C Escape restores exact row focus; logout clears private DOM');
 }
 function checkPrivate(value) {
   const privateFields = new Set(['answerKey', 'correctAnswer', 'explanation', 'provenance', 'reviewNotes', 'keySnapshot', 'privateHash']);
@@ -143,17 +255,29 @@ try {
     'SC/MC/TF acknowledged saves and partial MC guard; actual pre-release response privacy',
     'Fresh reload preserves saved answers and exact PostgreSQL clock text',
     'Pending worker outage, recovered 100% release and explicit owner review'];
+  if (process.env.STAFF_REVIEW_FIREFOX === 'true') await runStaffReviewJourney();
   await writeFile(path.join(artifacts, 'report.json'), JSON.stringify(report, null, 2));
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 } catch (error) {
   process.stderr.write(`${error.message}\n${driverLog.slice(-3000)}\n`); throw error;
 } finally {
-  if (sessionId) { try { await wd('DELETE', ''); } catch {} }
-  if (driver && driver.exitCode === null && driver.signalCode === null) {
+  const cleanupErrors = [];
+  const cleanup = async (name, action) => {
+    try { await action(); } catch (error) { cleanupErrors.push(new Error(`${name}: ${error.message}`, { cause: error })); }
+  };
+  if (sessionId) await cleanup('Firefox session', async () => { await wd('DELETE', ''); });
+  if (driver && driver.exitCode === null && driver.signalCode === null) await cleanup('geckodriver', async () => {
     driver.kill('SIGTERM');
     const closed = await Promise.race([once(driver, 'close').then(() => true), new Promise((resolve) => setTimeout(() => resolve(false), 3000))]);
-    if (!closed) { driver.kill('SIGKILL'); await once(driver, 'close'); }
-  }
-  if (runtime) await runtime.close(); if (workerPool) await workerPool.end(); if (fixture) await fixture.close();
-  await rm(profileRoot, { recursive: true, force: true });
+    if (!closed && driver.exitCode === null && driver.signalCode === null) {
+      driver.kill('SIGKILL');
+      await once(driver, 'close');
+    }
+  });
+  if (staffFixture) await cleanup('staff browser fixture', () => staffFixture.close());
+  if (runtime) await cleanup('student runtime', () => runtime.close());
+  if (workerPool) await cleanup('student worker pool', () => workerPool.end());
+  if (fixture) await cleanup('student fixture', () => fixture.close());
+  await cleanup('Firefox profile', () => rm(profileRoot, { recursive: true, force: true }));
+  if (cleanupErrors.length) throw new AggregateError(cleanupErrors, 'Firefox verification cleanup failed');
 }

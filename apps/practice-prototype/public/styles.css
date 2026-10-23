@@ -952,3 +952,17 @@ body.review-active { overflow: hidden; background: #fff; }
 .content-table th, .content-table td { padding: .6em .9em; border-top: 1px solid #cbd5e1; overflow-wrap: anywhere; min-width: 4em; }
 .content-table th { color: #1e293b; background: #eef2f7; }
 .content-table tbody tr:nth-child(even) { background: #f8fafc; }
+
+/* Private staff metadata must wrap rather than enlarging a mobile viewport. */
+.staff-review-context { min-width: 0; overflow-wrap: anywhere; margin-top: 24px; padding: 24px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+.staff-review-metadata { display: grid; min-width: 0; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 8px 16px; margin: 20px 0; line-height: 1.5; }
+.staff-review-metadata dt { font-weight: 650; color: var(--muted); }
+.staff-review-metadata dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.staff-review-sources, .staff-review-preview, .staff-review-content { min-width: 0; }
+.staff-review-preview .review-item { padding: 20px; }
+@media (max-width: 680px) {
+  .staff-review-metadata { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .staff-review-metadata dt:not(:first-child) { margin-top: 8px; }
+  .staff-review-context .review-item { padding: 14px; }
+  .staff-review-context .staff-header-actions .button { width: 100%; }
+}

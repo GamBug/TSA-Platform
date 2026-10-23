@@ -66,3 +66,14 @@ outcome cells. No conformance or formal acceptance is implied by this packet.
 Recommended engineering follow-up: Sol6.1/High for observed UI defects while Luna
 is usage-limited; separate Sol6.1/Medium read-only review when available. A qualified
 human conducts and records the assistive-technology usability assessment.
+
+## Separate private staff B1 check — NOT EXECUTED by a qualified human
+
+Use the explicitly disposable `demo:staff:review` command from the
+[supervisor guide](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+Record the same reviewer/OS/browser/AT/zoom/input evidence above. Inspect exact
+version/hash and source rights, keyboard open/close/focus restoration, announced
+loading/errors and metadata-only blocks, math/table/key/explanation reading,
+responsive metadata wrapping, and logout/private-content clearing. Actual outcomes
+remain NOT TESTED; automated Chrome375 and Firefox1280/500 are engineering evidence
+only. Do not enter human rights/content approvals during this inspection exercise.

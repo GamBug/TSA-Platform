@@ -1,3 +1,5 @@
+import { renderMath } from './math.js';
+
 const ACTORS = Object.freeze([
   { key: 'author', label: 'Tác giả tổng hợp' },
   { key: 'reviewer', label: 'Người rà soát tổng hợp' },
@@ -102,7 +104,172 @@ function makeHeader() {
 }
 
 function footer() {
-  return node('p', 'footer-note', 'Chỉ dành cho kiểm thử cục bộ với dữ liệu tổng hợp. Quyền nguồn hiện ở trạng thái UNKNOWN; bản nháp không phải nội dung đã rà soát, được duyệt hay được phép xuất bản.');
+  return node('p', 'footer-note', 'Chỉ dành cho kiểm thử cục bộ với dữ liệu tổng hợp trong môi trường LOCAL_SYNTHETIC_ONLY. Trạng thái quyền được hiển thị theo từng nguồn; bản xem riêng không thay thế đánh giá của người có thẩm quyền và không xác nhận quyền xuất bản.');
+}
+
+function supportedContentBlocks(blocks) {
+  return Array.isArray(blocks) && blocks.every((block) => {
+    if (!block || typeof block !== 'object') return false;
+    if (block.type === 'text') return typeof block.text === 'string';
+    if (block.type === 'math') return typeof block.tex === 'string' || typeof block.accessibleText === 'string';
+    if (block.type === 'table') {
+      return (block.caption === undefined || typeof block.caption === 'string')
+        && Array.isArray(block.headers) && block.headers.every((value) => typeof value === 'string')
+        && Array.isArray(block.rows) && block.rows.every((row) => Array.isArray(row) && row.every((value) => typeof value === 'string'));
+    }
+    return false;
+  });
+}
+
+function supportedInteraction(interaction, answerKey) {
+  if (!interaction || !answerKey || interaction.type !== answerKey.type) return false;
+  if (interaction.type === 'SINGLE_CHOICE' || interaction.type === 'MULTIPLE_CHOICE') {
+    if (!Array.isArray(interaction.options) || !interaction.options.length
+      || !interaction.options.every((option) => option && typeof option.id === 'string' && supportedContentBlocks(option.content))) return false;
+    const optionIds = new Set(interaction.options.map((option) => option.id));
+    if (interaction.type === 'SINGLE_CHOICE') return typeof answerKey.optionId === 'string' && optionIds.has(answerKey.optionId);
+    return Array.isArray(answerKey.optionIds) && answerKey.optionIds.every((id) => typeof id === 'string' && optionIds.has(id));
+  }
+  if (interaction.type === 'TRUE_FALSE_GROUP') {
+    if (!Array.isArray(interaction.statements) || !interaction.statements.length
+      || !interaction.statements.every((statement) => statement && typeof statement.id === 'string' && supportedContentBlocks(statement.content))) return false;
+    const ids = interaction.statements.map((statement) => statement.id);
+    return answerKey.values && typeof answerKey.values === 'object' && !Array.isArray(answerKey.values)
+      && ids.every((id) => typeof answerKey.values[id] === 'boolean')
+      && Object.keys(answerKey.values).length === ids.length;
+  }
+  return false;
+}
+
+function safeContentBlocks(blocks, label) {
+  const content = node('div', 'question-content-blocks');
+  for (const block of blocks) {
+    if (block.type === 'text') {
+      content.append(node('p', 'content-text', block.text));
+    } else if (block.type === 'math') {
+      content.append(renderMath(block));
+    } else if (block.type === 'table') {
+      const table = node('table', 'content-table');
+      table.style.width = '100%';
+      if (block.caption) table.append(node('caption', '', block.caption));
+      const head = node('thead');
+      const headerRow = node('tr');
+      for (const value of block.headers) {
+        const heading = node('th', '', value);
+        heading.scope = 'col';
+        headerRow.append(heading);
+      }
+      head.append(headerRow);
+      const body = node('tbody');
+      for (const values of block.rows) {
+        const row = node('tr');
+        for (const value of values) row.append(node('td', '', value));
+        body.append(row);
+      }
+      table.append(head, body);
+      const scroll = node('div', 'content-table-scroll');
+      scroll.tabIndex = 0;
+      scroll.setAttribute('role', 'region');
+      scroll.setAttribute('aria-label', block.caption || label || 'Bảng dữ liệu câu hỏi');
+      scroll.append(table);
+      content.append(scroll);
+    }
+  }
+  return content;
+}
+
+function reviewContextSupportsPreview(context) {
+  const question = context?.preview?.question;
+  return context?.preview?.status === 'AVAILABLE'
+    && question?.language === 'vi-VN'
+    && supportedContentBlocks(question.content)
+    && supportedInteraction(question.interaction, question.answerKey)
+    && supportedContentBlocks(question.explanation)
+    && (question.stimulus === null || (question.stimulus && supportedContentBlocks(question.stimulus.content)));
+}
+
+function displayInstant(value) {
+  return typeof value === 'string' ? value : 'Không có';
+}
+
+function appendMetadataPair(list, label, value) {
+  list.append(node('dt', '', label), node('dd', '', value));
+}
+
+function renderRightsMetadata(sources = []) {
+  const section = node('section', 'staff-review-rights');
+  section.append(node('h3', '', 'Thông tin quyền hiện tại theo nguồn'));
+  if (!Array.isArray(sources) || sources.length === 0) {
+    section.append(node('p', 'notice-panel', 'Không có nguồn nào trong phản hồi.'));
+    return section;
+  }
+  for (const source of sources) {
+    const item = node('article', 'review-item');
+    item.append(node('h4', '', 'Nguồn'));
+    item.append(node('code', '', source.sourceVersionId));
+    const metadata = node('dl', 'staff-review-metadata');
+    appendMetadataPair(metadata, 'Hash nguồn', source.contentHash);
+    appendMetadataPair(metadata, 'Nguồn được ghi nhận', source.origin ?? 'Không xác định');
+    if (source.currentRights === null) {
+      appendMetadataPair(metadata, 'Quyền hiện tại', 'Không có quyết định quyền hiện tại');
+    } else {
+      const rights = source.currentRights;
+      appendMetadataPair(metadata, 'Trạng thái quyền', rights.status);
+      appendMetadataPair(metadata, 'Quyết định quyền', `${rights.decisionId} · revision ${rights.revision}`);
+      appendMetadataPair(metadata, 'Mục đích được ghi nhận', rights.allowedUses.join(', ') || 'Không có');
+      appendMetadataPair(metadata, 'Lãnh thổ', rights.territory.join(', ') || 'Không có');
+      appendMetadataPair(metadata, 'Có hiệu lực từ', displayInstant(rights.validFrom));
+      appendMetadataPair(metadata, 'Có hiệu lực đến', displayInstant(rights.validTo));
+    }
+    item.append(metadata);
+    section.append(item);
+  }
+  return section;
+}
+
+function renderPrivateQuestion(question) {
+  const article = node('article', 'review-item');
+  article.append(node('h3', '', 'Nội dung câu hỏi riêng'));
+  article.append(safeContentBlocks(question.content, 'Nội dung câu hỏi'));
+  if (question.stimulus) {
+    article.append(node('h4', '', 'Ngữ liệu dùng chung'));
+    article.append(node('code', '', `${question.stimulus.versionId} · ${question.stimulus.contentHash}`));
+    article.append(safeContentBlocks(question.stimulus.content, 'Ngữ liệu câu hỏi'));
+  }
+
+  const interaction = question.interaction;
+  if (interaction.type === 'TRUE_FALSE_GROUP') {
+    const statements = node('ol', 'tf-review-statements');
+    for (const [index, statement] of interaction.statements.entries()) {
+      const row = node('li', 'tf-review-statement');
+      row.append(node('strong', 'tf-review-label', `Mệnh đề ${index + 1} · ${statement.id}`));
+      row.append(safeContentBlocks(statement.content, `Mệnh đề ${index + 1}`));
+      statements.append(row);
+    }
+    article.append(statements);
+  } else {
+    if (interaction.type === 'MULTIPLE_CHOICE') {
+      article.append(node('p', 'question-instruction', `Chọn từ ${interaction.minSelections} đến ${interaction.maxSelections} phương án.`));
+    }
+    const options = node('ol', 'review-options');
+    for (const option of interaction.options) {
+      const row = node('li');
+      row.append(node('span', 'option-letter', option.id.toUpperCase()));
+      row.append(safeContentBlocks(option.content, `Phương án ${option.id}`));
+      options.append(row);
+    }
+    article.append(options);
+  }
+
+  let keyText;
+  if (question.answerKey.type === 'SINGLE_CHOICE') keyText = question.answerKey.optionId;
+  else if (question.answerKey.type === 'MULTIPLE_CHOICE') keyText = question.answerKey.optionIds.join(', ');
+  else keyText = interaction.statements.map((statement) => `${statement.id}: ${question.answerKey.values[statement.id] ? 'Đúng' : 'Sai'}`).join(' · ');
+  article.append(node('h4', '', 'Đáp án trong phiên bản này'), node('p', 'staff-private-notice', keyText));
+  article.append(node('h4', '', 'Lời giải riêng'));
+  article.append(safeContentBlocks(question.explanation, 'Lời giải câu hỏi'));
+  article.append(node('p', 'staff-intro', `Phiên bản chính sách chấm điểm: ${question.scoringPolicyVersion}`));
+  return article;
 }
 
 function showMessage(container, message, tone = 'notice-panel') {
@@ -154,9 +321,13 @@ export async function openStaffWorkspace(container, onBack) {
     listError: null,
     listRequestId: 0,
     identityEpoch: 0,
+    reviewRequestId: 0,
+    reviewView: null,
     pendingCreate: null,
   };
   const returnToPractice = () => {
+    if (!isWorkspaceActive()) return;
+    clearPrivateReviewView();
     if (!invalidateWorkspace()) return;
     onBack();
   };
@@ -165,6 +336,7 @@ export async function openStaffWorkspace(container, onBack) {
   async function refreshSession() {
     const session = await request('/local-auth/session');
     if (!isWorkspaceActive()) return false;
+    if (principalKey(session.principal) !== principalKey(state.principal)) clearPrivateReviewView();
     state.principal = session.principal;
     return true;
   }
@@ -242,6 +414,17 @@ export async function openStaffWorkspace(container, onBack) {
       info.append(node('strong', '', `${item.section} · ${item.interactionType}`));
       info.append(node('code', '', item.questionId));
       info.append(node('small', '', `Phiên bản ${item.versionId} · ${item.contentHash}`));
+      if (state.canReadList) {
+        let inspect;
+        inspect = button('Kiểm tra phiên bản này', 'staff-review-inspect', async () => {
+          await loadReviewContext(item.versionId, inspect);
+        }, 'button secondary small');
+        inspect.dataset.versionId = item.versionId;
+        inspect.setAttribute('aria-label', `Kiểm tra riêng phiên bản ${item.versionId}`);
+        inspect.setAttribute('aria-controls', 'staff-review-host');
+        inspect.setAttribute('aria-expanded', 'false');
+        info.append(inspect);
+      }
       row.append(info);
       list.append(row);
     }
@@ -251,6 +434,143 @@ export async function openStaffWorkspace(container, onBack) {
   function principalKey(principal) {
     if (!principal) return '';
     return JSON.stringify([principal.userId, principal.actorKey, [...principal.roles].sort()]);
+  }
+
+  function clearPrivateReviewView({ restoreFocus = false } = {}) {
+    const previous = state.reviewView;
+    state.reviewRequestId += 1;
+    state.reviewView = null;
+    previous?.triggerElement?.setAttribute('aria-expanded', 'false');
+    const host = container.querySelector('[data-testid="staff-review-host"]');
+    if (host) {
+      host.replaceChildren();
+      host.hidden = true;
+    }
+    if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
+  }
+
+  function renderReviewPanel({ focusTitle = false } = {}) {
+    if (!isWorkspaceActive()) return;
+    const host = container.querySelector('[data-testid="staff-review-host"]');
+    if (!host) return;
+    const view = state.reviewView;
+    host.replaceChildren();
+    host.hidden = !view;
+    if (!view) return;
+
+    const panel = node('section', 'staff-card staff-review-context');
+    panel.dataset.testid = 'staff-review-context';
+    panel.setAttribute('aria-labelledby', 'staff-review-title');
+    panel.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        clearPrivateReviewView({ restoreFocus: true });
+      }
+    });
+    const titleText = view.status === 'loading' ? 'Đang tải nội dung riêng…'
+      : view.status === 'error' ? 'Không thể tải nội dung riêng'
+        : 'Kiểm tra phiên bản riêng';
+    const heading = node('h2', '', titleText);
+    heading.id = 'staff-review-title';
+    heading.tabIndex = -1;
+    const actions = node('div', 'staff-header-actions');
+    if (view.status === 'error') {
+      actions.append(button('Thử tải lại phiên bản này', 'staff-review-retry', async () => {
+        await loadReviewContext(view.versionId, view.triggerElement);
+      }, 'button secondary'));
+    }
+    actions.append(button('Đóng nội dung riêng', 'staff-review-close', () => {
+      clearPrivateReviewView({ restoreFocus: true });
+    }, 'button secondary'));
+    panel.append(heading, actions);
+
+    if (view.status === 'loading') {
+      const status = node('p', 'notice-panel', 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      panel.append(status);
+    } else if (view.status === 'error') {
+      const status = node('p', 'notice-panel', view.error);
+      status.setAttribute('role', 'alert');
+      status.setAttribute('aria-live', 'assertive');
+      panel.append(status);
+    } else {
+      panel.append(renderReviewContext(view.context));
+    }
+    host.append(panel);
+    if (focusTitle) heading.focus();
+  }
+
+  function renderReviewContext(context) {
+    const content = node('div', 'staff-review-content');
+    const version = context?.version ?? {};
+    const workflow = context?.workflow ?? {};
+    const metadata = node('dl', 'staff-review-metadata');
+    appendMetadataPair(metadata, 'Môi trường', context?.environment ?? 'Không xác định');
+    appendMetadataPair(metadata, 'Cơ sở truy cập', context?.accessBasis ?? 'Không xác định');
+    appendMetadataPair(metadata, 'Mã câu hỏi', version.questionId ?? 'Không xác định');
+    appendMetadataPair(metadata, 'Phiên bản', `${version.versionNo ?? 'Không xác định'} · ${version.versionId ?? 'Không xác định'}`);
+    appendMetadataPair(metadata, 'Miền', version.section ?? 'Không xác định');
+    appendMetadataPair(metadata, 'Hash phiên bản', version.contentHash ?? 'Không xác định');
+    appendMetadataPair(metadata, 'Quy trình hiện tại', `${workflow.state ?? 'Không xác định'} · revision ${workflow.revision ?? 'không xác định'}`);
+    appendMetadataPair(metadata, 'Thời điểm quan sát máy chủ', context?.observedAt ?? 'Không xác định');
+    appendMetadataPair(metadata, 'Bằng chứng quyền được kèm theo', context?.rightsEvidenceIncluded === false ? 'Không' : 'Không được cung cấp');
+    appendMetadataPair(metadata, 'Đánh giá đủ điều kiện xuất bản', context?.publicationEligibility ?? 'Không được đánh giá');
+    content.append(metadata);
+
+    const preview = context?.preview;
+    if (preview?.status === 'BLOCKED') {
+      const messages = {
+        RIGHTS_BLOCKED: 'Máy chủ không cho phép hiển thị nội dung theo quyền hiện tại của toàn bộ nguồn.',
+        CONTENT_UNSUPPORTED: 'Máy chủ không cho phép hiển thị nội dung vì có thành phần không được hỗ trợ an toàn.',
+        WORKFLOW_HELD: 'Máy chủ không cho phép hiển thị nội dung trong trạng thái quy trình hiện tại.',
+      };
+      const blocked = node('section', 'staff-private-notice');
+      blocked.append(node('h3', '', 'Chỉ hiển thị metadata'), node('p', '', messages[preview.reason] ?? 'Máy chủ đã chặn nội dung riêng.'));
+      content.append(blocked, renderRightsMetadata(context.sources));
+      return content;
+    }
+
+    content.append(renderRightsMetadata(context?.sources));
+    if (!reviewContextSupportsPreview(context)) {
+      const unsupported = node('p', 'staff-private-notice', 'Nội dung phản hồi không thể hiển thị an toàn. Không hiển thị câu hỏi, đáp án hoặc lời giải.');
+      unsupported.setAttribute('role', 'status');
+      content.append(unsupported);
+      return content;
+    }
+    const available = node('section', 'staff-review-preview');
+    available.append(node('h3', '', 'Bản xem riêng được máy chủ cho phép'));
+    available.append(node('p', 'staff-private-notice', 'Chỉ dùng dữ liệu tổng hợp cục bộ. Bản xem này không xác nhận quyền sử dụng hợp pháp, rà soát chuyên môn của con người hoặc quyền xuất bản.'));
+    available.append(renderPrivateQuestion(preview.question));
+    content.append(available);
+    return content;
+  }
+
+  async function loadReviewContext(versionId, triggerElement) {
+    if (!isWorkspaceActive() || !state.canReadList || typeof versionId !== 'string') return;
+    state.reviewView?.triggerElement?.setAttribute('aria-expanded', 'false');
+    const requestId = ++state.reviewRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.reviewView = { versionId, status: 'loading', triggerElement };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.reviewRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.reviewView?.versionId === versionId;
+    try {
+      const result = await request(`/api/v1/question-versions/${encodeURIComponent(versionId)}/review-context`);
+      if (!isCurrent()) return;
+      if (result?.version?.versionId !== versionId) throw new Error('Máy chủ không trả về đúng phiên bản đã chọn.');
+      state.reviewView = { versionId, status: 'loaded', triggerElement, context: result };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.reviewView = { versionId, status: 'error', triggerElement, error: error.message };
+      renderReviewPanel({ focusTitle: true });
+    }
   }
 
   function updateQuestionListView() {
@@ -274,12 +594,14 @@ export async function openStaffWorkspace(container, onBack) {
       more.hidden = !state.nextCursor;
       more.disabled = state.listLoading || !state.nextCursor;
     }
+    renderReviewPanel();
   }
 
   async function loadQuestionList({ reset = true } = {}) {
     if (!isWorkspaceActive()) return;
     if (!state.canReadList) throw new Error('Vai trò này không được cấp quyền xem danh sách bản nháp.');
     if (!reset && (state.listLoading || !state.nextCursor)) return;
+    clearPrivateReviewView();
 
     const requestId = ++state.listRequestId;
     const identityEpoch = state.identityEpoch;
@@ -378,6 +700,7 @@ export async function openStaffWorkspace(container, onBack) {
     }
     actions.append(button('Đăng xuất', 'staff-logout', async () => {
       if (!isWorkspaceActive()) return;
+      clearPrivateReviewView();
       try {
         await request('/local-auth/logout', { method: 'POST', body: {}, csrf: true });
         if (!isWorkspaceActive()) return;
@@ -398,13 +721,13 @@ export async function openStaffWorkspace(container, onBack) {
     }, 'button secondary small'));
     heading.append(headingText, actions);
     shell.append(heading);
-    const note = node('p', 'repeat-alert', 'Nguồn tổng hợp đi kèm trạng thái quyền UNKNOWN, không phải xác nhận cho phép sử dụng. Danh sách chỉ hiển thị metadata, không có nội dung câu hỏi, đáp án, lời giải riêng hoặc bằng chứng rà soát; không có chức năng xem trước, rà soát, duyệt hay xuất bản. Tài khoản REVIEWER trong môi trường tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
+    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng chỉ được yêu cầu khi bạn chọn đúng phiên bản. Không có thao tác rà soát, duyệt, thay đổi quyền, cách ly, xuất bản hoặc chẩn đoán. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 
     if (!state.principal.roles.includes('AUTHOR')) {
       const denied = node('section', 'staff-card staff-denied');
       if (state.canReadList) {
-        denied.append(node('h2', '', 'Vai trò này chỉ xem được danh sách.'), node('p', '', 'Tạo bản nháp và mở mẫu riêng cần vai trò AUTHOR. Không có thao tác quản lý quyền, rà soát hoặc xuất bản ở đây.'));
+        denied.append(node('h2', '', 'Kiểm tra phiên bản theo quyền hiện tại.'), node('p', '', 'Vai trò này không tạo bản nháp hoặc mở mẫu tác giả. Máy chủ kiểm tra quyền và trạng thái quy trình trước khi cung cấp nội dung riêng. Không có thao tác quản lý quyền, rà soát hoặc xuất bản ở đây.'));
         denied.append(button('Tải danh sách', 'staff-refresh-denied', async () => {
           if (!isWorkspaceActive()) return;
           try {
@@ -535,6 +858,11 @@ export async function openStaffWorkspace(container, onBack) {
       more.hidden = !state.nextCursor;
       more.disabled = state.listLoading || !state.nextCursor;
       listCard.append(more);
+      const reviewHost = node('div');
+      reviewHost.dataset.testid = 'staff-review-host';
+      reviewHost.id = 'staff-review-host';
+      reviewHost.hidden = true;
+      listCard.append(reviewHost);
       shell.append(listCard);
     }
     shell.append(button('Quay lại khu luyện tập', 'staff-return', returnToPractice, 'button secondary'), footer());
@@ -544,6 +872,7 @@ export async function openStaffWorkspace(container, onBack) {
 
   async function loadWorkspace() {
     if (!isWorkspaceActive() || !await refreshSession() || !isWorkspaceActive()) return;
+    clearPrivateReviewView();
     state.identityEpoch += 1;
     state.listRequestId += 1;
     state.items = [];

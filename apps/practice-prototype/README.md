@@ -82,6 +82,20 @@ The default mock server binds to `127.0.0.1` and has no external requests. Its r
 
 ## Persistent local staff mode
 
+Owner-approved B1.2 adds explicit private version inspection to the existing staff
+workspace. Current rights and workflow guards decide whether content is available;
+retained UNKNOWN sources stay metadata-only. For a disposable original synthetic
+preview with all three supported interactions:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review
+```
+
+Open the printed root URL and choose the staff workspace/synthetic AUTHOR. Ctrl+C
+deletes only this disposable fixture. This is not qualified content review or
+publication. [Complete walkthrough and mode limits](../../docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+
+
 The existing frontend also supports the owner-authorized synthetic staff adapter:
 
 ```sh
