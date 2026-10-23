@@ -768,6 +768,20 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 
 ## OPS-001 — Deployment and data-policy readiness
 
+2026-10-23 live postmaster downtime **IMPLEMENTED / VERIFIED** from `5d0a991`:
+test-only stopped-server barrier, restores server before propagating assertion
+failure; actual SIGQUIT/WAL recovery while same HTTP/poller process remains live.
+Valid authenticated read/save/submit safe frozen503, actual worker connect failure;
+exact acknowledged graph/clocks retained, old scope inactive, failed keys retry
+normally and one result100%. Final focused2+1/foundation37/student34/grading23/
+recovery16/results6/contracts106/consumer11/build/typecheck/drift/import PASS.
+Separate Sol6.1/Medium no P1/P2, independent syntax/whitespace only.
+[Commands, corrected save request and scope](../reviews/EXAM_LIVE_POSTMASTER_OUTAGE_VERIFICATION.md).
+Sol accountable, reservations released, owner files preserved. No product/API/
+schema/full OPS acceptance change. Authentication-stage503 is not interrupted
+command SQL proof. Next inspect populated latest-migration rehearsal coverage.
+Recommended Sol6.1/High while Luna is usage-limited; separate Sol6.1/Medium review.
+
 2026-10-23 live backend connection loss **IMPLEMENTED / VERIFIED** from `3d05769`:
 actual childexit1 reproduced; pool-only fix insufficient (student32pass/1fail),
 corrected live stderr proves checked-out client error. Minimal pool/client event

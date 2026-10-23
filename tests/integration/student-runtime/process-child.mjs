@@ -18,7 +18,10 @@ process.once('message', async (boot) => {
     pools = [identityPool, examPool, workerPool];
     // Delays real SQL only at existing transaction boundaries; never mocks database results.
     const pausedPool = { async connect() {
-      const client = await workerPool.connect(); let finishing = false;
+      let client;
+      try { client = await workerPool.connect(); }
+      catch (error) { if (boot.mode === 'NORMAL') send({ type: 'worker-unavailable' }); throw error; }
+      let finishing = false;
       return new Proxy(client, { get(target, key) {
         if (key === 'query') return async (sql, values) => {
           const pause = typeof sql === 'string' && (

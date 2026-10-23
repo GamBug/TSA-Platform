@@ -3,6 +3,19 @@ import { test } from 'node:test';
 import { createDatabasePool } from '../../../../src/modules/database/pool.mjs';
 import { startDisposablePostgres } from './postgres.mjs';
 
+test('restart restores the owned server before propagating a stopped-barrier assertion failure', { timeout: 15_000 }, async (t) => {
+  const database = await startDisposablePostgres();
+  t.after(() => database.stop());
+  await assert.rejects(database.restart({ whileStopped: true }), /whileStopped must be a function/);
+  assert.equal((await database.pool.query('SELECT 1 AS n')).rows[0].n, 1);
+  const failure = new Error('controlled stopped-barrier failure');
+  let called = false;
+  await assert.rejects(database.restart({ whileStopped: async () => { called = true; throw failure; } }), (error) => error === failure);
+  assert.equal(called, true);
+  assert.equal((await database.pool.query('SELECT 1 AS n')).rows[0].n, 1);
+  assert.equal((await database.restart()).shutdownMode, 'fast', 'a failed barrier does not leave the helper restarting');
+});
+
 test('owned immediate shutdown replays committed WAL and discards an open uncommitted transaction', { timeout: 20_000 }, async (t) => {
   const database = await startDisposablePostgres();
   let external, client;

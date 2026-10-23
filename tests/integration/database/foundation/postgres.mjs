@@ -178,10 +178,11 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
     return {
       get pool() { return pool; }, connectionConfig: config, version: '18.6', temporaryDirectory: root, stop,
       // Test-only fast (default) or immediate restart of this owned postmaster.
-      // Caller must quiesce application services and
-      // handle expected idle-client disconnects in its own application pools.
-      async restart({ shutdownMode = 'fast' } = {}) {
+      // Callers handle disconnects; whileStopped can exercise live services
+      // after actual process termination and before this helper starts recovery.
+      async restart({ shutdownMode = 'fast', whileStopped } = {}) {
         if (!['fast', 'immediate'].includes(shutdownMode)) throw new TypeError('Unsupported disposable PostgreSQL shutdown mode');
+        if (whileStopped !== undefined && typeof whileStopped !== 'function') throw new TypeError('whileStopped must be a function');
         if (stopped || restarting) throw new Error('Disposable PostgreSQL is stopped or restarting');
         restarting = true;
         try {
@@ -190,8 +191,12 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
           // Immediate shutdown deliberately skips normal shutdown processing.
           if (!server.kill(shutdownMode === 'immediate' ? 'SIGQUIT' : 'SIGINT')) throw new Error('Owned PostgreSQL did not accept shutdown signal');
           if (!(await waitForChildClose(server, shutdownMode === 'immediate' ? 8_000 : 3_000))) throw new Error('Owned PostgreSQL did not stop for restart');
+          let barrierFailed = false, barrierError;
+          try { await whileStopped?.(); }
+          catch (error) { barrierFailed = true; barrierError = error; }
           deadline = performance.now() + timeoutMs;
           const startup = await startServer();
+          if (barrierFailed) throw barrierError;
           return { shutdownMode, ...startup };
         } finally { restarting = false; }
       },

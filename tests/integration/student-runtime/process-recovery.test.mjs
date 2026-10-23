@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { createPersistentApi } from '../../../apps/practice-prototype/public/app/persistent-api.js';
+import { studentRouteRegistry } from '../../../packages/contracts/dist/internal.js';
 import { createDatabasePool } from '../../../src/modules/database/pool.mjs';
 import { createExamWorker } from '../../../src/modules/jobs/exam-worker.mjs';
 import { createSourceService } from '../../../src/modules/sources/service.mjs';
@@ -64,6 +65,9 @@ function transport(origin) {
     return response;
   };
   return { api: () => createPersistentApi({ fetchImpl, readCookie: (key) => jar.get(key) }), fetchImpl,
+    save: (attemptId, slotId, key, body) => fetchImpl(`/api/v1/attempts/${attemptId}/answers/${slotId}`, { method: 'PUT', headers: {
+      'content-type': 'application/json', 'x-csrf-token': jar.get('tsa_local_csrf'), 'idempotency-key': key,
+    }, body: JSON.stringify(body) }),
     submit: (attemptId, key) => fetchImpl(`/api/v1/attempts/${attemptId}/submit`, { method: 'POST', headers: {
       'content-type': 'application/json', 'x-csrf-token': jar.get('tsa_local_csrf'), 'idempotency-key': key,
     }, body: '{}' }) };
@@ -236,6 +240,74 @@ test('live student process survives real idle backend disconnects and reconnects
   live.child.send({ type: 'stop' }); const [code, signal] = await live.closed;
   assert.equal(code, 0); assert.equal(signal, null);
   assert.equal(live.stdout, ''); assert.equal(live.stderr, '');
+});
+
+test('live HTTP and poller survive actual postmaster downtime with safe errors and unchanged acknowledged inputs', { timeout: 30_000 }, async (t) => {
+  const f = await createSharedReadingFixture(), children = [], database = f.harness.database;
+  t.after(async () => { for (const child of children) await dispose(child); await f.close(); });
+  await f.pool.query('CREATE ROLE crash_worker LOGIN'); await f.pool.query('GRANT tsa_exam_worker TO crash_worker');
+  const live = await launch(f, children, { mode: 'NORMAL', executorId: 'postmaster-outage-worker' });
+  const client = transport(live.origin), api = client.api();
+  await api.loginCandidate('studentA');
+  const { attempt } = await api.startDemo('READING', f.blueprint.versionId);
+  for (const [index, slot] of attempt.slots.entries()) await api.saveAnswer(attempt.attemptId, slot.slotId, { optionId: f.expectedOptions[index] });
+  const acknowledged = await frozen(f, attempt.attemptId);
+  const originalPostmaster = (await f.pool.query('SELECT pg_postmaster_start_time()::text AS value')).rows[0].value;
+  const saveKey = randomUUID(), submitKey = randomUUID();
+  const savedValue = { expectedRevision: 1, value: { type: 'SINGLE_CHOICE', optionId: f.expectedOptions[0] } };
+  const restarted = await database.restart({ shutdownMode: 'immediate', whileStopped: async () => {
+    // This barrier begins only after the actual owned postmaster has exited.
+    const responses = [
+      ['getAttempt', await client.fetchImpl(`/api/v1/attempts/${attempt.attemptId}`)],
+      ['saveAnswer', await client.save(attempt.attemptId, attempt.slots[0].slotId, saveKey, savedValue)],
+      ['submitAttempt', await client.submit(attempt.attemptId, submitKey)],
+    ];
+    for (const [operation, response] of responses) {
+      assert.equal(response.status, 503, `${operation} fails safely while PostgreSQL is stopped`);
+      const body = await response.json();
+      studentRouteRegistry[operation].responses[503].schema.parse(body);
+      assert.equal(body.error.code, 'TEMPORARILY_UNAVAILABLE'); assert.deepEqual(body.error.details, {});
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.equal(response.headers.get('x-request-id'), body.error.requestId);
+      assertRestrictedResponse(body, f, acknowledged);
+    }
+    assert.equal(live.child.exitCode, null); assert.equal(live.child.signalCode, null);
+    await live.wait('worker-unavailable'); // Actual poller pool failure while the server remains stopped.
+    live.child.send({ type: 'ping' }); assert.equal((await live.wait('pong')).pid, live.pid);
+  } });
+  assert.deepEqual(restarted, { shutdownMode: 'immediate', recoveryObserved: true });
+  const recovered = { ...f, pool: database.pool };
+  assert.notEqual((await database.pool.query('SELECT pg_postmaster_start_time()::text AS value')).rows[0].value, originalPostmaster);
+  assert.deepEqual(await frozen(recovered, attempt.attemptId), acknowledged);
+  assert.equal((await database.pool.query('SELECT count(*)::int AS n FROM tsa.jobs')).rows[0].n, 0, 'failed outage submit creates no job');
+  const scopeClient = await f.bankPool.connect();
+  try {
+    await scopeClient.query('BEGIN'); await scopeClient.query("SELECT set_config('tsa.bank_fixture_scope',$1,true)", [f.fixtureScopeId]);
+    assert.equal((await scopeClient.query('SELECT tsa.bank_fixture_scope_active() AS value')).rows[0].value, false);
+    await scopeClient.query('ROLLBACK');
+  } finally { scopeClient.release(); }
+  const resumed = (await api.readAttempt(attempt.attemptId)).attempt;
+  assert.equal(resumed.state, 'IN_PROGRESS'); assert.equal(resumed.answeredCount, 2);
+  assert.equal(resumed.startedAt, attempt.startedAt); assert.equal(resumed.deadlineAt, attempt.deadlineAt);
+  const saved = await client.save(attempt.attemptId, attempt.slots[0].slotId, saveKey, savedValue);
+  assert.equal(saved.status, 200);
+  assert.equal(studentRouteRegistry.saveAnswer.responses[200].schema.parse(await saved.json()).revision, 2);
+  const beforeSubmit = await frozen(recovered, attempt.attemptId);
+  const submitted = await client.submit(attempt.attemptId, submitKey); assert.equal(submitted.status, 200);
+  const receipt = await submitted.json();
+  let graded; const until = Date.now() + 5_000;
+  do {
+    graded = (await api.readAttempt(attempt.attemptId)).attempt;
+    if (graded.state === 'GRADED') break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  } while (Date.now() < until);
+  assert.equal(graded.state, 'GRADED'); assert.equal(graded.result.percentage, '100.00');
+  const replay = await client.submit(attempt.attemptId, submitKey);
+  assert.equal(replay.status, 200); assert.deepEqual(await replay.json(), receipt);
+  assert.deepEqual(await frozen(recovered, attempt.attemptId), beforeSubmit);
+  for (const table of ['jobs', 'score_runs', 'result_releases']) assert.equal((await database.pool.query(`SELECT count(*)::int AS n FROM tsa.${table}`)).rows[0].n, 1);
+  live.child.send({ type: 'stop' }); const [code, signal] = await live.closed;
+  assert.equal(code, 0); assert.equal(signal, null); assert.equal(live.stdout, ''); assert.equal(live.stderr, '');
 });
 
 function assertRestrictedResponse(body, f, immutable) {

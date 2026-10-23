@@ -1,3 +1,41 @@
+# Current handoff — live postmaster outage verified
+
+2026-10-23, `feat/track-b-data-auth`, base `5d0a991`; accountable Sol6.1.
+[Implementation, final commands, review and limitations](../reviews/EXAM_LIVE_POSTMASTER_OUTAGE_VERIFICATION.md).
+Actual immediate PostgreSQL shutdown leaves normal student HTTP/poller OS process
+live. Private helper barrier executes after real postmaster exit, restores server
+before propagating assertion failure. Valid authenticated/CSRF read/save/submit
+return frozen safe503, no private content; actual poller connect failure observed.
+After WAL recovery, same PID/session retains exact acknowledged inputs/clocks,
+failed keys retry normally and one100% result/replayed receipt is produced. Old
+synthetic publication scope inactive; no renewed approval or authorization bypass.
+
+Final focused2+1/foundation37/student34/grading23/recovery16/results6/contracts106/
+consumer11/typecheck/build/emitted smoke/drift/import PASS. Separate Sol6.1/Medium
+no P1/P2, independent four-file syntax/whitespace only, no independent PG run.
+First focused save request invalid/missingCSRF despite503: corrected/rerun, final
+same-key200revision2 proves validity. No invalid-request pass used as valid-save
+evidence. Authentication-stage503 does not establish interrupted command SQL;
+separate connection-loss test proves failed transaction rollback/no retry.
+Bank/assembly/attempt/local/directory/browser suites not rerun for test-only work;
+hosted CI/manual AT not executed, existing non-failing warnings remain.
+
+Reservations released; owner AGENTS/research bytes preserved and unstaged.
+Broad goal active, G1 accepted/G2/G3 OWNER_ACCEPTED. Lawful inventory, qualified
+human rights/content/accessibility, operational targets and Track A outstanding;
+full OPS/pilot acceptance not claimed. No product/schema/API change, push/merge/
+deploy/Astra/paid API/live student inference or unauthorized publication.
+No host/disk/power-loss/PITR/RPO/RTO/capacity/deadline-expiry-during-outage claim.
+
+Next concrete OPS-001 integration audit: inspect populated latest assembly-
+migration rehearsal coverage. Preserve existing sealed forms, answers, history,
+jobs/results and privileges; reuse fresh/early-upgrade/restore evidence and add
+only missing verification. Recommended Sol6.1/High while Luna is usage-limited,
+separate Sol6.1/Medium read-only engineering reviewer. Manual accessibility
+reviewer/platform remains a separate pending human input.
+
+---
+
 # Current handoff — live backend disconnect defect repaired
 
 2026-10-23, `feat/track-b-data-auth`, base `3d05769`; accountable Sol6.1.
