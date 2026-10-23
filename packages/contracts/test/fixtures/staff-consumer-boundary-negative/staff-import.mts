@@ -1,3 +1,4 @@
-import { StaffReviewContextSchema } from "@tsa/contracts/staff";
+import { StaffReviewContextSchema, StaffReviewEvidenceSchema } from "@tsa/contracts/staff";
 
 void StaffReviewContextSchema;
+void StaffReviewEvidenceSchema;

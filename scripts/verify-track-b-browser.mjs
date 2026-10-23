@@ -29,6 +29,7 @@ let sequence = 0;
 const pending = new Map();
 const errors = [];
 const requests = [];
+const networkOperations = [];
 const report = { browser: null, screenshots: [], checks: [] };
 const deadline = setTimeout(() => {
   timedOut = true;
@@ -161,7 +162,10 @@ try {
       }
     }
     if (data.method === 'Runtime.exceptionThrown') errors.push(data.params.exceptionDetails);
-    if (data.method === 'Network.requestWillBeSent') requests.push(data.params.request.url);
+    if (data.method === 'Network.requestWillBeSent') {
+      requests.push(data.params.request.url);
+      networkOperations.push({ url: data.params.request.url, method: data.params.request.method, hasPostData: data.params.request.hasPostData ?? false });
+    }
   });
   await once(socket, 'open');
   await command('Page.enable');
@@ -532,6 +536,7 @@ try {
   await evaluate(`${query('actor-select')}.value='author'`);
   await click('staff-login');
   await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'AVAILABLE fixture draft metadata');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence-open')})`), false, 'AUTHOR alone receives no recorded-evidence action');
   const expectedQuestionTexts = [
     'Bản xem trước tổng hợp 1; không phải nội dung kỳ thi.',
     'Bản xem trước tổng hợp 2; không phải nội dung kỳ thi.',
@@ -713,6 +718,195 @@ try {
   await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
   await waitFor(`!${query('staff-review-context')}`, 'close of reopened private inspection');
   report.checks.push('return/reopen invalidates a pending real AVAILABLE response and a later explicit inspection works');
+
+  const evidenceQuestion = reviewFixture.questions[0];
+  const evidencePath = `/api/v1/question-versions/${encodeURIComponent(evidenceQuestion.versionId)}/review-evidence`;
+  const evidenceUrl = `${reviewFixture.origin}${evidencePath}`;
+  const evidenceButtonSelector = `[data-testid="staff-review-evidence-open"][data-version-id="${evidenceQuestion.versionId}"]`;
+  const evidenceButton = `document.querySelector(${JSON.stringify(evidenceButtonSelector)})`;
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login before synthetic Bank Manager evidence view');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'synthetic Bank Manager metadata workspace');
+  await waitFor(`document.querySelectorAll('[data-testid="staff-review-evidence-open"]').length===${reviewFixture.questions.length}`, 'Bank Manager evidence actions');
+  assert.equal(requests.includes(evidenceUrl), false, 'evidence is not prefetched while metadata is loaded');
+  await evaluate(`${evidenceButton}.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}))`);
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(requests.includes(evidenceUrl), false, 'hover does not fetch recorded rights evidence');
+
+  await evaluate(`(()=>{
+    const original=window.fetch;
+    window.__trackBEvidenceFailOnce=true;
+    window.__trackBLastEvidenceResponse=null;
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      if(url.pathname===${JSON.stringify(evidencePath)}&&window.__trackBEvidenceFailOnce){
+        window.__trackBEvidenceFailOnce=false;
+        return new Response(JSON.stringify({error:{code:'TEMPORARILY_UNAVAILABLE'}}),{status:503,headers:{'content-type':'application/json'}});
+      }
+      const response=await original(input,init);
+      if(url.pathname===${JSON.stringify(evidencePath)}) window.__trackBLastEvidenceResponse={status:response.status,body:await response.clone().json()};
+      return response;
+    };
+  })()`);
+  await evaluate(`${evidenceButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`Boolean(${query('staff-review-evidence')}?.innerText.includes('Không thể tải bằng chứng quyền'))`, 'safe temporary evidence error');
+  assert.equal(await evaluate(`Boolean(${query('staff-recorded-evidence-text')})`), false, 'error view has no evidence text');
+  assert.equal(await evaluate(`document.activeElement.id`), 'staff-review-evidence-title', 'evidence error view receives keyboard focus');
+  await click('staff-review-evidence-retry');
+  await waitFor(`Boolean(${query('staff-review-evidence')}?.querySelector('[data-testid="staff-recorded-evidence-text"]')?.textContent===${JSON.stringify(reviewFixture.evidenceText)})`, 'retry returns the exact recorded evidence text');
+  const evidenceResponse = await evaluate('window.__trackBLastEvidenceResponse');
+  assert.equal(evidenceResponse.status, 200);
+  const evidence = evidenceResponse.body;
+  assert.deepEqual(Object.keys(evidence).sort(), [
+    'accessBasis', 'environment', 'observedAt', 'publicationEligibility', 'qualification', 'schemaVersion', 'sources', 'version',
+  ]);
+  assert.equal(evidence.schemaVersion, 'staff-review-evidence/1');
+  assert.equal(evidence.accessBasis, 'BANK_MANAGER');
+  assert.equal(evidence.environment, 'LOCAL_SYNTHETIC_ONLY');
+  assert.deepEqual(Object.keys(evidence.version).sort(), ['contentHash', 'versionId', 'workflowRevision']);
+  assert.equal(evidence.version.versionId, evidenceQuestion.versionId);
+  assert.equal(evidence.version.contentHash, evidenceQuestion.contentHash);
+  assert.ok(Number.isSafeInteger(evidence.version.workflowRevision) && evidence.version.workflowRevision > 0);
+  assert.equal(evidence.qualification, 'NOT_ATTESTED_BY_PLATFORM');
+  assert.equal(evidence.publicationEligibility, 'NOT_EVALUATED');
+  assert.equal(Object.hasOwn(evidence, 'question'), false);
+  assert.equal(Object.hasOwn(evidence, 'answerKey'), false);
+  assert.equal(Object.hasOwn(evidence, 'explanation'), false);
+  assert.equal(evidence.sources.length, 1);
+  const currentDecision = evidence.sources[0].currentDecision;
+  assert.equal(typeof currentDecision.decisionId, 'string');
+  assert.ok(Number.isSafeInteger(currentDecision.revision) && currentDecision.revision > 0);
+  assert.equal(currentDecision.recordedEvidence.state, 'TEXT_AVAILABLE');
+  assert.equal(currentDecision.recordedEvidence.text, reviewFixture.evidenceText);
+  assert.equal(requests.filter((requestUrl) => requestUrl === evidenceUrl).length, 1, 'retry performs one actual explicit evidence GET');
+  assert.deepEqual(networkOperations.filter(({ url }) => url === evidenceUrl).map(({ method, hasPostData }) => ({ method, hasPostData })),
+    [{ method: 'GET', hasPostData: false }], 'evidence action is a bodyless GET');
+  const evidencePanelText = await evaluate(`${query('staff-review-evidence')}.innerText`);
+  for (const expected of [evidence.version.versionId, evidence.version.contentHash, 'Revision quy trình tại thời điểm quan sát', String(evidence.version.workflowRevision),
+    evidence.observedAt, currentDecision.decisionId, 'Revision quyết định', String(currentDecision.revision), currentDecision.status,
+    'NOT_ATTESTED_BY_PLATFORM', 'NOT_EVALUATED', 'chưa được nền tảng xác minh']) {
+    assert.equal(evidencePanelText.includes(expected), true, `evidence panel shows ${expected}`);
+  }
+  assert.equal(await evaluate(`${query('staff-recorded-evidence-text')}.textContent`), reviewFixture.evidenceText, 'recorded text is rendered verbatim as inert text');
+  assert.equal(await evaluate(`${query('staff-review-evidence')}.querySelectorAll('img,iframe,script,object,embed,a').length`), 0,
+    'hostile markup and URI text create no active content or links');
+  assert.equal(requests.includes('https://invalid.example/evidence.png'), false, 'recorded image URI causes no request');
+  assert.equal(requests.includes('https://invalid.example/recorded-claim'), false, 'recorded URL remains inert text');
+  await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+  await noHorizontalOverflow();
+  assert.equal(await evaluate(`${query('staff-recorded-evidence-text')}.getBoundingClientRect().width <= innerWidth`), true,
+    'recorded evidence fits the 375px layout');
+  report.staffEvidenceMobile = await evaluate(`({innerWidth,documentWidth:document.documentElement.scrollWidth,visualScale:visualViewport.scale})`);
+  await evaluate(`${query('staff-review-evidence')}.scrollIntoView({block:'start',inline:'nearest'})`);
+  await screenshot('staff-rights-evidence-mobile');
+  await evaluate(`${query('staff-recorded-evidence-text')}.scrollIntoView({block:'center',inline:'nearest'})`);
+  await screenshot('staff-rights-evidence-text-mobile');
+  await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+  await evaluate(`${query('staff-recorded-evidence-text')}.scrollIntoView({block:'center',inline:'nearest'})`);
+  await screenshot('staff-rights-evidence-text-desktop');
+  await click('staff-review-evidence-close');
+  await waitFor(`!${query('staff-review-evidence')}`, 'evidence close button clears private text');
+  assert.equal(await evaluate(`document.activeElement===${evidenceButton}`), true, 'evidence close restores focus to the exact row action');
+  await evaluate(`${evidenceButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`${query('staff-review-evidence')}?.innerText.includes(${JSON.stringify(reviewFixture.evidenceText.slice(0, 38))})`, 'reopened evidence view');
+  await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
+  await waitFor(`!${query('staff-review-evidence')}`, 'Escape clears recorded evidence');
+  assert.equal(await evaluate(`document.activeElement===${evidenceButton}`), true, 'Escape restores focus to the exact row action');
+  report.checks.push('BANK_MANAGER explicitly loads exact current rights evidence; hostile HTML and URLs stay inert, error/retry/focus/Escape/close/mobile work, with no private structured question fields');
+
+  await evaluate(`(()=>{
+    const original=window.fetch;
+    window.__trackBHoldNextEvidence=true;
+    window.__trackBEvidenceHeld=false;
+    window.__trackBReleaseEvidence=null;
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      const response=await original(input,init);
+      if(url.pathname===${JSON.stringify(evidencePath)}&&window.__trackBHoldNextEvidence){
+        window.__trackBHoldNextEvidence=false;
+        const payload=await response.clone().json();
+        window.__trackBEvidenceHeld=true;
+        await new Promise(resolve=>window.__trackBReleaseEvidence=resolve);
+        return new Response(JSON.stringify(payload),{status:response.status,headers:{'content-type':'application/json'}});
+      }
+      return response;
+    };
+  })()`);
+  await evaluate(`${evidenceButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor('window.__trackBEvidenceHeld===true', 'actual evidence response held before identity switch');
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login after clearing evidence');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence')})`), false, 'logout clears the evidence panel before its response arrives');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(reviewFixture.evidenceText)})`), false, 'logout removes the recorded evidence text immediately');
+  await evaluate(`${query('actor-select')}.value='author'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')})`, 'AUTHOR identity after evidence logout');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence-open')})`), false, 'AUTHOR identity has no recorded-evidence action');
+  await evaluate('window.__trackBReleaseEvidence()');
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence')})`), false, 'late BANK_MANAGER response cannot restore evidence after AUTHOR login');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(reviewFixture.evidenceText)})`), false, 'late evidence remains absent after identity change');
+  report.checks.push('logout and BANK_MANAGER-to-AUTHOR identity change clear the evidence view and discard a held real response');
+
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login before evidence return/reopen race');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'Bank Manager before evidence return/reopen race');
+  await evaluate(`(()=>{
+    const original=window.fetch;
+    window.__trackBHoldNextEvidenceReturn=true;
+    window.__trackBEvidenceReturnHeld=false;
+    window.__trackBReleaseEvidenceReturn=null;
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      const response=await original(input,init);
+      if(url.pathname===${JSON.stringify(evidencePath)}&&window.__trackBHoldNextEvidenceReturn){
+        window.__trackBHoldNextEvidenceReturn=false;
+        const payload=await response.clone().json();
+        window.__trackBEvidenceReturnHeld=true;
+        await new Promise(resolve=>window.__trackBReleaseEvidenceReturn=resolve);
+        return new Response(JSON.stringify(payload),{status:response.status,headers:{'content-type':'application/json'}});
+      }
+      return response;
+    };
+  })()`);
+  await evaluate(`${evidenceButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor('window.__trackBEvidenceReturnHeld===true', 'actual evidence response held before workspace return');
+  await click('staff-return');
+  await waitFor(`Boolean(${query('staff-open')})`, 'landing after evidence close on navigation');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(reviewFixture.evidenceText)})`), false, 'return to practice removes evidence text');
+  await click('staff-open');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===${reviewFixture.questions.length})`, 'reopened Bank Manager workspace');
+  await evaluate('window.__trackBReleaseEvidenceReturn()');
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence')})`), false, 'late response from returned workspace cannot reinsert evidence after reopen');
+  assert.equal(await evaluate(`document.body.innerText.includes(${JSON.stringify(reviewFixture.evidenceText)})`), false, 'reopened workspace remains metadata-only without explicit evidence request');
+  await evaluate(`${evidenceButton}.focus()`);
+  await pressKey('Enter', 'Enter', 13, String.fromCharCode(13));
+  await waitFor(`${query('staff-review-evidence')}?.innerText.includes(${JSON.stringify(reviewFixture.evidenceText.slice(0, 38))})`, 'explicit evidence request after reopen');
+  await pressKey('Escape', 'Escape', 27, String.fromCharCode(27));
+  await waitFor(`!${query('staff-review-evidence')}`, 'close explicit evidence request after reopen');
+  report.checks.push('return/reopen clears a pending evidence response and requires a new explicit evidence request');
+
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login for candidate evidence denial');
+  await evaluate(`${query('actor-select')}.value='studentA'`);
+  await click('staff-login');
+  await waitFor(`Boolean(document.querySelector('.staff-denied'))`, 'candidate denial in evidence fixture');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence-open')})`), false, 'candidate UI has no recorded-evidence action');
+  const candidateEvidence = await evaluate(`fetch(${JSON.stringify(evidencePath)},{cache:'no-store'}).then(async response=>({status:response.status,body:await response.json()}))`);
+  assert.equal(candidateEvidence.status, 403);
+  assert.equal(candidateEvidence.body.error.code, 'FORBIDDEN');
+  assert.equal(networkOperations.filter(({ url }) => url === evidenceUrl).every(({ method, hasPostData }) => method === 'GET' && !hasPostData), true,
+    'all B2 UI evidence requests are bodyless GETs');
+  report.checks.push('candidate has no evidence action and direct exact-version evidence access is denied with 403 FORBIDDEN');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });

@@ -8,6 +8,8 @@ import { createLocalSyntheticIdentityService } from '../../../src/modules/identi
 import { createBankHandler } from '../../../src/http/bank.mjs';
 import { createPrototypeServer } from '../../../apps/practice-prototype/server.mjs';
 
+export const SYNTHETIC_REVIEW_EVIDENCE = 'Synthetic administrative claim only; not qualified legal evidence.\n<img src="https://invalid.example/evidence.png" onerror="alert(1)">\nhttps://invalid.example/recorded-claim /synthetic/path "quoted"';
+
 export async function createReviewBrowserFixture() {
   let fixture, server;
   const close = async () => {
@@ -21,6 +23,16 @@ export async function createReviewBrowserFixture() {
   };
   try {
     fixture = await createAllocationFixture({ questionCount: 0 });
+    const rights = await bankRequest(fixture.harness, fixture.browsers.bankManager,
+      `/api/v1/source-versions/${fixture.source.sourceVersionId}/rights`, {
+        method: 'POST', key: randomUUID(), body: {
+          status: 'OWNED', allowedUses: ['DISPLAY', 'ADAPT'], territory: ['VN'],
+          validFrom: '2000-01-01T00:00:00Z', validTo: null,
+          evidence: SYNTHETIC_REVIEW_EVIDENCE, expectedRevision: 1,
+        },
+      });
+    if (rights.status !== 201) throw new Error('Synthetic evidence fixture rights failed');
+    fixture.source.decisionId = (await rights.json()).decisionId;
     const text = (value) => [{ type: 'text', text: value }];
     const { sourceVersionId: _sourceVersionId, ...context } = createPrivateTemplate(fixture.source);
     const template = { ...context, schemaVersion: 'question/1', language: 'vi-VN', section: 'MATH',
@@ -73,9 +85,9 @@ export async function createReviewBrowserFixture() {
     const identity = await createLocalSyntheticIdentityService(fixture.harness.authPool, { env });
     handlers = { identity,
       auth: await createLocalAuthHandler({ pool: fixture.harness.authPool, env }),
-      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true }),
+      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true }),
     };
-    return { origin, questions, close, fixture, identity, template };
+    return { origin, questions, close, fixture, identity, template, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Staff browser fixture setup and cleanup failed'); }
     throw error;

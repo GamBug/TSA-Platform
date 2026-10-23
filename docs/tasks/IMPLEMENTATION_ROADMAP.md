@@ -1,5 +1,14 @@
 # Implementation roadmap
 
+Current B2.1 staff increment, 2026-10-24: explicit owner approval recorded; private
+current recorded evidence GET/strict DTO/UI and actual role/closure/read-only/cap/
+browser verification complete, independently reviewed with no final findings.
+[Runtime evidence](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md) and
+[demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+No B1/student contract, grant or migration change. Clean-checkout reproduction
+follows the implementation checkpoint. Broader review/rights/diagnostic contracts
+and qualified human inventory/accessibility remain distinct.
+
 Current B1.2 staff increment, 2026-10-23: owner-approved private version inspection,
 read-only role/rights guards and narrow019 authorship predicate are implemented and
 independently reviewed, with actual PostgreSQL/Chromium/Firefox evidence.
@@ -7,8 +16,8 @@ independently reviewed, with actual PostgreSQL/Chromium/Firefox evidence.
 [staff demonstration](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
 Clean no-hardlink clone147dd71 install/build/focused15/Chrome/Firefox/built/drift/
 docs PASS with no patches/manual DB setup and clean clone Git status.
-Next [B2.1 recorded-evidence proposal](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
-is documentation only/HUMAN_APPROVAL_REQUIRED. Full staff evidence/
+The formerly proposed [B2.1 recorded-evidence read](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
+was explicitly approved and is verified above. Full staff evidence/
 review/publication/diagnostics and human inventory/accessibility remain separate;
 B1 approval does not grant those capabilities. Prior sequencing below is historical.
 

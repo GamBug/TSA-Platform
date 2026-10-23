@@ -7,6 +7,15 @@ Codex Sol6.1 / High for private DTO/authorization integration; bounded frontend
 work may use available Luna / XHigh, otherwise Sol directly. Proposed independent
 review: separate Sol6.1 / Medium. Existing subscriptions only, no paid model API.
 
+## Current B2.1 owner disposition — 2026-10-23–24
+
+The owner separately approved [exact B2.1](WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md);
+[authority/hash](OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23).
+Its bounded local current recorded-text read is implemented and independently
+reviewed; [runtime evidence](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md).
+The broader original options below remain historical. No review/rights edits,
+publication, diagnostics or qualified-human authority follows from B2 approval.
+
 ## Current B1.2 owner disposition — 2026-10-23
 
 The human owner explicitly approved B1.2 as a whole. [Exact authority/hash](OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).

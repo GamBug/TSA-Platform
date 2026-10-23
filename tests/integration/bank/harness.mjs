@@ -34,7 +34,7 @@ async function serve(request, outgoing, authHandler, bankHandler) {
   outgoing.end(Buffer.from(await response.arrayBuffer()));
 }
 
-export async function createBankHarness({ migrationDirectory, enableReviewContext = false } = {}) {
+export async function createBankHarness({ migrationDirectory, enableReviewContext = false, enableReviewEvidence = false } = {}) {
   const database = await startDisposablePostgres();
   let authPool;
   let bankPool;
@@ -71,7 +71,7 @@ export async function createBankHarness({ migrationDirectory, enableReviewContex
     env.LOCAL_AUTH_TRUSTED_ORIGIN = origin;
     const identity = await createLocalSyntheticIdentityService(authPool, { env });
     const authHandler = await createLocalAuthHandler({ pool: authPool, env });
-    const bankHandler = await createBankHandler({ bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext });
+    const bankHandler = await createBankHandler({ bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext, enableReviewEvidence });
 
     return {
       database, authPool, bankPool, identity, env, origin, server,

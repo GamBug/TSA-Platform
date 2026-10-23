@@ -10,6 +10,12 @@ Status: **INDEPENDENTLY_REVIEWED DESIGN / HUMAN_APPROVAL_REQUIRED**.
 Reviewed SHA-256:
 `62f714f3f1c5621d9c866163352c285cb16db4e6d6d7553a44606bede8b4d923`.
 
+Current disposition (2026-10-24): the explicit owner approval is now recorded in
+[decisions](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23),
+and [runtime verification](WEB_002_B2_RUNTIME_VERIFICATION.md) is separate. The
+approval-pending/no-implementation statements below describe this earlier design
+checkpoint; they are not the current engineering state.
+
 ## Actual review and repair
 
 Separate native `/root/lifecycle_review`, configured Codex Sol6.1/Medium, read-only,

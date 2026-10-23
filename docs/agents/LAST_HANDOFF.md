@@ -1,64 +1,58 @@
-# Handoff — B1.2 independently reviewed and clean-reproduced
+# Handoff — B2.1 current recorded evidence verified and reviewed
 
-2026-10-23, Asia/Bangkok. Root accountable, branch `feat/track-b-data-auth`, starting
-`5f916af`. Owner explicitly approved B1.2 as a whole; [exact scope/hash/evidence](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).
-Approved specification bytes unchanged. Owner AGENTS.md/untracked research remain
-untouched/excluded. Native configured Luna/XHigh builders owned disjoint private
-contracts and staff UI/launcher/Firefox; root owns backend/migration/tests/integration.
-All builder reservations released; no model API or external provider used.
+2026-10-24 Asia/Bangkok. Root accountable, `feat/track-b-data-auth`, base79fb487.
+Human owner explicitly approved whole B2.1; [exact authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23).
+Frozen B1/B2 proposal bytes preserved. Owner AGENTS.md/untracked research remain
+untouched/excluded. Actual native configured Luna/XHigh delegate completed private
+contracts; UI delegate wrote bounded UI/browser edits then usage-limited. Root
+assumed ownership/completed/verified UI/Chrome/Firefox. All reservations released.
 
 ## Implemented
 
-Private staff GET plus strict `@tsa/contracts/staff` namespace/artifact; current
-Bank/own-audit/independent-queued-reviewer scope; full canonical source/ancestor/
-stimulus snapshot and current-rights guards. Blocked previews contain no content,
-keys or explanations. READ ONLY snapshot and exact zero-write tests. Migration019
-adds only a narrow Bank-executable Boolean authorship probe; raw audits remain
-denied. No student/released schema or existing export changed.
+Separate default-off local GET/strict private staff DTO/action for current recorded
+rights text. BANK_MANAGER or independent current IN_REVIEW REVIEWER only; no
+AUTHOR_OWN. Shared B1 canonical graph extraction preserves old semantics and checks
+mixed namespaces/ancestors/stimuli/source closure. READ ONLY snapshot, exact current
+pointer/revision/hash/observedAt, truthful null/NOT_RECORDED, source/text/response
+caps and private-safe errors. No B1/student contract, SQL grant/migration/dependency
+change; no review/rights/publication command UI. Verbatim arbitrary evidence text
+is owner-approved only for the B2 bases, escaped/inert, never a legal attestation.
 
-Staff UI supports explicit version/hash/rights inspection, safe local math/table
-preview, errors/blocks, keyboard close and late-response invalidation. Mobile
-metadata wrapping repaired observed716px-to375px auto-zoom. Guarded disposable
-staff launcher and [supervisor guide](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration)
-provide the full browser journey; retained UNKNOWN source rights stay unchanged.
+Explicit UI close/Escape/focus/retry/error/375px behavior and stale response fencing.
+Existing disposable demo now supports synthetic manager evidence; [complete guide](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+Retained sources remain UNKNOWN. No content or credential output from launcher.
 
-## Evidence and actual review
+## Verification and actual independent review
 
-[Exact commands, failures, repaired findings and limits](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md).
-Root focused15/Bank107/foundation37/auth5/local15/student34/contracts117/consumer11/
-B032/type/build/built/drift/import PASS; actual Chromium staff19checks/7screenshots,
-strict375/375/scale1 mobile and three-domain78 PASS. Delegate optional Firefox156
-staff+existing student PASS at desktop1280 and actual narrow500 (375/450 requests
-were clamped; no375px Firefox claim).
+[Exact commands, observed outcomes, repaired fixture issue and limits](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md).
+Root focused22/Bank116/local15/student34/auth5/contracts122/consumer11/B032/static/
+build/built/drift/import PASS. Actual Chrome23checks/10screenshots, private preview
+and evidence375/document375/scale1; Firefox156 student+B1+B2 PASS at1280 and actual
+narrow500 (requested375/450 clamped). Text-focused screenshots inspected.
+Latest CLI2 explicitly covers manager200/author+candidate403/stdoutprivacy and
+terminal-group SIGINT exit0/listener gone.
 
-Separate actual `/root/lifecycle_review`, configured Sol6.1/Medium, found rights-
-schema and mixed-ancestry P2s; repaired/rechecked, final no unresolved findings.
-Independently read12/upgrade1/CLI2/contract13/Chrome PASS, mobile screenshot reviewed;
-Firefox slice syntax/inspection only. Broad regressions are coordinator evidence.
+Separate actual `/root/lifecycle_review`, configured Sol6.1/Medium, read-only,
+final no findings after review against79fb487. Initial usage limit yielded no review;
+after its stated retry time passed, one resumed review completed. Independently
+focused22/scoped staff contract18/actual Chrome23/CLI2/drift/public-app boundary/
+syntax/whitespace PASS. Firefox code/syntax inspection only; broad regressions are
+root evidence. No bypass/purchase/paid API/provider service/push/merge/deploy.
 
-Root exact flagged `npm run demo:staff:review` started root URL and served page/
-app/math/KaTeX/auth200/no-store. Ctrl+C closed listener; npm cancellation1, direct
-CLI tests exit0. No task-owned application server is intended to remain running.
-Clean no-hardlink clone of implementation147dd71: locked install/build/focused15/
-Chrome staff/Firefox staff+student/built/drift/docs PASS, no patches or manual DB
-setup; final clone Git status empty. Full command evidence is linked above.
+## Next and limitations
 
-## Remaining and continuation
+First create the implementation checkpoint and reproduce locked install/build/
+focused22/Chrome/Firefox/built/drift/docs in a clean no-hardlink clone. Append exact
+commit/results before claiming clean reproduction. Three-domain persistent regression PASS78
+API responses, independently timed MATH4/READING2/SCIENCE4. No app server intentionally left running.
 
-The local student demo remains verified. B1 is bounded staff inspection, not full
-WEB-002, TEST-002, real content or pilot/production acceptance. No review decisions,
-raw rights evidence, rights edits, quarantine, image bytes or diagnostics UI added.
-Those need the next explicit scoped contract under the existing decision packet.
-Named lawful author/rights attestor, independent qualified content reviewer for
-12/6/12 accepted items, qualified manual AT/native zoom and operational targets
-remain human inputs. No publication/production rights follow from synthetic tests.
+Then inspect the next useful existing approved staff operation/queue UX and its
+contract/privilege boundaries before coding; new fields or privileges require a
+specific proposal. Review/rights edits/diagnostics are outside B1/B2. Full WEB-002,
+TEST-002/Technical MVP, lawful12/6/12 stock, named rights attestor/independent human
+review, qualified AT/native zoom and production/load/identity remain distinct.
+No synthetic role or read action satisfies these human inputs.
 
-Next obtain the explicit disposition of the separate
-[B2.1 recorded-rights evidence proposal](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md);
-[Independent design review](../reviews/WEB_002_B2_CONTRACT_DESIGN_REVIEW.md) repaired
-one disclosure P2, final no concrete blockers. Approval must explicitly include
-verbatim arbitrary evidence text; no evidence route or privileges implemented.
-B1 approval remains scoped to inspection. Recommended Codex Sol6.1/High integration, available
-Luna/XHigh bounded UI with Sol fallback, separate Sol6.1/Medium read-only review;
-existing subscriptions only. No Astra/paid API/push/remote merge/deployment.
-Earlier handoffs/design review remain in Git and linked task evidence.
+Recommended next implementer Codex Sol6.1/High for integration/private authorization;
+available Luna/XHigh bounded UI with Sol fallback; separate Sol6.1/Medium read-only
+review using existing subscriptions only. Earlier history is retained in Git.

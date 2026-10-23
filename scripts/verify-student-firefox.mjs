@@ -159,6 +159,40 @@ async function runStaffReviewJourney() {
   assert.equal(privateDomCleared, true, 'logout clears private review DOM');
   await capture('staff-logout-cleared');
 
+  await evaluate(`${query('actor-select')}.value='bankManager'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-evidence-open')})`, 'Bank Manager evidence actions');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence')})`),false,'no automatic evidence panel');
+  await evaluate(`(()=>{const original=window.fetch;window.__staffEvidenceCalls=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.endsWith('/review-evidence'))window.__staffEvidenceCalls.push({status:response.status,body:await response.clone().json()});return response;};return true})()`);
+  const evidenceSelector = `[data-testid="staff-review-evidence-open"][data-version-id="${selected.versionId}"]`;
+  const evidenceElement=await wd('POST','/element',{using:'css selector',value:evidenceSelector});
+  assert.equal(await evaluate('window.__staffEvidenceCalls.length'),0,'no evidence prefetch');
+  await wd('POST',`/element/${evidenceElement['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`Boolean(${query('staff-recorded-evidence-text')})`,'current recorded evidence text');
+  const evidence=await evaluate('window.__staffEvidenceCalls[0]');
+  assert.equal(evidence.status,200);assert.equal(evidence.body.accessBasis,'BANK_MANAGER');
+  assert.equal(evidence.body.version.versionId,selected.versionId);
+  assert.equal(evidence.body.version.contentHash,selected.contentHash);
+  assert.equal(evidence.body.qualification,'NOT_ATTESTED_BY_PLATFORM');
+  assert.equal(await evaluate(`${query('staff-recorded-evidence-text')}.textContent`),staffFixture.evidenceText);
+  assert.equal(await evaluate(`${query('staff-review-evidence')}.querySelectorAll('img,a,script,iframe,object,embed').length`),0,'recorded HTML/URIs remain inert');
+  await evaluate(`${query('staff-recorded-evidence-text')}.scrollIntoView({block:'center'})`);
+  await capture(`staff-evidence-text-narrow-${narrowMeasured.innerWidth}`);
+  await setViewport(1280,900,'evidence desktop');
+  await evaluate(`${query('staff-recorded-evidence-text')}.scrollIntoView({block:'center'})`);
+  await capture('staff-evidence-text-desktop');
+  await evaluate(`document.getElementById('staff-review-evidence-title').focus()`);
+  await wd('POST','/actions',{actions:[{type:'key',id:'staff-evidence-keyboard',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  await waitFor(`!${query('staff-review-evidence')}`,'Escape clears evidence');
+  assert.equal(await evaluate(`document.activeElement.matches(${JSON.stringify(evidenceSelector)})`),true,'evidence Escape restores focus');
+  await wd('POST',`/element/${evidenceElement['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`Boolean(${query('staff-recorded-evidence-text')})`,'evidence reopened for logout');
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`,'evidence logout');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-evidence')})`),false);
+  assert.equal(await evaluate(`document.body.textContent.includes(${JSON.stringify(staffFixture.evidenceText)})`),false,'logout clears evidence text');
+  report.checks.push('B2 BANK_MANAGER explicit exact-version current evidence is inert verbatim text, actual narrow/desktop readable, W3C Escape restores focus and logout clears it');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

@@ -77,3 +77,14 @@ loading/errors and metadata-only blocks, math/table/key/explanation reading,
 responsive metadata wrapping, and logout/private-content clearing. Actual outcomes
 remain NOT TESTED; automated Chrome375 and Firefox1280/500 are engineering evidence
 only. Do not enter human rights/content approvals during this inspection exercise.
+
+
+## Separate private staff B2 check — MANUAL_CHECK_PENDING
+
+Use the same disposable staff demo, sign out from AUTHOR and explicitly select
+synthetic BANK_MANAGER. Open recorded evidence and assess metadata relationships,
+long verbatim text/line breaks, inert URLs, announced loading/error/retry, keyboard
+close/Escape/focus restoration and logout/navigation clearing. Record actual
+browser/AT/native zoom and human findings as above. Automated375px Chromium and
+actual500px Firefox are engineering evidence; human outcomes remain NOT TESTED.
+No rights, review, publication or qualified-human decision should be entered.

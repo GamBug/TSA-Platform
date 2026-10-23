@@ -23,6 +23,7 @@ type StaffDocument = {
     requestBody?: unknown;
     parameters?: Array<{ in?: string; name?: string }>;
     responses?: Record<string, {
+      description?: string;
       content?: Record<string, { schema?: unknown }>;
       headers?: Record<string, unknown>;
     }>;
@@ -31,12 +32,15 @@ type StaffDocument = {
 };
 
 describe("dedicated private staff GET artifacts", () => {
-  it("describes one exact GET and leaves the student registry separate", async () => {
+  it("describes exact B1/B2 GETs and leaves the student registry separate", async () => {
     const artifact = staffStableJson(generateStaffContractsOpenApi());
     assert.equal(artifact, staffStableJson(generateStaffContractsOpenApi()));
     const document = JSON.parse(artifact) as StaffDocument;
     assert.equal(document.openapi, "3.1.0");
-    assert.deepEqual(Object.keys(document.paths ?? {}), ["/api/v1/question-versions/{versionId}/review-context"]);
+    assert.deepEqual(Object.keys(document.paths ?? {}), [
+      "/api/v1/question-versions/{versionId}/review-context",
+      "/api/v1/question-versions/{versionId}/review-evidence",
+    ]);
     const path = document.paths?.["/api/v1/question-versions/{versionId}/review-context"];
     assert.deepEqual(Object.keys(path ?? {}), ["get"]);
     const operation = path?.get;
@@ -53,6 +57,26 @@ describe("dedicated private staff GET artifacts", () => {
     ]);
     assert.ok(document.components?.schemas?.StaffReviewContext);
 
+    const evidencePath = document.paths?.["/api/v1/question-versions/{versionId}/review-evidence"];
+    assert.deepEqual(Object.keys(evidencePath ?? {}), ["get"]);
+    const evidence = evidencePath?.get;
+    assert.equal(evidence?.operationId, "staffReviewEvidence");
+    assert.equal(evidence?.requestBody, undefined);
+    assert.deepEqual(evidence?.parameters?.map(({ name, in: location }) => ({ name, in: location })), [
+      { name: "versionId", in: "path" },
+    ]);
+    assert.deepEqual(Object.keys(evidence?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.match(evidence?.responses?.["404"]?.description ?? "", /missing, malformed, or outside/);
+    assert.match(evidence?.responses?.["422"]?.description ?? "", /Unexpected query or request body/);
+    assert.ok(evidence?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(evidence?.responses?.["200"]?.headers ?? {}).sort(), [
+      "Cache-Control",
+      "Vary",
+      "X-Content-Type-Options",
+      "X-Request-Id",
+    ]);
+    assert.ok(document.components?.schemas?.StaffReviewEvidence);
+
     const student = JSON.parse(JSON.stringify(generateStudentContractsOpenApi())) as StaffDocument;
     const studentOperationCount = Object.values(student.paths ?? {}).reduce(
       (count, path) => count + Object.keys(path).length,
@@ -61,6 +85,8 @@ describe("dedicated private staff GET artifacts", () => {
     assert.equal(studentOperationCount, 8);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/review-context"], undefined);
     assert.equal(student.components?.schemas?.StaffReviewContext, undefined);
+    assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/review-evidence"], undefined);
+    assert.equal(student.components?.schemas?.StaffReviewEvidence, undefined);
   });
 
   it("matches the committed private OpenAPI and operation-map artifacts and detects drift without rewriting", async () => {

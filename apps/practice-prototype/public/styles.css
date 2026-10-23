@@ -966,3 +966,14 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-review-context .review-item { padding: 14px; }
   .staff-review-context .staff-header-actions .button { width: 100%; }
 }
+.staff-review-evidence-content, .staff-review-evidence-sources, .staff-review-evidence-source { min-width: 0; max-width: 100%; }
+.staff-review-evidence-warning { margin: 18px 0; padding: 14px 16px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; }
+.staff-review-evidence-source { margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.staff-review-evidence-source > code { display: block; margin-top: 5px; overflow-wrap: anywhere; }
+.staff-review-evidence-source h5 { margin: 16px 0 8px; font-size: .92rem; }
+.staff-review-evidence-text { max-width: 100%; margin: 0; padding: 14px; overflow-wrap: anywhere; white-space: pre-wrap; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #f8faff; font: inherit; font-size: .86rem; line-height: 1.6; }
+.staff-review-evidence-empty { color: var(--muted); }
+@media (max-width: 680px) {
+  .staff-review-evidence-source { padding: 12px; }
+  .staff-review-evidence-text { padding: 11px; }
+}

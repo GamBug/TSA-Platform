@@ -750,6 +750,32 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 B2.1 **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** from79fb487.
+Exact approved private current-evidence GET/DTO/action delivered with no B1/student
+contract/grant/migration change. Current manager/independent queued reviewer only;
+authors/students denied, verbatim text inert, source closure/current decision/
+read-only snapshot/caps verified. [Exact runtime evidence/review/limits](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md).
+Root focused22/Bank116/local15/student34/auth5/contracts122/consumer11/B032/static/
+build/built/drift/import PASS; Chrome23checks/10screenshots at375/375/scale1,
+Firefox156 student+B1+B2 at1280/actual500 and three-domain78 PASS. Separate Sol6.1/Medium final no
+findings; independently focused22/scopedcontracts18/Chrome23/CLI2 plus syntax/drift/
+public-app boundary PASS. Native configured Luna/XHigh contract delegate finished;
+UI delegate usage-limited after edits, root completed UI/browser work; reservations
+released. Full WEB-002 remains IN_PROGRESS for review/rights/diagnostics contracts
+and qualified human prerequisites. Next clean-checkout reproduction of checkpoint.
+
+Historical B2 approval/design notes below are superseded where this verified
+entry conflicts; their approval evidence and earlier outcomes remain preserved.
+
+2026-10-23 **B2.1 APPROVED / IMPLEMENTATION_IN_PROGRESS**, starting79fb487.
+Human owner explicitly approved the whole exact proposal; [authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23).
+Root accountable and owns backend/shared graph extraction/HTTP/local flags,
+integration tests/fixture, package scripts and coordinated records. Bounded
+configured Luna/XHigh delegates may own private contracts or staff UI/browser
+scripts under explicit disjoint reservations; separate Sol6.1/Medium read-only
+review after integration. No B2 runtime checks yet. Owner AGENTS/research and
+frozen B1/B2 documents preserved. No SQL grant/migration proposed.
+
 2026-10-23 next decision: [B2.1 bounded recorded-rights evidence read](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
 is **PROPOSED / HUMAN_APPROVAL_REQUIRED**, documentation only. Root accountable
 for design/records; separate [read-only design review](../reviews/WEB_002_B2_CONTRACT_DESIGN_REVIEW.md)

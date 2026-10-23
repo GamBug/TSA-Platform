@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { bankRequest, loginActor } from './harness.mjs';
+import { SYNTHETIC_REVIEW_EVIDENCE } from './review-browser-fixture.mjs';
 
 const script = new URL('../../../scripts/start-staff-review-fixture.mjs', import.meta.url);
 
@@ -128,7 +129,18 @@ test('staff review demo serves the real synthetic AUTHOR private GETs and closes
   assert.equal(blockedText.includes('Lời giải tổng hợp riêng'), false);
   assert.equal(blockedText.includes('<img src='), false);
 
+  const evidencePath = `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-evidence`;
+  assert.equal((await bankRequest(harness,author,evidencePath)).status,403);
+  const manager=await loginActor(harness,'bankManager');
+  const evidenceResponse=await bankRequest(harness,manager,evidencePath);
+  assert.equal(evidenceResponse.status,200);
+  const evidence=await evidenceResponse.json();
+  assert.equal(evidence.accessBasis,'BANK_MANAGER');
+  assert.equal(evidence.sources[0].currentDecision.recordedEvidence.text,SYNTHETIC_REVIEW_EVIDENCE);
+  assert.equal(processHandle.output.includes(SYNTHETIC_REVIEW_EVIDENCE),false,'launcher never prints recorded evidence');
+  assert.match(processHandle.output,/synthetic BANK_MANAGER/);
   const candidate = await loginActor(harness, 'studentA');
+  assert.equal((await bankRequest(harness,candidate,evidencePath)).status,403);
   const candidateResponse = await bankRequest(harness, candidate,
     `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-context`);
   assert.equal(candidateResponse.status, 403);

@@ -1,11 +1,15 @@
 import { z } from "zod";
 
 import type { RouteDefinitionValue } from "./routes.ts";
-import { StaffReviewContextSchema } from "./staff.ts";
+import { StaffReviewContextSchema, StaffReviewEvidenceSchema } from "./staff.ts";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 export const StaffReviewContextPathParamsSchema = z
+  .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffReviewEvidencePathParamsSchema = z
   .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
   .strict();
 
@@ -60,6 +64,20 @@ export const staffRouteRegistry = {
       404: json(StaffNotFoundResponseSchema, "Version is not visible to this staff principal"),
       422: json(StaffValidationErrorResponseSchema, "Malformed path or unexpected query/body"),
       503: json(StaffTemporarilyUnavailableResponseSchema, "Stored projection or dependency closure is unavailable"),
+    },
+  },
+  staffReviewEvidence: {
+    method: "GET",
+    path: "/api/v1/question-versions/{versionId}/review-evidence",
+    summary: "Read current recorded rights evidence for an exact question version",
+    params: StaffReviewEvidencePathParamsSchema,
+    responses: {
+      200: json(StaffReviewEvidenceSchema, "Current recorded evidence text for the exact version's source closure"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks a permitted evidence-read basis"),
+      404: json(StaffNotFoundResponseSchema, "Version is missing, malformed, or outside the current staff scope"),
+      422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored evidence projection or dependency closure is unavailable"),
     },
   },
 } as const satisfies Readonly<Record<string, RouteDefinitionValue>>;

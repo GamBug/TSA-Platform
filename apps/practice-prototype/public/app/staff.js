@@ -9,6 +9,7 @@ const ACTORS = Object.freeze([
 
 const ERROR_TEXT = Object.freeze({
   UNAUTHENTICATED: 'Phiên đăng nhập không còn hiệu lực. Hãy đăng nhập lại.',
+  NOT_FOUND: 'Phiên bản không còn sẵn có trong phạm vi truy cập của vai trò này.',
   FORBIDDEN: 'Vai trò tổng hợp này không được phép thực hiện thao tác đó.',
   CSRF_FAILED: 'Yêu cầu xác thực chưa hợp lệ. Hãy tải lại khu vực này rồi thử lại.',
   VALIDATION_ERROR: 'Thông tin bản nháp chưa hợp lệ. Hãy kiểm tra các trường rồi thử lại.',
@@ -227,6 +228,74 @@ function renderRightsMetadata(sources = []) {
   return section;
 }
 
+function reviewEvidenceSupportsResponse(evidence, versionId) {
+  return evidence?.schemaVersion === 'staff-review-evidence/1'
+    && evidence.environment === 'LOCAL_SYNTHETIC_ONLY'
+    && ['BANK_MANAGER', 'REVIEW_QUEUE'].includes(evidence.accessBasis)
+    && evidence.version?.versionId === versionId
+    && typeof evidence.version.contentHash === 'string'
+    && Number.isSafeInteger(evidence.version.workflowRevision) && evidence.version.workflowRevision > 0
+    && typeof evidence.observedAt === 'string'
+    && evidence.qualification === 'NOT_ATTESTED_BY_PLATFORM'
+    && evidence.publicationEligibility === 'NOT_EVALUATED'
+    && Array.isArray(evidence.sources)
+    && evidence.sources.every((source) => typeof source?.sourceVersionId === 'string'
+      && (source.currentDecision === null || (source.currentDecision
+        && typeof source.currentDecision.decisionId === 'string'
+        && Number.isSafeInteger(source.currentDecision.revision) && source.currentDecision.revision > 0
+        && typeof source.currentDecision.status === 'string'
+        && (source.currentDecision.recordedEvidence?.state === 'NOT_RECORDED'
+          || (source.currentDecision.recordedEvidence?.state === 'TEXT_AVAILABLE'
+            && typeof source.currentDecision.recordedEvidence.text === 'string'
+            && source.currentDecision.recordedEvidence.text.trim().length > 0)))));
+}
+
+function renderReviewEvidence(evidence) {
+  const content = node('div', 'staff-review-evidence-content');
+  const metadata = node('dl', 'staff-review-metadata');
+  appendMetadataPair(metadata, 'Môi trường', evidence.environment);
+  appendMetadataPair(metadata, 'Cơ sở truy cập', evidence.accessBasis);
+  appendMetadataPair(metadata, 'Phiên bản', evidence.version.versionId);
+  appendMetadataPair(metadata, 'Hash phiên bản', evidence.version.contentHash);
+  appendMetadataPair(metadata, 'Revision quy trình tại thời điểm quan sát', String(evidence.version.workflowRevision));
+  appendMetadataPair(metadata, 'Thời điểm quan sát mới từ máy chủ', evidence.observedAt);
+  appendMetadataPair(metadata, 'Xác nhận của nền tảng', 'NOT_ATTESTED_BY_PLATFORM');
+  appendMetadataPair(metadata, 'Đánh giá đủ điều kiện xuất bản', evidence.publicationEligibility);
+  content.append(metadata);
+
+  content.append(node('p', 'staff-review-evidence-warning', 'Bằng chứng là nội dung hành chính được ghi nhận và chưa được nền tảng xác minh. Đây không phải phê duyệt của con người, xác nhận quyền pháp lý hoặc quyết định xuất bản.'));
+  const sources = node('section', 'staff-review-evidence-sources');
+  sources.append(node('h3', '', 'Bằng chứng quyền hiện được ghi nhận'));
+  if (evidence.sources.length === 0) {
+    sources.append(node('p', 'staff-review-evidence-empty', 'Phiên bản này không có nguồn được ghi nhận.'));
+  }
+  for (const source of evidence.sources) {
+    const item = node('article', 'staff-review-evidence-source');
+    item.append(node('h4', '', 'Nguồn'), node('code', '', source.sourceVersionId));
+    const decision = source.currentDecision;
+    if (decision === null) {
+      item.append(node('p', 'staff-review-evidence-empty', 'Không có quyết định quyền hiện tại cho nguồn này.'));
+    } else {
+      const decisionMetadata = node('dl', 'staff-review-metadata');
+      appendMetadataPair(decisionMetadata, 'Quyết định hiện tại', decision.decisionId);
+      appendMetadataPair(decisionMetadata, 'Revision quyết định', String(decision.revision));
+      appendMetadataPair(decisionMetadata, 'Trạng thái quyền hiện tại', decision.status);
+      item.append(decisionMetadata);
+      if (decision.recordedEvidence.state === 'TEXT_AVAILABLE') {
+        item.append(node('h5', '', 'Văn bản bằng chứng hiện được ghi nhận'));
+        const text = node('pre', 'staff-review-evidence-text', decision.recordedEvidence.text);
+        text.dataset.testid = 'staff-recorded-evidence-text';
+        item.append(text);
+      } else {
+        item.append(node('p', 'staff-review-evidence-empty', 'Không có văn bản bằng chứng được ghi nhận cho quyết định hiện tại.'));
+      }
+    }
+    sources.append(item);
+  }
+  content.append(sources);
+  return content;
+}
+
 function renderPrivateQuestion(question) {
   const article = node('article', 'review-item');
   article.append(node('h3', '', 'Nội dung câu hỏi riêng'));
@@ -323,6 +392,8 @@ export async function openStaffWorkspace(container, onBack) {
     identityEpoch: 0,
     reviewRequestId: 0,
     reviewView: null,
+    evidenceRequestId: 0,
+    evidenceView: null,
     pendingCreate: null,
   };
   const returnToPractice = () => {
@@ -332,6 +403,11 @@ export async function openStaffWorkspace(container, onBack) {
     onBack();
   };
   const backButton = () => button('Quay lại khu luyện tập', 'staff-return', returnToPractice, 'button secondary');
+
+  function canRequestReviewEvidence(item) {
+    const roles = state.principal?.roles ?? [];
+    return roles.includes('BANK_MANAGER') || (roles.includes('REVIEWER') && item?.state === 'IN_REVIEW');
+  }
 
   async function refreshSession() {
     const session = await request('/local-auth/session');
@@ -425,6 +501,16 @@ export async function openStaffWorkspace(container, onBack) {
         inspect.setAttribute('aria-expanded', 'false');
         info.append(inspect);
       }
+      if (canRequestReviewEvidence(item)) {
+        const evidence = button('Xem bằng chứng quyền', 'staff-review-evidence-open', async () => {
+          await loadReviewEvidence(item.versionId, evidence);
+        }, 'button secondary small');
+        evidence.dataset.versionId = item.versionId;
+        evidence.setAttribute('aria-label', `Xem bằng chứng quyền được ghi nhận cho phiên bản ${item.versionId}`);
+        evidence.setAttribute('aria-controls', 'staff-review-host');
+        evidence.setAttribute('aria-expanded', 'false');
+        info.append(evidence);
+      }
       row.append(info);
       list.append(row);
     }
@@ -437,10 +523,13 @@ export async function openStaffWorkspace(container, onBack) {
   }
 
   function clearPrivateReviewView({ restoreFocus = false } = {}) {
-    const previous = state.reviewView;
+    const previousViews = [state.evidenceView, state.reviewView];
+    const previous = previousViews.find(Boolean);
     state.reviewRequestId += 1;
+    state.evidenceRequestId += 1;
     state.reviewView = null;
-    previous?.triggerElement?.setAttribute('aria-expanded', 'false');
+    state.evidenceView = null;
+    for (const view of previousViews) view?.triggerElement?.setAttribute('aria-expanded', 'false');
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (host) {
       host.replaceChildren();
@@ -453,35 +542,42 @@ export async function openStaffWorkspace(container, onBack) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
-    const view = state.reviewView;
+    const view = state.evidenceView ?? state.reviewView;
     host.replaceChildren();
     host.hidden = !view;
     if (!view) return;
 
-    const panel = node('section', 'staff-card staff-review-context');
-    panel.dataset.testid = 'staff-review-context';
-    panel.setAttribute('aria-labelledby', 'staff-review-title');
+    const isEvidence = view.kind === 'evidence';
+    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}`);
+    panel.dataset.testid = isEvidence ? 'staff-review-evidence' : 'staff-review-context';
+    const titleId = isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
+    panel.setAttribute('aria-labelledby', titleId);
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         clearPrivateReviewView({ restoreFocus: true });
       }
     });
-    const titleText = view.status === 'loading' ? 'Đang tải nội dung riêng…'
-      : view.status === 'error' ? 'Không thể tải nội dung riêng'
-        : 'Kiểm tra phiên bản riêng';
+    const titleText = view.status === 'loading'
+      ? (isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
+      : view.status === 'error'
+        ? (isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
+        : (isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
     const heading = node('h2', '', titleText);
-    heading.id = 'staff-review-title';
+    heading.id = titleId;
     heading.tabIndex = -1;
     const actions = node('div', 'staff-header-actions');
     if (view.status === 'error') {
-      actions.append(button('Thử tải lại phiên bản này', 'staff-review-retry', async () => {
-        await loadReviewContext(view.versionId, view.triggerElement);
-      }, 'button secondary'));
+      actions.append(button(isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
+        isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
+          if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
+          else await loadReviewContext(view.versionId, view.triggerElement);
+        }, 'button secondary'));
     }
-    actions.append(button('Đóng nội dung riêng', 'staff-review-close', () => {
-      clearPrivateReviewView({ restoreFocus: true });
-    }, 'button secondary'));
+    actions.append(button(isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
+      isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+        clearPrivateReviewView({ restoreFocus: true });
+      }, 'button secondary'));
     panel.append(heading, actions);
 
     if (view.status === 'loading') {
@@ -495,7 +591,7 @@ export async function openStaffWorkspace(container, onBack) {
       status.setAttribute('aria-live', 'assertive');
       panel.append(status);
     } else {
-      panel.append(renderReviewContext(view.context));
+      panel.append(isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
     }
     host.append(panel);
     if (focusTitle) heading.focus();
@@ -548,11 +644,11 @@ export async function openStaffWorkspace(container, onBack) {
 
   async function loadReviewContext(versionId, triggerElement) {
     if (!isWorkspaceActive() || !state.canReadList || typeof versionId !== 'string') return;
-    state.reviewView?.triggerElement?.setAttribute('aria-expanded', 'false');
+    clearPrivateReviewView();
     const requestId = ++state.reviewRequestId;
     const identityEpoch = state.identityEpoch;
     const requestPrincipal = principalKey(state.principal);
-    state.reviewView = { versionId, status: 'loading', triggerElement };
+    state.reviewView = { kind: 'context', versionId, status: 'loading', triggerElement };
     triggerElement?.setAttribute('aria-expanded', 'true');
     renderReviewPanel({ focusTitle: true });
     const isCurrent = () => isWorkspaceActive()
@@ -564,11 +660,40 @@ export async function openStaffWorkspace(container, onBack) {
       const result = await request(`/api/v1/question-versions/${encodeURIComponent(versionId)}/review-context`);
       if (!isCurrent()) return;
       if (result?.version?.versionId !== versionId) throw new Error('Máy chủ không trả về đúng phiên bản đã chọn.');
-      state.reviewView = { versionId, status: 'loaded', triggerElement, context: result };
+      state.reviewView = { kind: 'context', versionId, status: 'loaded', triggerElement, context: result };
       renderReviewPanel({ focusTitle: true });
     } catch (error) {
       if (!isCurrent()) return;
-      state.reviewView = { versionId, status: 'error', triggerElement, error: error.message };
+      state.reviewView = { kind: 'context', versionId, status: 'error', triggerElement, error: error.message };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  async function loadReviewEvidence(versionId, triggerElement) {
+    if (!isWorkspaceActive() || typeof versionId !== 'string') return;
+    const item = state.items.find((candidate) => candidate.versionId === versionId);
+    if (!canRequestReviewEvidence(item)) return;
+    clearPrivateReviewView();
+    const requestId = ++state.evidenceRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.evidenceView = { kind: 'evidence', versionId, status: 'loading', triggerElement };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.evidenceRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.evidenceView?.versionId === versionId;
+    try {
+      const result = await request(`/api/v1/question-versions/${encodeURIComponent(versionId)}/review-evidence`);
+      if (!isCurrent()) return;
+      if (!reviewEvidenceSupportsResponse(result, versionId)) throw new Error('Máy chủ không trả về bằng chứng cho đúng phiên bản đã chọn.');
+      state.evidenceView = { kind: 'evidence', versionId, status: 'loaded', triggerElement, evidence: result };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.evidenceView = { kind: 'evidence', versionId, status: 'error', triggerElement, error: error.message };
       renderReviewPanel({ focusTitle: true });
     }
   }

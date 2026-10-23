@@ -72,6 +72,20 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Approved B2.1 recorded evidence addendum — 2026-10-23
+
+The owner approved exact [B2.1](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md);
+[authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23).
+One local opt-in `GET /api/v1/question-versions/{versionId}/review-evidence` uses
+strict `StaffReviewEvidenceSchema` on `@tsa/contracts/staff`, its own operation in
+the separate private staff artifact. BANK_MANAGER or current independent IN_REVIEW
+REVIEWER only; no AUTHOR_OWN basis, student/released/root-export changes, new grants
+or writes. Current recorded text is verbatim and may contain pasted identifiers/
+question/key material; additional structured secrets and arbitrary evidence JSON
+are not projected. No automatic links/media retrieval. B1 remains unchanged.
+[Executed checks and review status](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md).
+Broader proposed staff commands/DTOs below are not approved by this addendum.
+
 ### Approved B1.2 private inspection addendum — 2026-10-23
 
 The human owner approved the exact [B1.2 contract](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md)

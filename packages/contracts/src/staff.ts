@@ -270,3 +270,79 @@ export const StaffReviewContextSchema = StaffReviewContextObjectSchema.superRefi
 });
 
 export type StaffReviewContext = z.infer<typeof StaffReviewContextSchema>;
+
+const MAX_RECORDED_EVIDENCE_BYTES = 64 * 1024;
+
+const TextAvailableRecordedEvidenceSchema = z
+  .object({
+    state: z.literal("TEXT_AVAILABLE"),
+    text: z.string().refine((value) => value.trim().length > 0, "Recorded evidence text must not be blank"),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const serialized = JSON.stringify(value);
+    if (new TextEncoder().encode(serialized).byteLength > MAX_RECORDED_EVIDENCE_BYTES) {
+      context.addIssue({ code: "custom", path: ["text"], message: "Recorded evidence must not exceed 64 KiB serialized including its container" });
+    }
+  });
+
+const RecordedEvidenceSchema = z.discriminatedUnion("state", [
+  TextAvailableRecordedEvidenceSchema,
+  z.object({ state: z.literal("NOT_RECORDED") }).strict(),
+]);
+
+const StaffReviewEvidenceSourceSchema = z
+  .object({
+    sourceVersionId: UUID,
+    currentDecision: z
+      .object({
+        decisionId: UUID,
+        revision: PositiveSafeInteger,
+        status: RightsStatusSchema,
+        recordedEvidence: RecordedEvidenceSchema,
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+
+const StaffReviewEvidenceObjectSchema = z
+  .object({
+    schemaVersion: z.literal("staff-review-evidence/1"),
+    observedAt: Instant,
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.enum(["BANK_MANAGER", "REVIEW_QUEUE"]),
+    version: z
+      .object({
+        versionId: UUID,
+        contentHash: Hash,
+        workflowRevision: PositiveSafeInteger,
+      })
+      .strict(),
+    sources: z.array(StaffReviewEvidenceSourceSchema).max(100),
+    qualification: z.literal("NOT_ATTESTED_BY_PLATFORM"),
+    publicationEligibility: z.literal("NOT_EVALUATED"),
+  })
+  .strict();
+
+/** Strict private DTO for GET /api/v1/question-versions/{versionId}/review-evidence. */
+export const StaffReviewEvidenceSchema = StaffReviewEvidenceObjectSchema.superRefine((value, context) => {
+  for (let index = 1; index < value.sources.length; index += 1) {
+    const previous = value.sources[index - 1]!.sourceVersionId;
+    const current = value.sources[index]!.sourceVersionId;
+    if (previous >= current) {
+      context.addIssue({
+        code: "custom",
+        path: ["sources", index, "sourceVersionId"],
+        message: "Source UUIDs must be unique and sorted ascending",
+      });
+    }
+  }
+
+  const serialized = JSON.stringify(value);
+  if (new TextEncoder().encode(serialized).byteLength > MAX_RESPONSE_BYTES) {
+    context.addIssue({ code: "custom", message: "Staff review evidence must not exceed 1 MiB serialized" });
+  }
+});
+
+export type StaffReviewEvidence = z.infer<typeof StaffReviewEvidenceSchema>;

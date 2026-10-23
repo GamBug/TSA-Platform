@@ -104,8 +104,9 @@ NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b
 Open the printed URL, choose the staff workspace and the synthetic AUTHOR. Create
 a DRAFT, filter the version list and choose **Kiểm tra riêng phiên bản**. The server
 returns exact version/hash/workflow and current source-rights metadata. The retained
-source remains UNKNOWN, so its content preview is blocked truthfully. Raw rights
-evidence, review decisions and publication controls are not supplied by B1.
+source remains UNKNOWN, so its content preview is blocked truthfully. B1 supplies
+no raw rights evidence; the separate approved B2 action below reads it without
+changing rights. Review decisions and publication controls remain unavailable.
 
 For a complete disposable private-preview demonstration, stop retained mode and run:
 
@@ -120,6 +121,17 @@ private key and explanation; the unsafe synthetic version shows a metadata-only
 CONTENT_UNSUPPORTED block. Close the view by its control or Escape; return/logout
 clears private content. These private reads are denied to ordinary students.
 
+For recorded evidence, sign out and choose synthetic BANK_MANAGER **Quản lý ngân
+hàng câu hỏi tổng hợp**. Select **Xem bằng chứng quyền** for an exact version.
+The separate observation shows version/hash, workflow revision, server observation
+time, current decision ID/revision/status and its recorded text. Markup and URLs
+are inert text; the intentionally hostile synthetic example must not open links
+or load images. Close/Escape restores focus; navigation/logout clears the text.
+AUTHOR alone and students cannot access it. REVIEWER access is limited to current
+independent IN_REVIEW versions; the fixture does not manufacture a human approval.
+This is an unverified administrative claim, including any pasted sensitive text,
+not a rights attestation. No manual SQL or API calls are required.
+
 The isolated fixture's rights records are simulations, not a lawful real-content
 attestation or qualified human review. It creates no published inventory. The
 synthetic REVIEWER has only server-authorized access to independent IN_REVIEW
@@ -129,8 +141,9 @@ Ctrl+C deletes the **disposable** staff fixture database. By contrast,
 `dev:track-b` stops its owned server/database and **retains** ignored `.local/track-b`
 data. Use separate browser profiles/private windows between modes because cookies
 are shared across localhost ports. The [B1 authority](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23)
-grants inspection only; later evidence/review/rights/diagnostic workflows need their
-own scoped contracts and authorization.
+grants inspection only. [B2 authority](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23)
+separately grants the bounded recorded-text read. Review decisions, rights edits
+and diagnostics need their own scoped contracts and authorization.
 
 ## Reproduce verification
 

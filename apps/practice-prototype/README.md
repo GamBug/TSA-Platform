@@ -91,8 +91,10 @@ preview with all three supported interactions:
 NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review
 ```
 
-Open the printed root URL and choose the staff workspace/synthetic AUTHOR. Ctrl+C
-deletes only this disposable fixture. This is not qualified content review or
+Open the printed root URL and choose the staff workspace/synthetic AUTHOR for
+preview. Sign out and choose synthetic BANK_MANAGER for the separately approved
+B2 recorded-evidence action. Text/URLs remain inert and are not legal attestation.
+Ctrl+C deletes only this disposable fixture. This is not qualified content review or
 publication. [Complete walkthrough and mode limits](../../docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
 
 

@@ -79,7 +79,9 @@ See the [prototype walkthrough and limitations](apps/practice-prototype/README.m
 
 B1 now provides explicit, server-authorized version inspection with current rights
 metadata and rights-gated private preview. Retained UNKNOWN sources stay blocked.
-For an isolated original synthetic preview in a fresh disposable database:
+Approved B2 adds an explicit read of current recorded evidence to synthetic Bank
+Managers and independent queued Reviewers; authors/students are denied. For an
+isolated original synthetic preview/evidence view in a fresh disposable database:
 
 ```sh
 NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review

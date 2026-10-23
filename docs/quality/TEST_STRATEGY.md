@@ -17,6 +17,11 @@ Executed private staff B1 evidence (2026-10-23):
 These are local synthetic engineering checks, separate from human content,
 accessibility and production acceptance.
 
+Executed private staff B2 evidence (2026-10-24):
+[current recorded text/auth/read-only/limits and actual browser checks](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md).
+Review status is separate from automated outcomes; B1's independent review does not
+establish B2 runtime review. No real rights/content qualification follows.
+
 ## Layers and release policy
 
 Unit tests cover pure scoring, response normalization, blueprint validators and policy transitions. Property tests are useful for answer-set permutations, randomized state sequences and assembly invariants; a large random sample is evidence, not mathematical proof. Integration tests use real PostgreSQL and exercise transaction ordering, uniqueness, triggers, queue leases and rollback. SQLite/mocked repositories cannot establish these properties.

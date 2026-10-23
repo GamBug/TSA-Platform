@@ -10,9 +10,11 @@ import { createStudentRuntime } from '../../../src/local/student.mjs';
 import { createDatabasePool, withTransaction } from '../../../src/modules/database/pool.mjs';
 import { inspectionImportPackage } from './review-import-fixture.mjs';
 import { createFactoryImportService } from '../../../src/modules/bank/factory-import.mjs';
-import { StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { createReviewEvidenceService } from '../../../src/modules/bank/review-evidence.mjs';
+import { StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 
 let f, pool, author, reviewer, manager, candidate, examManager;
+const evidencePath = (id) => `/api/v1/question-versions/${id}/review-evidence`;
 const pathFor = (id) => `/api/v1/question-versions/${id}/review-context`;
 const principal = (browser) => f.identity.authenticate(new Request(f.origin, { headers: { cookie: browser.cookies.join('; ') } }));
 async function success(response, status = 200) {
@@ -20,7 +22,7 @@ async function success(response, status = 200) {
   const payload = await response.json();
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-  if (status === 200) return StaffReviewContextSchema.parse(payload);
+  if (status === 200) return (payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
   assert.deepEqual(Object.keys(payload), ['error']);
   assert.deepEqual(Object.keys(payload.error).sort(), ['code','details','message','requestId']);
   assert.deepEqual(payload.error.details, {});
@@ -35,11 +37,11 @@ async function createDraft({ source = f.fixture.source, ...overrides } = {}) {
   assert.equal(response.status, 201);
   return response.json();
 }
-async function grant(source, { status = 'OWNED', allowedUses = ['DISPLAY','ADAPT'], territory = ['VN'], validFrom = '2000-01-01T00:00:00Z', validTo = null } = {}) {
+async function grant(source, { status = 'OWNED', allowedUses = ['DISPLAY','ADAPT'], territory = ['VN'], validFrom = '2000-01-01T00:00:00Z', validTo = null, evidence = 'Isolated synthetic inspection fixture, not qualified legal evidence.' } = {}) {
   const current = (await pool.query('SELECT revision FROM tsa.source_rights WHERE source_version_id=$1', [source.sourceVersionId])).rows[0];
   const response = await bankRequest(f, manager, `/api/v1/source-versions/${source.sourceVersionId}/rights`, {
     method: 'POST', key: randomUUID(), body: { status, allowedUses, territory, validFrom, validTo,
-      evidence: 'Isolated synthetic inspection fixture, not qualified legal evidence.', expectedRevision: Number(current?.revision ?? 0) },
+      evidence, expectedRevision: Number(current?.revision ?? 0) },
   });
   assert.equal(response.status, 201);
   return response.json();
@@ -263,6 +265,9 @@ test('B1 opaque Factory source/stimulus/parent closure is verified without grant
   assert.equal(blocked.accessBasis,'BANK_MANAGER');
   assert.equal(blocked.sources.length,3,'parent-only and stimulus-only provenance participate');
   assert.equal(blocked.sources.every((source)=>source.currentRights===null),true,'imported rights claims never become current grants');
+  const initialEvidence=await success(await bankRequest(f,manager,evidencePath(versionId)));
+  assert.deepEqual(initialEvidence.sources.map((source)=>source.sourceVersionId),blocked.sources.map((source)=>source.sourceVersionId));
+  assert.equal(initialEvidence.sources.every((source)=>source.currentDecision===null),true);
   assert.deepEqual(blocked.preview,{status:'BLOCKED',reason:'RIGHTS_BLOCKED'});
   for(const source of blocked.sources)await grant(source,{allowedUses:['DISPLAY']});
   assert.deepEqual((await success(await bankRequest(f,manager,pathFor(versionId)))).preview,{status:'BLOCKED',reason:'RIGHTS_BLOCKED'},'GENERATED requires GENERATE in addition to DISPLAY');
@@ -283,6 +288,9 @@ test('B1 opaque Factory source/stimulus/parent closure is verified without grant
   assert.equal(childResponse.status,201);
   const child=await childResponse.json();
   const childView=await success(await bankRequest(f,author,pathFor(child.versionId)));
+  const childEvidence=await success(await bankRequest(f,manager,evidencePath(child.versionId)));
+  assert.equal(childEvidence.sources.length,4);
+  await success(await bankRequest(f,author,evidencePath(versionId)),404);
   assert.equal(childView.accessBasis,'AUTHOR_OWN');
   assert.equal(childView.preview.status,'AVAILABLE');
   assert.equal(childView.preview.question.stimulus,null);
@@ -300,6 +308,7 @@ test('B1 source-count and serialized-response bounds fail closed through actual 
     provenance:sources.map((source)=>({sourceVersionId:source.sourceVersionId,span:null,transformation:'Original synthetic source bound fixture'}))});
   const countError=await success(await bankRequest(f,author,pathFor(oversized.versionId)),503);
   assert.equal(countError.error.code,'TEMPORARILY_UNAVAILABLE');
+  await success(await bankRequest(f,manager,evidencePath(oversized.versionId)),503);
   const two=await createDraft({evidenceRefs:sources.slice(0,2).map((source)=>source.decisionId),
     provenance:sources.slice(0,2).map((source)=>({sourceVersionId:source.sourceVersionId,span:null,transformation:'Original synthetic response byte bound'}))});
   for(const source of sources.slice(0,2))await grant(source,{territory:['VN','r'.repeat(600000)]});
@@ -317,8 +326,8 @@ test('B1 private staff inspection is not composed into the ordinary student runt
     const rate={capacity:100,refillPerSecond:10};
     runtime=await createStudentRuntime({identityPool:f.fixture.harness.authPool,examPool:f.fixture.examPool,workerPool,
       env:{NODE_ENV:'test',LOCAL_SYNTHETIC_ONLY:'true'},port:0,pollMilliseconds:100,sweepBatchSize:10,executorId:'b1-student-exclusion',leaseSeconds:30,retrySeconds:1,createRate:rate,saveRate:{user:rate,attempt:rate}});
-    for(const browser of [author,candidate]){
-      const response=await fetch(runtime.origin+pathFor(f.questions[0].versionId),{headers:{cookie:browser.cookies.join('; '),origin:runtime.origin}});
+    for(const browser of [author,candidate]) for (const targetPath of [pathFor, evidencePath]) {
+      const response=await fetch(runtime.origin+targetPath(f.questions[0].versionId),{headers:{cookie:browser.cookies.join('; '),origin:runtime.origin}});
       assert.equal(response.status,404);assert.doesNotMatch(await response.text(),/answerKey|explanation|contentHash/);
     }
   } finally {
@@ -326,4 +335,163 @@ test('B1 private staff inspection is not composed into the ordinary student runt
     for(const stop of [()=>runtime?.close(),()=>workerPool.end()]){try{await stop();}catch(error){errors.push(error);}}
     if(errors.length)throw new AggregateError(errors,'Student exclusion cleanup failed');
   }
+});
+
+
+test('B2 exact current evidence is verbatim, strictly projected and read-only while B1 never includes it', async () => {
+  const before = await databaseSnapshot();
+  const value = await success(await bankRequest(f,manager,evidencePath(f.questions[0].versionId)));
+  assert.equal(value.accessBasis,'BANK_MANAGER');
+  assert.deepEqual(value.version,{versionId:f.questions[0].versionId,contentHash:f.questions[0].contentHash,workflowRevision:1});
+  assert.equal(value.sources.length,1);
+  assert.equal(value.sources[0].currentDecision.revision,2);
+  assert.deepEqual(value.sources[0].currentDecision.recordedEvidence,{state:'TEXT_AVAILABLE',text:f.evidenceText});
+  assert.equal(value.qualification,'NOT_ATTESTED_BY_PLATFORM');
+  assert.equal(value.publicationEligibility,'NOT_EVALUATED');
+  const b1=await success(await bankRequest(f,manager,pathFor(f.questions[0].versionId)));
+  assert.equal(b1.rightsEvidenceIncluded,false);
+  assert.equal(JSON.stringify(b1).includes(f.evidenceText),false);
+  assert.doesNotMatch(JSON.stringify(value),/answerKey|explanation|provenanceIds|decided_by|producer_namespace|reference_namespace/);
+  assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B2 real HTTP denies authors/students before lookup and enforces Origin, GET-only, body/query, fixed errors and default opt-in', async () => {
+  const id=f.questions[0].versionId;
+  await success(await fetch(f.origin+evidencePath(id)),401);
+  for(const browser of [author,candidate,examManager]) for(const target of [id,randomUUID(),'invalid']) {
+    const value=await success(await bankRequest(f,browser,evidencePath(target)),403);
+    assert.equal(value.error.code,'FORBIDDEN');
+  }
+  await success(await bankRequest(f,author,evidencePath(id)+'?unexpected=1'),403);
+  for(const target of [randomUUID(),'invalid']) await success(await bankRequest(f,manager,evidencePath(target)),404);
+  await success(await bankRequest(f,manager,evidencePath(id)+'?unexpected=1'),422);
+  await success(await bankRequest(f,manager,evidencePath(id),{method:'POST',body:{},key:randomUUID()}),404);
+  await success(await fetch(f.origin+evidencePath(id),{headers:{cookie:manager.cookies.join('; '),origin:'https://invalid.example'}}),403);
+  const bodyResult=await new Promise((resolve,reject)=>{
+    const request=httpRequest(f.origin+evidencePath(id),{method:'GET',headers:{origin:f.origin,cookie:manager.cookies.join('; '),'content-length':'2'}},(response)=>{
+      let data='';response.setEncoding('utf8');response.on('data',(chunk)=>{data+=chunk;});
+      response.on('end',()=>resolve({status:response.statusCode,body:JSON.parse(data),headers:response.headers}));
+    }); request.on('error',reject);request.end('{}');
+  });
+  assert.equal(bodyResult.status,422);assert.deepEqual(bodyResult.body.error.details,{});
+  assert.equal(bodyResult.headers['x-request-id'],bodyResult.body.error.requestId);
+  const defaultHandler=await createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin,enableReviewContext:true});
+  assert.equal((await defaultHandler(new Request(f.origin+evidencePath(id),{headers:{cookie:manager.cookies.join('; ')}}))).status,404);
+  const service=await createReviewEvidenceService({bankPool:f.fixture.bankPool,identityService:f.identity});
+  await assert.rejects(service.read({...await principal(manager)},id),{status:403,code:'FORBIDDEN'});
+});
+
+test('B2 independent current REVIEWER only sees queued versions and mixed roles never grant author bypass', async () => {
+  const draft=await createDraft();
+  await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)),404);
+  await f.fixture.workflow.submitReview(await principal(author),draft.versionId,randomUUID(),{expectedRevision:1});
+  assert.equal((await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)))).accessBasis,'REVIEW_QUEUE');
+  const authorId=f.fixture.principals.author.userId, reviewerId=f.fixture.principals.reviewer.userId;
+  await pool.query("INSERT INTO tsa.user_roles(user_id,role) VALUES($1,'REVIEWER'),($1,'BANK_MANAGER')",[authorId]);
+  try {
+    assert.equal((await success(await bankRequest(f,author,evidencePath(draft.versionId)))).accessBasis,'BANK_MANAGER');
+    await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='BANK_MANAGER'",[authorId]);
+    await success(await bankRequest(f,author,evidencePath(draft.versionId)),404);
+    await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='REVIEWER'",[reviewerId]);
+    await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)),403);
+  } finally {
+    await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role IN ('REVIEWER','BANK_MANAGER')",[authorId]);
+    await pool.query("INSERT INTO tsa.user_roles(user_id,role) VALUES($1,'REVIEWER') ON CONFLICT DO NOTHING",[reviewerId]);
+  }
+  await f.fixture.workflow.quarantine(await principal(manager),draft.versionId,randomUUID(),{expectedRevision:2,reason:'Synthetic evidence queue hold.'});
+  await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)),404);
+  assert.equal((await success(await bankRequest(f,manager,evidencePath(draft.versionId)))).version.workflowRevision,3);
+});
+
+test('B2 current revoked/unknown/held evidence remains investigable; legacy/missing pointers never fall back to old decisions', async () => {
+  const source=await f.fixture.registerSource(),draft=await createDraft({source});
+  let latest;
+  for(const status of ['UNKNOWN','REVOKED']) {
+    latest=await grant(source,{status,evidence:'  Synthetic current '+status+' claim https://invalid.example/current  '});
+    const value=await success(await bankRequest(f,manager,evidencePath(draft.versionId)));
+    assert.equal(value.sources[0].currentDecision.decisionId,latest.decisionId);
+    assert.equal(value.sources[0].currentDecision.status,status);
+    assert.equal(value.sources[0].currentDecision.recordedEvidence.text,'  Synthetic current '+status+' claim https://invalid.example/current  ');
+    assert.equal((await success(await bankRequest(f,manager,pathFor(draft.versionId)))).preview.status,'BLOCKED');
+  }
+  await f.fixture.workflow.quarantine(await principal(manager),draft.versionId,randomUUID(),{expectedRevision:1,reason:'Synthetic evidence inspection hold.'});
+  assert.equal((await success(await bankRequest(f,manager,evidencePath(draft.versionId)))).sources[0].currentDecision.decisionId,latest.decisionId);
+  // Simulate valid legacy records with absent/non-string/blank text. No command
+  // or read endpoint is given permission to rewrite immutable historical rows.
+  await pool.query('ALTER TABLE tsa.rights_decisions DISABLE TRIGGER immutable_record');
+  try {
+    for(const evidence of [{},{text:42},{text:'   '}]) {
+      await pool.query('UPDATE tsa.rights_decisions SET evidence=$1 WHERE id=$2',[JSON.stringify(evidence),latest.decisionId]);
+      assert.deepEqual((await success(await bankRequest(f,manager,evidencePath(draft.versionId)))).sources[0].currentDecision.recordedEvidence,{state:'NOT_RECORDED'});
+    }
+  } finally {await pool.query('ALTER TABLE tsa.rights_decisions ENABLE TRIGGER immutable_record');}
+  await pool.query('DELETE FROM tsa.source_rights WHERE source_version_id=$1',[source.sourceVersionId]);
+  assert.equal((await success(await bankRequest(f,manager,evidencePath(draft.versionId)))).sources[0].currentDecision,null);
+});
+
+test('B2 observed decision/revision snapshot survives a concurrent revocation; next read returns current evidence', async () => {
+  const source=await f.fixture.registerSource(),draft=await createDraft({source});
+  let reached,release;
+  const barrier=new Promise((resolve)=>{reached=resolve;}),gate=new Promise((resolve)=>{release=resolve;});
+  const bankPool={query:(...args)=>f.fixture.bankPool.query(...args),async connect(){
+    const client=await f.fixture.bankPool.connect();
+    return {release:(...args)=>client.release(...args),async query(sql,params){
+      const result=await client.query(sql,params);
+      if(sql.includes('SELECT qv.*, w.state')){reached();await gate;}
+      return result;
+    }};
+  }};
+  const service=await createReviewEvidenceService({bankPool,identityService:f.identity});
+  const before=await success(await bankRequest(f,manager,evidencePath(draft.versionId)));
+  const pending=service.read(await principal(manager),draft.versionId);
+  let latest;
+  try {
+    await Promise.race([barrier,new Promise((_,reject)=>setTimeout(()=>reject(new Error('B2 snapshot barrier not reached')),5000))]);
+    latest=await grant(source,{status:'REVOKED',evidence:'New synthetic revocation text'});
+  } finally {release();}
+  const snapshot=await pending;
+  assert.deepEqual(snapshot.sources,before.sources);
+  const next=await success(await bankRequest(f,manager,evidencePath(draft.versionId)));
+  assert.equal(next.sources[0].currentDecision.decisionId,latest.decisionId);
+  assert.equal(next.sources[0].currentDecision.revision,before.sources[0].currentDecision.revision+1);
+  assert.equal(next.sources[0].currentDecision.recordedEvidence.text,'New synthetic revocation text');
+});
+
+test('B2 actual READ ONLY transaction and corruption failure preserve all rows with private-safe errors', async () => {
+  const draft=await createDraft();
+  const guarded={query:(...args)=>f.fixture.bankPool.query(...args),async connect(){
+    const client=await f.fixture.bankPool.connect();let checked=false;
+    return {release:(...args)=>client.release(...args),async query(sql,params){
+      const result=await client.query(sql,params);
+      if(sql.includes('SELECT qv.*, w.state')&&!checked){checked=true;assert.equal((await client.query('SHOW transaction_read_only')).rows[0].transaction_read_only,'on');}
+      return result;
+    }};
+  }};
+  const service=await createReviewEvidenceService({bankPool:guarded,identityService:f.identity});
+  const before=await databaseSnapshot();
+  await service.read(await principal(manager),draft.versionId);
+  assert.deepEqual(await databaseSnapshot(),before);
+  const row=(await pool.query('SELECT reference_namespace FROM tsa.question_versions WHERE id=$1',[draft.versionId])).rows[0];
+  await pool.query('ALTER TABLE tsa_private.reference_nodes DISABLE TRIGGER reference_nodes_immutable');
+  try {await pool.query("UPDATE tsa_private.reference_nodes SET content_hash=$1 WHERE reference_namespace=$2 AND kind='question' AND id=$3",['sha256:'+'0'.repeat(64),row.reference_namespace,draft.versionId]);}
+  finally {await pool.query('ALTER TABLE tsa_private.reference_nodes ENABLE TRIGGER reference_nodes_immutable');}
+  const corrupted=await databaseSnapshot();
+  const error=await success(await bankRequest(f,manager,evidencePath(draft.versionId)),503);
+  assert.doesNotMatch(JSON.stringify(error),/answerKey|explanation|reference_nodes|SELECT|sourceVersionId/);
+  assert.deepEqual(await databaseSnapshot(),corrupted);
+});
+
+
+test('B2 JSON-escaped per-evidence and total serialized response bounds fail closed without truncation', {timeout:30000}, async () => {
+  const sources=[];
+  for(let index=0;index<18;index++) sources.push(await f.fixture.registerSource());
+  const draft=await createDraft({evidenceRefs:sources.map((source)=>source.decisionId),
+    provenance:sources.map((source)=>({sourceVersionId:source.sourceVersionId,span:null,transformation:'Original synthetic evidence byte bound fixture'}))});
+  const one=await createDraft({source:sources[0]});
+  await grant(sources[0],{evidence:'"'.repeat(35000)});
+  const escapedError=await success(await bankRequest(f,manager,evidencePath(one.versionId)),503);
+  assert.doesNotMatch(JSON.stringify(escapedError),/recordedEvidence|sourceVersionId/);
+  for(const source of sources) await grant(source,{evidence:'e'.repeat(60000)});
+  const totalError=await success(await bankRequest(f,manager,evidencePath(draft.versionId)),503);
+  assert.doesNotMatch(JSON.stringify(totalError),/recordedEvidence|sourceVersionId|eeeeeee/);
 });

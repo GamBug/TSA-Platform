@@ -17,6 +17,23 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
+## WEB-002 B2.1 — owner-approved recorded-evidence read, 2026-10-23
+
+- Status: **APPROVED IN SCOPE** by the human repository owner on2026-10-23,
+  Asia/Bangkok. Exact current instruction: “Approve B2.1
+  (docs/decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md) as a whole”.
+- Exact immutable scope: [B2.1](WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md) at79fb487,
+  SHA-256 `62f714f3f1c5621d9c866163352c285cb16db4e6d6d7553a44606bede8b4d923`.
+  Historical proposal approval-none status below/in the frozen document is
+  superseded by this disposition; preserve its bytes.
+- Authorizes its local-only GET/strict private DTO/explicit evidence action and
+  synthetic BANK_MANAGER fixture. Verbatim current evidence text, including any
+  pasted identifiers/question/key text, is limited to BANK_MANAGER or independent
+  IN_REVIEW REVIEWER; no redaction guarantee. AUTHOR alone/students denied.
+- Preserves B1/student/released contracts and grants; no review decisions, rights
+  edits, publication/quarantine, media retrieval, new SQL grant/migration or real
+  human/legal qualification. Root accountable for runtime verification and review.
+
 ## WEB-002 B2.1 — proposed recorded-evidence read, 2026-10-23
 
 - Status: **PROPOSED / HUMAN_APPROVAL_REQUIRED**; approval identity/date: none.

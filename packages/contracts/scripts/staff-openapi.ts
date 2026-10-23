@@ -16,7 +16,9 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
   const registry = new OpenAPIRegistry();
   const components: Readonly<Record<string, z.ZodType>> = {
     StaffReviewContext: contracts.StaffReviewContextSchema,
+    StaffReviewEvidence: contracts.StaffReviewEvidenceSchema,
     StaffReviewContextPathParams: routes.StaffReviewContextPathParamsSchema,
+    StaffReviewEvidencePathParams: routes.StaffReviewEvidencePathParamsSchema,
     StaffUnauthenticatedResponse: routes.StaffUnauthenticatedResponseSchema,
     StaffForbiddenResponse: routes.StaffForbiddenResponseSchema,
     StaffNotFoundResponse: routes.StaffNotFoundResponseSchema,
