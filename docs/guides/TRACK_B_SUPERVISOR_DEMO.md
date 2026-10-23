@@ -127,7 +127,10 @@ The separate observation shows version/hash, workflow revision, server observati
 time, current decision ID/revision/status and its recorded text. Markup and URLs
 are inert text; the intentionally hostile synthetic example must not open links
 or load images. Close/Escape restores focus; navigation/logout clears the text.
-AUTHOR alone and students cannot access it. REVIEWER access is limited to current
+The **Hàng chờ rà soát** shortcut selects the existing IN_REVIEW metadata filter.
+An empty queue is truthful: the default four drafts have not been submitted, and
+the shortcut does not submit or approve them.
+AUTHOR alone and students cannot access evidence. REVIEWER access is limited to current
 independent IN_REVIEW versions; the fixture does not manufacture a human approval.
 This is an unverified administrative claim, including any pasted sensitive text,
 not a rights attestation. No manual SQL or API calls are required.

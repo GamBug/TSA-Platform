@@ -1,6 +1,7 @@
 // Browser acceptance for the local PostgreSQL staff workspace. All DB data and
 // browser profile files live in temporary directories owned by this run.
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { chmod, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
@@ -907,6 +908,40 @@ try {
   assert.equal(networkOperations.filter(({ url }) => url === evidenceUrl).every(({ method, hasPostData }) => method === 'GET' && !hasPostData), true,
     'all B2 UI evidence requests are bodyless GETs');
   report.checks.push('candidate has no evidence action and direct exact-version evidence access is denied with 403 FORBIDDEN');
+
+  // Populate a queued synthetic version through the existing trusted service;
+  // this is setup only, never a review/approval operation exposed by the UI.
+  const queuedVersion = reviewFixture.questions[0];
+  await reviewFixture.fixture.workflow.submitReview(reviewFixture.fixture.principals.author,
+    queuedVersion.versionId, randomUUID(), { expectedRevision: 1 });
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'review queue synthetic reviewer login');
+  await evaluate(`${query('actor-select')}.value='reviewer'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-queue')})`, 'review queue shortcut');
+  await evaluate(`${query('staff-review-queue')}.focus()`);
+  await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===1 && ${query('staff-question-list')}?.innerText.includes(${JSON.stringify(queuedVersion.versionId)}))`, 'exact queued version through approved metadata filter');
+  assert.equal(await evaluate(`${query('staff-state-filter')}.value`),'IN_REVIEW');
+  assert.equal(await evaluate(`${query('staff-section-filter')}.value`),'');
+  const queuedEvidence = `[data-testid="staff-review-evidence-open"][data-version-id="${queuedVersion.versionId}"]`;
+  await evaluate(`document.querySelector(${JSON.stringify(queuedEvidence)}).focus()`);
+  await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  await waitFor(`${query('staff-review-evidence')}?.innerText.includes('REVIEW_QUEUE')`, 'independent reviewer evidence on actual queued version');
+  assert.equal(await evaluate(`${query('staff-recorded-evidence-text')}.textContent`),reviewFixture.evidenceText);
+  await evaluate(`${query('staff-review-queue')}.focus()`);
+  await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  await waitFor(`!${query('staff-review-evidence')}`, 'queue refresh clears private evidence');
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});
+  await noHorizontalOverflow();
+  await evaluate(`${query('staff-question-list')}.scrollIntoView({block:'center'})`);
+  await screenshot('staff-review-queue-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  const queueCalls=networkOperations.filter(({url})=>url.startsWith(`${reviewFixture.origin}/api/v1/questions?`)&&new URL(url).searchParams.get('state')==='IN_REVIEW');
+  assert.ok(queueCalls.length>=2);
+  assert.equal(queueCalls.every(({method,hasPostData})=>method==='GET'&&!hasPostData),true,'queue shortcut is metadata-only GET');
+  assert.equal(await evaluate(`Boolean(${query('draft-create')})`),false);
+  report.checks.push('keyboard review-queue shortcut uses the existing IN_REVIEW metadata GET, clears private evidence and enables server-authorized independent queued-reviewer evidence on mobile');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });

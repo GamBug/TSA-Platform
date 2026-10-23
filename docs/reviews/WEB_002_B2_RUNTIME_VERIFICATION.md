@@ -139,3 +139,81 @@ grading/results/recovery/load suites were not rerun for this read-only increment
 Coordinator `npm run docs:check` PASS/zero errors, one preserved historical
 whitespace warning; scoped staged whitespace PASS. Clean-checkout reproduction
 follows the implementation checkpoint and is appended only when executed.
+
+
+## Clean-checkout reproduction —9d98687
+
+2026-10-24 coordinator created a fresh local no-hardlink clone with
+`git clone --no-hardlinks --quiet <repository> /tmp/tsa-b2-clean-3z4p9zeu`.
+HEAD9d98687. Actual commands, in sequence:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+npm run test:track-b:browser
+npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run docs:check
+git status --short
+```
+
+All completed successfully without code patches, manual API setup or SQL edits.
+Install added24/audited26 with zero reported advisories; build PASS; focused22
+PASS/zero skips/cancellations/failures. Chrome156 PASS23/10screenshots, evidence375/
+document375/scale1. Firefox156 PASS7 check descriptions including student+B1+B2,
+desktop1280/actual narrow500 (requested450 not honored), scale1/no overflow. Built
+smoke+staff2 and public/private drift PASS; docs zero errors/one preserved historical
+whitespace warning. Final clone Git status empty, HEAD unchanged9d98687. Logs at
+`/tmp/tsa-b2-clean-{install,build,focused,chrome,firefox,built,drift,docs}.log`.
+This closes the approved B2 local reproducibility milestone; no broader real-
+content, formal accessibility, performance or production claim follows.
+
+
+## Existing metadata review-queue shortcut — after9d98687
+
+Root continued to the next ready approved read-only staff UX: a keyboard-accessible
+queue shortcut selecting existing `GET /api/v1/questions?state=IN_REVIEW&limit=20`
+with the section filter cleared. It reuses existing metadata permission/filter/
+loading/error/request guards and clears private panels. Initial DRAFT default is
+preserved. No new route, DTO, role, grant or workflow/review command UI. Queues may
+be empty; clicking never manufactures a submission or synthetic human review.
+
+Actual `npm run test:track-b:browser`: PASS24 check descriptions/11screenshots;
+`npm run test:b0`: PASS32; scoped syntax/whitespace PASS. Browser-only setup queues
+one owned synthetic draft through the already trusted submitReview service; UI
+uses bodyless GETs to show that exact version, then the independent reviewer opens
+B2 with REVIEW_QUEUE access. Reentering queue clears evidence. Keyboard/mobile375
+and readable queue screenshot inspected. First new test run failed because the
+randomUUID import was missing; import repaired, rerun PASS. No such failure is
+counted as a product pass.
+
+Separate actual `/root/lifecycle_review`, configured Sol6.1/Medium, read-only,
+reviewed queue diff against9d98687, final no findings. Independently syntax2 and
+scoped whitespace PASS; did not rerun Chromium for this slice. B2's earlier
+independent Chrome23 and coordinator queueChrome24 remain distinct. No new Firefox
+queue-specific run; B2's prior clean Firefox journey remains correctly scoped.
+
+Next [B3.1 explicit author handoff proposal](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED, not an implementation or human
+review. It would connect author drafts to this queue through an explicit command.
+
+
+## Temporary evidence interruption
+
+Host boot time2026-10-24 01:17:41 cleared `/tmp`. The clean9d98687 reproduction,
+its empty Git status and the earlier browser captures above had already been
+observed; source/checkpoint/durable records survived, but their listed temporary
+paths are no longer retained. These are historical execution paths, not downloadable
+committed evidence. Final queue screenshots/logs were regenerated after restart
+with the existing browser command. This does not establish untested host-crash
+recovery/RPO/RTO for retained application data.
+
+
+Final post-restart coordinator run:
+`npm run test:track-b:browser > /tmp/tsa-queue-chrome-final.log 2>&1 && npm run test:b0 > /tmp/tsa-queue-b0-final.log 2>&1`
+completed exit0. Chrome PASS24/11screenshots, evidence375/document375/scale1;
+B0 PASS32/zero failures/skips/cancellations. Final docs and scoped staged whitespace
+PASS, zero docs errors/one preserved historical whitespace warning. No extra
+backend suites were repeated for the existing-filter UI-only change.

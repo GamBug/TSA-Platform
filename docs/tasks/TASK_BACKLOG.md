@@ -750,6 +750,30 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 existing metadata queue shortcut **IMPLEMENTED / AUTOMATED_PASS /
+INDEPENDENTLY_REVIEWED** after9d98687. Root UI/browser only, existing filtered GET,
+no new routes/fields/privileges/defaults or workflow commands. Actual Chrome24/11
+screenshots+B032 PASS, exact independent queued-reviewer B2 access, keyboard/mobile/
+private-clear checks. Separate Sol6.1/Medium syntax2/scoped whitespace and source
+review PASS/no findings; no independent queue browser rerun. [Evidence](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md#existing-metadata-review-queue-shortcut--after9d98687).
+Root reservations released. Next [B3.1 author draft handoff proposal](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED; separate [design review](../reviews/WEB_002_B3_CONTRACT_DESIGN_REVIEW.md)
+no findings, runtime NOT_EXECUTED;
+no privileged workflow submission UI implemented.
+
+Historical queue implementation-start note follows; superseded by results above.
+
+2026-10-24 next ready slice **IN_PROGRESS** from9d98687: root owns a read-only
+review-queue shortcut in staff.js and existing Chromium browser coverage. It uses
+only the already approved metadata GET with existing state/section filters; no new
+route, fields, privileges, workflow/review/publication command UI or default-role
+semantics. Acceptance: explicit queue navigation selects IN_REVIEW, truthful empty/
+loading/errors, clears private panels, exact queued-version B1/B2 scope through
+existing server checks; actual browser/keyboard/mobile and separate read-only
+review. Recommended Sol6.1/High directly for small integration/UI slice, separate
+Sol6.1/Medium review; existing subscriptions/no paid APIs. B2 clean clone runs
+against immutable9d98687 independently and is recorded when complete.
+
 2026-10-24 B2.1 **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** from79fb487.
 Exact approved private current-evidence GET/DTO/action delivered with no B1/student
 contract/grant/migration change. Current manager/independent queued reviewer only;
@@ -762,7 +786,9 @@ findings; independently focused22/scopedcontracts18/Chrome23/CLI2 plus syntax/dr
 public-app boundary PASS. Native configured Luna/XHigh contract delegate finished;
 UI delegate usage-limited after edits, root completed UI/browser work; reservations
 released. Full WEB-002 remains IN_PROGRESS for review/rights/diagnostics contracts
-and qualified human prerequisites. Next clean-checkout reproduction of checkpoint.
+and qualified human prerequisites. Fresh no-hardlink clone9d98687 locked install/
+build/focused22/Chrome23/Firefox/built/drift/docs PASS, no patches/manual SQL/API
+setup, final clone Git status empty. Root continues existing-route queue UX above.
 
 Historical B2 approval/design notes below are superseded where this verified
 entry conflicts; their approval evidence and earlier outcomes remain preserved.

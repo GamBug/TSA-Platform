@@ -41,14 +41,19 @@ root evidence. No bypass/purchase/paid API/provider service/push/merge/deploy.
 
 ## Next and limitations
 
-First create the implementation checkpoint and reproduce locked install/build/
-focused22/Chrome/Firefox/built/drift/docs in a clean no-hardlink clone. Append exact
-commit/results before claiming clean reproduction. Three-domain persistent regression PASS78
+Implementation checkpoint9d98687 reproduced in a clean no-hardlink clone: locked
+install/build/focused22/Chrome23/Firefox/built/drift/docs PASS without patches or
+manual SQL/API setup, final clone Git status empty. Three-domain persistent regression PASS78
 API responses, independently timed MATH4/READING2/SCIENCE4. No app server intentionally left running.
 
-Then inspect the next useful existing approved staff operation/queue UX and its
-contract/privilege boundaries before coding; new fields or privileges require a
-specific proposal. Review/rights edits/diagnostics are outside B1/B2. Full WEB-002,
+Existing-route queue shortcut completed: root Chrome24/11screenshots+B032 PASS;
+separate Sol6.1/Medium source/syntax2/whitespace review no findings (no separate
+queue browser rerun). Only existing metadata GET filters; no new privileges or
+workflow commands. All reservations released. Next concrete
+[B3.1 author draft handoff proposal](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED; [separate design review](../reviews/WEB_002_B3_CONTRACT_DESIGN_REVIEW.md)
+no findings, exact hash/approval gate in decisions. No B3
+command UI or private command artifact implemented. Review/rights edits/diagnostics are outside B1/B2. Full WEB-002,
 TEST-002/Technical MVP, lawful12/6/12 stock, named rights attestor/independent human
 review, qualified AT/native zoom and production/load/identity remain distinct.
 No synthetic role or read action satisfies these human inputs.
@@ -56,3 +61,10 @@ No synthetic role or read action satisfies these human inputs.
 Recommended next implementer Codex Sol6.1/High for integration/private authorization;
 available Luna/XHigh bounded UI with Sol fallback; separate Sol6.1/Medium read-only
 review using existing subscriptions only. Earlier history is retained in Git.
+
+
+Operational interruption: host boot time2026-10-24 01:17:41 cleared `/tmp`.
+B2 clean reproduction/earlier logs/screenshots were observed before this restart;
+those paths are ephemeral and no longer retained. Durable Git/code/evidence records
+survived. Root regenerated final queue browser evidence after restart; final check
+results are recorded in the runtime packet. No owner resources were reset.

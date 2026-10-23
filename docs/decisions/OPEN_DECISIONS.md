@@ -17,6 +17,21 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
+## WEB-002 B3.1 — proposed author draft handoff, 2026-10-24
+
+- Status: **PROPOSED / HUMAN_APPROVAL_REQUIRED**; approval identity/date: none.
+- [Exact B3.1](WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md), SHA-256
+  `2c8d8531fdcbf18a1e7c25d8f0be48a260ae80b93bdf0a90ece1c30d3e003980`.
+  [Separate actual design review](../reviews/WEB_002_B3_CONTRACT_DESIGN_REVIEW.md)
+  no concrete findings; runtime NOT_EXECUTED/no implementation.
+- Recommends explicit AUTHOR_OWN/DRAFT UI handoff using existing submit-review
+  command, strict additive private command DTO/artifact, confirmation and truthful
+  idempotent recovery/current observation. Existing server authorization retained.
+  No grant/migration/new route, imported authorship, human review decision, rights
+  mutation, quarantine command or publication UI authority.
+- New privileged workflow UI/command artifact lies outside B1/B2 read approvals.
+  Explicit owner approval of B3.1 as a whole is required before implementation.
+
 ## WEB-002 B2.1 — owner-approved recorded-evidence read, 2026-10-23
 
 - Status: **APPROVED IN SCOPE** by the human repository owner on2026-10-23,

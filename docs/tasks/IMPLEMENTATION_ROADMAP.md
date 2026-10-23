@@ -1,12 +1,19 @@
 # Implementation roadmap
 
+Current read-only staff queue UX, 2026-10-24: existing IN_REVIEW metadata shortcut
+verified Chrome24/B032 and separately reviewed (source/syntax/whitespace only).
+No new privilege or workflow command. Next [B3.1 author handoff proposal](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED; approval of read access does not
+authorize a new privileged frontend workflow action.
+
 Current B2.1 staff increment, 2026-10-24: explicit owner approval recorded; private
 current recorded evidence GET/strict DTO/UI and actual role/closure/read-only/cap/
 browser verification complete, independently reviewed with no final findings.
 [Runtime evidence](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md) and
 [demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
-No B1/student contract, grant or migration change. Clean-checkout reproduction
-follows the implementation checkpoint. Broader review/rights/diagnostic contracts
+No B1/student contract, grant or migration change. Fresh no-hardlink clone9d98687
+install/build/focused22/Chrome23/Firefox/built/drift/docs PASS with no patches/manual
+SQL/API setup and final clean clone Git status. Broader review/rights/diagnostic contracts
 and qualified human inventory/accessibility remain distinct.
 
 Current B1.2 staff increment, 2026-10-23: owner-approved private version inspection,

@@ -814,6 +814,19 @@ export async function openStaffWorkspace(container, onBack) {
     headingText.append(node('p', '', `Vai trò hiện tại: ${state.principal.roles.join(', ')}. Phiên tổng hợp ${state.principal.actorKey} được kiểm tra ở máy chủ.`));
     const actions = node('div', 'staff-header-actions');
     if (state.canReadList) {
+      actions.append(button('Hàng chờ rà soát', 'staff-review-queue', async () => {
+        if (!isWorkspaceActive()) return;
+        state.filters = { state: 'IN_REVIEW', section: '' };
+        const stateFilter = container.querySelector('[data-testid="staff-state-filter"]');
+        const sectionFilter = container.querySelector('[data-testid="staff-section-filter"]');
+        if (stateFilter) stateFilter.value = state.filters.state;
+        if (sectionFilter) sectionFilter.value = '';
+        try {
+          await loadQuestionList({ reset: true });
+        } catch (error) {
+          showWorkspaceMessage(container, error.message);
+        }
+      }, 'button secondary'));
       actions.append(button('Tải lại danh sách', 'staff-refresh', async () => {
         if (!isWorkspaceActive()) return;
         try {
