@@ -7,29 +7,32 @@ import { createDatabasePool } from '../../src/modules/database/pool.mjs';
 import { createExamWorker } from '../../src/modules/jobs/exam-worker.mjs';
 import { createSourceService } from '../../src/modules/sources/service.mjs';
 import { createMixedStudentFixture } from '../integration/student-runtime/mixed-fixture.mjs';
+import { createStudentHttpHarness } from './student-http-harness.mjs';
 
 const cases = [[0x13579, 'submit'], [0x24680, 'expire'], [0x31415, 'revoke-active'], [0x27182, 'revoke-created']];
 const rate = { capacity: 1000, refillPerSecond: 10 };
-const actions = new Set(['read', 'foreign', 'result', 'create', 'save', 'stale', 'foreign-save', 'replay', 'changed-key', 'submit-before-start', 'start-replay', 'idle-worker', 'start', 'grade', ...cases.map(([, mode]) => mode)]);
+const actions = new Set(['read', 'foreign', 'result', 'create', 'save', 'stale', 'foreign-save', 'replay', 'changed-key', 'submit-before-start', 'start-replay', 'idle-worker', 'start', 'grade', 'csrf-denied', 'origin-denied', 'unauthenticated', 'staff-denied', ...cases.map(([, mode]) => mode)]);
 const states = new Set(['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED', 'GRADED', 'CANCELLED', 'INVALIDATED']);
 function sanitizedFailure(seed, mode, trace, error) {
-  const location = /student-state-machine\.test\.mjs:(\d+):(\d+)/.exec(error?.stack ?? '');
+  const location = /(student-state-machine\.test\.mjs|student-http-harness\.mjs):(\d+):(\d+)/.exec(error?.stack ?? '');
   const diagnostic = { seed, mode, trace: trace.map((entry) => ({ action: actions.has(entry.action) ? entry.action : 'unknown',
     state: states.has(entry.state) ? entry.state : 'unknown', ...(Number.isInteger(entry.slot) && entry.slot >= 0 && entry.slot < 4 ? { slot: entry.slot } : {}) })),
     failure: { kind: error instanceof assert.AssertionError ? 'assertion' : error instanceof TypeError ? 'type' : 'operation',
       ...(typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code) ? { sqlState: error.code } : {}),
-      ...(location ? { line: Number(location[1]), column: Number(location[2]) } : {}) } };
+      ...(location ? { file: location[1], line: Number(location[2]), column: Number(location[3]) } : {}) } };
   return { diagnostic: JSON.stringify(diagnostic), error: new Error(`Generated lifecycle invariant failed: seed=${seed}, mode=${mode}; see sanitized action trace`) };
 }
 test('generated failure diagnostics omit original assertion values, causes and unexpected trace fields', () => {
   const marker = 'PRIVATE_FIXTURE_SENTINEL';
   const original = new assert.AssertionError({ actual: { answerKey: marker, id: marker }, expected: null });
   original.cause = new Error(marker);
+  original.stack = `Error: ${marker}\n at request (file:///private/${marker}/student-http-harness.mjs:77:3)`;
   const failure = sanitizedFailure(1, 'submit', [{ action: 'save', state: 'IN_PROGRESS', slot: 0, value: marker }, { action: marker, state: marker, slot: marker }], original);
   assert.equal(failure.diagnostic.includes(marker), false);
   assert.equal(failure.error.stack.includes(marker), false);
   assert.equal(failure.error.cause, undefined); assert.equal(failure.error.actual, undefined); assert.equal(failure.error.expected, undefined);
   assert.equal(JSON.parse(failure.diagnostic).failure.kind, 'assertion');
+  assert.deepEqual(JSON.parse(failure.diagnostic).failure, { kind: 'assertion', file: 'student-http-harness.mjs', line: 77, column: 3 });
 });
 function random(seed) {
   let state = seed >>> 0;
@@ -52,12 +55,12 @@ async function rejected(promise, code, status) {
   await assert.rejects(promise, (error) => { assert.equal(error.code, code); assert.equal(error.status, status); return true; });
 }
 
-for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed} mode=${mode}`, { timeout: 40_000 }, async (t) => {
-  let f, workerPool;
+for (const transport of ['service', 'http']) for (const [seed, mode] of cases) test(`generated student lifecycle transport=${transport} seed=${seed} mode=${mode}`, { timeout: 40_000 }, async (t) => {
+  let f, workerPool, http;
   const trace = [], pick = random(seed);
   t.after(async () => {
     const errors = [];
-    for (const [stage, close] of [['worker', () => workerPool?.end()], ['fixture', () => f?.close()]]) {
+    for (const [stage, close] of [['http', () => http?.close()], ['worker', () => workerPool?.end()], ['fixture', () => f?.close()]]) {
       try { await close(); } catch { errors.push(new Error(`Critical ${stage} cleanup failed`)); }
     }
     if (errors.length) throw new AggregateError(errors, 'Critical fixture cleanup failed');
@@ -67,7 +70,8 @@ for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed}
     await f.pool.query('CREATE ROLE critical_worker LOGIN'); await f.pool.query('GRANT tsa_exam_worker TO critical_worker');
     workerPool = createDatabasePool({ ...f.harness.database.connectionConfig, user: 'critical_worker' });
     const worker = createExamWorker({ workerPool, executorId: 'critical-model', leaseSeconds: 30, retrySeconds: 1 });
-    const service = createAttemptService({ examPool: f.examPool, identityService: f.identityService, createRate: rate, saveRate: { user: rate, attempt: rate } });
+    if (transport === 'http') http = await createStudentHttpHarness(f, workerPool, safe);
+    const service = http?.service ?? createAttemptService({ examPool: f.examPool, identityService: f.identityService, createRate: rate, saveRate: { user: rate, attempt: rate } });
     const owner = f.principals.studentA, foreign = f.principals.studentB;
     const creationKey = randomUUID(), startKey = randomUUID(), submitKey = randomUUID();
     const creation = await service.create(owner, creationKey, { blueprintVersionId: f.blueprint.versionId });
@@ -90,9 +94,9 @@ for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed}
       FROM tsa.forms f JOIN tsa.assembly_runs ar ON ar.id=f.assembly_run_id WHERE f.id=$2`, [id, formId])).rows[0];
     const original = await seal(); assert.equal(original.history.length, 4);
     async function read(principal = owner, result = false) {
-      const reply = await service.withReadBoundary(principal, (ports) => createHttpBoundaryHandler({ authenticate: async () => principal, ...ports })(
+      const reply = http ? await http.read(principal, id, result) : await service.withReadBoundary(principal, (ports) => createHttpBoundaryHandler({ authenticate: async () => principal, ...ports })(
         new Request(`http://127.0.0.1/api/v1/attempts/${id}${result ? '/result' : ''}`)));
-      const body = await reply.json();
+      const body = http ? reply.body : await reply.json();
       (result ? releasedReviewRouteRegistry.releasedResult : studentRouteRegistry.getAttempt).responses[reply.status].schema.parse(body);
       if (reply.status !== 200 || !result) safe(body);
       if (reply.status === 200 && !result) {
@@ -174,14 +178,14 @@ for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed}
       } else if (name === 'replay' && entry) {
         const call = service.save(owner, id, entry.slot.slot_id, entry.key, entry.body);
         if (model.restricted) await rejected(call, 'CONTENT_WITHDRAWN', 410);
-        else { const ack = await call; assert.deepEqual(ack.body, entry.ack.body); assert.equal(ack.replayed, true); }
+        else { const ack = await call; assert.deepEqual(ack.body, entry.ack.body); if (!http) assert.equal(ack.replayed, true); }
       } else if (name === 'changed-key' && entry) {
         const different = response(entry.slot.interaction, entry.body.value.type === 'SINGLE_CHOICE' && entry.body.value.optionId === 'a' ? 'correct' : 'wrong');
         if (JSON.stringify(different) === JSON.stringify(entry.body.value)) different.type === 'MULTIPLE_CHOICE' ? different.optionIds = [] : different.values = { s1: null, s2: null };
         await rejected(service.save(owner, id, entry.slot.slot_id, entry.key, { ...entry.body, value: different }), model.restricted ? 'CONTENT_WITHDRAWN' : 'IDEMPOTENCY_CONFLICT', model.restricted ? 410 : 409);
       } else if (name === 'submit-before-start') await rejected(service.submit(owner, id, randomUUID()), 'ATTEMPT_CLOSED', 409);
       else if (name === 'start-replay') {
-        const replay = await service.start(owner, id, startKey); assert.deepEqual(replay.body, model.started); assert.equal(replay.replayed, true);
+        const replay = await service.start(owner, id, startKey); assert.deepEqual(replay.body, model.started); if (!http) assert.equal(replay.replayed, true);
       } else if (name === 'idle-worker') assert.deepEqual(await worker.claim(), { status: 'IDLE' });
       else throw new Error('Unknown or unavailable generated action');
       await check();
@@ -193,6 +197,20 @@ for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed}
       }
     }
     await generated(['read', 'result', 'create', 'save', 'foreign', 'foreign-save', 'submit-before-start', 'idle-worker'], 12);
+    async function securityProbes() {
+      if (!http) return;
+      const slot = slots[0], current = model.answers.get(slot.slot_id);
+      const body = { expectedRevision: current?.revision ?? 0, value: response(slot.interaction, 'correct') };
+      for (const [actionName, options, status, code] of [['csrf-denied', { csrf: false }, 403, 'CSRF_FAILED'], ['origin-denied', { origin: 'https://untrusted.invalid' }, 403, 'FORBIDDEN'], ['unauthenticated', { authenticated: false }, 401, 'UNAUTHENTICATED']]) {
+        trace.push({ action: actionName, state: model.state, slot: 0 });
+        const denied = await http.probe(owner, id, slot.slot_id, body, options);
+        assert.equal(denied.status, status); assert.equal(denied.body.error.code, code); await check();
+      }
+      trace.push({ action: 'staff-denied', state: model.state, slot: 0 });
+      const denied = await http.probe(f.principals.author, id, slot.slot_id, body, {});
+      assert.equal(denied.status, 403); assert.equal(denied.body.error.code, 'FORBIDDEN'); await check();
+    }
+    await securityProbes();
     if (mode !== 'revoke-created') {
       trace.push({ action: 'start', state: model.state });
       model.started = (await service.start(owner, id, startKey)).body; model.state = 'IN_PROGRESS';
@@ -201,6 +219,7 @@ for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed}
       await check();
       const remaining = [0, 1, 2, 3];
       while (remaining.length) await action('save', remaining.splice(pick(remaining.length), 1)[0]);
+      await securityProbes();
       await generated(['read', 'save', 'save', 'stale', 'foreign', 'foreign-save', 'replay', 'changed-key', 'result', 'create', 'start-replay'], 28);
     }
     trace.push({ action: mode, state: model.state });
@@ -234,9 +253,11 @@ for (const [seed, mode] of cases) test(`generated student lifecycle seed=${seed}
       await generated(['read', 'foreign', 'result', 'save', 'replay', 'changed-key', 'create', 'start-replay'], 14);
     } else await action('idle-worker');
     assert.equal(coveredTypes.size, mode === 'revoke-created' ? 0 : 3);
-    t.diagnostic(JSON.stringify({ seed, mode, actions: trace.length, finalState: model.state, responseTypes: coveredTypes.size }));
+    t.diagnostic(JSON.stringify({ transport, seed, mode, actions: trace.length, finalState: model.state, responseTypes: coveredTypes.size,
+      ...(http ? { httpResponses: http.observed.length, securityProbes: mode === 'revoke-created' ? 4 : 8 } : {}) }));
   } catch (error) {
     const failure = sanitizedFailure(seed, mode, trace, error);
+    t.diagnostic(JSON.stringify({ transport }));
     t.diagnostic(failure.diagnostic);
     throw failure.error;
   }

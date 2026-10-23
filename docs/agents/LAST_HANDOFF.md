@@ -1,3 +1,47 @@
+# Current handoff — generated HTTP lifecycle verified by coordinator, review pending
+
+2026-10-23, `feat/track-b-data-auth`, base `db9c51c`; accountable Sol6.1.
+[Actual results, exact file hashes, failed runs and review packet](../reviews/TEST_002_HTTP_LIFECYCLE_VERIFICATION.md).
+Existing seeded oracle now runs service+actual loopback HTTP transports with real
+local auth/cookies/CSRF and restricted pools. Eight cases542 actions; HTTP279
+validated API responses including28 denied CSRF/origin/unauthenticated/staff-role
+probes. Same immutable graph/answers/revisions/rawclocks/rights/release oracles;
+no fabricated HTTP replay flag or trusted-principal header. Ordinary worker loop
+isolated while model's real trusted worker drives progress. No fake SQL rows.
+
+Final coordinator critical9/student34/attempt28/auth5/grading23/results6/contracts
+106/consumer11/typecheck/build/emitted smoke/drift/import PASS. Initial0/4 HTTP
+run expected wrong Origin code; subsequent0/4 assumed request-ID header mandatory
+on frozen GET. Expectations corrected, final HTTP4/4 and combined9/9 passed.
+Sanitized failures identify allowlisted helper/model basename+line without raw
+private path/values. No product/schema/API/authorization or publication change.
+Full Bank/assembly/foundation/recovery/local/directory/browser not rerun; earlier
+evidence separate. Hosted CI/manual AT unexecuted, existing warnings remain.
+
+FINAL INDEPENDENT REVIEW IS PENDING. Actual separate Sol6.1/Medium inspected earlier
+structure and passed syntax/whitespace/pure diagnostic1, but its observed HTTP
+log was an intermediate failing run and helper still changed. Requested final
+recheck returned actual usage-limit error. Do not relabel earlier review or root
+self-verification as final independent review. Exact two-file SHA256 values and
+commands are in the packet. Local checkpoint preserves work, not acceptance.
+
+Next exact task: separate read-only review of final helper/model diff fromdb9c51c;
+verify conditional request-ID contract, auth/CSRF/role isolation, worker gating/
+cleanup, diagnostics privacy and unchanged independent oracle. Report actual
+review scope and repair concrete findings before marking reviewed. Recommended
+Sol6.1/Medium once available on an existing owner subscription, no paid API/quota
+workaround or presumed availability. Root remains accountable; writer reservations
+released. This is the first final-review availability interruption, not proof
+that the broad goal is complete or permanently blocked.
+
+Owner AGENTS/research byte-preserved and unstaged. G1 accepted/G2/G3 OWNER_ACCEPTED,
+TEST-002 IN_PROGRESS, broad goal active. Lawful inventory/qualified human review/
+accessibility, operator-regrade authorization/contract, operational targets and
+Track A remain distinct. No push/merge/deploy/Astra/paid API/live inference or
+unauthorized publication/full harness/pilot acceptance claim.
+
+---
+
 # Current handoff — seeded lifecycle model verified
 
 2026-10-23, `feat/track-b-data-auth`, base `dd5afd1`; accountable Sol6.1.
