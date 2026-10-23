@@ -176,8 +176,9 @@ export async function createAllocationFixture({
   blueprintCount = 4,
   blueprintOptions = {},
   sourceOptions = {},
+  migrationDirectory,
 } = {}) {
-  const harness = await createBankHarness();
+  const harness = await createBankHarness({ migrationDirectory });
   let examPool;
   try {
     await ensureLocalTaxonomy(harness.database.pool);

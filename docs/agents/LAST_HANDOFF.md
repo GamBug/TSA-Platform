@@ -1,3 +1,41 @@
+# Current handoff — populated017→018 migration verified
+
+2026-10-23, `feat/track-b-data-auth`, base `baa8952`; accountable Sol6.1.
+[Implementation, initial failures, exact commands/review and limits](../reviews/OPS_001_POPULATED_018_UPGRADE_VERIFICATION.md).
+Optional test-only migration directory retains default behavior. Real pre018
+graded/queued/active exams use two historical8db27a1 fixture projections; real
+SQL authorization/eligibility/sealing remain intact. After upgrade, current
+unwrapped components replay old receipts/releasedreview, grade queued work and
+allocate NEW_ONLY outside all old assignments. All application rows except the
+separately verified ledger and existing security metadata remain exact across018.
+Failed late018 SQL rolls back data, new/replaced functions and ledger entirely.
+
+Final focused1/Bank94/assembly50/foundation37/student34/grading23/results6/
+contracts106/consumers11/typecheck/build/emitted smoke/drift/import PASS. Separate
+Sol6.1/Medium found cleanup P2; repaired so all cleanup stages run before aggregate
+failure. Final no unresolved findings, independent syntax/whitespace only, no
+independent PG run. Intermediate adapter-shape, replay-flag and wrong internal
+result-property assertion failures recorded/repaired; no vacuous comparison used
+as proof. Full attempts/recovery/local/directory/browser not rerun for test-only
+work; hosted CI/manual AT not executed, existing non-failing warnings remain.
+
+No production/migration/schema/frozen contract or publication change. This proves
+quiescent populated migration compatibility, not historical full-binary execution,
+online migration availability or successful downgrade. Reservations released;
+owner AGENTS/research byte-preserved and unstaged. Broad goal active, G1 accepted/
+G2/G3 OWNER_ACCEPTED. Lawful inventory/qualified human rights-content-accessibility,
+operational targets/Track A remain distinct. No push/merge/deploy/Astra/paid APIs/
+live student inference/unauthorized publication or full OPS/pilot acceptance.
+
+Next concrete integration audit: map remaining student/exam acceptance requirements
+to executed evidence and identify an actual uncovered behavior/defect before more
+synthetic variants. Existing operational checks do not prove hardware/disk
+failure, approved-envelope capacity or qualified accessibility. Recommended
+Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium engineering review
+for resulting changes. Qualified manual reviewer/platform remains a human input.
+
+---
+
 # Current handoff — live postmaster outage verified
 
 2026-10-23, `feat/track-b-data-auth`, base `5d0a991`; accountable Sol6.1.

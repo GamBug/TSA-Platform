@@ -34,13 +34,13 @@ async function serve(request, outgoing, authHandler, bankHandler) {
   outgoing.end(Buffer.from(await response.arrayBuffer()));
 }
 
-export async function createBankHarness() {
+export async function createBankHarness({ migrationDirectory } = {}) {
   const database = await startDisposablePostgres();
   let authPool;
   let bankPool;
   let server;
   try {
-    await migrate(database.pool);
+    await migrate(database.pool, { directory: migrationDirectory });
     const env = {
       NODE_ENV: 'test',
       LOCAL_SYNTHETIC_ONLY: 'true',

@@ -768,6 +768,21 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 
 ## OPS-001 — Deployment and data-policy readiness
 
+2026-10-23 populated017→018 rehearsal **IMPLEMENTED / VERIFIED** from `baa8952`:
+actual pre018 GRADED/QUEUED/IN_PROGRESS exams, historical fixture-only adapter
+projections pinned to8db27a1, genuine SQL gates/sealing. Failed late018 SQL rolls
+back functions/ledger/data; unchanged018 preserves all app rows/existing security
+metadata, exact receipts/releasedreview, queued grading and subsequent NEW_ONLY.
+Final focused1/Bank94/assembly50/foundation37/student34/grading23/results6/
+contracts106/consumers11/build/typecheck/drift/import PASS. Separate Sol6.1/Medium
+found cleanup P2, repaired; final no unresolved findings, independent syntax/
+whitespace only. [Corrections, commands and limits](../reviews/OPS_001_POPULATED_018_UPGRADE_VERIFICATION.md).
+Sol accountable; reservations released, owner files preserved. No production
+code/migration/schema/contracts changed; not historical binary, online migration
+or successful downgrade proof. Next acceptance-evidence audit to identify an
+actual uncovered behavior before more fixtures. Recommended Sol6.1/High while
+Luna remains usage-limited; separate Sol6.1/Medium review for resulting changes.
+
 2026-10-23 live postmaster downtime **IMPLEMENTED / VERIFIED** from `5d0a991`:
 test-only stopped-server barrier, restores server before propagating assertion
 failure; actual SIGQUIT/WAL recovery while same HTTP/poller process remains live.
