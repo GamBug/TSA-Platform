@@ -1,4 +1,4 @@
-# Handoff — approved B1.2 staff private inspection implemented
+# Handoff — B1.2 independently reviewed and clean-reproduced
 
 2026-10-23, Asia/Bangkok. Root accountable, branch `feat/track-b-data-auth`, starting
 `5f916af`. Owner explicitly approved B1.2 as a whole; [exact scope/hash/evidence](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).
@@ -39,7 +39,9 @@ Firefox slice syntax/inspection only. Broad regressions are coordinator evidence
 Root exact flagged `npm run demo:staff:review` started root URL and served page/
 app/math/KaTeX/auth200/no-store. Ctrl+C closed listener; npm cancellation1, direct
 CLI tests exit0. No task-owned application server is intended to remain running.
-Final clean-checkout reproduction is next; do not claim it until appended.
+Clean no-hardlink clone of implementation147dd71: locked install/build/focused15/
+Chrome staff/Firefox staff+student/built/drift/docs PASS, no patches or manual DB
+setup; final clone Git status empty. Full command evidence is linked above.
 
 ## Remaining and continuation
 
@@ -51,9 +53,12 @@ Named lawful author/rights attestor, independent qualified content reviewer for
 12/6/12 accepted items, qualified manual AT/native zoom and operational targets
 remain human inputs. No publication/production rights follow from synthetic tests.
 
-Next complete clean-checkout install/build/focused15/Chrome/Firefox/docs and save
-final checkpoint. Then propose the next private-evidence/review increment without
-silently expanding B1. Recommended Codex Sol6.1/High integration, available
+Next obtain the explicit disposition of the separate
+[B2.1 recorded-rights evidence proposal](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md);
+[Independent design review](../reviews/WEB_002_B2_CONTRACT_DESIGN_REVIEW.md) repaired
+one disclosure P2, final no concrete blockers. Approval must explicitly include
+verbatim arbitrary evidence text; no evidence route or privileges implemented.
+B1 approval remains scoped to inspection. Recommended Codex Sol6.1/High integration, available
 Luna/XHigh bounded UI with Sol fallback, separate Sol6.1/Medium read-only review;
 existing subscriptions only. No Astra/paid API/push/remote merge/deployment.
 Earlier handoffs/design review remain in Git and linked task evidence.

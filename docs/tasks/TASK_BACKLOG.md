@@ -750,6 +750,15 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-23 next decision: [B2.1 bounded recorded-rights evidence read](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
+is **PROPOSED / HUMAN_APPROVAL_REQUIRED**, documentation only. Root accountable
+for design/records; separate [read-only design review](../reviews/WEB_002_B2_CONTRACT_DESIGN_REVIEW.md)
+found/repaired one raw-text disclosure P2, final no concrete blockers. No B2 route, DTO,
+UI or grant has been implemented. New private evidence fields need explicit owner
+approval; B1.2 approval/frozen response remain unchanged. Recommended Sol6.1/High
+for private authorization/projection, available Luna/XHigh bounded UI with Sol
+fallback; separate Sol6.1/Medium review, existing subscriptions/no paid API.
+
 2026-10-23 B1.2 **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** from
 `5f916af`: approved private inspection GET/strict staff namespace/artifact,
 read-only current-role/own-audit/independent-queue access, complete mixed namespace
@@ -764,8 +773,9 @@ built/drift/import PASS; actual staffChrome19checks/7screenshots/domains78 and
 optionalFirefox156 staff+student PASS (desktop1280/narrowactual500). Separate
 read-only reviewer found/rechecked two P2 implementation defects and mobile repair;
 final no findings; independent read12/upgrade1/contract13/Chrome/CLI2 PASS,
-Firefox slice syntax reviewed only. Root owns final clean-checkout reproduction;
-delegate reservations released. Full WEB-002 remains open for B2 evidence/review/
+Firefox slice syntax reviewed only. Clean no-hardlink clone147dd71 install/build/
+focused15/Chrome/Firefox/built/drift/docs PASS, no patches/manual DB setup, final
+clone Git status empty. Delegate reservations released. Full WEB-002 remains open for B2 evidence/review/
 rights/diagnostic contracts and qualified human prerequisites; B1 grants none.
 
 2026-10-23 **B1.2 APPROVED / IMPLEMENTATION IN_PROGRESS**, starting `5f916af`;

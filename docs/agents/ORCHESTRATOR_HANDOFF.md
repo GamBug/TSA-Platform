@@ -12,13 +12,15 @@ issues repaired and independently rechecked; final no findings. Actual focused15
 Bank107/foundation37/auth5/local15/student34/contracts117/consumer11/B032/static and
 Chrome staff/domains + delegate Firefox1280/actual500 PASS. Separate reviewer
 actually ran read12/upgrade1/CLI2/contracts13/Chrome; Firefox review syntax only.
-Final clean-checkout reproduction is next until its appended evidence says PASS.
+Fresh no-hardlink clone147dd71 locked install/build/focused15/Chrome/Firefox/
+built/drift/docs PASS; no patches/manual DB setup, final clone Git status empty.
 
 Do not assume full staff review/evidence/rights/diagnostics/publication authority,
 real30-item inventory/human approvals, qualified accessibility, performance/production
 identity or full Technical MVP acceptance. B1 does not grant those capabilities.
-After clean reproduction prepare the next scoped contract; do not implement it
-without the necessary explicit owner disposition. Recommended Sol6.1/High,
+Next: separate [B2.1 read-only recorded-evidence proposal](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md),
+documentation only/HUMAN_APPROVAL_REQUIRED. Do not implement it without the explicit
+owner disposition required for new private fields and operation. Recommended Sol6.1/High,
 available Luna/XHigh bounded UI with Sol fallback, separate Sol6.1/Medium review;
 existing subscriptions only. No paid API/Astra/push/merge/deployment.
 

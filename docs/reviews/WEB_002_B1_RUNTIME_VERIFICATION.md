@@ -129,7 +129,7 @@ Reviewed backend SHA256:
 Migration019 SHA256:
 `e9ba4573e5d5708ffbfd3ff7a47465e8b51c5f794e268088b375b056c5cedaab`.
 Broader regression commands above are coordinator evidence, not reviewer executions.
-Final launcher review/clean-checkout reproduction are appended when executed.
+Final launcher review and clean-checkout reproduction are recorded below.
 
 ## Scope limits and next work
 
@@ -178,9 +178,46 @@ unchanged unless the staff flag is true.
 Artifacts include `/tmp/tsa-student-firefox-evidence/staff-review-preview-desktop.png`
 and `staff-review-preview-narrow-500.png`. Formal screen reader/native zoom/WCAG
 checks remain MANUAL_CHECK_PENDING. Final independent Firefox-slice review and
-clean-checkout reproduction follow below when executed.
+clean-checkout reproduction are recorded below.
 
 Final optional Firefox slice independent review: `/root/lifecycle_review` inspected
 cookie isolation, exact-version loading, output, actual-width reporting, Escape/
 logout and cleanup; no findings. Syntax/scoped whitespace PASS. It did not run
 Firefox; delegate execution above remains separately attributed.
+
+
+## Clean-checkout reproduction —147dd71
+
+Coordinator created a fresh no-hardlink local Git clone of committed `147dd71` at
+`/tmp/tsa-b1-clean-33skhufi` using `git clone --no-hardlinks --quiet <repository> <clone>`.
+No code patches, manual API setup or database edits were needed. On the same local
+Node/npm/PostgreSQL/browser toolchain, these commands completed in sequence:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+npm run test:track-b:browser
+npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run docs:check
+git status --short
+```
+
+Observed: locked install added24 packages/audited26 with zero reported advisories;
+build PASS; focused15 PASS/zero failures, skips or cancellations. Actual Chromium
+staff19 checks/7 screenshots PASS with privatePreviewMobile375/375/scale1. Firefox156
+student+staff PASS at desktop1280 and actual narrow500 (width request unhonored,
+scale1). Emitted JavaScript and private staff compiled/package-export2 PASS.
+Public/private artifact drift PASS. Docs zero errors/one preserved historical
+whitespace warning. Final clone Git status was empty and HEAD remained147dd71.
+Logs are under `/tmp/tsa-b1-clean-{install,build,focused,chrome,firefox,built,drift,docs}.log`;
+they are local execution evidence, not committed product data.
+
+This closes clean reproduction for the approved bounded B1.2 engineering increment.
+It is coordinator evidence; the independent checks above retain their exact scope.
+Full WEB-002, real lawful inventory, qualified human review/accessibility and
+production acceptance remain outstanding. The next separate
+[B2.1 recorded-evidence proposal](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
+is documentation only and grants no new runtime access.

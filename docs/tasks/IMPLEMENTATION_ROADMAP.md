@@ -5,7 +5,10 @@ read-only role/rights guards and narrow019 authorship predicate are implemented 
 independently reviewed, with actual PostgreSQL/Chromium/Firefox evidence.
 [Runtime verification](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md) and
 [staff demonstration](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
-Clean-checkout reproduction is the final checkpoint step. Full staff evidence/
+Clean no-hardlink clone147dd71 install/build/focused15/Chrome/Firefox/built/drift/
+docs PASS with no patches/manual DB setup and clean clone Git status.
+Next [B2.1 recorded-evidence proposal](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED. Full staff evidence/
 review/publication/diagnostics and human inventory/accessibility remain separate;
 B1 approval does not grant those capabilities. Prior sequencing below is historical.
 
@@ -15,8 +18,8 @@ journeys and visible math/table/mobile repairs have automated evidence and
 independent engineering review. [Demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md)
 and [current verification](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md).
 Final clean-checkout reproduction PASS at `be4705d`; the bounded local student presentation milestone is complete. Existing-route staff metadata
-filters/pages are independently reviewed and verified; private preview/evidence requires the
-[staff contract decision](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
+filters/pages and approved B1.2 private inspection are independently reviewed and
+verified. Additional private evidence requires the separate B2.1 decision above.
 Qualified content/rights/accessibility and production requirements remain separate.
 Historical proposed sequencing below is retained, not current gate status.
 
