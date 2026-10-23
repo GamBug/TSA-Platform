@@ -1,3 +1,48 @@
+# Current handoff — seeded lifecycle model verified
+
+2026-10-23, `feat/track-b-data-auth`, base `dd5afd1`; accountable Sol6.1.
+[Seeds, exact commands/review and limits](../reviews/TEST_002_SEEDED_STUDENT_LIFECYCLE_VERIFICATION.md).
+New explicit critical command executes four pinned phase-bounded real-PG cases,
+257 actions through CREATED/running/submit/actual10sec expiry/grade and current
+rights cancellation/invalidation. Independent state/answer/revision/correctness
+model checks every action, all three response types for started cases. Original
+sealed graph/history and full-precision clocks persist; independent SQL TTL/
+duration/closure bounds, safe read/result boundary, ownership, conflicts/replay,
+zero premature score/release and NEW_ONLY shortage. No direct clock/state edits.
+
+Final critical5 (four PG+one pure diagnostic)/attempt28/grading23/recovery16/
+results6/assembly50/contracts106/consumer11/typecheck/build/emitted smoke/drift/
+import PASS. First3pass/1fail corrected cancelled-metadata oracle (safe200 with
+zero content/result409, not forced410). Separate Sol6.1/Medium clock/failure-output
+and explicit expiry-response findings repaired; final no unresolved findings.
+Independent pure diagnostics1/syntax/whitespace PASS; no independent PG model run.
+Failure reports allowlisted trace/classification/coordinates and fresh errors,
+never original private assertion differences/causes. Both cleanup stages attempted.
+
+Writes exercise frozen services/transactions; reads/results real Request/Response
+boundary, not live mutation HTTP/CSRF. Four fixed progress families with generated
+action/slot/value-category order are bounded evidence, not exhaustive/concurrent
+model checking or deterministic fixture UUID/solver RNG. Full Bank/foundation/
+student-runtime/local/directory/browser not rerun; hosted CI/manual AT unexecuted,
+prior evidence separate and existing non-failing warnings remain.
+
+TEST-002 IN_PROGRESS for this groundwork; G3 no longer a missing owner gate.
+No product/schema/API/authorization change, full task/release/pilot acceptance or
+qualified human evidence claim. G1 accepted/G2/G3 OWNER_ACCEPTED, broad goal active.
+Lawful inventory, qualified human review/accessibility, operator-retry route/
+authority decision, operational targets and Track A remain outstanding. Owner
+AGENTS/research unchanged and unstaged, reservations released; no push/merge/
+deploy/Astra/paid API/live inference/unauthorized publication.
+
+Next concrete integration card: run generated mutation commands through existing
+loopback HTTP/auth/CSRF adapters while retaining independent model/privacy oracles.
+Reuse contracts/roles, add no routes or operator capabilities. Recommended Sol6.1/
+High for coupled integration, isolated Luna/XHigh if available with Sol fallback,
+separate Sol6.1/Medium engineering review. Qualified manual reviewer/platform
+remains an independent human input.
+
+---
+
 # Current handoff — grading-failure browser gap verified
 
 2026-10-23, `feat/track-b-data-auth`, base `6f7e980`; accountable Sol6.1.

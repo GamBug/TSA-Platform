@@ -1402,13 +1402,31 @@ Luna is usage-limited, separate Sol6.1/Medium review when available.
 
 ## TEST-002 — Independent critical-invariant and security regression harness
 
+2026-10-23 generated-lifecycle **IMPLEMENTED / VERIFIED** from `dd5afd1`:
+four pinned phase-bounded PostgreSQL model cases/257 actions, all three response
+types for started cases, independently modeled states/answers/revisions/scores,
+safe read/result boundary and exact immutable input/history/rawclock checks.
+Real10sec expiry, submission and rights cancellation/invalidation; no clock edits.
+Initial cancelled-metadata oracle error corrected. Separate Sol found clock/
+failure-output weaknesses and expiry-response assertion gap, all repaired; final
+no unresolved findings, independent pure diagnostic1/syntax/whitespace only.
+Final critical5 (four PG+one pure)/attempt28/grading23/recovery16/results6/
+assembly50/contracts106/consumer11/build/typecheck/drift/import PASS.
+[Seeds, observed evidence and limits](../reviews/TEST_002_SEEDED_STUDENT_LIFECYCLE_VERIFICATION.md).
+Sol accountable, reservations released, owner files preserved. Writes exercise
+services; reads/results Request/Response boundaries, not mutation HTTP or
+concurrent/exhaustive model checking. No contracts/authorization change or full
+TEST-002 acceptance. Next carry generated commands through existing HTTP/auth/
+CSRF adapters. Recommended Sol6.1/High for integration/oracle work, Luna/XHigh if
+available with Sol fallback, separate Sol6.1/Medium independent engineering review.
+
 - Objective: provide the cross-module, independently runnable critical test layer before pilot evidence, without claiming that task-local tests are sufficient.
 - Prerequisites: G3, stable module contracts and recorded unit/integration acceptance from DATA/BANK/ASSEMBLY/EXAM/SCORE/WEB cards.
 - Input specifications: TEST_STRATEGY Q-01–Q-16 and scenarios A–J, API contracts, factory/reuse policies, task-local fixtures.
 - Files/modules: `tests/critical/concurrency.spec.ts`, `tests/critical/security.spec.ts`, `tests/critical/scoring-and-integrity.spec.ts`.
 - Expected deliverables: barrier-driven real-DB race harness, state-machine/property regression suite and release evidence output referencing exact fixture/contract revisions.
 - Acceptance criteria: verifies allocation disjointness, idempotent closure, scoring goldens, immutable snapshots, publication/revocation guards, BOLA/key leakage and factory non-publication; failures retain a reproducible seed/trace.
-- Required verification: two-connection barriers rather than sleeps; controlled clock; HTTP/bundle scans; independently reviewed test cases and observed command/runtime results. Suggested agent capability: HIGH (Sol). Risk: High — false confidence in critical controls. Status: PROPOSED, blocked on G3.
+- Required verification: two-connection barriers rather than sleeps; controlled clock; HTTP/bundle scans; independently reviewed test cases and observed command/runtime results. Suggested agent capability: HIGH (Sol). Risk: High — false confidence in critical controls. Status: IN_PROGRESS for bounded seeded lifecycle groundwork; full critical harness/integrated acceptance remains outstanding. G3 is OWNER_ACCEPTED; it is no longer a missing owner gate. Actual accountable implementer: Codex Sol6.1; separate read-only Sol6.1/Medium engineering review. Current writer reservations released.
 
 ## INT-002 — Factory package import boundary proof
 
