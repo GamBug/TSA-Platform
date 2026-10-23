@@ -141,6 +141,9 @@ demo below separately exercises the complete synthetic exam flow.
 
 ## Disposable PostgreSQL student demonstration
 
+For a concise presentation script and three-domain setup, use the
+[supervisor demo guide](../../docs/guides/TRACK_B_SUPERVISOR_DEMO.md).
+
 Use the pinned Node/npm/PostgreSQL toolchain from the repository root:
 
 ```sh

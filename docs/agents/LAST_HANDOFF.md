@@ -1,3 +1,25 @@
+# Current handoff — visible student polish verified
+
+2026-10-23, root accountable, `feat/track-b-data-auth`, review checkpoint `1d6bf4d`.
+Native local MathML, semantic readable tables, full mobile save status and
+Vietnamese history/grading labels implemented. Supervisor guide/launcher messages
+prepared. [Exact implementation, commands, review and limits](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md).
+Student34/B032/contracts106/consumer11 and type/build/drift/import PASS; actual
+domains78/default/keyboard/Firefox/gradefailure29 PASS. Separate actual Sol6.1/
+Medium no concrete findings; independently server4/B032/final keyboard22API/18AX/
+84focus PASS, supplemental labels/launcher syntax review. Full TEST-002 remains
+IN_PROGRESS although its final HTTP review is now closed.
+
+Next finalize clean-checkout demo reproduction, then integrate delegated existing-
+route staff metadata slice. Native Luna/XHigh `/root/staff_metadata` owns only
+staff.js/verify-track-b-browser plus optional scoped evidence; no new private
+route or publication permission. Root coordinates shared docs/styles; separate
+reviewer owns no files. Owner AGENTS/research untouched/excluded. Real stock,
+qualified rights/content/accessibility, private staff contract and production
+readiness remain distinct. No paid API/Astra/push/merge/deployment.
+
+---
+
 # Current handoff — lifecycle review closed; product completion in progress
 
 2026-10-23, root accountable, branch `feat/track-b-data-auth`, starting `b4a8097`.

@@ -256,6 +256,35 @@ async function runAccessibilityJourney() {
   checkPrivate(view);
   const attemptId = view.attemptId;
   const slots = view.slots;
+  await waitFor('Boolean(document.querySelector(".content-math[data-math-state=rendered] math msup"))', 'TeX superscript rendered as native MathML');
+  const mathSafety = await evaluate(`(async()=>{
+    const {renderMath}=await import('./app/math.js');
+    const host=document.createElement('div');document.body.append(host);
+    const inputs=[
+      {tex:'\\\\frac{1}{2}',display:true},
+      {tex:'\\\\href{https://invalid.example/}{link}'},
+      {tex:'\\\\includegraphics{https://invalid.example/image.png}'},
+      {tex:'\\\\htmlClass{unsafe}{x}'},
+      {tex:'<img src=x onerror=alert(1)>',accessibleText:'Văn bản an toàn'},
+      {tex:'\\\\frac{',accessibleText:'Biểu thức thay thế'},
+      {tex:'\\\\def\\\\loop{\\\\loop}\\\\loop',accessibleText:'Giới hạn mở rộng'},
+      {tex:'\\\\gdef\\\\privateMacro{7}\\\\privateMacro'},
+      {tex:'\\\\privateMacro',accessibleText:'Không dùng macro của câu khác'}
+    ];
+    const nodes=inputs.map(input=>renderMath(input));host.append(...nodes);
+    await new Promise(r=>setTimeout(r,100));
+    const result={fraction:Boolean(nodes[0].querySelector('mfrac')),
+      active:host.querySelectorAll('a,img,script,iframe,[href],[src],[onerror]').length,
+      fallback:nodes[5].textContent,loop:nodes[6].dataset.mathState,
+      isolated:nodes[8].dataset.mathState};
+    host.remove();return result;
+  })()`);
+  assert.equal(mathSafety.fraction, true, 'fractions render with native MathML');
+  assert.equal(mathSafety.active, 0, 'untrusted math cannot create links, images or executable HTML');
+  assert.match(mathSafety.fallback, /Biểu thức thay thế/);
+  assert.equal(mathSafety.loop, 'fallback', 'recursive macros fail safely');
+  assert.equal(mathSafety.isolated, 'fallback', 'macro state cannot cross question blocks');
+  report.mathSafety = mathSafety;
   await assertReflow('exam');
   assert.equal(await evaluate('document.body.innerText.includes("Bảng dữ liệu tổng hợp") && document.body.innerText.includes("x bình phương cộng một")'), true,
     'the 640 px view retains the semantic table caption and math alternative');
@@ -755,7 +784,7 @@ try {
   const attemptId = view.attemptId;
   const clockBefore = await fixture.pool.query('SELECT started_at,deadline_at FROM tsa.attempts WHERE id=$1', [attemptId]);
   assert.equal(await evaluate('document.body.innerText.includes("Bảng dữ liệu tổng hợp")'), true);
-  assert.equal(await evaluate('document.body.innerText.includes("x^2 + 1")'), true);
+  await waitFor('Boolean(document.querySelector(".content-math[data-math-state=rendered] math msup"))', 'native MathML replaces raw TeX');
   let dropped = false, offlineSaveVerified = false, conflictVerified = false;
   for (const [index, slot] of view.slots.entries()) {
     if (index) await click('question-next');

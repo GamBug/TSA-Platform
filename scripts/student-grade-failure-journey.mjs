@@ -27,7 +27,7 @@ export async function runGradeFailureJourney({ evaluate, command, click, query, 
   const first = await worker.claim(); assert.equal(first.status, 'CLAIMED');
   assert.equal((await worker.fail(first, 'TEMPORARILY_UNAVAILABLE')).status, 'FAILED_RETRYABLE');
   assert.deepEqual(await worker.claim(), { status: 'IDLE' }, 'actual retry delay prevents immediate reclaim');
-  await waitFor(`${query('grading-status')}?.textContent.includes('FAILED_RETRYABLE')`, 'student sees real retryable state');
+  await waitFor(`${query('grading-status')}?.dataset.gradingStatus==='FAILED_RETRYABLE' && ${query('grading-status')}.textContent.includes('máy chủ sẽ thử lại')`, 'student sees real retryable state in Vietnamese');
   assert.equal(await evaluate(`Boolean(${query('result')} || ${query('review-open')})`), false);
   await capture('grading-retryable');
   let second; const until = Date.now() + 3_000;

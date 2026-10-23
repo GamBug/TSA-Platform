@@ -105,7 +105,8 @@ try {
   const view = await wd('POST', '/execute/async', { args: [], script: `const done=arguments[arguments.length-1];fetch('/api/v1/attempts?limit=100').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json()).then(done,e=>done({error:String(e)}));` });
   assert.equal(view.state, 'IN_PROGRESS'); assert.equal(view.slots.length, 4); checkPrivate(view);
   const clocks = (await fixture.pool.query('SELECT started_at::text,deadline_at::text FROM tsa.attempts WHERE id=$1', [view.attemptId])).rows;
-  assert.equal(await evaluate('document.body.innerText.includes("x^2 + 1") && document.body.innerText.includes("Bảng dữ liệu tổng hợp")'), true);
+  await waitFor('Boolean(document.querySelector(".content-math[data-math-state=rendered] math msup"))', 'Firefox native MathML superscript');
+  assert.equal(await evaluate('document.body.innerText.includes("Bảng dữ liệu tổng hợp")'), true);
   for (const [index, slot] of view.slots.entries()) {
     if (index) await click('question-next');
     if (slot.interaction.type === 'MULTIPLE_CHOICE') {

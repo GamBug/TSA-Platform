@@ -750,6 +750,17 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-23 metadata subset **IN_PROGRESS**, root accountable, actual native
+Luna/XHigh `/root/staff_metadata` owns only `public/app/staff.js` and existing
+staff browser harness; root owns shared styles/records. Current mission authorizes
+improving existing question-summary GET only: state/section filters, cursor pages,
+truthful loading/empty/error states and exact version/hash. No new private endpoint,
+preview, reviewer approval, rights/publication or assembly privilege is authorized.
+Actual read-only Luna/XHigh route inventory found private inspection/evidence and
+diagnostics GETs absent. Full WEB-002 remains BLOCKED on scoped contract approval;
+bank/auth historical prerequisites alone are not the current reason.
+[Concrete options and recommended next private read](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
+
 Reconciliation acceptance (HI-05): render only server-authorized section deficits for EXAM_MANAGER; richer diagnostic UI requires BANK_MANAGER endpoint permission. Test direct unauthorized endpoint access, not only hidden UI elements.
 
 - Objective/scope: browse drafts, show safe preview/private reviewer evidence, review/approve/quarantine and assembly diagnostics.
@@ -1200,6 +1211,18 @@ publication and formal acceptance separately gated.
 - Required verification: browser fixtures for success, both shortage codes, search exhaustion, conflict/retry and keyboard/screen-reader flow; contract-negative parsing test. Suggested agent capability: MEDIUM (Terra). Risk: Medium — unsafe UX could bypass policy. Status: PROPOSED, blocked on ASSEMBLY-002.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
+
+2026-10-23 student product polish **AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**:
+local native MathML replaces raw TeX, semantic readable tables, mobile full save
+status and Vietnamese history/grading labels. Existing lifecycle/security rules
+unchanged. Domains78/default desktop-mobile/keyboard/Firefox/grade-failure29,
+student34/B032/contracts106/consumer11/build/typecheck/drift/import PASS.
+Separate actual Sol6.1/Medium read-only review: no concrete findings; independent
+server4/B032/final keyboard22responses/18AX/84focus PASS. Launcher gives clear
+startup/teardown instructions; [supervisor walkthrough](../guides/TRACK_B_SUPERVISOR_DEMO.md).
+[Commands/review/acceptance limits](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md).
+Clean-checkout final reproduction follows this checkpoint; qualified human/manual
+accessibility and full WEB-004 acceptance remain distinct.
 
 2026-10-23 product-completion mission: accountable implementer Codex root;
 IN_PROGRESS. Starting HEAD `b4a8097`, owner AGENTS.md modification and untracked

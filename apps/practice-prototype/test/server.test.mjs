@@ -65,4 +65,19 @@ describe("local static server public-file boundary", () => {
     const privatePath = await handler({ method: "GET", url: "/src/private-question-fixture.mjs" });
     assert.equal(privatePath.status, 404);
   });
+
+  it("exposes only the pinned local math renderer and license, not node_modules", async () => {
+    const handler = createPrototypeHandler();
+    const renderer = await handler({ method: "GET", url: "/vendor/katex.mjs" });
+    assert.equal(renderer.status, 200);
+    assert.equal(renderer.headers["Content-Type"], "text/javascript; charset=utf-8");
+    assert.match(renderer.body.toString(), /0\.19\.0/);
+    const license = await handler({ method: "GET", url: "/vendor/katex-LICENSE.txt" });
+    assert.equal(license.status, 200);
+    assert.match(license.body.toString(), /MIT License/);
+    for (const url of ["/node_modules/katex/package.json", "/vendor/package.json",
+      "/vendor/../../node_modules/pg/lib/index.js", "/vendor/katex.js", "/vendor/LICENSE"]) {
+      assert.equal((await handler({ method: "GET", url })).status, 404, url);
+    }
+  });
 });

@@ -20,6 +20,9 @@ const PUBLIC_FILES = new Map([
   ["/app/persistent-api.js", "public/app/persistent-api.js"],
   ["/app/api.js", "public/app/api.js"],
   ["/app/staff.js", "public/app/staff.js"],
+  ["/app/math.js", "public/app/math.js"],
+  ["/vendor/katex.mjs", "../../node_modules/katex/dist/katex.mjs"],
+  ["/vendor/katex-LICENSE.txt", "../../node_modules/katex/LICENSE"],
 ]);
 
 const CONTENT_TYPES = {
@@ -31,6 +34,9 @@ const CONTENT_TYPES = {
   "public/app/persistent-api.js": "text/javascript; charset=utf-8",
   "public/app/api.js": "text/javascript; charset=utf-8",
   "public/app/staff.js": "text/javascript; charset=utf-8",
+  "public/app/math.js": "text/javascript; charset=utf-8",
+  "../../node_modules/katex/dist/katex.mjs": "text/javascript; charset=utf-8",
+  "../../node_modules/katex/LICENSE": "text/plain; charset=utf-8",
 };
 
 // Only the bundled, independently licensed font files are public assets.

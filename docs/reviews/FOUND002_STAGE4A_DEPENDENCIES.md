@@ -118,3 +118,32 @@ isolated temporary directory, then ran `npm ci --ignore-scripts --cache
 `pg-native` peer is absent; this implementation uses the tested JavaScript driver.
 No toolchain upgrade was applied. This verifies the dependency/build increment,
 not subsequent uncommitted application behavior or hosted CI.
+
+## Local mathematical rendering increment — 2026-10-23
+
+The product-completion mission authorizes necessary local dependencies. Actual
+browser screenshots showed raw TeX; add exact `katex@0.19.0`, transitive locked
+`commander@15.0.0`. All earlier locked versions remain unchanged. Node24.18.0
+satisfies commander's >=22.12.0 engine. Both packages are MIT:
+
+| Package/file | Installed SHA-256 |
+| --- | --- |
+| katex/LICENSE | `766ccc1f306c885aa45542a9846bbd0a505b27a0374f146778171c2254ce18e3` |
+| commander/LICENSE | `04512a63dce4d2d506ad612dc0bd7681ccf6e3655f7b6eaef7dfac8323d1ec0b` |
+| katex/dist/katex.mjs | `e5bc26598084ad869939ecaa262673814f26ed586312a409b5f8427c01e4f681` |
+
+Actual `npm install --save-exact --ignore-scripts katex@0.19.0` added two packages,
+audited26 with zero reported vulnerabilities. Separate `npm audit --json` also
+returned zero registry advisories at query time, not a security guarantee. Lockfile
+integrities pin both tarballs. Only the exact KaTeX ESM asset and its license have
+public allowlist entries; node_modules and CLI dependencies remain unavailable.
+No CDN, third-party runtime request, KaTeX fonts or install scripts are used.
+MathML output uses native browser rendering and fresh bounded parser settings.
+Missing/unsupported math preserves escaped text and the authored alternative.
+
+Configuration follows primary [KaTeX options](https://katex.org/docs/options) and
+[security guidance](https://katex.org/docs/security), fetched 2026-10-23:
+`trust:false`, `strict:error`, `maxSize:10`, `maxExpand:500`, independent macro maps,
+`throwOnError:true`, `output:mathml`. Parser errors are never inserted into HTML.
+Browser checks exercise script-like input, remote links/images, recursion and
+cross-block macro isolation. No full third-party security audit is implied.

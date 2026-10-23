@@ -1,5 +1,16 @@
 # Implementation roadmap
 
+Current execution focus, 2026-10-23: complete the local Track B presentation,
+then the authorized staff subset. Three independently timed persistent domain
+journeys and visible math/table/mobile repairs have automated evidence and
+independent engineering review. [Demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md)
+and [current verification](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md).
+Final clean-checkout reproduction is being refreshed. Existing-route staff metadata
+filters/pages are in progress; private preview/evidence requires the
+[staff contract decision](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
+Qualified content/rights/accessibility and production requirements remain separate.
+Historical proposed sequencing below is retained, not current gate status.
+
 Current owner disposition, 2026-10-21: **G2/G3 OWNER_ACCEPTED**.
 [Authority and remaining implementation/evidence limits](../decisions/G2_G3_OWNER_ACCEPTANCE_2026_10_21.md).
 Earlier unaccepted gate statements below describe historical checkpoints.
@@ -9,7 +20,7 @@ Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
 implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
 [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) is satisfied. Scoped owner record:
 [OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md#g1--owner-acceptance-and-bounded-track-b-execution-2026-10-19).
-G2/G3 and unresolved downstream decisions remain pending. Earlier pending-G1
+Unrelated downstream decisions remain pending; G2/G3 disposition above supersedes historical pending references. Earlier pending-G1
 statements below describe historical checkpoints, superseded by this disposition.
 
 

@@ -1,6 +1,7 @@
 import * as demoApi from "./api.js";
 import { createPersistentApi } from "./persistent-api.js";
 import { openStaffWorkspace } from "./staff.js";
+import { renderMath } from "./math.js";
 
 const app = document.querySelector("#app");
 const announcements = document.querySelector("#announcements");
@@ -47,6 +48,8 @@ function openStaff() {
 }
 
 const domainNames = { MATH: "Toán học", READING: "Đọc hiểu", SCIENCE: "Khoa học" };
+const attemptStateNames = { CREATED: "Đã giữ bài", IN_PROGRESS: "Đang làm", SUBMITTED: "Đã nộp", EXPIRED: "Hết giờ", GRADED: "Đã chấm", CANCELLED: "Đã hủy", INVALIDATED: "Không còn hợp lệ" };
+const gradingStateNames = { PENDING: "Đang chờ chấm", RUNNING: "Đang chấm", SUCCEEDED: "Đã chấm xong", FAILED_RETRYABLE: "Chấm chưa thành công; máy chủ sẽ thử lại", FAILED_FINAL: "Chưa thể chấm; cần người phụ trách kiểm tra" };
 const state = {
   catalog: [],
   identityGeneration: 0,
@@ -100,17 +103,18 @@ function renderContentBlocks(blocks = []) {
     if (block?.type === "text") {
       content.append(element("p", "content-text", block.text ?? ""));
     } else if (block?.type === "math") {
-      const math = element("div", `content-math${block.display ? " display" : ""}`);
-      if (block.accessibleText) math.append(element("span", "sr-only", block.accessibleText));
-      math.append(element("code", "math-tex", block.tex ?? ""));
-      content.append(math);
+      content.append(renderMath(block));
     } else if (block?.type === "table") {
       const table = element("table", "content-table");
       table.style.width = "100%";
       if (block.caption) table.append(element("caption", "", block.caption));
       const head = element("thead");
       const headerRow = element("tr");
-      for (const value of block.headers ?? []) headerRow.append(element("th", "", value));
+      for (const value of block.headers ?? []) {
+        const heading = element("th", "", value);
+        heading.scope = "col";
+        headerRow.append(heading);
+      }
       head.append(headerRow);
       const body = element("tbody");
       for (const row of block.rows ?? []) {
@@ -119,7 +123,12 @@ function renderContentBlocks(blocks = []) {
         body.append(tableRow);
       }
       table.append(head, body);
-      content.append(table);
+      const scroll = element("div", "content-table-scroll");
+      scroll.tabIndex = 0;
+      scroll.setAttribute("role", "region");
+      scroll.setAttribute("aria-label", block.caption || "Bảng dữ liệu câu hỏi");
+      scroll.append(table);
+      content.append(scroll);
     } else if (block?.type === "image") {
       const figure = element("figure", "content-image-placeholder");
       figure.append(element("p", "", block.alt ?? "Hình minh họa không khả dụng."));
@@ -384,7 +393,8 @@ function acceptAttempt(attempt) {
       } else {
         const status = app.querySelector("[data-testid='grading-status']");
         if (previousAttemptId === attempt.attemptId && previousState === attempt.state && status) {
-          status.textContent = `Trạng thái chấm: ${attempt.gradingStatus || "PENDING"}.`;
+          status.textContent = `Trạng thái chấm: ${gradingStateNames[attempt.gradingStatus] || gradingStateNames.PENDING}.`;
+          status.dataset.gradingStatus = attempt.gradingStatus || "PENDING";
         } else {
           renderPendingGrade();
         }
@@ -529,8 +539,9 @@ function renderPendingGrade() {
   card.append(title);
   card.append(element("p", "result-note", "Máy chủ đang xử lý bài đã gửi. Bạn có thể quay lại danh sách; trạng thái được lưu và có thể đọc lại sau."));
   if (state.resumeNotice) card.append(element("p", "notice-panel", state.resumeNotice));
-  const status = element("p", "notice-panel", `Trạng thái chấm: ${attempt.gradingStatus || "PENDING"}.`);
+  const status = element("p", "notice-panel", `Trạng thái chấm: ${gradingStateNames[attempt.gradingStatus] || gradingStateNames.PENDING}.`);
   status.dataset.testid = "grading-status";
+  status.dataset.gradingStatus = attempt.gradingStatus || "PENDING";
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
   card.append(status, actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
@@ -548,8 +559,9 @@ function renderFailedGrade() {
   title.tabIndex = -1;
   card.append(title);
   card.append(element("p", "result-note", "Chưa có kết quả nào được công bố. Bạn có thể đọc lại trạng thái từ máy chủ; không có thao tác thử chấm lại trong màn hình này."));
-  const status = element("p", "notice-panel", "Trạng thái chấm cuối: FAILED_FINAL.");
+  const status = element("p", "notice-panel", gradingStateNames.FAILED_FINAL + ".");
   status.dataset.testid = "grading-status";
+  status.dataset.gradingStatus = "FAILED_FINAL";
   status.setAttribute("role", "status");
   card.append(status, actionButton("Kiểm tra trạng thái", "grade-status-retry", () => refreshGradeStatus(state.attempt.attemptId, { finalCheck: true }), "button"));
   card.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
@@ -1013,7 +1025,7 @@ function renderCatalog() {
     const currentTitle = state.attempt.state === "GRADED" ? "Kết quả đã sẵn sàng" : ["SUBMITTED", "EXPIRED"].includes(state.attempt.state)
       ? "Bài đã gửi; trạng thái chấm được lưu" : "Bài đã lưu cho hồ sơ này";
     current.append(element("h2", "", currentTitle));
-    current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · trạng thái ${state.attempt.state}${state.attempt.gradingStatus ? ` · chấm ${state.attempt.gradingStatus}` : ""}`));
+    current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · ${attemptStateNames[state.attempt.state] || "Chưa đọc được trạng thái"}${state.attempt.gradingStatus ? ` · ${gradingStateNames[state.attempt.gradingStatus] || "Chưa đọc được trạng thái chấm"}` : ""}`));
     current.append(actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary"));
     fragment.append(panel, current);
   } else {
@@ -1035,7 +1047,7 @@ function renderCatalog() {
       const entries = element("div", "persistent-history-list");
       for (const record of state.history.slice(0, 10)) {
         const row = element("article", "persistent-history-item");
-        row.append(element("strong", "", `${domainNames[record.domain] || record.domain} · ${record.state}`));
+        row.append(element("strong", "", `${domainNames[record.domain] || record.domain} · ${attemptStateNames[record.state] || "Chưa đọc được trạng thái"}`));
         if (record.score && record.state === "GRADED") {
           row.append(element("span", "", `${record.score.correctCount}/${record.score.totalCount} · ${record.score.percentage}% · luyện tập không chính thức`));
         } else if (record.state === "SUBMITTED" || record.state === "EXPIRED") {

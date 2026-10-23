@@ -17,6 +17,16 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
+## WEB-002 private staff inspection — pending 2026-10-23
+
+**PROPOSED / HUMAN_APPROVAL_REQUIRED**:
+[staff read-contract decision packet](WEB_002_STAFF_READ_PROPOSAL.md).
+Existing metadata filtering/pagination uses current route/roles under the product
+mission. Private preview/evidence/eligibility/diagnostics need an explicit bounded
+contract/authorization choice. No approval or reviewer identity is inferred.
+This decision does not block student polish, reproducible demos or existing staff
+metadata improvements.
+
 ## Lightweight process
 
 Keep significant decisions here until size warrants individual `ADR-NNN-title.md` files in this directory. Each ADR records problem, alternatives, tradeoffs, choice, consequences, migration/rollback and status. Trivial internal naming does not require an ADR. Human approval must record approver, date, exact ADR revision/content scope, conditions and a durable reference or a faithfully recorded owner instruction. If the instruction originated in chat, copy its actionable approval wording into this record; do not depend on chat accessibility. An independent agent review is advice, never owner approval.

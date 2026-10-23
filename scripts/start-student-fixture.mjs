@@ -64,8 +64,16 @@ async function runWorker() {
   try {
     demo = await startStudentFixtureDemo();
     if (stopRequested) await stop();
-    else process.stdout.write(`${JSON.stringify({ event: 'ready', url: `${demo.origin}/?student=postgres`,
-      mode: 'DISPOSABLE_SYNTHETIC_ONLY', fixtureProfile: demo.fixtureProfile, note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
+    else {
+      const url = `${demo.origin}/?student=postgres`;
+      process.stdout.write(`${JSON.stringify({ event: 'ready', url,
+        mode: 'DISPOSABLE_SYNTHETIC_ONLY', fixtureProfile: demo.fixtureProfile, note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
+      process.stdout.write(`\nTSA Practice — local synthetic demonstration\nOpen: ${url}\nChoose synthetic candidate A explicitly; no password or personal data is needed.\n`);
+      if (demo.fixtureProfile === 'THREE_DOMAINS') {
+        process.stdout.write('Choose Mathematics (4), Reading (2), or Science (4). Each is independently timed and scored.\n');
+      }
+      process.stdout.write('Answer, wait for saved confirmation, reload, submit, then open the released review.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\nGuide: docs/guides/TRACK_B_SUPERVISOR_DEMO.md\n\n');
+    }
   } catch (error) {
     process.stderr.write(`${error.message}\n`); process.exitCode = 1;
     if (process.connected) process.disconnect();

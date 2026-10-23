@@ -4,6 +4,20 @@ An independent educational practice platform inspired by the publicly documented
 
 G1 is accepted; G2/G3 are owner accepted. Track B has verified local PostgreSQL Bank, allocation, student delivery and grading services, with an opt-in student client. The default prototype remains mock. Retained local student mode seeds no eligible inventory; lawful stock and qualified human review remain prerequisites for real publication. Production deployment is not authorized. See project state for executed evidence.
 
+## Demonstrate the PostgreSQL-backed student website
+
+Follow the [supervisor demo guide](docs/guides/TRACK_B_SUPERVISOR_DEMO.md) for a
+complete three-domain walkthrough, pinned prerequisites, startup and teardown.
+From an installed checkout:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:domains
+```
+
+This runs actual persistent attempt/save/grading services with isolated synthetic
+content and development authentication. Ctrl+C deletes this temporary database.
+It does not provide approved real content or production authentication.
+
 ## Start here
 
 - New contributors: [AGENTS.md](AGENTS.md), then [agent onboarding](docs/agents/AGENT_ONBOARDING.md).
