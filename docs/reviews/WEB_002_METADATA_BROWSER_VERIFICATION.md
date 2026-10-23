@@ -82,3 +82,23 @@ these controls were not added. Separate current backend evidence is not relabele
 as UI acceptance. Human rights/content review, lawful30-item inventory and
 production identity remain outstanding. Next is the owner-scoped private read
 contract decision; available metadata work does not grant that approval.
+
+## Final clean-checkout staff reproduction — f5fc1b1
+
+After local checkpoint `f5fc1b1`, the existing clean no-hardlink clone was fetched
+from the local repository and switched to that exact detached revision. Its
+already clean-installed lockfile/dependencies were unchanged. Actual commands:
+
+```sh
+git fetch --quiet origin feat/track-b-data-auth
+git switch --detach f5fc1b1
+npm run test:track-b:browser
+npm run docs:check
+git status --short
+```
+
+All exited0. Real PostgreSQL/Chromium staff journey PASS, including repaired
+return/reopen, cursor/filter and actual candidate403. Docs zero errors/one historical
+whitespace warning; final clone Git status empty. No fixture/database/source patches
+were made in the clone. This completes final integration of the authorized staff
+metadata subset; the private contract proposal remains unapproved.

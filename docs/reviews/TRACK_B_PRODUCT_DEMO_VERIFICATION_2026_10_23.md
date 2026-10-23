@@ -80,7 +80,7 @@ Missing-dependency fallback was structurally reviewed, not simulated by reviewer
 | Math/table/mobile status fixes | AUTOMATED_PASS / INDEPENDENTLY_REVIEWED |
 | Final TEST-002 HTTP extension | INDEPENDENTLY_REVIEWED; full TEST-002 remains IN_PROGRESS |
 | Clean-checkout final demo | AUTOMATED_PASS at `be4705d`; executed reproduction below |
-| Staff metadata subset | Implementation assigned separately; full review UI requires decision |
+| Staff metadata subset | AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; clean `f5fc1b1` reproduction in staff record; full review UI requires decision |
 | Qualified screen reader/native zoom/formal accessibility | MANUAL_CHECK_PENDING; no conformance assertion |
 | Real30-item inventory, rights and independent content review | HUMAN_APPROVAL_REQUIRED |
 | Private staff preview/evidence/diagnostics routes | HUMAN_APPROVAL_REQUIRED; [proposal](../decisions/WEB_002_STAFF_READ_PROPOSAL.md) |
@@ -123,4 +123,7 @@ explicit synthetic login, three persistent independent-domain journeys, confirme
 save/reload, submit/grade/released review, truthful errors, desktop/mobile browser
 checks, relevant tests and supervisor walkthrough. This is not full WEB-004,
 TEST-002, Technical MVP, real-content, accessibility or production acceptance.
-Staff work continues separately under the authorized metadata scope.
+Staff metadata work was subsequently completed/reviewed and cleanly reproduced at `f5fc1b1`; see [staff evidence](WEB_002_METADATA_BROWSER_VERIFICATION.md).
+
+Legacy mock browser regression: coordinator `npm run test:b0:browser` PASS after
+student changes, preserving the separately labelled default mock journey.

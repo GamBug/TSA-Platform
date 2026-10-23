@@ -232,7 +232,7 @@ current READY/BLOCKED/DEPENDENT classification; recommendations remain unapprove
 Stage 3 supplies local JS/declaration build and emitted-runtime smoke evidence.
 Existing schemas, source package exports and components-only OpenAPI are unchanged.
 The [historical G1 gap assessment](../agents/ORCHESTRATOR_HANDOFF.md#g1-acceptance-001-audit-actual-remaining-criteriagaps)
-still requires: FOUND-007 owner acceptance; exact content/hash/fingerprint rules;
+at that historical checkpoint required: FOUND-007 owner acceptance; exact content/hash/fingerprint rules;
 complete assembly/replay and publication-lock encoding; Factory stimulus/assets
 and source/rights transport; released-result wire alignment; accepted route/client
 contracts; strict independent consumer/private-boundary evidence; and recorded

@@ -756,7 +756,7 @@ filters,20-row cursor pages, exact version/hash and truthful status; no new rout
 or privileges. Separate actual Sol6.1/Medium found P2 return/reopen stale response,
 delegate repaired per-container lifetime guards and actual browser regression;
 final independent reproduction/staff browser PASS, no unresolved findings.
-Coordinator final staff browser PASS; delegate local15/contracts106/static PASS.
+Coordinator final staff browser PASS; clean `f5fc1b1` staff browser/docs PASS and clean Git status. Delegate local15/contracts106/static PASS.
 [Exact scope, finding and evidence](../reviews/WEB_002_METADATA_BROWSER_VERIFICATION.md).
 Writer reservations released; earlier IN_PROGRESS reservation below is historical.
 Full task remains BLOCKED for approved private inspection/evidence/diagnostics

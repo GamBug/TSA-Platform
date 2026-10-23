@@ -2,7 +2,7 @@
 
 2026-10-23, Asia/Bangkok. Accountable integrator: Codex root. Branch
 `feat/track-b-data-auth`; initial `b4a8097`, review closure `1d6bf4d`, student
-implementation `be4705d`. Current checkpoint is available in Git. Original owner
+implementation `be4705d`. Staff implementation checkpoint `f5fc1b1`; final documentation checkpoint is available in Git. Original owner
 AGENTS.md modification and untracked `docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md`
 remain untouched and excluded. No concurrent writer reservations remain.
 
@@ -39,8 +39,7 @@ Fresh no-hardlink clone `/tmp/tsa-product-clean-t5ui3tz8` at `be4705d`: actual
 `npm ci --ignore-scripts`, build, domains78, Firefox156, launcher7 and docs PASS;
 Git status clean, no manual DB changes. Bounded local student demo milestone is
 complete. Staff final browser passes by delegate, independent reviewer and root;
-delegate local15/contracts106/static PASS. Final staff clean-clone recheck is the
-next integration step if not yet appended to its evidence record.
+delegate local15/contracts106/static PASS. Clean clone switched to `f5fc1b1`: actual staff browser/docs PASS, final Git status empty; no patches or dependency changes. Legacy mock browser also PASS.
 
 Full Bank/assembly/foundation/recovery/attempt/grading/result suites were not
 rerun for frontend changes. Hosted CI/load/native zoom/qualified screen-reader
@@ -64,7 +63,7 @@ accessibility assessment; approved operational/load and production identity
 configuration. Track A remains outside the immediate priority. No production,
 content publication, push, remote merge, Astra or paid API was performed/authorized.
 
-After the final clean staff check, the highest-impact remaining product milestone
+Final clean staff integration is complete. The highest-impact remaining product milestone
 is private staff inspection/review, gated by the decision packet. Do not replace
 missing owner approval with extra backend tests. Historical handoffs remain in Git
 at `be4705d` and earlier; task evidence records/project state retain their links.
