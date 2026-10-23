@@ -1201,6 +1201,23 @@ publication and formal acceptance separately gated.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-23 grading-failure evidence **IMPLEMENTED / VERIFIED** from `6f7e980`:
+independent audit identified missing real HTTP/browser failed-grading evidence.
+Actual trusted worker retry/backoff/final-failure commands show truthful
+FAILED_RETRYABLE then final no-score UI; automatic polling stops, status check
+GET-only, reload stable, result409/foreign404, exact frozen inputs retained and
+zero score/items/releases/success audits. Synthetic error report, not actual
+fixture corruption or operator regrading. Chrome29responses/four screenshots,
+defaultbrowser/student34/grading23/results6/contracts106/consumer11/B031/build/
+typecheck/drift/import/docs PASS. Separate Sol6.1/Medium no P1/P2, syntax/whitespace
+and coordinator-report inspection only. [Audit, commands and remaining decisions](../reviews/STUDENT_ACCEPTANCE_EVIDENCE_AUDIT_2026_10_23.md).
+Sol accountable; reservations released, owner files preserved. No product/API/
+schema change. Operator retry lacks frozen route/capability decision; do not
+invent it. Next TEST-002 generated lifecycle/model sequence groundwork under
+existing contracts, distinct from human/operational acceptance. Recommended
+Sol6.1/High while Luna availability unverified after earlier limit, separate
+Sol6.1/Medium independent engineering review for resulting critical changes.
+
 2026-10-23 pre-start timing disclosure **IMPLEMENTED / VERIFIED** from `94b9c17`:
 actual baseline lacked required notice. Shared persistent notice before catalog/
 CREATED/details start explains offline/reload/no-grace and truthful uncertain-save

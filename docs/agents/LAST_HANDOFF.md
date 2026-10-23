@@ -1,3 +1,42 @@
+# Current handoff — grading-failure browser gap verified
+
+2026-10-23, `feat/track-b-data-auth`, base `6f7e980`; accountable Sol6.1.
+[Acceptance audit, actual commands, review and remaining decisions](../reviews/STUDENT_ACCEPTANCE_EVIDENCE_AUDIT_2026_10_23.md).
+Separate audit found real student failed-grading HTTP/browser evidence missing.
+New explicit fixture journey uses actual trusted worker failure commands, real
+retry delay/reclaim/higher fence, then synthetic invalid-input report without
+corrupting input. Student sees FAILED_RETRYABLE then terminal truthful no-score
+screen; no automatic regrade, 2.2sec observed no polls, one GET-only status check,
+fresh reload stable, result409/foreign404. Exact input/answer/history/clocks/digest
+retained, zero score/items/releases/success audits. Ordinary mode preserved.
+
+Actual Chrome15529 inspected responses/four screenshots; coordinator visually
+inspected terminal screen. Final defaultbrowser/student34/grading23/results6/
+contracts106/consumer11/B031/typecheck/build/emitted smoke/drift/import/docs PASS.
+No failing run of the new journey. Separate Sol6.1/Medium no P1/P2, independent
+syntax/whitespace and coordinator report inspection, no PG/browser execution.
+Bank/assembly/foundation/attempts/recovery/local/directory/Firefox not rerun for
+test-only work. Hosted CI/manual AT not executed; non-failing warnings remain.
+
+No product/schema/API/authorization change. Operator retry is a separate spec
+intent without frozen route/capability decision; status checking does not grant
+regrading. Lawful content/rights/human accessibility, operational targets and
+Track A remain outstanding. G1 accepted/G2/G3 OWNER_ACCEPTED; broad goal active,
+full EXAM/SCORE/WEB/OPS/pilot acceptance not claimed. Owner AGENTS/research preserved
+and unstaged; reservations released. No push/merge/deploy/Astra/paid API/live
+student inference/unauthorized publication or fabricated human evidence.
+
+Next concrete TEST-002 groundwork: reproducible generated legal/illegal student
+lifecycle sequences against actual PostgreSQL, independent expected-state model,
+privacy/integrity assertions and sanitized action seed/trace. Existing named
+scenarios do not prove that required generated-sequence layer. Reuse frozen
+services/roles and scoped fixtures; no new operator/publication authority or
+unapproved contract changes. Recommended Sol6.1/High (last Luna attempt usage-
+limited; availability not freshly verified), separate Sol6.1/Medium engineering
+review. Manual accessibility reviewer/platform remains a separate human input.
+
+---
+
 # Current handoff — populated017→018 migration verified
 
 2026-10-23, `feat/track-b-data-auth`, base `baa8952`; accountable Sol6.1.
