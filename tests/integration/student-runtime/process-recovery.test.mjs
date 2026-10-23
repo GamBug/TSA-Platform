@@ -41,7 +41,7 @@ async function launch(f, children, { mode, port = 0, executorId }) {
     identity: { ...config, user: 'auth_runtime' }, exam: { ...config, user: 'exam_runtime' }, worker: { ...config, user: 'crash_worker' } });
   const ready = await instance.wait('ready');
   assert.equal(ready.pid, child.pid); assert.notEqual(ready.pid, globalThis.process.pid);
-  return { ...instance, ...ready };
+  return Object.assign(instance, ready);
 }
 async function kill(p) {
   assert.equal(p.child.kill('SIGKILL'), true);
@@ -178,6 +178,64 @@ for (const mode of ['QUEUED', 'RUNNING', 'COMMITTED']) test(`real app/worker SIG
   await assertDatabaseUnchanged(f, postmaster);
   third.child.send({ type: 'stop' }); const [code, signal] = await third.closed; assert.equal(code, 0); assert.equal(signal, null);
   for (const child of children) { assert.equal(child.stdout, ''); assert.equal(child.stderr, ''); }
+});
+
+test('live student process survives real idle backend disconnects and reconnects without losing acknowledged answers', { timeout: 25_000 }, async (t) => {
+  const f = await createSharedReadingFixture(), children = [];
+  t.after(async () => { for (const child of children) await dispose(child); await f.close(); });
+  await f.pool.query('CREATE ROLE crash_worker LOGIN');
+  await f.pool.query('GRANT tsa_exam_worker TO crash_worker');
+  const postmaster = (await f.pool.query('SELECT pg_postmaster_start_time()::text AS value')).rows[0].value;
+  const live = await launch(f, children, { mode: 'NORMAL', executorId: 'idle-disconnect-worker' });
+  const client = transport(live.origin), api = client.api();
+  await api.loginCandidate('studentA');
+  const { attempt } = await api.startDemo('READING', f.blueprint.versionId);
+  for (const [index, slot] of attempt.slots.entries()) await api.saveAnswer(attempt.attemptId, slot.slotId, { optionId: f.expectedOptions[index] });
+  const acknowledged = await frozen(f, attempt.attemptId);
+  assert.equal(acknowledged.answers.length, 2);
+  // The test-only application names select this child, never the parent fixture pools.
+  const targets = (await f.pool.query(`SELECT pid,application_name,state FROM pg_stat_activity
+    WHERE application_name IN ('student-process-identity','student-process-exam','student-process-worker') ORDER BY application_name,pid`)).rows;
+  for (const name of ['student-process-identity', 'student-process-exam']) {
+    assert.ok(targets.some((row) => row.application_name === name && row.state === 'idle'), `${name} has an actual idle connection`);
+  }
+  assert.ok(targets.some((row) => row.application_name === 'student-process-worker'));
+  const terminated = (await f.pool.query('SELECT pg_terminate_backend(pid) AS terminated FROM unnest($1::int[]) AS target(pid)', [targets.map((row) => row.pid)])).rows;
+  assert.ok(terminated.length >= 3); assert.ok(terminated.every((row) => row.terminated));
+  // Round-trip IPC proves this same process remains live after handling disconnects.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  if (live.child.exitCode !== null) t.diagnostic(`disconnect failure classification: ${live.stderr.includes("Emitted 'error' event on Client instance") ? 'unhandled checked-out client error' : live.stderr.includes("Unhandled 'error' event") ? 'unhandled error event' : 'unclassified child exit'}`);
+  assert.equal(live.child.exitCode, null, 'idle backend errors must not terminate the live student process');
+  assert.equal(live.child.signalCode, null);
+  live.child.send({ type: 'ping' });
+  assert.equal((await live.wait('pong')).pid, live.pid);
+  const resumed = (await api.readAttempt(attempt.attemptId)).attempt;
+  assert.equal(resumed.answeredCount, 2); assert.equal(resumed.state, 'IN_PROGRESS');
+  assert.equal(resumed.startedAt, attempt.startedAt); assert.equal(resumed.deadlineAt, attempt.deadlineAt);
+  assert.deepEqual(await frozen(f, attempt.attemptId), acknowledged);
+  await api.saveAnswer(attempt.attemptId, attempt.slots[0].slotId, { optionId: f.expectedOptions[0] });
+  const beforeSubmit = await frozen(f, attempt.attemptId), submitKey = randomUUID();
+  const submitted = await client.submit(attempt.attemptId, submitKey); assert.equal(submitted.status, 200);
+  const receipt = await submitted.json();
+  let result; const until = Date.now() + 5_000;
+  do {
+    result = (await api.readAttempt(attempt.attemptId)).attempt;
+    if (result.state === 'GRADED') break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  } while (Date.now() < until);
+  assert.equal(result.state, 'GRADED'); assert.equal(result.result.percentage, '100.00');
+  const replay = await client.submit(attempt.attemptId, submitKey);
+  assert.equal(replay.status, 200); assert.deepEqual(await replay.json(), receipt);
+  assert.deepEqual(await frozen(f, attempt.attemptId), beforeSubmit);
+  const totals = (await f.pool.query(`SELECT (SELECT count(*)::int FROM tsa.attempts) AS attempts,
+    (SELECT count(*)::int FROM tsa.student_question_history) AS history,(SELECT count(*)::int FROM tsa.jobs) AS jobs,
+    (SELECT count(*)::int FROM tsa.score_runs) AS scores,(SELECT count(*)::int FROM tsa.result_releases) AS releases,
+    (SELECT count(*)::int FROM tsa.audit_events WHERE action='ATTEMPT_GRADED') AS grade_audits`)).rows[0];
+  assert.deepEqual(totals, { attempts: 1, history: 2, jobs: 1, scores: 1, releases: 1, grade_audits: 1 });
+  await assertDatabaseUnchanged(f, postmaster);
+  live.child.send({ type: 'stop' }); const [code, signal] = await live.closed;
+  assert.equal(code, 0); assert.equal(signal, null);
+  assert.equal(live.stdout, ''); assert.equal(live.stderr, '');
 });
 
 function assertRestrictedResponse(body, f, immutable) {

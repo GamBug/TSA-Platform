@@ -8,13 +8,23 @@ export function createDatabasePool(connectionConfig, options = {}) {
   if (typeof connectionConfig !== 'string' && (connectionConfig === null || typeof connectionConfig !== 'object')) {
     throw new TypeError('A PostgreSQL connection string or configuration object is required');
   }
-  return new Pool({
+  const pool = new Pool({
     ...(typeof connectionConfig === 'string' ? { connectionString: connectionConfig } : connectionConfig),
     max: options.max ?? 4,
     idleTimeoutMillis: options.idleTimeoutMillis ?? 5_000,
     connectionTimeoutMillis: options.connectionTimeoutMillis ?? 5_000,
     application_name: options.applicationName ?? 'tsa-database',
   });
+  // pg removes a failed idle client before emitting this event. Keep that
+  // background disconnect from becoming an uncaught process error. Query and
+  // transaction failures still reject normally; never retry uncertain writes.
+  // Do not log the error/client here: they may contain private connection data.
+  pool.on('error', () => {});
+  // A checked-out client can disconnect between transaction queries too. pg
+  // marks it non-queryable and rejects pending/future queries before emitting
+  // this event. COMMIT must still fail; this listener only prevents a fatal event.
+  pool.on('connect', (client) => client.on('error', () => {}));
+  return pool;
 }
 
 /** Execute a parameterized query. Callers must provide values separately. */

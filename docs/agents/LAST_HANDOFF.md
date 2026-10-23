@@ -1,3 +1,42 @@
+# Current handoff — live backend disconnect defect repaired
+
+2026-10-23, `feat/track-b-data-auth`, base `3d05769`; accountable Sol6.1.
+[Defect, actual commands, review and boundaries](../reviews/EXAM_DATABASE_CONNECTION_RECOVERY_VERIFICATION.md).
+Actual backend termination killed student childexit1. Pool-only fix passed focused
+but failed full student32pass/1fail. Corrected live stderr getter established
+unhandled checked-out client error. Final shared pool/client listeners prevent
+fatal background events while broken clients remain non-queryable; no successful
+failed-COMMIT result or automatic uncertain-write retry. No raw error/client logs.
+No frozen contract/schema/authorization/publication/scoring change.
+
+Actual held-transaction termination fails COMMIT/callbackonce/zero partial writes;
+fresh connection works. Same live OS student PID survives session termination,
+retains acknowledged reading answers and exact clocks/immutable graph, saves,
+submits and grades100% once with exact replay. Postmaster/scope unchanged.
+Final focused1+1/foundation36/student33/local15/auth5/Bank94/assembly49/attempt28/
+grading23/recovery16/results6/contracts106/consumers11/B031/scoring5/typecheck/
+build/emitted smoke/drift/import/docs PASS, zero failures/cancellations/skips.
+Earlier failed runs remain recorded. Separate Sol6.1/Medium final no P1/P2;
+independent four-file syntax/whitespace, no independent PG run. Browser/directory/
+hosted CI/manual accessibility not rerun. Existing non-failing warnings remain.
+
+Reservations released; owner AGENTS/research hashes unchanged and unstaged. Broad
+goal active, G1 accepted/G2/G3 OWNER_ACCEPTED. Lawful question-specific inventory,
+qualified human rights/content/accessibility review, operational targets and
+Track A remain separate. No push/merge/deploy/Astra/paid APIs/live inference or
+unauthorized publication. This is session loss with PostgreSQL running, not a
+whole-database outage or production recovery/acceptance guarantee.
+
+Next concrete EXAM-002/OPS-001 task: bounded actual postmaster downtime while HTTP
+and poller remain live. Assert safe frozen503 errors while stopped, acknowledged
+inputs/clocks retained, same-process reconnection and one normal grade afterward;
+never renew old fixture publication scope. Reuse existing isolated helper and
+child runtime; no new public contract or production supervision feature. Recommended
+Sol6.1/High while Luna is usage-limited, separate Sol6.1/Medium read-only review.
+Qualified manual accessibility reviewer/platform remains a pending human input.
+
+---
+
 # Current handoff — immediate PostgreSQL recovery verified
 
 2026-10-23, `feat/track-b-data-auth`, base `c74cc6d`; accountable Sol6.1.

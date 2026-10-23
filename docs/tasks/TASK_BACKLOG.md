@@ -768,6 +768,21 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 
 ## OPS-001 — Deployment and data-policy readiness
 
+2026-10-23 live backend connection loss **IMPLEMENTED / VERIFIED** from `3d05769`:
+actual childexit1 reproduced; pool-only fix insufficient (student32pass/1fail),
+corrected live stderr proves checked-out client error. Minimal pool/client event
+handlers prevent fatal disconnects while SQL/COMMIT still fail, with no retries.
+Real held-transaction termination rolls back; same student PID reconnects, retains
+exact acknowledged inputs/clocks, saves/submits/grades once. Live output-getter
+evidence bug repaired. Final focused1+1/foundation36/student33/local15/auth5/Bank94/
+assembly49/attempt28/grading23/recovery16/results6/contracts106/consumer11/B031/
+scoring5/build/typecheck/drift/import/docs PASS. Separate Sol6.1/Medium no P1/P2,
+independent syntax/whitespace only. [Commands and limits](../reviews/EXAM_DATABASE_CONNECTION_RECOVERY_VERIFICATION.md).
+Sol accountable, reservations released, owner files preserved. Backend session
+loss, not full DB outage/production acceptance. Next live bounded postmaster
+downtime with safe503/same-process HTTP and poller recovery. Recommended Sol6.1/
+High while Luna is usage-limited; separate Sol6.1/Medium engineering review.
+
 2026-10-23 abrupt PG recovery **IMPLEMENTED / VERIFIED** from `c74cc6d`:
 owned immediate SIGQUIT/restart with actual interruption/redo markers, durability
 settings on; confirmed commit retained and separate open transaction rolled back.

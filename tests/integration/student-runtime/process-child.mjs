@@ -12,7 +12,9 @@ process.on('disconnect', () => process.exit(0));
 process.once('message', async (boot) => {
   try {
     if (boot.type !== 'boot' || !['QUEUED', 'RUNNING', 'COMMITTED', 'NORMAL'].includes(boot.mode)) throw new Error('Invalid test boot');
-    const identityPool = createDatabasePool(boot.identity), examPool = createDatabasePool(boot.exam), workerPool = createDatabasePool(boot.worker);
+    const identityPool = createDatabasePool(boot.identity, { applicationName: 'student-process-identity' }),
+      examPool = createDatabasePool(boot.exam, { applicationName: 'student-process-exam' }),
+      workerPool = createDatabasePool(boot.worker, { applicationName: 'student-process-worker' });
     pools = [identityPool, examPool, workerPool];
     // Delays real SQL only at existing transaction boundaries; never mocks database results.
     const pausedPool = { async connect() {
@@ -45,6 +47,7 @@ process.once('message', async (boot) => {
       createRate: rate, saveRate: { user: rate, attempt: rate } });
     send({ type: 'ready', origin: runtime.origin, port: runtime.port, pid: process.pid });
     if (boot.mode === 'NORMAL') process.on('message', async (message) => {
+      if (message.type === 'ping' && !stopping) { send({ type: 'pong', pid: process.pid }); return; }
       if (message.type !== 'stop' || stopping) return;
       stopping = true;
       try {
