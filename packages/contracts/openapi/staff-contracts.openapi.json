@@ -1725,6 +1725,185 @@
         ],
         "type": "object"
       },
+      "StaffReviewHistory": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER"
+            ],
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "enum": [
+              20
+            ],
+            "type": "number"
+          },
+          "observedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "publicationEligibility": {
+            "enum": [
+              "NOT_EVALUATED"
+            ],
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "NOT_ATTESTED_BY_PLATFORM"
+            ],
+            "type": "string"
+          },
+          "reviews": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "APPROVE",
+                    "REJECT"
+                  ],
+                  "type": "string"
+                },
+                "reason": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "recordedAt": {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                  "type": "string"
+                },
+                "reviewId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "rubric": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "correctness": {
+                      "type": "boolean"
+                    },
+                    "explanation": {
+                      "type": "boolean"
+                    },
+                    "language": {
+                      "type": "boolean"
+                    },
+                    "relevant": {
+                      "type": "boolean"
+                    },
+                    "rights": {
+                      "type": "boolean"
+                    },
+                    "unambiguous": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "correctness",
+                    "unambiguous",
+                    "relevant",
+                    "language",
+                    "explanation",
+                    "rights"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "reviewId",
+                "recordedAt",
+                "decision",
+                "rubric",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-review-history/1"
+            ],
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "version": {
+            "additionalProperties": false,
+            "properties": {
+              "contentHash": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "versionId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "workflowRevision": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "versionId",
+              "contentHash",
+              "workflowRevision"
+            ],
+            "type": "object"
+          },
+          "workflowState": {
+            "enum": [
+              "DRAFT",
+              "IN_REVIEW",
+              "APPROVED",
+              "REJECTED",
+              "QUARANTINED",
+              "RETIRED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "observedAt",
+          "version",
+          "workflowState",
+          "qualification",
+          "publicationEligibility",
+          "limit",
+          "truncated",
+          "reviews"
+        ],
+        "type": "object"
+      },
+      "StaffReviewHistoryPathParams": {
+        "additionalProperties": false,
+        "properties": {
+          "versionId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versionId"
+        ],
+        "type": "object"
+      },
       "StaffSubmitReviewConcurrentModificationResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2840,7 +3019,7 @@
     }
   },
   "info": {
-    "description": "Private staff inspection, evidence, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+    "description": "Private staff inspection, evidence, recorded review history, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     "title": "TSA Platform private staff API contracts",
     "version": "staff-contracts/1"
   },
@@ -3918,6 +4097,308 @@
           }
         },
         "summary": "Read current recorded rights evidence for an exact question version"
+      }
+    },
+    "/api/v1/question-versions/{versionId}/review-history": {
+      "get": {
+        "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. This operation accepts no query, request body, or request headers. The response is a bounded historical projection; it does not attest current eligibility, rights, or reviewer qualification.",
+        "operationId": "staffReviewHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffReviewHistory"
+                }
+              }
+            },
+            "description": "Bounded recorded review history for one exact question version",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks the BANK_MANAGER history-read basis",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "Version is missing or malformed",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected query or request body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored history projection is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read bounded recorded review history"
       }
     },
     "/api/v1/question-versions/{versionId}/reviews": {

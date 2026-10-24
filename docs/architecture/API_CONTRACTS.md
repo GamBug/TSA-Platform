@@ -72,6 +72,17 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Delegated B5.1 recorded-history addendum — 2026-10-24
+
+[Exact additive decision/impact/policy](../decisions/WEB_002_B5_REVIEW_HISTORY_DECISION.md)
+adds private opt-in GET `/question-versions/{versionId}/review-history`, current
+BANK_MANAGER plus bank.diagnostics.read only. Latest20 decisions in a read-only
+snapshot, current workflow and qualification/eligibility separate. No added
+structured question secrets/actor identities; arbitrary stored reason is explicitly
+verbatim untrusted private text and may contain pasted sensitive material. No
+redaction promise. No B1–B4/student/root/released change or new grant/migration/
+approval command. [Executed evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+
 ### Delegated B4.1 negative-disposition addendum — 2026-10-24
 
 [Recorded authority](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24)

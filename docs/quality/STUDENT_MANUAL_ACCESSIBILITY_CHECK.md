@@ -107,3 +107,11 @@ warning association, scrolling confirmation, focus restoration and Cancel/Escape
 cleanup. Check REJECT receipt versus unavailable current state, manager quarantine
 impact disclosure and same-key uncertain retry with keyboard/qualified AT/native
 zoom. Automated Chrome375/Firefox actual500 evidence is not formal acceptance.
+
+## Separate B5 manager history — MANUAL_CHECK_PENDING
+
+Verify explicit action/focus, empty/latest20/truncation messaging, exact current
+observation versus historical decisions, six rubric fields and inert wrapped
+verbatim reasons. Close/Escape/return/logout must remove private history. Check
+with qualified AT/native zoom; automated375px Chrome/actual500px Firefox evidence
+does not establish formal accessibility acceptance.

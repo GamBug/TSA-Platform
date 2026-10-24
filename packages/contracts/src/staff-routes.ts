@@ -4,6 +4,7 @@ import type { RouteDefinitionValue } from "./routes.ts";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffReviewHistorySchema,
   StaffQuarantineRequestSchema,
   StaffQuarantineResponseSchema,
   StaffRejectReviewRequestSchema,
@@ -31,6 +32,10 @@ export const StaffRejectReviewPathParamsSchema = z
   .strict();
 
 export const StaffQuarantinePathParamsSchema = z
+  .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffReviewHistoryPathParamsSchema = z
   .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
   .strict();
 
@@ -191,6 +196,21 @@ export const staffRouteRegistry = {
       404: json(StaffNotFoundResponseSchema, "Version is missing, malformed, or outside the current staff scope"),
       422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
       503: json(StaffTemporarilyUnavailableResponseSchema, "Stored evidence projection or dependency closure is unavailable"),
+    },
+  },
+  staffReviewHistory: {
+    method: "GET",
+    path: "/api/v1/question-versions/{versionId}/review-history",
+    summary: "Read bounded recorded review history",
+    description: "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. This operation accepts no query, request body, or request headers. The response is a bounded historical projection; it does not attest current eligibility, rights, or reviewer qualification.",
+    params: StaffReviewHistoryPathParamsSchema,
+    responses: {
+      200: json(StaffReviewHistorySchema, "Bounded recorded review history for one exact question version"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks the BANK_MANAGER history-read basis"),
+      404: json(StaffNotFoundResponseSchema, "Version is missing or malformed"),
+      422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored history projection is unavailable"),
     },
   },
   staffSubmitReview: {

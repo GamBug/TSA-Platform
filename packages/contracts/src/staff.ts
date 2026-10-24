@@ -16,6 +16,9 @@ const Instant = z.string().refine(
   (value) => /(?:Z|[+-]\d{2}:\d{2})$/.test(value) && !Number.isNaN(Date.parse(value)),
   "Expected an RFC3339 timestamp with an offset",
 );
+const UTCDateTime = z.iso
+  .datetime({ precision: 6 })
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/);
 const PositiveSafeInteger = z.number().int().positive().refine(Number.isSafeInteger, "Expected a positive safe integer");
 const BlocksSchema = StudentQuestionSchema.shape.content;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
@@ -424,3 +427,75 @@ export const StaffQuarantineResponseSchema = z
 
 export type StaffQuarantineRequest = z.infer<typeof StaffQuarantineRequestSchema>;
 export type StaffQuarantineResponse = z.infer<typeof StaffQuarantineResponseSchema>;
+
+const StaffReviewHistoryEntrySchema = z
+  .object({
+    reviewId: UUID,
+    recordedAt: UTCDateTime,
+    decision: z.enum(["APPROVE", "REJECT"]),
+    rubric: StaffRejectReviewRubricSchema,
+    reason: NonBlankReason,
+  })
+  .strict();
+
+/** Strict private projection of bounded immutable review decisions for one version. */
+export const StaffReviewHistorySchema = z
+  .object({
+    schemaVersion: z.literal("staff-review-history/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("BANK_MANAGER"),
+    observedAt: UTCDateTime,
+    version: z
+      .object({
+        versionId: UUID,
+        contentHash: Hash,
+        workflowRevision: PositiveSafeRevision,
+      })
+      .strict(),
+    workflowState: WorkflowStateSchema,
+    qualification: z.literal("NOT_ATTESTED_BY_PLATFORM"),
+    publicationEligibility: z.literal("NOT_EVALUATED"),
+    limit: z.literal(20),
+    truncated: z.boolean(),
+    reviews: z.array(StaffReviewHistoryEntrySchema).max(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seenReviewIds = new Set<string>();
+    value.reviews.forEach((review, index) => {
+      if (seenReviewIds.has(review.reviewId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["reviews", index, "reviewId"],
+          message: "Review IDs must be unique",
+        });
+      }
+      seenReviewIds.add(review.reviewId);
+
+      if (index === 0) return;
+      const previous = value.reviews[index - 1]!;
+      if (previous.recordedAt < review.recordedAt ||
+          previous.recordedAt === review.recordedAt && previous.reviewId <= review.reviewId) {
+        context.addIssue({
+          code: "custom",
+          path: ["reviews", index],
+          message: "Reviews must be ordered newest first by timestamp and review ID",
+        });
+      }
+    });
+
+    if (value.truncated && value.reviews.length !== 20) {
+      context.addIssue({
+        code: "custom",
+        path: ["reviews"],
+        message: "Truncated history must contain the full twenty-row limit",
+      });
+    }
+
+    const serialized = JSON.stringify(value);
+    if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > MAX_RESPONSE_BYTES) {
+      context.addIssue({ code: "custom", message: "Staff review history must not exceed 1 MiB serialized" });
+    }
+  });
+
+export type StaffReviewHistory = z.infer<typeof StaffReviewHistorySchema>;

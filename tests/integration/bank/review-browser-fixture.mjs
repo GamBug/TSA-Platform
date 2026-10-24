@@ -85,7 +85,7 @@ export async function createReviewBrowserFixture() {
     const identity = await createLocalSyntheticIdentityService(fixture.harness.authPool, { env });
     handlers = { identity,
       auth: await createLocalAuthHandler({ pool: fixture.harness.authPool, env }),
-      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true }),
+      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true }),
     };
     return { origin, questions, close, fixture, identity, template, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
   } catch (error) {

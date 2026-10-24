@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffReviewHistorySchema,
   StaffQuarantineRequestSchema,
   StaffQuarantineResponseSchema,
   StaffRejectReviewRequestSchema,
@@ -32,6 +33,29 @@ assert.equal(
 );
 
 console.log("Compiled private staff evidence DTO smoke test passed.");
+
+const history = {
+  schemaVersion: "staff-review-history/1",
+  environment: "LOCAL_SYNTHETIC_ONLY",
+  accessBasis: "BANK_MANAGER",
+  observedAt: "2026-10-24T12:34:56.123456Z",
+  version: {
+    versionId: submitVersionId,
+    contentHash: `sha256:${"a".repeat(64)}`,
+    workflowRevision: 3,
+  },
+  workflowState: "REJECTED",
+  qualification: "NOT_ATTESTED_BY_PLATFORM",
+  publicationEligibility: "NOT_EVALUATED",
+  limit: 20,
+  truncated: false,
+  reviews: [],
+};
+assert.equal(StaffReviewHistorySchema.safeParse(history).success, true);
+assert.equal(StaffReviewHistorySchema.safeParse({ ...history, accessBasis: "REVIEW_QUEUE" }).success, false);
+assert.equal(StaffReviewHistorySchema.safeParse({ ...history, truncated: true }).success, false);
+
+console.log("Compiled private staff review-history DTO smoke test passed.");
 
 assert.equal(StaffSubmitReviewRequestSchema.safeParse({ expectedRevision: 1 }).success, true);
 assert.equal(StaffSubmitReviewRequestSchema.safeParse({ expectedRevision: 1, actorId: submitVersionId }).success, false);

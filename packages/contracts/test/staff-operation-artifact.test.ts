@@ -37,7 +37,7 @@ type StaffDocument = {
 };
 
 describe("dedicated private staff artifacts", () => {
-  it("describes exact private B1/B2/B3/B4 routes while leaving the student registry separate", async () => {
+  it("describes exact private B1/B2/B3/B4/B5 routes while leaving the student registry separate", async () => {
     const artifact = staffStableJson(generateStaffContractsOpenApi());
     assert.equal(artifact, staffStableJson(generateStaffContractsOpenApi()));
     const document = JSON.parse(artifact) as StaffDocument;
@@ -46,6 +46,7 @@ describe("dedicated private staff artifacts", () => {
       "/api/v1/question-versions/{versionId}/quarantine",
       "/api/v1/question-versions/{versionId}/review-context",
       "/api/v1/question-versions/{versionId}/review-evidence",
+      "/api/v1/question-versions/{versionId}/review-history",
       "/api/v1/question-versions/{versionId}/reviews",
       "/api/v1/question-versions/{versionId}/submit-review",
     ]);
@@ -120,6 +121,36 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(responseRevision?.minimum, 1);
     assert.equal(responseRevision?.maximum, Number.MAX_SAFE_INTEGER);
 
+    const historyPath = document.paths?.["/api/v1/question-versions/{versionId}/review-history"];
+    assert.deepEqual(Object.keys(historyPath ?? {}), ["get"]);
+    const history = historyPath?.get;
+    assert.equal(history?.operationId, "staffReviewHistory");
+    assert.match(history?.description ?? "", /BANK_MANAGER/);
+    assert.match(history?.description ?? "", /bank\.diagnostics\.read/);
+    assert.deepEqual(history?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "versionId", in: "path", required: true },
+    ]);
+    assert.equal(history?.requestBody, undefined);
+    assert.deepEqual(Object.keys(history?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.ok(history?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(history?.responses?.["200"]?.headers ?? {}).sort(), [
+      "Cache-Control",
+      "Vary",
+      "X-Content-Type-Options",
+      "X-Request-Id",
+    ]);
+    assert.ok(document.components?.schemas?.StaffReviewHistory);
+    assert.ok(document.components?.schemas?.StaffReviewHistoryPathParams);
+    const historySchema = document.components?.schemas?.StaffReviewHistory as {
+      properties?: Record<string, {
+        pattern?: string;
+        items?: { properties?: Record<string, { pattern?: string }> };
+      }>;
+    };
+    const canonicalUtcPattern = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$";
+    assert.equal(historySchema?.properties?.observedAt?.pattern, canonicalUtcPattern);
+    assert.equal(historySchema?.properties?.reviews?.items?.properties?.recordedAt?.pattern, canonicalUtcPattern);
+
     const rejectPath = document.paths?.["/api/v1/question-versions/{versionId}/reviews"];
     assert.deepEqual(Object.keys(rejectPath ?? {}), ["post"]);
     const reject = rejectPath?.post;
@@ -165,6 +196,8 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(student.components?.schemas?.StaffReviewContext, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/review-evidence"], undefined);
     assert.equal(student.components?.schemas?.StaffReviewEvidence, undefined);
+    assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/review-history"], undefined);
+    assert.equal(student.components?.schemas?.StaffReviewHistory, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/submit-review"], undefined);
     assert.equal(student.components?.schemas?.StaffSubmitReviewRequest, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/reviews"], undefined);

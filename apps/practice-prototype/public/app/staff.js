@@ -40,6 +40,7 @@ const QUESTION_SECTIONS = Object.freeze([
 
 const STATE_LABELS = Object.freeze(Object.fromEntries(QUESTION_STATES.filter(([value]) => value)));
 const ACTIVE_WORKSPACE_GENERATIONS = new WeakMap();
+const ACTIVE_PRIVATE_VIEW_CLEARERS = new WeakMap();
 const DISPOSITION_REASON_PREFIX = 'Local synthetic disposition: ';
 const DISPOSITION_REASON_MAX_LENGTH = 4096 - DISPOSITION_REASON_PREFIX.length;
 const DISPOSITION_RUBRIC = Object.freeze([
@@ -50,6 +51,83 @@ const DISPOSITION_RUBRIC = Object.freeze([
   ['explanation', 'Lời giải'],
   ['rights', 'Quyền sử dụng'],
 ]);
+const REVIEW_HISTORY_RUBRIC = Object.freeze([
+  ['correctness', 'Độ chính xác'],
+  ['unambiguous', 'Rõ nghĩa'],
+  ['relevant', 'Mức độ phù hợp'],
+  ['language', 'Ngôn ngữ'],
+  ['explanation', 'Lời giải'],
+  ['rights', 'Quyền sử dụng'],
+]);
+const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/i;
+const REVIEW_HISTORY_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'version',
+  'workflowState', 'qualification', 'publicationEligibility', 'limit', 'truncated', 'reviews',
+]);
+
+function hasExactKeys(value, keys) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).length === keys.length
+    && keys.every((key) => Object.hasOwn(value, key));
+}
+
+function utcInstantMicros(value) {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?Z$/.exec(value);
+  if (!match) return null;
+  const milliseconds = Date.parse(`${match[1]}Z`);
+  if (!Number.isFinite(milliseconds)) return null;
+  const date = new Date(milliseconds);
+  const [year, month, day] = match[1].slice(0, 10).split('-').map(Number);
+  const [hour, minute, second] = match[1].slice(11).split(':').map(Number);
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() + 1 !== month
+    || date.getUTCDate() !== day || date.getUTCHours() !== hour
+    || date.getUTCMinutes() !== minute || date.getUTCSeconds() !== second) return null;
+  return BigInt(milliseconds) * 1000n + BigInt((match[2] ?? '').padEnd(6, '0'));
+}
+
+function reviewHistorySupportsResponse(history, versionId, contentHash) {
+  if (!hasExactKeys(history, REVIEW_HISTORY_KEYS)
+    || history.schemaVersion !== 'staff-review-history/1'
+    || history.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || history.accessBasis !== 'BANK_MANAGER'
+    || utcInstantMicros(history.observedAt) === null
+    || !hasExactKeys(history.version, ['versionId', 'contentHash', 'workflowRevision'])
+    || history.version.versionId !== versionId
+    || !UUID_PATTERN.test(history.version.versionId)
+    || history.version.contentHash !== contentHash
+    || !HASH_PATTERN.test(history.version.contentHash)
+    || !Number.isSafeInteger(history.version.workflowRevision) || history.version.workflowRevision < 1
+    || !Object.hasOwn(STATE_LABELS, history.workflowState)
+    || history.qualification !== 'NOT_ATTESTED_BY_PLATFORM'
+    || history.publicationEligibility !== 'NOT_EVALUATED'
+    || history.limit !== 20 || typeof history.truncated !== 'boolean'
+    || !Array.isArray(history.reviews) || history.reviews.length > 20
+    || (history.truncated && history.reviews.length !== 20)) return false;
+
+  const reviewIds = new Set();
+  let previousTimestamp = null;
+  let previousId = '';
+  return history.reviews.every((review) => {
+    const normalizedReviewId = typeof review?.reviewId === 'string' ? review.reviewId.toLowerCase() : '';
+    if (!hasExactKeys(review, ['reviewId', 'recordedAt', 'decision', 'rubric', 'reason'])
+      || typeof review.reviewId !== 'string' || !UUID_PATTERN.test(review.reviewId)
+      || reviewIds.has(normalizedReviewId)
+      || !['APPROVE', 'REJECT'].includes(review.decision)
+      || !hasExactKeys(review.rubric, REVIEW_HISTORY_RUBRIC.map(([key]) => key))
+      || !REVIEW_HISTORY_RUBRIC.every(([key]) => typeof review.rubric[key] === 'boolean')
+      || typeof review.reason !== 'string' || !review.reason.trim() || review.reason.length > 4096) return false;
+    const timestamp = utcInstantMicros(review.recordedAt);
+    if (timestamp === null || (previousTimestamp !== null
+      && (previousTimestamp < timestamp
+        || (previousTimestamp === timestamp && previousId < normalizedReviewId)))) return false;
+    reviewIds.add(normalizedReviewId);
+    previousTimestamp = timestamp;
+    previousId = normalizedReviewId;
+    return true;
+  });
+}
 
 function node(tag, className, text) {
   const element = document.createElement(tag);
@@ -308,6 +386,70 @@ function renderReviewEvidence(evidence) {
   return content;
 }
 
+function renderReviewHistory(history) {
+  const content = node('div', 'staff-review-history-content');
+  content.dataset.versionId = history.version.versionId;
+  content.dataset.contentHash = history.version.contentHash;
+  content.dataset.workflowRevision = String(history.version.workflowRevision);
+  content.dataset.currentState = history.workflowState;
+  content.dataset.observedAt = history.observedAt;
+
+  const metadata = node('dl', 'staff-review-metadata');
+  appendMetadataPair(metadata, 'Môi trường', history.environment);
+  appendMetadataPair(metadata, 'Cơ sở truy cập hiện tại', history.accessBasis);
+  appendMetadataPair(metadata, 'Phiên bản chính xác', history.version.versionId);
+  appendMetadataPair(metadata, 'Hash nội dung chính xác', history.version.contentHash);
+  appendMetadataPair(metadata, 'Revision quy trình hiện tại', String(history.version.workflowRevision));
+  appendMetadataPair(metadata, 'Trạng thái quy trình tại thời điểm quan sát', `${STATE_LABELS[history.workflowState] ?? history.workflowState} (${history.workflowState})`);
+  appendMetadataPair(metadata, 'Thời điểm quan sát từ máy chủ', history.observedAt);
+  appendMetadataPair(metadata, 'Tình trạng xác nhận của nền tảng', history.qualification);
+  appendMetadataPair(metadata, 'Điều kiện xuất bản', history.publicationEligibility);
+  content.append(metadata);
+
+  content.append(node('p', 'staff-review-history-warning', 'Đây là các quyết định lịch sử được lưu trong cơ sở dữ liệu. Chúng không chứng thực người rà soát đủ điều kiện, quyền sử dụng hợp pháp hoặc khả năng xuất bản hiện tại. APPROVE chỉ là một bản ghi lịch sử, không phải lệnh phê duyệt mới.'));
+  const status = node('p', 'staff-review-history-status');
+  status.dataset.testid = 'staff-review-history-status';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  if (history.reviews.length === 0) {
+    status.dataset.stage = 'empty';
+    status.textContent = 'Không có lượt rà soát nào được ghi nhận cho phiên bản này.';
+  } else if (history.truncated) {
+    status.dataset.stage = 'truncated';
+    status.textContent = 'Chỉ hiển thị 20 quyết định gần nhất; lịch sử cũ hơn chưa được hiển thị.';
+  } else {
+    status.dataset.stage = 'loaded';
+    status.textContent = `Đang hiển thị ${history.reviews.length} quyết định gần nhất, tối đa 20 bản ghi.`;
+  }
+  content.append(status);
+
+  const entries = node('section', 'staff-review-history-entries');
+  entries.append(node('h3', '', 'Các quyết định được ghi nhận gần nhất'));
+  for (const review of history.reviews) {
+    const entry = node('article', 'staff-review-history-entry');
+    entry.dataset.reviewId = review.reviewId;
+    entry.dataset.decision = review.decision;
+    entry.append(node('h4', '', `Quyết định lịch sử: ${review.decision}`));
+    const reviewMetadata = node('dl', 'staff-review-metadata');
+    appendMetadataPair(reviewMetadata, 'Mã bản ghi rà soát', review.reviewId);
+    appendMetadataPair(reviewMetadata, 'Thời điểm ghi nhận', review.recordedAt);
+    entry.append(reviewMetadata);
+
+    const rubric = node('dl', 'staff-review-metadata staff-review-history-rubric');
+    for (const [key, label] of REVIEW_HISTORY_RUBRIC) {
+      appendMetadataPair(rubric, label, review.rubric[key] ? 'Đạt' : 'Chưa đạt');
+    }
+    entry.append(rubric, node('h5', '', 'Lý do được ghi nhận'));
+    const reason = node('pre', 'staff-review-history-reason', review.reason);
+    reason.dataset.testid = 'staff-review-history-reason';
+    reason.setAttribute('aria-label', `Lý do lịch sử cho quyết định ${review.decision}`);
+    entry.append(reason);
+    entries.append(entry);
+  }
+  content.append(entries);
+  return content;
+}
+
 function renderPrivateQuestion(question) {
   const article = node('article', 'review-item');
   article.append(node('h3', '', 'Nội dung câu hỏi riêng'));
@@ -378,8 +520,17 @@ function actorSelect() {
 }
 
 export async function openStaffWorkspace(container, onBack) {
+  ACTIVE_PRIVATE_VIEW_CLEARERS.get(container)?.();
   const workspaceGeneration = (ACTIVE_WORKSPACE_GENERATIONS.get(container) ?? 0) + 1;
   ACTIVE_WORKSPACE_GENERATIONS.set(container, workspaceGeneration);
+  const previousPrivateHost = container.querySelector('[data-testid="staff-review-host"]');
+  if (previousPrivateHost) {
+    previousPrivateHost.replaceChildren();
+    previousPrivateHost.hidden = true;
+  }
+  for (const trigger of container.querySelectorAll('[data-testid="staff-review-inspect"], [data-testid="staff-review-evidence-open"], [data-testid="staff-review-history-open"]')) {
+    trigger.setAttribute('aria-expanded', 'false');
+  }
   const isWorkspaceActive = () => ACTIVE_WORKSPACE_GENERATIONS.get(container) === workspaceGeneration;
   const invalidateWorkspace = () => {
     if (!isWorkspaceActive()) return false;
@@ -402,6 +553,8 @@ export async function openStaffWorkspace(container, onBack) {
     listError: null,
     listRequestId: 0,
     identityEpoch: 0,
+    reviewHistoryRequestId: 0,
+    reviewHistoryView: null,
     reviewRequestId: 0,
     reviewView: null,
     evidenceRequestId: 0,
@@ -419,6 +572,7 @@ export async function openStaffWorkspace(container, onBack) {
   const returnToPractice = () => {
     if (!isWorkspaceActive()) return;
     clearPrivateReviewView();
+    ACTIVE_PRIVATE_VIEW_CLEARERS.delete(container);
     if (!invalidateWorkspace()) return;
     onBack();
   };
@@ -531,6 +685,16 @@ export async function openStaffWorkspace(container, onBack) {
         evidence.setAttribute('aria-expanded', 'false');
         info.append(evidence);
       }
+      if (state.canReadList && state.principal?.roles?.includes('BANK_MANAGER')) {
+        const history = button('Xem lịch sử rà soát', 'staff-review-history-open', async () => {
+          await loadReviewHistory(item.versionId, item.contentHash, history);
+        }, 'button secondary small');
+        history.dataset.versionId = item.versionId;
+        history.setAttribute('aria-label', `Xem lịch sử rà soát của phiên bản ${item.versionId}`);
+        history.setAttribute('aria-controls', 'staff-review-host');
+        history.setAttribute('aria-expanded', 'false');
+        info.append(history);
+      }
       row.append(info);
       list.append(row);
     }
@@ -562,8 +726,10 @@ export async function openStaffWorkspace(container, onBack) {
   }
 
   function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false } = {}) {
-    const previousViews = [state.evidenceView, state.reviewView];
+    const previousViews = [state.reviewHistoryView, state.evidenceView, state.reviewView];
     const previous = previousViews.find(Boolean);
+    state.reviewHistoryRequestId += 1;
+    state.reviewHistoryView = null;
     state.reviewRequestId += 1;
     state.evidenceRequestId += 1;
     state.reviewView = null;
@@ -588,6 +754,7 @@ export async function openStaffWorkspace(container, onBack) {
     renderDispositionPanel();
     if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
   }
+  ACTIVE_PRIVATE_VIEW_CLEARERS.set(container, () => clearPrivateReviewView());
 
   function dispositionEligible(kind, view = state.reviewView) {
     const context = view?.context;
@@ -1012,15 +1179,28 @@ export async function openStaffWorkspace(container, onBack) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
-    const view = state.evidenceView ?? state.reviewView;
+    const view = state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
     host.replaceChildren();
     host.hidden = !view;
     if (!view) return;
 
+    const isHistory = view.kind === 'history';
     const isEvidence = view.kind === 'evidence';
-    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}`);
-    panel.dataset.testid = isEvidence ? 'staff-review-evidence' : 'staff-review-context';
-    const titleId = isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
+    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}`);
+    panel.dataset.testid = isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
+    if (isHistory) {
+      panel.dataset.versionId = view.versionId;
+      panel.dataset.contentHash = view.contentHash;
+      if (view.history) {
+        panel.dataset.workflowRevision = String(view.history.version.workflowRevision);
+        panel.dataset.workflowState = view.history.workflowState;
+        panel.dataset.currentState = view.history.workflowState;
+        panel.dataset.observedAt = view.history.observedAt;
+        panel.dataset.reviewCount = String(view.history.reviews.length);
+        panel.dataset.truncated = String(view.history.truncated);
+      }
+    }
+    const titleId = isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
     panel.setAttribute('aria-labelledby', titleId);
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
@@ -1029,18 +1209,19 @@ export async function openStaffWorkspace(container, onBack) {
       }
     });
     const titleText = view.status === 'loading'
-      ? (isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
+      ? (isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
       : view.status === 'error'
-        ? (isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
-        : (isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
+        ? (isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
+        : (isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
     const heading = node('h2', '', titleText);
     heading.id = titleId;
     heading.tabIndex = -1;
     const actions = node('div', 'staff-header-actions');
     if (view.status === 'error') {
-      actions.append(button(isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
-        isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
-          if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
+      actions.append(button(isHistory ? 'Tải lại lịch sử rà soát' : isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
+        isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
+          if (isHistory) await loadReviewHistory(view.versionId, view.contentHash, view.triggerElement);
+          else if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
           else if (state.dispositionStatus?.stage === 'acknowledged'
             && state.dispositionStatus.targetVersionId === view.versionId) {
             await reloadDispositionTarget(view.versionId, state.dispositionRequestId);
@@ -1048,7 +1229,7 @@ export async function openStaffWorkspace(container, onBack) {
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
-    if (!isEvidence && handoffEligible(view)) {
+    if (!isEvidence && !isHistory && handoffEligible(view)) {
       const handoff = button('Chuyển bản nháp vào hàng chờ rà soát', 'handoff-open', async () => {
         openHandoffConfirmation(handoff);
       }, 'button secondary');
@@ -1056,7 +1237,7 @@ export async function openStaffWorkspace(container, onBack) {
       handoff.setAttribute('aria-controls', 'handoff-dialog');
       actions.append(handoff);
     }
-    if (!isEvidence && dispositionEligible('reject', view)) {
+    if (!isEvidence && !isHistory && dispositionEligible('reject', view)) {
       const reject = button('Từ chối phiên bản đang chờ rà soát', 'disposition-reject-open', async () => {
         openDispositionDialog('reject', reject);
       }, 'button secondary');
@@ -1064,7 +1245,7 @@ export async function openStaffWorkspace(container, onBack) {
       reject.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(reject);
     }
-    if (!isEvidence && dispositionEligible('quarantine', view)) {
+    if (!isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
       const quarantine = button('Cách ly phiên bản', 'disposition-quarantine-open', async () => {
         openDispositionDialog('quarantine', quarantine);
       }, 'button secondary');
@@ -1072,24 +1253,33 @@ export async function openStaffWorkspace(container, onBack) {
       quarantine.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(quarantine);
     }
-    actions.append(button(isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
-      isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+    actions.append(button(isHistory ? 'Đóng lịch sử rà soát' : isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
+      isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
         clearPrivateReviewView({ restoreFocus: true });
       }, 'button secondary'));
     panel.append(heading, actions);
 
     if (view.status === 'loading') {
-      const status = node('p', 'notice-panel', 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
+      const status = node('p', 'notice-panel', isHistory ? 'Đang yêu cầu lịch sử cho đúng phiên bản đã chọn từ máy chủ…' : 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
+      if (isHistory) {
+        status.dataset.testid = 'staff-review-history-status';
+        status.dataset.stage = 'loading';
+      }
       status.setAttribute('role', 'status');
       status.setAttribute('aria-live', 'polite');
       panel.append(status);
     } else if (view.status === 'error') {
       const status = node('p', 'notice-panel', view.error);
+      if (isHistory) {
+        status.dataset.testid = 'staff-review-history-status';
+        status.dataset.stage = 'error';
+      }
       status.setAttribute('role', 'alert');
       status.setAttribute('aria-live', 'assertive');
       panel.append(status);
     } else {
-      panel.append(isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
+      panel.append(isHistory ? renderReviewHistory(view.history)
+        : isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
     }
     host.append(panel);
     renderHandoffPanel();
@@ -1547,6 +1737,51 @@ export async function openStaffWorkspace(container, onBack) {
     }
   }
 
+  async function loadReviewHistory(versionId, contentHash, triggerElement) {
+    if (!isWorkspaceActive() || !state.canReadList
+      || !state.principal?.roles?.includes('BANK_MANAGER')
+      || typeof versionId !== 'string' || typeof contentHash !== 'string') return;
+    const item = state.items.find((candidate) => candidate.versionId === versionId);
+    if (!item || item.contentHash !== contentHash || !HASH_PATTERN.test(contentHash)) return;
+
+    clearPrivateReviewView();
+    const requestId = ++state.reviewHistoryRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.reviewHistoryView = {
+      kind: 'history', versionId, contentHash, status: 'loading', triggerElement,
+      identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.reviewHistoryRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.canReadList
+      && state.principal?.roles?.includes('BANK_MANAGER')
+      && state.items.some((candidate) => candidate.versionId === versionId && candidate.contentHash === contentHash)
+      && state.reviewHistoryView?.versionId === versionId
+      && state.reviewHistoryView?.contentHash === contentHash;
+    try {
+      const result = await request(`/api/v1/question-versions/${encodeURIComponent(versionId)}/review-history`);
+      if (!isCurrent()) return;
+      if (!reviewHistorySupportsResponse(result, versionId, contentHash)) {
+        throw new Error('Máy chủ không trả về lịch sử hợp lệ cho đúng phiên bản đã chọn.');
+      }
+      state.reviewHistoryView = {
+        ...state.reviewHistoryView, status: 'loaded', history: result,
+      };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.reviewHistoryView = {
+        ...state.reviewHistoryView, status: 'error', error: error.message,
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
   function updateQuestionListView() {
     if (!isWorkspaceActive()) return;
     const target = container.querySelector('[data-testid="staff-question-list"]');
@@ -1710,7 +1945,7 @@ export async function openStaffWorkspace(container, onBack) {
     }, 'button secondary small'));
     heading.append(headingText, actions);
     shell.append(heading);
-    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng chỉ được yêu cầu khi bạn chọn đúng phiên bản. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền, xuất bản hoặc chẩn đoán. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
+    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 
     if (!state.principal.roles.includes('AUTHOR')) {

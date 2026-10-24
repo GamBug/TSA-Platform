@@ -984,6 +984,17 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-review-evidence-source { padding: 12px; }
   .staff-review-evidence-text { padding: 11px; }
 }
+.staff-review-history-content, .staff-review-history-entries, .staff-review-history-entry { min-width: 0; max-width: 100%; }
+.staff-review-history-warning { margin: 18px 0; padding: 14px 16px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; }
+.staff-review-history-entry { margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.staff-review-history-entry h4 { margin: 0 0 10px; overflow-wrap: anywhere; }
+.staff-review-history-entry h5 { margin: 16px 0 8px; font-size: .92rem; }
+.staff-review-history-rubric { padding-top: 12px; border-top: 1px solid var(--line); }
+.staff-review-history-reason { max-width: 100%; margin: 0; padding: 14px; overflow-wrap: anywhere; white-space: pre-wrap; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #f8faff; font: inherit; font-size: .86rem; line-height: 1.6; }
+@media (max-width: 680px) {
+  .staff-review-history-entry { padding: 12px; }
+  .staff-review-history-reason { padding: 11px; }
+}
 
 /* Explicit private author handoff and truthful operation recovery. */
 .staff-handoff-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; padding: 14px 16px; border: 1px solid #cfd7f2; border-radius: 10px; background: #f8f9ff; }

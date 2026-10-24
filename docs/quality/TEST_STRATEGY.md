@@ -34,6 +34,9 @@ Qualified manual accessibility/content/rights acceptance remains distinct.
 Executed existing-contract author editor (2026-10-24):
 [real typed draft creation, zero-POST validation, reload/private preview and cross-browser evidence](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
 
+Executed B5 recorded history (2026-10-24):
+[manager-only current-role read, zero writes, bounded immutable rows and browser privacy](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+
 ## Layers and release policy
 
 Unit tests cover pure scoring, response normalization, blueprint validators and policy transitions. Property tests are useful for answer-set permutations, randomized state sequences and assembly invariants; a large random sample is evidence, not mathematical proof. Integration tests use real PostgreSQL and exercise transaction ordering, uniqueness, triggers, queue leases and rollback. SQLite/mocked repositories cannot establish these properties.

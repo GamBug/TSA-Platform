@@ -750,6 +750,20 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 **B5.1 RECORDED HISTORY — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, basefec7467.
+Root selects manager-only read under delegated engineering authority;
+[scope/impact/acceptance](../decisions/WEB_002_B5_REVIEW_HISTORY_DECISION.md).
+Root owns backend/HTTP-PG/browser/Firefox/shared records; disjoint configured
+Luna/XHigh contract/UI writers, separate Sol6.1/Medium read-only review. No new
+migration/grant or B1–B4/student/public changes. Preserve owner AGENTS/research.
+Actual focused37/Bank131/contracts133/consumer11/local15/B032/type/build/built/
+drift/import/Chrome37(18captures)/Firefox11(21captures)/domains78/CLI2 PASS.
+Separate Sol6.1/Medium P2 disclosure wording repaired; final no findings,
+independent PG4/contracts9/type/boundary/drift/syntax/whitespace/Chrome37 PASS.
+[Exact evidence/limits](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+Configured Luna/XHigh contract/UI writers released ownership. Clean reproduction
+follows checkpoint. No qualified-human approval from a stored decision.
+
 2026-10-24 **AUTHOR INTERACTION EDITOR — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** atf8aaf12.
 Root selects existing-contract three-type compact editor; [scope/acceptance](../decisions/OPEN_DECISIONS.md#web-002-author-interaction-editor--selected-2026-10-24).
 Root owns integration/browser/shared records; bounded configured Luna/XHigh UI

@@ -150,6 +150,14 @@ test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue
   assert.equal(rejection.status,201);assert.equal((await rejection.json()).state,'REJECTED');
   assert.equal((await bankRequest(harness,reviewer,`/api/v1/question-versions/${queued.versionId}/review-context`)).status,404);
   const holdManager=await loginActor(harness,'bankManager');
+  const historyPath=`/api/v1/question-versions/${queued.versionId}/review-history`;
+  const historyResponse=await bankRequest(harness,holdManager,historyPath);assert.equal(historyResponse.status,200);
+  const history=await historyResponse.json();assert.equal(history.workflowState,'REJECTED');assert.equal(history.version.workflowRevision,3);
+  assert.equal(history.reviews.length,1);assert.equal(history.reviews[0].decision,'REJECT');
+  assert.equal(history.reviews[0].reason,'Local synthetic disposition: explicit CLI technical test, not qualified review.');
+  assert.equal(history.qualification,'NOT_ATTESTED_BY_PLATFORM');
+  for(const browser of [author,reviewer])assert.equal((await bankRequest(harness,browser,historyPath)).status,403);
+  assert.equal(processHandle.output.includes(history.reviews[0].reason),false,'launcher never prints private review reasons');
   const heldVersion=available[1].context.version;
   const hold=await bankRequest(harness,holdManager,`/api/v1/question-versions/${heldVersion.versionId}/quarantine`,{
     method:'POST',key:'synthetic-cli-hold',body:{expectedRevision:1,reason:'Local synthetic disposition: explicit CLI hold test.'},
@@ -169,6 +177,7 @@ test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue
   assert.equal(processHandle.output.includes(SYNTHETIC_REVIEW_EVIDENCE),false,'launcher never prints recorded evidence');
   assert.match(processHandle.output,/synthetic BANK_MANAGER/);
   const candidate = await loginActor(harness, 'studentA');
+  assert.equal((await bankRequest(harness,candidate,historyPath)).status,403);
   assert.equal((await bankRequest(harness,candidate,evidencePath)).status,403);
   const candidateResponse = await bankRequest(harness, candidate,
     `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-context`);

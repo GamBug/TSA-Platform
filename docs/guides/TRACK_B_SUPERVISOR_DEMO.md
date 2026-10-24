@@ -170,6 +170,18 @@ qualified human review. After REJECTED, queue private access normally disappears
 The UI retains the acknowledged receipt and says exact current state is unobserved;
 a missing queue row alone is not proof of its current state.
 
+To inspect the recorded decision, sign out and choose BANK_MANAGER. Select the
+REJECTED state or all states, find that exact version and choose **Xem lịch sử rà
+soát**. It makes an explicit private read and shows the server observation/current
+workflow separately from stored decision, six findings and reason. A recorded
+APPROVE/REJECT does not establish qualified review, legal rights or current
+publication eligibility. Reasons are shown verbatim as inert text and may contain
+pasted private material; no redaction is promised. Only the latest20 decisions
+are shown, with an explicit notice if older entries are omitted. A version with
+none shows an empty state. Close/Escape restores focus; return/logout clears it.
+AUTHOR/REVIEWER/student accounts cannot access this administrative history.
+[History evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+
 For quarantine, sign out and choose BANK_MANAGER. Select a different DRAFT or
 IN_REVIEW version (use the state filter if necessary), inspect it and choose
 **Cách ly phiên bản**. Enter a reason and read the impact warning: related published

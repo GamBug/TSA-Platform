@@ -18,8 +18,10 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
   const components: Readonly<Record<string, z.ZodType>> = {
     StaffReviewContext: contracts.StaffReviewContextSchema,
     StaffReviewEvidence: contracts.StaffReviewEvidenceSchema,
+    StaffReviewHistory: contracts.StaffReviewHistorySchema,
     StaffReviewContextPathParams: routes.StaffReviewContextPathParamsSchema,
     StaffReviewEvidencePathParams: routes.StaffReviewEvidencePathParamsSchema,
+    StaffReviewHistoryPathParams: routes.StaffReviewHistoryPathParamsSchema,
     StaffUnauthenticatedResponse: routes.StaffUnauthenticatedResponseSchema,
     StaffForbiddenResponse: routes.StaffForbiddenResponseSchema,
     StaffNotFoundResponse: routes.StaffNotFoundResponseSchema,
@@ -97,7 +99,7 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     info: {
       title: "TSA Platform private staff API contracts",
       version: "staff-contracts/1",
-      description: "Private staff inspection, evidence, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+      description: "Private staff inspection, evidence, recorded review history, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     },
   }) as unknown as Record<string, unknown>;
 }

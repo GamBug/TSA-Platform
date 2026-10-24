@@ -10,14 +10,16 @@ import { createStudentRuntime } from '../../../src/local/student.mjs';
 import { createDatabasePool, withTransaction } from '../../../src/modules/database/pool.mjs';
 import { inspectionImportPackage } from './review-import-fixture.mjs';
 import { createFactoryImportService } from '../../../src/modules/bank/factory-import.mjs';
+import { createReviewHistoryService } from '../../../src/modules/bank/review-history.mjs';
 import { createReviewEvidenceService } from '../../../src/modules/bank/review-evidence.mjs';
 import { createPublicationService } from '../../../src/modules/bank/publication.mjs';
 import { createEquivalenceService } from '../../../src/modules/bank/equivalence.mjs';
 import { jsonDigest } from '../../../src/modules/bank/common.mjs';
 import { createSharedReadingFixture } from '../student-runtime/shared-reading-fixture.mjs';
-import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffReviewHistorySchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 
 let f, pool, author, reviewer, manager, candidate, examManager;
+const historyPath = (id) => `/api/v1/question-versions/${id}/review-history`;
 const evidencePath = (id) => `/api/v1/question-versions/${id}/review-evidence`;
 const pathFor = (id) => `/api/v1/question-versions/${id}/review-context`;
 const principal = (browser) => f.identity.authenticate(new Request(f.origin, { headers: { cookie: browser.cookies.join('; ') } }));
@@ -26,7 +28,7 @@ async function success(response, status = 200) {
   const payload = await response.json();
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-  if (status === 200) return (payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
+  if (status === 200) return (payload.schemaVersion === 'staff-review-history/1' ? StaffReviewHistorySchema : payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
   assert.deepEqual(Object.keys(payload), ['error']);
   assert.deepEqual(Object.keys(payload.error).sort(), ['code','details','message','requestId']);
   assert.deepEqual(payload.error.details, {});
@@ -765,4 +767,89 @@ test('B4 attribution extraction preserves valid manual shared-stimulus B1/B2 pro
     const evidence=await createReviewEvidenceService({bankPool:bundleFixture.bankPool,identityService:bundleFixture.harness.identity});
     assert.equal((await evidence.read(bundleFixture.principals.bankManager,draft.versionId)).sources.length,2);
   } finally {await bundleFixture.close();}
+});
+
+
+test('B5 manager history reads real rejection separately from current held workflow without any application write', async () => {
+  const draft=await createDraft();
+  await f.fixture.workflow.submitReview(await principal(author),draft.versionId,randomUUID(),{expectedRevision:1});
+  const reason='Local synthetic disposition: <img src="https://invalid.example/history" onerror="alert(1)"> Recorded text only.';
+  const rubric={correctness:false,unambiguous:true,relevant:true,language:true,explanation:false,rights:true};
+  const decision=await f.fixture.workflow.review(await principal(reviewer),draft.versionId,randomUUID(),{
+    expectedRevision:2,contentHash:draft.contentHash,decision:'REJECT',rubric,reason});
+  const before=await databaseSnapshot();
+  const history=await success(await bankRequest(f,manager,historyPath(draft.versionId)));
+  assert.equal(history.reviews.length,1);assert.equal(history.reviews[0].reviewId,decision.body.reviewId);
+  assert.equal(history.reviews[0].reason,reason);assert.deepEqual(history.reviews[0].rubric,rubric);
+  assert.equal(history.workflowState,'REJECTED');assert.equal(history.version.workflowRevision,3);
+  assert.equal(history.version.contentHash,draft.contentHash);assert.equal(history.truncated,false);assert.equal(history.limit,20);
+  assert.equal(history.qualification,'NOT_ATTESTED_BY_PLATFORM');assert.equal(history.publicationEligibility,'NOT_EVALUATED');
+  assert.doesNotMatch(JSON.stringify(history),/reviewer_id|authorId|operator|answerKey|explanation":\[|sourceVersionId|reference_namespace/);
+  assert.deepEqual(await databaseSnapshot(),before);
+  // Manager holds may target DRAFT/IN_REVIEW/APPROVED, not REJECTED. A separate
+  // genuine IN_REVIEW target shows its administrative history survives a hold.
+  const held=await createDraft();await f.fixture.workflow.submitReview(await principal(author),held.versionId,randomUUID(),{expectedRevision:1});
+  await f.fixture.workflow.quarantine(await principal(manager),held.versionId,randomUUID(),{expectedRevision:2,reason:'Synthetic hold, no qualified review.'});
+  const heldBefore=await databaseSnapshot();const heldRead=await success(await bankRequest(f,manager,historyPath(held.versionId)));
+  assert.equal(heldRead.workflowState,'QUARANTINED');assert.equal(heldRead.version.workflowRevision,3);
+  assert.deepEqual(heldRead.reviews,[]);assert.deepEqual(await databaseSnapshot(),heldBefore);
+});
+
+test('B5 history enforces opt-in/current manager auth, role-before-object, Origin/method/query/body and safe errors', async () => {
+  const id=f.questions[0].versionId,before=await databaseSnapshot();
+  assert.equal((await success(await fetch(f.origin+historyPath(id)),401)).error.code,'UNAUTHENTICATED');
+  for(const browser of [author,reviewer,candidate,examManager])for(const target of [id,randomUUID(),'bad'])
+    assert.equal((await success(await bankRequest(f,browser,historyPath(target)),403)).error.code,'FORBIDDEN');
+  for(const target of [randomUUID(),'bad'])assert.equal((await success(await bankRequest(f,manager,historyPath(target)),404)).error.code,'NOT_FOUND');
+  assert.equal((await success(await bankRequest(f,manager,historyPath(id)+'?limit=1'),422)).error.code,'VALIDATION_ERROR');
+  const foreign=await fetch(f.origin+historyPath(id),{headers:{origin:'https://invalid.example',cookie:manager.cookies.join('; ')}});
+  assert.equal((await success(foreign,403)).error.code,'FORBIDDEN');
+  assert.equal((await success(await bankRequest(f,manager,historyPath(id),{method:'POST',key:randomUUID(),body:{}}),404)).error.code,'NOT_FOUND');
+  const body=await new Promise((resolve,reject)=>{const req=httpRequest(f.origin+historyPath(id),{method:'GET',headers:{cookie:manager.cookies.join('; '),'content-length':'2'}},res=>{
+    let text='';res.setEncoding('utf8');res.on('data',chunk=>{text+=chunk;});res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(text),headers:res.headers}));
+  });req.on('error',reject);req.end('{}');});assert.equal(body.status,422);assert.equal(body.headers['x-request-id'],body.body.error.requestId);
+  const defaultHandler=await createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin});
+  const request=()=>new Request(f.origin+historyPath(id),{headers:{cookie:manager.cookies.join('; ')}});
+  assert.equal((await success(await defaultHandler(request()),404)).error.code,'NOT_FOUND');
+  await assert.rejects(createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin,enableReviewHistory:'true'}),TypeError);
+  assert.deepEqual(await databaseSnapshot(),before);
+  const managerId=(await principal(manager)).userId;
+  const assigned=(await pool.query("SELECT assigned_at::text AS at FROM tsa.user_roles WHERE user_id=$1 AND role='BANK_MANAGER'",[managerId])).rows[0].at;
+  await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='BANK_MANAGER'",[managerId]);
+  try {assert.equal((await success(await bankRequest(f,manager,historyPath(id)),403)).error.code,'FORBIDDEN');}
+  finally {await pool.query("INSERT INTO tsa.user_roles(user_id,role,assigned_at) VALUES($1,'BANK_MANAGER',$2)",[managerId,assigned]);}
+  assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B5 latest20 is stable on timestamp ties, truthful about truncation, and includes no human identity', async () => {
+  const draft=await createDraft(),reviewerId=(await principal(reviewer)).userId;
+  const rubric={correctness:true,unambiguous:true,relevant:true,language:true,explanation:true,rights:true};
+  const ids=Array.from({length:22},()=>randomUUID());
+  // Trusted synthetic history rows isolate ordering/truncation; these do not
+  // represent qualified review or drive workflow/publication eligibility.
+  for(const [index,id] of ids.entries())await pool.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason,created_at)
+    VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,'2001-01-01T00:00:00Z')`,[id,draft.versionId,draft.contentHash,reviewerId,index%2?'APPROVE':'REJECT',JSON.stringify(rubric),'Synthetic administrative history ordering fixture.']);
+  const before=await databaseSnapshot();
+  const value=await success(await bankRequest(f,manager,historyPath(draft.versionId)));
+  assert.equal(value.truncated,true);assert.equal(value.reviews.length,20);
+  assert.deepEqual(value.reviews.map(r=>r.reviewId),ids.sort().reverse().slice(0,20));
+  assert.equal(value.workflowState,'DRAFT');assert.equal(value.qualification,'NOT_ATTESTED_BY_PLATFORM');
+  const again=await success(await bankRequest(f,manager,historyPath(draft.versionId)));
+  assert.deepEqual(again.reviews,value.reviews);assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B5 malformed stored review is safe503 rather than empty/partial history, and database state stays immutable', async () => {
+  for(const malformed of [{rubric:{},reason:'Malformed synthetic rubric.'},{rubric:{correctness:true,unambiguous:true,relevant:true,language:true,explanation:true,rights:true},reason:'x'.repeat(4097)}]) {
+    const draft=await createDraft();
+    await pool.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
+      VALUES($1,$2,$3,$4,'REJECT',$5::jsonb,$6)`,[randomUUID(),draft.versionId,draft.contentHash,(await principal(reviewer)).userId,JSON.stringify(malformed.rubric),malformed.reason]);
+    const before=await databaseSnapshot();const value=await success(await bankRequest(f,manager,historyPath(draft.versionId)),503);
+    assert.equal(value.error.code,'TEMPORARILY_UNAVAILABLE');assert.doesNotMatch(JSON.stringify(value),/rubric|SELECT|Malformed|4097/);
+    assert.deepEqual(await databaseSnapshot(),before);
+  }
+  const bankPool={query:(...args)=>f.fixture.bankPool.query(...args),async connect(){const client=await f.fixture.bankPool.connect();return {release:(...args)=>client.release(...args),async query(sql,params){
+    const value=await client.query(sql,params);if(sql.includes('FROM tsa.reviews WHERE'))return {...value,rows:[{id:randomUUID(),content_hash:'sha256:'+'0'.repeat(64),decision:'REJECT',rubric:{},reason:'Untrusted diagnostic sentinel.',recorded_at:'2001-01-01T00:00:00.000000Z'}]};return value;
+  }};}};
+  const service=await createReviewHistoryService({bankPool,identityService:f.identity});
+  await assert.rejects(service.read(await principal(manager),f.questions[0].versionId),error=>error.status===503&&error.code==='TEMPORARILY_UNAVAILABLE');
 });

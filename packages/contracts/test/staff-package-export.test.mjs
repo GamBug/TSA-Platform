@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffReviewHistorySchema,
   StaffQuarantineRequestSchema,
   StaffQuarantineResponseSchema,
   StaffRejectReviewRequestSchema,
@@ -18,6 +19,23 @@ describe("@tsa/contracts/staff package subpath", () => {
   it("resolves the additive private schema export", () => {
     assert.equal(StaffReviewContextSchema.safeParse(makeStaffReviewContext()).success, true);
     assert.equal(StaffReviewEvidenceSchema.safeParse(makeStaffReviewEvidence()).success, true);
+    assert.equal(StaffReviewHistorySchema.safeParse({
+      schemaVersion: "staff-review-history/1",
+      environment: "LOCAL_SYNTHETIC_ONLY",
+      accessBasis: "BANK_MANAGER",
+      observedAt: "2026-10-24T12:34:56.123456Z",
+      version: {
+        versionId: "44444444-4444-4444-8444-444444444444",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        workflowRevision: 1,
+      },
+      workflowState: "IN_REVIEW",
+      qualification: "NOT_ATTESTED_BY_PLATFORM",
+      publicationEligibility: "NOT_EVALUATED",
+      limit: 20,
+      truncated: false,
+      reviews: [],
+    }).success, true);
     assert.equal(StaffSubmitReviewRequestSchema.safeParse({ expectedRevision: 1 }).success, true);
     assert.equal(StaffSubmitReviewResponseSchema.safeParse({
       versionId: "44444444-4444-4444-8444-444444444444",

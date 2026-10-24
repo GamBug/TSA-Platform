@@ -255,7 +255,7 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`document.body.textContent.includes('Synthetic Firefox cancellation private sentinel')`),false,'Escape clears copied reason/rubric summary');
   assert.equal(await evaluate('window.__ffDispositions.length'),0);
   await click('disposition-reject-open');
-  await evaluate(`(()=>{for(const key of ['correctness','unambiguous','relevant','language','explanation','rights']){const select=document.querySelector('[data-testid="disposition-rubric-'+key+'"]');select.value=key==='correctness'?'FAIL':'PASS';select.dispatchEvent(new Event('change',{bubbles:true}));}const reason=${query('disposition-form-reason')};reason.value='Kiểm thử từ chối tổng hợp trên Firefox, không phải rà soát đủ điều kiện.';reason.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await evaluate(`(()=>{for(const key of ['correctness','unambiguous','relevant','language','explanation','rights']){const select=document.querySelector('[data-testid="disposition-rubric-'+key+'"]');select.value=key==='correctness'?'FAIL':'PASS';select.dispatchEvent(new Event('change',{bubbles:true}));}const reason=${query('disposition-form-reason')};reason.value='Kiểm thử từ chối tổng hợp trên Firefox, không phải rà soát đủ điều kiện. <img src="https://invalid.example/history.png" onerror="alert(1)">';reason.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   await setViewport(narrowMeasured.innerWidth,812,'negative disposition narrow actual viewport');
   await capture(`staff-reject-confirm-narrow-${narrowMeasured.innerWidth}`);
   await setViewport(1280,900,'negative disposition desktop');
@@ -342,6 +342,36 @@ async function runStaffReviewJourney() {
     await wd('POST','/actions',{actions:[{type:'key',id:'typed-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
   }
   report.checks.push('Firefox existing-contract author MC/TF editor validates unset keys with zero POST, keyboard-selects a checkbox, creates real drafts and reads exact persistent keys/text after reload with handoff still explicit');
+
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox manager history login');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-history-open')})`,'Firefox manager history buttons');
+  await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'Firefox all-state history metadata');
+  async function openFirefoxHistory(version) {
+    const selector=`[data-testid="staff-review-history-open"][data-version-id="${version.versionId}"]`;
+    const element=await wd('POST','/element',{using:'css selector',value:selector});
+    await wd('POST',`/element/${element['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  }
+  await openFirefoxHistory(quarantineVersion);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='empty'`,'Firefox held version has no recorded review');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.workflowState`),'QUARANTINED');
+  await wd('POST','/actions',{actions:[{type:'key',id:'history-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  assert.equal(await evaluate('document.activeElement?.dataset.versionId'),quarantineVersion.versionId);
+  await openFirefoxHistory(selected);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='loaded'`,'Firefox real rejection history');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.versionId`),selected.versionId);
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.contentHash`),selected.contentHash);
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.workflowRevision`),'3');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.workflowState`),'REJECTED');
+  assert.equal(await evaluate(`${query('staff-review-history-reason')}.textContent.includes('<img src=')`),true);
+  assert.equal(await evaluate(`${query('staff-review-history')}.querySelectorAll('img,a,script,iframe,object,embed').length`),0);
+  await setViewport(1280,900,'history desktop');await evaluate(`(()=>{${query('staff-review-history')}.scrollIntoView({block:'start'});return true})()`);
+  await capture('staff-review-history-desktop');await setViewport(narrowMeasured.innerWidth,812,'history narrow actual');
+  await evaluate(`(()=>{${query('staff-review-history-reason')}.scrollIntoView({block:'center'});return true})()`);await capture(`staff-review-history-reason-narrow-${narrowMeasured.innerWidth}`);
+  await click('staff-review-history-close');assert.equal(await evaluate(`Boolean(${query('staff-review-history-reason')})`),false);
+  await openFirefoxHistory(selected);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='loaded'`,'history before Firefox logout');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox logout clears history');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-history')})||document.body.textContent.includes('https://invalid.example/history.png')`),false);
+  report.checks.push('B5 Firefox manager exact-version empty/real REJECT history preserves inert hostile reason, current workflow and no-qualification warning; desktop/narrow captures, Escape focus and close/logout privacy');
 
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,

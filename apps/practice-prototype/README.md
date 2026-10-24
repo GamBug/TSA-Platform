@@ -306,3 +306,8 @@ The local AUTHOR editor creates compact two-entry MATH synthetic SC, MC or TF
 drafts through the existing Bank API. New types require explicit private keys;
 switching types clears selections. Draft creation and review handoff stay separate.
 [Executed author editor evidence](../../docs/reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
+
+BANK_MANAGER can explicitly inspect the latest20 recorded review decisions for
+an exact version. Verbatim reasons are untrusted private text; historical decisions
+do not establish qualified review, rights or present publication eligibility.
+[History evidence](../../docs/reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).

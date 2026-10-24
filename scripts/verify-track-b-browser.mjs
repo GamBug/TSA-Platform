@@ -528,7 +528,7 @@ try {
   await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===20)`, 'synthetic reviewer metadata access');
   assert.equal(await evaluate(`document.body.innerText.includes('không đại diện cho người rà soát độc lập đủ điều kiện')`), true, 'synthetic reviewer is not represented as a qualified human');
   assert.equal(await evaluate(`Boolean(${query('draft-create')})`), false, 'reviewer role does not receive author creation controls');
-  assert.equal(await evaluate(`document.body.innerText.includes('nội dung riêng chỉ được yêu cầu khi bạn chọn đúng phiên bản')`), true, 'staff notice explains that private context is fetched only after explicit selection');
+  assert.equal(await evaluate(`document.body.innerText.includes('chỉ được yêu cầu khi bạn chọn đúng phiên bản')`), true, 'staff notice explains that private context is fetched only after explicit selection');
   report.checks.push('synthetic REVIEWER sees safe metadata and explicit per-version access, without author actions or qualified-human claims');
 
   reviewFixture = await createReviewBrowserFixture();
@@ -1128,7 +1128,8 @@ try {
   assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(privateSentinel)+')'),false,'Escape clears hidden private summary');
   assert.equal((await evaluate('window.__b4.posts')).length,0,'cancel paths send no mutation');
   await click('disposition-reject-open');
-  await fillDisposition('Kiểm thử từ chối tổng hợp rõ ràng; không phải đánh giá người đủ điều kiện.',true);
+  const historyReason='Kiểm thử từ chối tổng hợp; không phải đánh giá người đủ điều kiện. <img src="https://invalid.example/history.png" onerror="alert(1)"> https://invalid.example/reason';
+  await fillDisposition(historyReason,true);
   await click('disposition-confirm');
   await waitFor(`${query('disposition-status')}?.dataset.stage==='uncertain'`,'lost actual rejection response is uncertain');
   assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false,'pending/uncertain command clears old private preview');
@@ -1302,6 +1303,94 @@ try {
   assert.equal(await evaluate(`${query('draft-create')}.form.checkValidity()`),true,'removed invalid MC/TF controls cannot block valid SC');
   assert.equal(await evaluate('window.__authorEditor.posts.length'),beforeSwitchInvalid,'type/key changes do not auto-create');
   report.checks.push('Existing-contract author editor validates unset keys with zero POST, keyboard-selects MC, creates actual MC/TF drafts and reads exact persisted private previews after reload; switching types clears answer choices and never auto-handoffs');
+
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname.endsWith('/review-history')).length,0,'history is never prefetched for other workflows');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager login for recorded history');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-history-open')})`,'manager history actions');
+  await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'manager all-state history list');
+  await evaluate(`(()=>{const original=window.fetch;window.__b5={calls:[],hold:false,held:false,release:null,wrong:false};window.fetch=async(input,init={})=>{
+    const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);
+    if(url.pathname.endsWith('/review-history')){const body=await response.clone().json();window.__b5.calls.push({path:url.pathname,status:response.status,body});
+      if(window.__b5.hold){window.__b5.hold=false;window.__b5.held=true;await new Promise(resolve=>window.__b5.release=resolve);}
+      if(window.__b5.wrong&&response.status===200){window.__b5.wrong=false;body.version.versionId=crypto.randomUUID();return new Response(JSON.stringify(body),{status:200,headers:response.headers});}}
+    return response;};})()`);
+  async function openHistory(version) {
+    const row=`[data-testid="staff-review-history-open"][data-version-id="${version.versionId}"]`;
+    await waitFor(`Boolean(document.querySelector(${JSON.stringify(row)}))`,'exact history metadata action');
+    await evaluate(`document.querySelector(${JSON.stringify(row)}).focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  }
+  const emptyHistoryVersion=reviewFixture.questions[0];
+  await openHistory(emptyHistoryVersion);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='empty'`,'truthful empty history');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.versionId`),emptyHistoryVersion.versionId);
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.contentHash`),emptyHistoryVersion.contentHash);
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false);
+  await pressKey('Escape','Escape',27,String.fromCharCode(27));
+  assert.equal(await evaluate(`document.activeElement?.dataset.versionId`),emptyHistoryVersion.versionId);
+  await openHistory(queuedVersion);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='loaded'`,'real UI rejection history');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.workflowState`),'REJECTED');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.workflowRevision`),'3');
+  assert.equal(await evaluate(`${query('staff-review-history-reason')}.textContent`),'Local synthetic disposition: '+historyReason);
+  assert.equal(await evaluate(`${query('staff-review-history')}.querySelectorAll('img,a,script,iframe,object,embed').length`),0,'arbitrary recorded reason is inert');
+  assert.equal(await evaluate(`${query('staff-review-history')}.textContent.includes('NOT_ATTESTED_BY_PLATFORM')&&${query('staff-review-history')}.textContent.includes('NOT_EVALUATED')`),true);
+  await evaluate(`${query('staff-review-history')}.scrollIntoView({block:'start'})`);await screenshot('staff-review-history-desktop');
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});await noHorizontalOverflow();
+  await evaluate(`${query('staff-review-history-reason')}.scrollIntoView({block:'center'})`);await screenshot('staff-review-history-reason-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await click('staff-review-history-close');assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(historyReason)+')'),false);
+  report.checks.push('B5 explicit manager-only GET shows exact empty/real UI REJECT history separately from current workflow, qualification and eligibility; hostile stored reason stays inert on desktop/mobile and clears on close/Escape');
+
+  await evaluate('window.__b5.wrong=true');await openHistory(queuedVersion);
+  await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='error'`,'mismatched history response rejected');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-history-reason')})`),false);
+  await click('staff-review-history-reload');await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='loaded'`,'explicit history read recovery');
+  await click('staff-review-history-close');
+  await evaluate('window.__b5.hold=true;window.__b5.held=false');await openHistory(queuedVersion);
+  await waitFor('window.__b5.held','history response held after real read');
+  await openHistory(emptyHistoryVersion);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='empty'`,'new history target supersedes held request');
+  await evaluate('window.__b5.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`${query('staff-review-history')}.dataset.versionId`),emptyHistoryVersion.versionId);
+  assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(historyReason)+')'),false);
+  await evaluate('window.__b5.hold=true;window.__b5.held=false');await openHistory(queuedVersion);await waitFor('window.__b5.held','history held before return');
+  await click('staff-return');await waitFor(`Boolean(${query('staff-open')})`,'landing clears private history');
+  await click('staff-open');await waitFor(`Boolean(${query('staff-review-history-open')})`,'same principal new workspace');
+  await evaluate('window.__b5.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-history')})`),false,'old workspace response cannot reopen private history');
+  assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(historyReason)+')'),false);
+  report.checks.push('B5 wrong-version read fails without private text; explicit retry recovers, target and return/reopen generations discard held real history responses');
+
+  await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'all-state history after workspace reopen');
+  // Trusted history rows exercise the bounded UI; no approval workflow or human
+  // qualification is synthesized by these administrative display fixtures.
+  for(let index=0;index<21;index++)await reviewFixture.fixture.pool.query(`INSERT INTO tsa.reviews
+    (id,question_version_id,content_hash,reviewer_id,decision,rubric,reason,created_at)
+    VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,'2001-01-01T00:00:00Z')`,[
+      randomUUID(),emptyHistoryVersion.versionId,emptyHistoryVersion.contentHash,reviewFixture.fixture.principals.reviewer.userId,
+      index%2?'APPROVE':'REJECT',JSON.stringify({correctness:true,unambiguous:true,relevant:true,language:true,explanation:true,rights:true}),
+      'Synthetic recorded display fixture; not qualified human review.',
+    ]);
+  await openHistory(emptyHistoryVersion);await waitFor(`${query('staff-review-history-status')}?.dataset.stage==='truncated'`,'latest20 explicitly truncated history');
+  assert.equal(await evaluate(`document.querySelectorAll('.staff-review-history-entry').length`),20);
+  assert.equal(await evaluate(`${query('staff-review-history')}.textContent.includes('APPROVE')&&${query('staff-review-history')}.textContent.includes('NOT_ATTESTED_BY_PLATFORM')`),true);
+  await click('staff-review-history-close');
+  report.checks.push('B5 trusted administrative display fixture shows exactly20 latest decisions and explicit truncation; recorded APPROVE is labelled historical without qualification or a new approval command');
+
+  await evaluate('window.__b5.hold=true;window.__b5.held=false');await openHistory(queuedVersion);await waitFor('window.__b5.held','history held before identity change');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'history logout clears private DOM');
+  await evaluate(`${query('actor-select')}.value='studentA'`);await click('staff-login');await waitFor(`Boolean(document.querySelector('.staff-denied'))`,'candidate history denial');
+  await evaluate('window.__b5.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-history')})||Boolean(${query('staff-review-history-open')})`),false);
+  assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(historyReason)+')'),false);
+  for(const actor of ['studentA','reviewer']) {
+    if(actor==='reviewer'){await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'reviewer history denial login');await evaluate(`${query('actor-select')}.value='reviewer'`);await click('staff-login');await waitFor(`Boolean(${query('staff-question-list')})`,'reviewer metadata only');}
+    const denial=await evaluate(`fetch(${JSON.stringify('/api/v1/question-versions/'+queuedVersion.versionId+'/review-history')}).then(async response=>({status:response.status,body:await response.json()}))`);
+    assert.equal(denial.status,403);assert.equal(denial.body.error.code,'FORBIDDEN');
+    assert.equal(await evaluate(`Boolean(${query('staff-review-history-open')})`),false);
+  }
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname.endsWith('/review-history')).every(op=>op.method==='GET'&&!op.hasPostData),true);
+  report.checks.push('B5 logout/identity fencing clears late private history; candidate/reviewer have no history action and exact direct endpoint returns403; all history calls are bodyless GET');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });

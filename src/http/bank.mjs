@@ -6,6 +6,7 @@ import { createPublicationService } from '../modules/bank/publication.mjs';
 import { createSourceService } from '../modules/sources/service.mjs';
 import { createReviewContextService } from '../modules/bank/review-context.mjs';
 import { createReviewEvidenceService } from '../modules/bank/review-evidence.mjs';
+import { createReviewHistoryService } from '../modules/bank/review-history.mjs';
 
 const MAX_JSON_BYTES = 1024 * 1024;
 
@@ -168,7 +169,7 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
@@ -176,6 +177,8 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
   const trusted = validateTrustedOrigin(trustedOrigin);
   if (typeof enableReviewContext !== 'boolean') throw new TypeError('Private inspection opt-in must be boolean');
   if (typeof enableReviewEvidence !== 'boolean') throw new TypeError('Private evidence opt-in must be boolean');
+  if (typeof enableReviewHistory !== 'boolean') throw new TypeError('Private review history opt-in must be boolean');
+  const reviewHistory = enableReviewHistory ? await createReviewHistoryService({ bankPool, identityService }) : null;
   const reviewEvidence = enableReviewEvidence ? await createReviewEvidenceService({ bankPool, identityService }) : null;
   const reviewContext = enableReviewContext ? await createReviewContextService({ bankPool, identityService }) : null;
   const [sources, questions, publication] = await Promise.all([
@@ -216,6 +219,18 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
         }
         const versionId = url.pathname.split('/')[4];
         return jsonResponse(200, await reviewEvidence.read(principal, versionId), requestId);
+      }
+      if (reviewHistory && /^\/api\/v1\/question-versions\/[^/]+\/review-history$/.test(url.pathname)) {
+        if (method !== 'GET') return errorResponse(404, 'NOT_FOUND', requestId);
+        const principal = await identityService.authenticate(request);
+        if (!principal) return errorResponse(401, 'UNAUTHENTICATED', requestId);
+        if (!identityService.mayPerform(principal, 'bank.diagnostics.read')
+            || !principal.roles?.includes('BANK_MANAGER')) return errorResponse(403, 'FORBIDDEN', requestId);
+        if (url.search || request.body !== null || request.headers.has('transfer-encoding')
+            || (request.headers.has('content-length') && request.headers.get('content-length') !== '0')) {
+          return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        }
+        return jsonResponse(200, await reviewHistory.read(principal, url.pathname.split('/')[4]), requestId);
       }
       if (method === 'GET' && url.pathname === '/api/v1/questions') {
         const principal = await identityService.authenticate(request);
