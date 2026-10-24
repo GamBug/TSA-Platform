@@ -124,3 +124,33 @@ fixed diagnostics needs separate manifest/replay/privilege/discovery design; no
 personal run exposure or silent mode mapping. Broader staff API table remains
 proposed, not wholesale approved. No APPROVE/rights-edit/publication action or
 fabricated content/rights/reviewer evidence. Clean reproduction follows commit.
+
+## Clean-checkout reproduction — c158d57
+
+Root `git clone --no-hardlinks --quiet` into owned ignored
+`.local/verification-b6/clean-c158d57`. Actual commands in order:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+TRACK_B_ARTIFACT_DIR=../clean-chrome npm run test:track-b:browser
+STUDENT_FIREFOX_ARTIFACT_DIR=../clean-firefox npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain
+```
+
+All exit0: focused41, Chrome40/20captures, Firefox12/23captures, built/private
+drift/import/docs PASS. This includes final copy and Escape focus repair. Final
+clone Git status empty. No patches/manual SQL/API setup or external paid services;
+fixtures provision/tear down owned synthetic data. Logs under parent `clean-*.log`.
+No private evidence committed. Local engineering reproducibility is not qualified
+content/rights/accessibility, load or production acceptance.
+
+Final content-handoff/fixed-dependency documentation was separately read-reviewed
+by the same actual Sol6.1/Medium read-only agent: no findings; backlog/guide scoped
+whitespace and new-document trailing-whitespace checks PASS. No code/browser tests
+for that documentation-only supplement. This is not qualified content/legal review.

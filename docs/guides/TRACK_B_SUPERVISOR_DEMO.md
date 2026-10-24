@@ -254,3 +254,8 @@ The full lawful starter stock remains a separate human dependency: **12 Mathemat
 independent qualified review. The synthetic demo supplies none of those approvals.
 The staff metadata workspace is separate from this disposable student launcher;
 see [staff capabilities and proposed next contract](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
+
+Real-content acceptance inputs are listed in the separate [content handoff](TRACK_B_CONTENT_HANDOFF.md).
+The demonstration does not supply those human/rights attestations. Remaining fixed
+assembly diagnostics has a [specific contract/service dependency record](../decisions/WEB_002_FIXED_DIAGNOSTICS_DEPENDENCIES.md);
+canonical dataset preflight does not replace it.

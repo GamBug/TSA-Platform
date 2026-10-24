@@ -212,6 +212,15 @@ Reconciliation acceptance (HI-05/MD-05): role-test diagnostic projections and ne
 
 ## DATA-002 — Lawful starter dataset
 
+2026-10-24 current disposition: **HUMAN_APPROVAL_REQUIRED / BLOCKED on actual
+lawful content and named qualified people**, not a routine engineering permission.
+[Exact content/rights/reviewer handoff inputs](../guides/TRACK_B_CONTENT_HANDOFF.md).
+The local synthetic student demo and staff canonical preflight are functional;
+canonical counts are not accepted stock. Target remains12/6/12 with observed
+quota/bundle feasibility, not guaranteed capacity. No actual human identities or
+rights attestations supplied by engineering. Historical Phase02.75 card below
+remains context; owner Track B engineering delegation is recorded in decisions.
+
 Phase 02.75 acceptance: demonstrate two disjoint mini-profile attempts for one student and reuse across two students; report actual quota/bundle-limited capacity, not 30/10 as guaranteed capacity.
 
 - Objective/scope: author the 30-question starter inventory and taxonomy described in MVP; prepare independent reviewer evidence.
@@ -761,7 +770,9 @@ local15/B032/type/build/built/drift/import/Chrome40(20captures)/Firefox12(23capt
 domains78/CLI2 PASS. Separate Sol6.1/Medium PG4/contracts8/type/drift/boundary/
 CLI2/Chrome40/static PASS, no unresolved findings; focus defect reproduced/repaired
 by root and independently verified. [Exact evidence/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
-Luna/XHigh writers released. Clean reproduction follows checkpoint. Fixed manifest
+Luna/XHigh writers released. Clean no-hardlink c158d57 locked install/build/
+focused41/Chrome40/Firefox12/built/drift/import/docs PASS without patches/manual
+SQL/API setup; final clone Git status empty. Fixed manifest
 reuse-mode gap and source-only opaque-import limitation remain explicit; no
 personal run disclosure to general staff or accepted-stock/feasibility claim.
 

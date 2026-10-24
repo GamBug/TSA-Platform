@@ -47,8 +47,10 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - Root-selected under owner engineering-choice delegation; AUTHORIZED_IN_SCOPE /
   IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED. [Exact additive decision/impact/policy](WEB_002_B5_REVIEW_HISTORY_DECISION.md).
 - Current BANK_MANAGER-only bounded private GET/DTO/UI for immutable recorded
-  review decisions, no reviewer identity/content projection. Old approval differs
-  from current workflow and qualification; latest20/truncation is explicit.
+  review decisions, no added structured reviewer identity/question content fields.
+  Stored reason is explicitly verbatim private text and may contain pasted sensitive
+  material; no redaction guarantee. Old approval differs from current workflow and
+  qualification; latest20/truncation is explicit.
 - No B1–B4/root/student/released change, new grant/migration, mutation/APPROVE,
   real-content/human/publication authority. Root backend/HTTP/browser/docs;
   bounded configured Luna/XHigh contract/UI writers, separate Sol6.1/Medium
