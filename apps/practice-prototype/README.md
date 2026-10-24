@@ -93,7 +93,9 @@ NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run d
 
 Open the printed root URL and choose the staff workspace/synthetic AUTHOR for
 preview. Sign out and choose synthetic BANK_MANAGER for the separately approved
-B2 recorded-evidence action. Text/URLs remain inert and are not legal attestation.
+B2 recorded-evidence action. Approved B3 permits explicit AUTHOR_OWN DRAFT handoff
+with confirmation/idempotent recovery, followed by independent REVIEWER queue
+inspection. Text/URLs remain inert; no legal attestation or content approval.
 Ctrl+C deletes only this disposable fixture. This is not qualified content review or
 publication. [Complete walkthrough and mode limits](../../docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
 

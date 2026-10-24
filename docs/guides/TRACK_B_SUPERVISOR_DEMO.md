@@ -121,6 +121,21 @@ private key and explanation; the unsafe synthetic version shows a metadata-only
 CONTENT_UNSUPPORTED block. Close the view by its control or Escape; return/logout
 clears private content. These private reads are denied to ordinary students.
 
+To demonstrate the author-to-reviewer handoff, create a safe original synthetic
+DRAFT through the author form, or inspect one of the three safe fixture versions.
+After explicit AUTHOR_OWN inspection, choose **Chuyển bản nháp vào hàng chờ rà soát**.
+Check the version/hash/revision in the confirmation. Cancel/Escape makes no change;
+confirm once to submit. The receipt and the freshly read workflow state are shown
+separately. A failed connection is uncertain: use the explicit same-request retry,
+never assume success. A conflict offers authoritative reload. Reloading the page
+does not submit again. UNKNOWN rights do not become approved through handoff;
+unsafe content truthfully fails validation.
+
+Sign out and choose synthetic REVIEWER **Người rà soát tổng hợp**. Choose
+**Hàng chờ rà soát**, inspect the exact submitted version and open its recorded
+evidence. This is independent queued-role access, not qualified human review.
+The UI cannot approve content, change rights, reject/quarantine or publish it.
+
 For recorded evidence, sign out and choose synthetic BANK_MANAGER **Quản lý ngân
 hàng câu hỏi tổng hợp**. Select **Xem bằng chứng quyền** for an exact version.
 The separate observation shows version/hash, workflow revision, server observation
@@ -128,8 +143,8 @@ time, current decision ID/revision/status and its recorded text. Markup and URLs
 are inert text; the intentionally hostile synthetic example must not open links
 or load images. Close/Escape restores focus; navigation/logout clears the text.
 The **Hàng chờ rà soát** shortcut selects the existing IN_REVIEW metadata filter.
-An empty queue is truthful: the default four drafts have not been submitted, and
-the shortcut does not submit or approve them.
+An empty queue is truthful until an author explicitly submits a draft; the
+shortcut itself does not submit or approve anything.
 AUTHOR alone and students cannot access evidence. REVIEWER access is limited to current
 independent IN_REVIEW versions; the fixture does not manufacture a human approval.
 This is an unverified administrative claim, including any pasted sensitive text,
@@ -145,7 +160,8 @@ Ctrl+C deletes the **disposable** staff fixture database. By contrast,
 data. Use separate browser profiles/private windows between modes because cookies
 are shared across localhost ports. The [B1 authority](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23)
 grants inspection only. [B2 authority](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23)
-separately grants the bounded recorded-text read. Review decisions, rights edits
+separately grants the bounded recorded-text read. [B3 authority](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24)
+grants only the explicit author draft handoff above. Review decisions, rights edits
 and diagnostics need their own scoped contracts and authorization.
 
 ## Reproduce verification

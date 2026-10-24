@@ -6,8 +6,12 @@ import { fileURLToPath } from "node:url";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffSubmitReviewRequestSchema,
+  StaffSubmitReviewResponseSchema,
   type StaffReviewContext,
   type StaffReviewEvidence,
+  type StaffSubmitReviewRequest,
+  type StaffSubmitReviewResponse,
 } from "../src/staff.ts";
 import { scanConsumerTree, runConsumerBoundaryCheck } from "../scripts/check-consumer-boundaries.ts";
 import { makeStaffReviewContext } from "./fixtures/staff-review-context.ts";
@@ -22,6 +26,15 @@ describe("private staff package boundary", () => {
 
     const evidence: StaffReviewEvidence = StaffReviewEvidenceSchema.parse(makeStaffReviewEvidence());
     assert.equal(evidence.schemaVersion, "staff-review-evidence/1");
+
+    const request: StaffSubmitReviewRequest = StaffSubmitReviewRequestSchema.parse({ expectedRevision: 1 });
+    assert.deepEqual(request, { expectedRevision: 1 });
+    const receipt: StaffSubmitReviewResponse = StaffSubmitReviewResponseSchema.parse({
+      versionId: "44444444-4444-4444-8444-444444444444",
+      state: "IN_REVIEW",
+      revision: 2,
+    });
+    assert.equal(receipt.state, "IN_REVIEW");
   });
 
   it("keeps staff imports outside the designated student consumer graph", () => {

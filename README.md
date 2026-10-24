@@ -87,6 +87,8 @@ isolated original synthetic preview/evidence view in a fresh disposable database
 NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review
 ```
 
+Approved B3 adds explicit owned-DRAFT handoff, confirmation and same-request retry,
+then independent reviewer queue access; it does not approve or publish content.
 Use the [staff walkthrough](docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
 Inspection grants no qualified review, rights attestation or publication capability.
 

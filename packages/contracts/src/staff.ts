@@ -346,3 +346,22 @@ export const StaffReviewEvidenceSchema = StaffReviewEvidenceObjectSchema.superRe
 });
 
 export type StaffReviewEvidence = z.infer<typeof StaffReviewEvidenceSchema>;
+
+/** Strict private request DTO for POST /api/v1/question-versions/{versionId}/submit-review. */
+const PositiveSafeRevision = z.number().int().min(1).max(Number.MAX_SAFE_INTEGER);
+
+export const StaffSubmitReviewRequestSchema = z
+  .object({ expectedRevision: PositiveSafeRevision })
+  .strict();
+
+/** Strict operation receipt for the existing Bank submit-review command. */
+export const StaffSubmitReviewResponseSchema = z
+  .object({
+    versionId: UUID,
+    state: z.literal("IN_REVIEW"),
+    revision: PositiveSafeRevision,
+  })
+  .strict();
+
+export type StaffSubmitReviewRequest = z.infer<typeof StaffSubmitReviewRequestSchema>;
+export type StaffSubmitReviewResponse = z.infer<typeof StaffSubmitReviewResponseSchema>;

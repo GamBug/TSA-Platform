@@ -909,11 +909,134 @@ try {
     'all B2 UI evidence requests are bodyless GETs');
   report.checks.push('candidate has no evidence action and direct exact-version evidence access is denied with 403 FORBIDDEN');
 
-  // Populate a queued synthetic version through the existing trusted service;
-  // this is setup only, never a review/approval operation exposed by the UI.
-  const queuedVersion = reviewFixture.questions[0];
+  // B3 command UI uses actual PostgreSQL; interceptions model only response loss,
+  // delayed delivery and unavailable follow-up reads around real accepted POSTs.
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'author login for explicit draft handoff');
+  await evaluate(`${query('actor-select')}.value='author'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('draft-create')})`, 'author creation before handoff');
+  await evaluate(`(()=>{
+    const original=window.fetch;
+    window.__b3={posts:[],created:[],dropNext:false,failReads:false,holdNext:false,held:false,release:null};
+    window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);
+      const method=(init.method??'GET').toUpperCase();
+      if(window.__b3.failReads&&method==='GET'&&(url.pathname==='/api/v1/questions'||url.pathname.endsWith('/review-context')))
+        return new Response(JSON.stringify({error:{code:'TEMPORARILY_UNAVAILABLE'}}),{status:503,headers:{'content-type':'application/json'}});
+      const response=await original(input,init);
+      if(method==='POST'&&url.pathname==='/api/v1/questions'&&response.status===201)window.__b3.created.push(await response.clone().json());
+      if(method==='POST'&&url.pathname.endsWith('/submit-review')){
+        const headers=new Headers(init.headers);
+        window.__b3.posts.push({path:url.pathname,key:headers.get('idempotency-key'),csrfPresent:Boolean(headers.get('x-csrf-token')),body:JSON.parse(init.body),status:response.status});
+        if(response.status===200&&window.__b3.dropNext){window.__b3.dropNext=false;throw new TypeError('Synthetic lost handoff success response');}
+        if(response.status===200&&window.__b3.holdNext){window.__b3.holdNext=false;window.__b3.held=true;await new Promise(resolve=>window.__b3.release=resolve);}
+      }
+      return response;
+    };
+  })()`);
+  await evaluate(`${query('draft-prompt')}.value='Bản nháp B3 tổng hợp do tác giả tạo qua giao diện; không phải nội dung kỳ thi.'`);
+  await click('draft-create');
+  await waitFor('window.__b3.created.length===1', 'real author form draft receipt');
+  const queuedVersion=await evaluate('window.__b3.created[0]');
+  async function inspectHandoffVersion(version) {
+    await click('staff-refresh');
+    const selector=`[data-testid="staff-review-inspect"][data-version-id="${version.versionId}"]`;
+    await waitFor(`Boolean(document.querySelector(${JSON.stringify(selector)}))`, 'handoff version metadata row');
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
+    await pressKey('Enter','Enter',13,String.fromCharCode(13));
+    await waitFor(`Boolean(${query('handoff-open')})`, 'fresh AUTHOR_OWN DRAFT handoff action');
+  }
+  async function openHandoffDialog() {
+    await click('handoff-open');
+    await waitFor(`${query('handoff-dialog')}?.open===true`, 'explicit handoff confirmation');
+  }
+  const receiptTarget=reviewFixture.questions[0];
+  await inspectHandoffVersion(receiptTarget);
+  await openHandoffDialog();
+  const confirmationText=await evaluate(`${query('handoff-dialog')}.textContent`);
+  assert.equal(confirmationText.includes(receiptTarget.versionId),true);
+  assert.equal(confirmationText.includes(receiptTarget.contentHash),true);
+  assert.equal(await evaluate(`${query('handoff-dialog-revision')}.textContent`),'1');
+  assert.equal(await evaluate(`document.activeElement===${query('handoff-cancel')}`),true,'confirmation initially focuses Cancel');
+  assert.equal((await evaluate('window.__b3.posts')).length,0,'opening confirmation sends no POST');
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});
+  await noHorizontalOverflow();
+  await screenshot('staff-handoff-confirm-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await click('handoff-cancel');
+  await waitFor(`!${query('handoff-dialog')}?.open`, 'explicit confirmation cancellation');
+  assert.equal(await evaluate(`document.activeElement===${query('handoff-open')}`),true);
+  await openHandoffDialog();
+  await pressKey('Escape','Escape',27,String.fromCharCode(27));
+  await waitFor(`!${query('handoff-dialog')}?.open`, 'native confirmation Escape');
+  assert.equal((await evaluate('window.__b3.posts')).length,0,'Cancel/Escape have no command side effects');
+  await openHandoffDialog();
+  await evaluate('window.__b3.dropNext=true');
+  await click('handoff-confirm');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='uncertain'`, 'uncertain lost success response');
+  assert.equal(await evaluate(`Boolean(${query('handoff-retry')})`),true);
+  assert.equal((await evaluate('window.__b3.posts')).length,1);
+  await reviewFixture.fixture.workflow.quarantine(reviewFixture.fixture.principals.bankManager,
+    receiptTarget.versionId,randomUUID(),{expectedRevision:2,reason:'Synthetic receipt replay after a newer hold, not UI approval.'});
+  await evaluate('window.__b3.failReads=true');
+  await click('handoff-retry');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='acknowledged' && ${query('handoff-status')}?.textContent.includes('chưa khả dụng')`, 'receipt acknowledged while current reads unavailable');
+  const retriedPosts=await evaluate('window.__b3.posts');
+  assert.equal(retriedPosts.length,2);assert.equal(retriedPosts[0].key,retriedPosts[1].key);
+  assert.deepEqual(retriedPosts[0].body,retriedPosts[1].body);
+  assert.deepEqual(retriedPosts[0].body,{expectedRevision:1});
+  assert.equal(retriedPosts.every(post=>post.csrfPresent&&post.status===200),true);
+  assert.equal(await evaluate(`Boolean(${query('handoff-retry')})`),false,'acknowledged operation is not automatically retried');
+  await evaluate('window.__b3.failReads=false');
+  await click('handoff-reload');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='acknowledged' && ${query('handoff-status')}?.textContent.includes('QUARANTINED')`, 'new current state is distinct from replayed IN_REVIEW receipt');
+  assert.equal((await evaluate('window.__b3.posts')).length,2,'authoritative reload uses reads only');
+  report.checks.push('B3 confirmation cancel/Escape sends no command; lost real success retries the same body/key, and replayed receipt is kept separate from unavailable or newer QUARANTINED state');
+
+  const staleVersion=reviewFixture.questions[1];
+  await inspectHandoffVersion(staleVersion);
+  await openHandoffDialog();
   await reviewFixture.fixture.workflow.submitReview(reviewFixture.fixture.principals.author,
-    queuedVersion.versionId, randomUUID(), { expectedRevision: 1 });
+    staleVersion.versionId,randomUUID(),{expectedRevision:1});
+  await click('handoff-confirm');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='rejected'`, 'actual stale-revision rejection');
+  assert.equal(await evaluate(`Boolean(${query('handoff-retry')})`),false,'known conflict cannot retry old intent');
+  await click('handoff-reload');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='reloaded' && ${query('handoff-status')}?.textContent.includes('IN_REVIEW')`, 'fresh state after real conflict');
+  report.checks.push('B3 actual stale revision returns a truthful rejection and authoritative read; it never silently resubmits a new revision');
+
+  await inspectHandoffVersion(queuedVersion);
+  await openHandoffDialog();
+  await click('handoff-confirm');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='acknowledged' && ${query('handoff-status')}?.textContent.includes('Trạng thái hiện tại được máy chủ ghi nhận')`, 'normal author form→handoff acknowledgement and current read');
+  assert.equal(await evaluate(`${query('handoff-status')}.textContent.includes('IN_REVIEW')`),true);
+  const postCountBeforeReload=networkOperations.filter(({url,method})=>method==='POST'&&url.endsWith('/submit-review')).length;
+  await command('Page.reload',{});
+  await waitFor(`Boolean(${query('staff-open')})`, 'landing after handoff page reload');
+  await click('staff-open');
+  await waitFor(`Boolean(${query('draft-create')})`, 'persistent author identity after reload');
+  assert.equal(networkOperations.filter(({url,method})=>method==='POST'&&url.endsWith('/submit-review')).length,postCountBeforeReload,'page reload never creates another handoff');
+  assert.equal(await evaluate(`Boolean(${query('handoff-status')})`),false,'reload does not fabricate an old intent');
+  report.checks.push('B3 real author form creation→inspection→explicit handoff observes IN_REVIEW; page reload performs reads without another POST');
+
+  // A real accepted command can finish after logout; only its UI completion is discarded.
+  await evaluate(`(()=>{const original=window.fetch;window.__b3LateHeld=false;window.__b3LateRelease=null;window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if((init.method??'GET').toUpperCase()==='POST'&&url.pathname.endsWith('/submit-review')&&response.status===200){window.__b3LateHeld=true;await new Promise(resolve=>window.__b3LateRelease=resolve);}return response;};})()`);
+  await inspectHandoffVersion(reviewFixture.questions[2]);
+  await openHandoffDialog();
+  await click('handoff-confirm');
+  await waitFor('window.__b3LateHeld===true','real accepted handoff held before logout');
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`, 'login after handoff logout');
+  await evaluate(`${query('actor-select')}.value='reviewer'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-queue')})`, 'reviewer identity while old command response is held');
+  await evaluate('window.__b3LateRelease()');
+  await new Promise(resolve=>setTimeout(resolve,100));
+  assert.equal(await evaluate(`Boolean(${query('handoff-status')})`),false,'late author completion cannot restore a status panel under reviewer identity');
+  assert.equal(await evaluate(`Boolean(${query('handoff-open')})`),false,'reviewer has no author handoff control');
+  report.checks.push('B3 accepted handoff survives on the server while logout/identity fencing discards its late author UI completion');
+
   await click('staff-logout');
   await waitFor(`Boolean(${query('staff-login')})`, 'review queue synthetic reviewer login');
   await evaluate(`${query('actor-select')}.value='reviewer'`);
@@ -921,7 +1044,7 @@ try {
   await waitFor(`Boolean(${query('staff-review-queue')})`, 'review queue shortcut');
   await evaluate(`${query('staff-review-queue')}.focus()`);
   await pressKey('Enter','Enter',13,String.fromCharCode(13));
-  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===1 && ${query('staff-question-list')}?.innerText.includes(${JSON.stringify(queuedVersion.versionId)}))`, 'exact queued version through approved metadata filter');
+  await waitFor(`Boolean(${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===3 && ${query('staff-question-list')}?.innerText.includes(${JSON.stringify(queuedVersion.versionId)}))`, 'exact queued version through approved metadata filter');
   assert.equal(await evaluate(`${query('staff-state-filter')}.value`),'IN_REVIEW');
   assert.equal(await evaluate(`${query('staff-section-filter')}.value`),'');
   const queuedEvidence = `[data-testid="staff-review-evidence-open"][data-version-id="${queuedVersion.versionId}"]`;

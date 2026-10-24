@@ -977,3 +977,27 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-review-evidence-source { padding: 12px; }
   .staff-review-evidence-text { padding: 11px; }
 }
+
+/* Explicit private author handoff and truthful operation recovery. */
+.staff-handoff-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; padding: 14px 16px; border: 1px solid #cfd7f2; border-radius: 10px; background: #f8f9ff; }
+.staff-handoff-panel.is-error { border-color: #e5b7b7; background: #fff8f8; }
+.staff-handoff-panel .staff-handoff-message, .staff-handoff-panel .notice-panel { flex: 1 1 340px; margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
+.staff-handoff-panel [data-testid="handoff-status"]:focus { outline: 3px solid #f0a64f; outline-offset: 3px; }
+.staff-handoff-panel .button { flex: 0 0 auto; }
+.staff-handoff-dialog { width: min(600px, calc(100% - 32px)); max-height: min(90vh, 760px); overflow-y: auto; padding: 26px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow); }
+.staff-handoff-dialog::backdrop { background: rgba(16, 24, 40, .58); }
+.staff-handoff-dialog h2 { margin-bottom: 12px; font-size: clamp(1.25rem, 4vw, 1.7rem); line-height: 1.2; }
+.staff-handoff-dialog-description { margin-bottom: 18px; color: #765824; line-height: 1.6; }
+.staff-handoff-dialog-metadata { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 8px 14px; margin: 0; line-height: 1.5; }
+.staff-handoff-dialog-metadata dt { color: var(--muted); font-weight: 700; }
+.staff-handoff-dialog-metadata dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+.staff-handoff-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+@media (max-width: 680px) {
+  .staff-handoff-panel { align-items: stretch; padding: 12px; }
+  .staff-handoff-panel .button { width: 100%; }
+  .staff-handoff-dialog { padding: 20px; }
+  .staff-handoff-dialog-metadata { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .staff-handoff-dialog-metadata dd:not(:last-child) { margin-bottom: 8px; }
+  .staff-handoff-dialog-actions { flex-direction: column-reverse; }
+  .staff-handoff-dialog-actions .button { width: 100%; }
+}

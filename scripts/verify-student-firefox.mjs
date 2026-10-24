@@ -193,6 +193,52 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`document.body.textContent.includes(${JSON.stringify(staffFixture.evidenceText)})`),false,'logout clears evidence text');
   report.checks.push('B2 BANK_MANAGER explicit exact-version current evidence is inert verbatim text, actual narrow/desktop readable, W3C Escape restores focus and logout clears it');
 
+  await evaluate(`${query('actor-select')}.value='author'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('draft-create')})`,'B3 author workspace');
+  const b3InspectSelector=`[data-testid="staff-review-inspect"][data-version-id="${selected.versionId}"]`;
+  const b3Inspect=await wd('POST','/element',{using:'css selector',value:b3InspectSelector});
+  await wd('POST',`/element/${b3Inspect['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`Boolean(${query('handoff-open')})`,'fresh author-owned draft handoff');
+  await evaluate(`(()=>{const original=window.fetch;window.__staffB3Posts=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if((init.method??'GET').toUpperCase()==='POST'&&url.pathname.endsWith('/submit-review'))window.__staffB3Posts.push({status:response.status,body:JSON.parse(init.body),key:new Headers(init.headers).get('idempotency-key')});return response;};})()`);
+  await click('handoff-open');
+  await waitFor(`${query('handoff-dialog')}?.open===true`,'native handoff confirmation');
+  assert.equal(await evaluate(`${query('handoff-dialog-version')}.textContent`),selected.versionId);
+  assert.equal(await evaluate(`${query('handoff-dialog-hash')}.textContent`),selected.contentHash);
+  assert.equal(await evaluate(`document.activeElement===${query('handoff-cancel')}`),true,'confirmation focuses cancel');
+  await wd('POST','/actions',{actions:[{type:'key',id:'handoff-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  await waitFor(`!${query('handoff-dialog')}?.open`,'native Escape cancels without submit');
+  assert.equal(await evaluate('window.__staffB3Posts.length'),0);
+  assert.equal(await evaluate(`document.activeElement===${query('handoff-open')}`),true,'confirmation cancellation restores focus');
+  await click('handoff-open');
+  const handoffNarrow=await setViewport(narrowMeasured.innerWidth,812,'handoff narrow actual viewport');
+  await capture(`staff-handoff-confirm-narrow-${handoffNarrow.innerWidth}`);
+  await setViewport(1280,900,'handoff desktop');
+  await capture('staff-handoff-confirm-desktop');
+  await click('handoff-confirm');
+  await waitFor(`${query('handoff-status')}?.dataset.stage==='acknowledged' && ${query('handoff-status')}?.textContent.includes('Trạng thái hiện tại được máy chủ ghi nhận')`,'receipt and fresh IN_REVIEW observation');
+  assert.equal(await evaluate(`${query('handoff-status')}.textContent.includes('IN_REVIEW')`),true);
+  const handoffPosts=await evaluate('window.__staffB3Posts');
+  assert.equal(handoffPosts.length,1);assert.equal(handoffPosts[0].status,200);
+  assert.deepEqual(handoffPosts[0].body,{expectedRevision:1});
+  assert.equal(typeof handoffPosts[0].key,'string');
+  await evaluate(`${query('handoff-status')}.scrollIntoView({block:'center'})`);
+  await capture('staff-handoff-current-state');
+  await click('staff-logout');
+  await waitFor(`Boolean(${query('staff-login')})`,'reviewer login after handoff');
+  await evaluate(`${query('actor-select')}.value='reviewer'`);
+  await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-queue')})`,'independent reviewer queue shortcut');
+  await click('staff-review-queue');
+  await waitFor(`${query('staff-question-list')}?.innerText.includes(${JSON.stringify(selected.versionId)})`,'actual author-submitted version in reviewer queue');
+  const b3EvidenceSelector=`[data-testid="staff-review-evidence-open"][data-version-id="${selected.versionId}"]`;
+  const b3Evidence=await wd('POST','/element',{using:'css selector',value:b3EvidenceSelector});
+  await wd('POST',`/element/${b3Evidence['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`${query('staff-review-evidence')}?.textContent.includes('REVIEW_QUEUE')`,'independent reviewer evidence after real handoff');
+  assert.equal(await evaluate(`${query('staff-recorded-evidence-text')}.textContent`),staffFixture.evidenceText);
+  assert.equal(await evaluate(`Boolean(${query('handoff-open')})`),false,'reviewer receives no author mutation control');
+  report.checks.push('B3 Firefox native confirmation/Escape/focus and one actual author POST; acknowledged receipt plus fresh current state, then independent reviewer queue/evidence');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

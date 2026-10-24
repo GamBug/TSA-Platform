@@ -72,6 +72,20 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Approved B3.1 author handoff addendum — 2026-10-24
+
+Owner whole-B3.1 approval: [exact frozen scope](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md),
+[authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24).
+The existing submit-review POST now has strict private request/receipt schemas,
+operation/header/body artifact and explicit local AUTHOR_OWN DRAFT UI confirmation.
+Existing backend AUTHOR/created_by policy is unchanged. An idempotent receipt is
+separate from current workflow observation; failed/uncertain transport is never
+shown as success, and retry retains the same captured body/key. B1/B2 GET types and
+all student/released/public contracts remain stable. No new route/grant/migration,
+review decision, rights edit, quarantine or publication UI.
+[Actual implementation and review](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md).
+The broader staff table below remains proposed except specifically approved scope.
+
 ### Approved B2.1 recorded evidence addendum — 2026-10-23
 
 The owner approved exact [B2.1](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md);

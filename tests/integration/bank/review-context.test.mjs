@@ -11,7 +11,7 @@ import { createDatabasePool, withTransaction } from '../../../src/modules/databa
 import { inspectionImportPackage } from './review-import-fixture.mjs';
 import { createFactoryImportService } from '../../../src/modules/bank/factory-import.mjs';
 import { createReviewEvidenceService } from '../../../src/modules/bank/review-evidence.mjs';
-import { StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { StaffSubmitReviewResponseSchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 
 let f, pool, author, reviewer, manager, candidate, examManager;
 const evidencePath = (id) => `/api/v1/question-versions/${id}/review-evidence`;
@@ -494,4 +494,104 @@ test('B2 JSON-escaped per-evidence and total serialized response bounds fail clo
   for(const source of sources) await grant(source,{evidence:'e'.repeat(60000)});
   const totalError=await success(await bankRequest(f,manager,evidencePath(draft.versionId)),503);
   assert.doesNotMatch(JSON.stringify(totalError),/recordedEvidence|sourceVersionId|eeeeeee/);
+});
+
+
+const handoffPath = (id) => `/api/v1/question-versions/${id}/submit-review`;
+async function handoff(browser, id, { expectedRevision = 1, key = randomUUID(), omitKey = false, ...options } = {}, status = 200) {
+  const response=await bankRequest(f,browser,handoffPath(id),{method:'POST',key:omitKey?undefined:key,body:{expectedRevision},...options});
+  if(status!==200) return success(response,status);
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get('cache-control'),'no-store');
+  assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+  return StaffSubmitReviewResponseSchema.parse(await response.json());
+}
+
+test('B3 HTTP handoff writes only expected workflow/validation/delivery/audit/receipt rows, same-key concurrency is exactly once, replay is historical', async () => {
+  const draft=await createDraft();
+  const inspected=await success(await bankRequest(f,author,pathFor(draft.versionId)));
+  assert.equal(inspected.accessBasis,'AUTHOR_OWN');assert.equal(inspected.workflow.state,'DRAFT');
+  const before=await databaseSnapshot(),key=randomUUID();
+  const [first,second]=await Promise.all([handoff(author,draft.versionId,{key}),handoff(author,draft.versionId,{key})]);
+  assert.deepEqual(first,{versionId:draft.versionId,state:'IN_REVIEW',revision:2});assert.deepEqual(second,first);
+  const after=await databaseSnapshot();
+  const changed=Object.keys(before).filter((table)=>before[table].hash!==after[table].hash).sort();
+  assert.deepEqual(changed,[
+    'tsa.audit_events','tsa.idempotency_records','tsa.question_workflow','tsa.validation_runs',
+    'tsa_private.question_delivery_checks','tsa_private.question_source_dependencies',
+  ].sort());
+  for(const table of changed) assert.equal(after[table].count-before[table].count,table==='tsa.question_workflow'?0:1,table);
+  await handoff(author,draft.versionId,{key,expectedRevision:2},409);
+  assert.deepEqual(await databaseSnapshot(),after,'changed-key-body failure cannot mutate any application row');
+  assert.equal((await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)))).accessBasis,'REVIEW_QUEUE');
+  await f.fixture.workflow.quarantine(await principal(manager),draft.versionId,randomUUID(),{expectedRevision:2,reason:'Synthetic B3 receipt/current-state distinction.'});
+  const held=await databaseSnapshot();
+  assert.deepEqual(await handoff(author,draft.versionId,{key}),first,'replay is the operation receipt even after workflow advances');
+  assert.deepEqual(await databaseSnapshot(),held,'replayed receipt appends no extra validation/audit/cache/receipt rows');
+  const current=await success(await bankRequest(f,author,pathFor(draft.versionId)));
+  assert.equal(current.workflow.state,'QUARANTINED');assert.equal(current.workflow.revision,3);
+  assert.equal(current.version.contentHash,draft.contentHash);
+});
+
+test('B3 real mutation boundary preserves Origin/CSRF/current roles and existing foreign-creator policy', async () => {
+  const draft=await createDraft();
+  const url=f.origin+handoffPath(draft.versionId);
+  await success(await fetch(url,{method:'POST',headers:{origin:f.origin,'content-type':'application/json'},body:'{"expectedRevision":1}'}),401);
+  await success(await fetch(url,{method:'POST',headers:{origin:f.origin,cookie:author.cookies.join('; '),'content-type':'application/json','idempotency-key':randomUUID()},body:'{"expectedRevision":1}'}),403);
+  await success(await fetch(url,{method:'POST',headers:{origin:'https://invalid.example',cookie:author.cookies.join('; '),'x-csrf-token':author.csrf,'content-type':'application/json','idempotency-key':randomUUID()},body:'{"expectedRevision":1}'}),403);
+  for(const browser of [candidate,reviewer,manager,examManager]) await handoff(browser,draft.versionId,{},403);
+  const foreignAuthor=await loginActor(f,'authorReviewer');
+  await handoff(foreignAuthor,draft.versionId,{},403);
+  const authorId=f.fixture.principals.author.userId;
+  await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='AUTHOR'",[authorId]);
+  try {await handoff(author,draft.versionId,{},403);}
+  finally {await pool.query("INSERT INTO tsa.user_roles(user_id,role) VALUES($1,'AUTHOR')",[authorId]);}
+  const current=await success(await bankRequest(f,author,pathFor(draft.versionId)));
+  assert.equal(current.workflow.state,'DRAFT');assert.equal(current.workflow.revision,1);
+});
+
+test('B3 actual HTTP malformed paths/query/body/keys and stale state remain private-safe and do not silently refresh revisions', async () => {
+  const draft=await createDraft();
+  await handoff(author,randomUUID(),{},404);
+  await handoff(author,'not-a-uuid',{},404);
+  const cases=[
+    {omitKey:true}, {key:'contains space'}, {key:'k'.repeat(129)},
+    {body:{expectedRevision:0}}, {body:{expectedRevision:1,actorId:randomUUID()}},
+    {rawBody:'{',body:undefined}, {query:'unexpected=1'},
+  ];
+  for(const options of cases) await handoff(author,draft.versionId,options,options.rawBody?400:422);
+  await handoff(author,draft.versionId,{expectedRevision:2},409);
+  await handoff(author,draft.versionId);
+  const conflict=await handoff(author,draft.versionId,{},409);
+  assert.equal(conflict.error.code,'REVISION_CONFLICT');
+  const stateConflict=await handoff(author,draft.versionId,{expectedRevision:2},409);
+  assert.equal(stateConflict.error.code,'CONCURRENT_MODIFICATION');
+  assert.doesNotMatch(JSON.stringify(stateConflict),/answerKey|explanation|provenance|SELECT|reference_namespace/);
+});
+
+test('B3 unsafe-content validation rolls back the entire command with no receipt, rights or publication mutation', async () => {
+  const draft=f.questions[3],before=await databaseSnapshot();
+  const error=await handoff(author,draft.versionId,{},422);
+  assert.equal(error.error.code,'VALIDATION_ERROR');
+  assert.deepEqual(await databaseSnapshot(),before);
+  assert.equal((await success(await bankRequest(f,author,pathFor(draft.versionId)))).workflow.state,'DRAFT');
+});
+
+test('B3 UNKNOWN-rights author draft can enter queue without approving rights or exposing blocked content', async () => {
+  const source=await f.fixture.registerSource();
+  const draft=await createDraft({source});
+  await grant(source,{status:'UNKNOWN',evidence:'Unverified synthetic B3 administrative claim.'});
+  assert.equal((await success(await bankRequest(f,author,pathFor(draft.versionId)))).preview.reason,'RIGHTS_BLOCKED');
+  const before=await databaseSnapshot();
+  await handoff(author,draft.versionId);
+  const after=await databaseSnapshot();
+  for(const table of ['tsa.sources','tsa.source_versions','tsa.source_rights','tsa.rights_decisions','tsa.questions','tsa.reviews']) {
+    assert.ok(before[table],table); assert.deepEqual(after[table],before[table],table);
+  }
+  const current=await success(await bankRequest(f,reviewer,pathFor(draft.versionId)));
+  assert.equal(current.accessBasis,'REVIEW_QUEUE');assert.equal(current.workflow.state,'IN_REVIEW');
+  assert.deepEqual(current.preview,{status:'BLOCKED',reason:'RIGHTS_BLOCKED'});
+  const evidence=await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)));
+  assert.equal(evidence.sources[0].currentDecision.status,'UNKNOWN');
+  assert.equal(evidence.sources[0].currentDecision.recordedEvidence.text,'Unverified synthetic B3 administrative claim.');
 });

@@ -88,3 +88,14 @@ close/Escape/focus restoration and logout/navigation clearing. Record actual
 browser/AT/native zoom and human findings as above. Automated375px Chromium and
 actual500px Firefox are engineering evidence; human outcomes remain NOT TESTED.
 No rights, review, publication or qualified-human decision should be entered.
+
+
+## Separate private staff B3 handoff — MANUAL_CHECK_PENDING
+
+From an explicit AUTHOR_OWN DRAFT inspection, assess handoff control naming,
+native confirmation version/hash/revision, initial Cancel focus, Tab/Shift+Tab,
+Escape/Cancel focus restoration and explicit confirmation. Assess announced pending/
+uncertain/retry/conflict states and the distinction between receipt acknowledgement
+and freshly observed current state/unavailable status. Check native zoom and mobile
+content/controls. No qualified human outcomes are recorded yet; Chrome/Firefox
+engineering checks do not fill these cells. Do not approve real content or rights.

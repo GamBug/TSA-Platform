@@ -10,7 +10,8 @@ const [contracts, routes] = await Promise.all([
   import("../src/staff-routes.ts"),
 ]);
 
-type RouteTable = Readonly<Record<string, RouteDefinitionValue>>;
+type StaffRouteDefinition = RouteDefinitionValue & { readonly description?: string };
+type RouteTable = Readonly<Record<string, StaffRouteDefinition>>;
 
 function buildStaffDocument(table: RouteTable): Record<string, unknown> {
   const registry = new OpenAPIRegistry();
@@ -24,6 +25,26 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     StaffNotFoundResponse: routes.StaffNotFoundResponseSchema,
     StaffValidationErrorResponse: routes.StaffValidationErrorResponseSchema,
     StaffTemporarilyUnavailableResponse: routes.StaffTemporarilyUnavailableResponseSchema,
+    StaffSubmitReviewRequest: contracts.StaffSubmitReviewRequestSchema,
+    StaffSubmitReviewResponse: contracts.StaffSubmitReviewResponseSchema,
+    StaffSubmitReviewPathParams: routes.StaffSubmitReviewPathParamsSchema,
+    StaffSubmitReviewRequestHeaders: routes.StaffSubmitReviewRequestHeadersSchema,
+    StaffSubmitReviewMalformedJsonResponse: routes.StaffSubmitReviewMalformedJsonResponseSchema,
+    StaffSubmitReviewUnauthenticatedResponse: routes.StaffSubmitReviewUnauthenticatedResponseSchema,
+    StaffSubmitReviewForbiddenResponse: routes.StaffSubmitReviewForbiddenResponseSchema,
+    StaffSubmitReviewCsrfFailedResponse: routes.StaffSubmitReviewCsrfFailedResponseSchema,
+    StaffSubmitReviewCsrfOrForbiddenResponse: routes.StaffSubmitReviewCsrfOrForbiddenResponseSchema,
+    StaffSubmitReviewNotFoundResponse: routes.StaffSubmitReviewNotFoundResponseSchema,
+    StaffSubmitReviewIdempotencyConflictResponse: routes.StaffSubmitReviewIdempotencyConflictResponseSchema,
+    StaffSubmitReviewRevisionConflictResponse: routes.StaffSubmitReviewRevisionConflictResponseSchema,
+    StaffSubmitReviewConcurrentModificationResponse: routes.StaffSubmitReviewConcurrentModificationResponseSchema,
+    StaffSubmitReviewConflictResponse: routes.StaffSubmitReviewConflictResponseSchema,
+    StaffSubmitReviewPayloadTooLargeResponse: routes.StaffSubmitReviewPayloadTooLargeResponseSchema,
+    StaffSubmitReviewValidationErrorResponse: routes.StaffSubmitReviewValidationErrorResponseSchema,
+    StaffSubmitReviewRightsBlockedResponse: routes.StaffSubmitReviewRightsBlockedResponseSchema,
+    StaffSubmitReviewConstraintConflictResponse: routes.StaffSubmitReviewConstraintConflictResponseSchema,
+    StaffSubmitReviewValidationResponse: routes.StaffSubmitReviewValidationResponseSchema,
+    StaffSubmitReviewTemporarilyUnavailableResponse: routes.StaffSubmitReviewTemporarilyUnavailableResponseSchema,
   };
   const refs = new Map<z.ZodType, z.ZodType>();
   for (const [name, schema] of Object.entries(components)) refs.set(schema, registry.register(name, schema));
@@ -32,6 +53,16 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     const request: NonNullable<RouteConfig["request"]> = {};
     if (route.params !== undefined) {
       request.params = refs.get(route.params) as RouteConfig["request"] extends { params?: infer P } ? P : never;
+    }
+    if (route.headers !== undefined) {
+      request.headers = refs.get(route.headers) as NonNullable<RouteConfig["request"]>["headers"];
+    }
+    if (route.body !== undefined) {
+      request.body = {
+        ...(route.description === undefined ? {} : { description: route.description }),
+        required: true,
+        content: { "application/json": { schema: refs.get(route.body) ?? route.body } },
+      };
     }
 
     const responses: RouteConfig["responses"] = {};
@@ -49,6 +80,7 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
       method: route.method.toLowerCase() as RouteConfig["method"],
       path: route.path,
       summary: route.summary,
+      ...(route.description === undefined ? {} : { description: route.description }),
       request,
       responses,
     });
@@ -58,8 +90,8 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     openapi: "3.1.0",
     info: {
       title: "TSA Platform private staff API contracts",
-      version: "staff-review-context/1",
-      description: "One private inspection operation for the local synthetic staff runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+      version: "staff-contracts/1",
+      description: "Private staff inspection, evidence, and author handoff operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     },
   }) as unknown as Record<string, unknown>;
 }

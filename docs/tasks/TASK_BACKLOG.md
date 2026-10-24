@@ -750,6 +750,34 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 B3.1 **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** from5c1bded.
+Exact approved explicit fresh AUTHOR_OWN DRAFT confirmation/one captured intent/
+same-body-key uncertain retry/current receipt versus fresh observation delivered;
+strict additive private POST DTO/artifact, existing server policy/services unchanged.
+Native configured Luna/XHigh private-contract and UI/CSS delegates completed/released;
+root integration/HTTPDB/browser/Firefox/CLI/docs. Actual focused27/Bank121/local15/
+B032/contracts125/consumer11/type/build/built/drift/import PASS; Chrome28checks/12
+screenshots at375/375/scale1, Firefox156 student+B1/B2/B3 at1280/actual500 and domains78
+PASS. Separate Sol6.1/Medium repaired/rechecked P3 missing dialog ID, final no
+unresolved findings; independently focused27/contracts21/type/drift/boundary/syntax/
+Chrome28 PASS. Firefox inspection only. Latest CLI2 expanded to handoff→reviewer
+queue/evidence and terminal-safe cleanup, coordinator PASS. [Exact evidence/limits](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md).
+No backend/HTTP/ownership/grant/migration/student contract change or human review/
+rights/quarantine/publication UI. Next checkpoint/clean reproduction; full WEB-002
+and qualified human prerequisites remain open. Historical approval-start notes
+below are superseded by these results.
+
+2026-10-24 **B3.1 APPROVED / IMPLEMENTATION_IN_PROGRESS**, starting5c1bded.
+[Exact owner instruction/hash](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24).
+Root accountable, owns HTTP/DB acceptance/browser/Firefox/launcher and coordinated
+records. Explicitly disjoint native Luna/XHigh delegates may own private contracts
+or UI/CSS; separate Sol6.1/Medium read-only review after integration. Existing
+subscriptions/no paidAPI. Acceptance follows frozen B3.1: explicit AUTHOR_OWN DRAFT
+confirmation, same-intent uncertain retry, actual receipt/current read distinction,
+role/CSRF/ownership/revision/idempotency/atomic write boundaries and real browser
+handoff→independent reviewer queue. No backend policy/grant/migration changes.
+Owner AGENTS/research and frozen B1/B2/B3 preserved. Runtime checks pending.
+
 2026-10-24 existing metadata queue shortcut **IMPLEMENTED / AUTOMATED_PASS /
 INDEPENDENTLY_REVIEWED** after9d98687. Root UI/browser only, existing filtered GET,
 no new routes/fields/privileges/defaults or workflow commands. Actual Chrome24/11

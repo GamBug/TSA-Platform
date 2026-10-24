@@ -20,8 +20,13 @@ type StaffDocument = {
   openapi?: string;
   paths?: Record<string, Record<string, {
     operationId?: string;
-    requestBody?: unknown;
-    parameters?: Array<{ in?: string; name?: string }>;
+    description?: string;
+    requestBody?: {
+      required?: boolean;
+      description?: string;
+      content?: Record<string, { schema?: unknown }>;
+    };
+    parameters?: Array<{ in?: string; name?: string; required?: boolean }>;
     responses?: Record<string, {
       description?: string;
       content?: Record<string, { schema?: unknown }>;
@@ -31,8 +36,8 @@ type StaffDocument = {
   components?: { schemas?: Record<string, unknown> };
 };
 
-describe("dedicated private staff GET artifacts", () => {
-  it("describes exact B1/B2 GETs and leaves the student registry separate", async () => {
+describe("dedicated private staff artifacts", () => {
+  it("describes exact B1/B2 GETs and the B3.1 POST while leaving the student registry separate", async () => {
     const artifact = staffStableJson(generateStaffContractsOpenApi());
     assert.equal(artifact, staffStableJson(generateStaffContractsOpenApi()));
     const document = JSON.parse(artifact) as StaffDocument;
@@ -40,6 +45,7 @@ describe("dedicated private staff GET artifacts", () => {
     assert.deepEqual(Object.keys(document.paths ?? {}), [
       "/api/v1/question-versions/{versionId}/review-context",
       "/api/v1/question-versions/{versionId}/review-evidence",
+      "/api/v1/question-versions/{versionId}/submit-review",
     ]);
     const path = document.paths?.["/api/v1/question-versions/{versionId}/review-context"];
     assert.deepEqual(Object.keys(path ?? {}), ["get"]);
@@ -77,6 +83,41 @@ describe("dedicated private staff GET artifacts", () => {
     ]);
     assert.ok(document.components?.schemas?.StaffReviewEvidence);
 
+    const submitPath = document.paths?.["/api/v1/question-versions/{versionId}/submit-review"];
+    assert.deepEqual(Object.keys(submitPath ?? {}), ["post"]);
+    const submit = submitPath?.post;
+    assert.equal(submit?.operationId, "staffSubmitReview");
+    assert.match(submit?.description ?? "", /same-origin staff session/);
+    assert.match(submit?.description ?? "", /after parsing/);
+    assert.deepEqual(submit?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "versionId", in: "path", required: true },
+      { name: "x-csrf-token", in: "header", required: true },
+      { name: "idempotency-key", in: "header", required: true },
+    ]);
+    assert.equal(submit?.requestBody?.required, true);
+    assert.ok(submit?.requestBody?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(submit?.responses ?? {}), ["200", "400", "401", "403", "404", "409", "413", "422", "503"]);
+    assert.ok(submit?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(submit?.responses?.["200"]?.headers ?? {}).sort(), [
+      "Cache-Control",
+      "Vary",
+      "X-Content-Type-Options",
+      "X-Request-Id",
+    ]);
+    assert.ok(document.components?.schemas?.StaffSubmitReviewRequest);
+    assert.ok(document.components?.schemas?.StaffSubmitReviewResponse);
+    assert.ok(document.components?.schemas?.StaffSubmitReviewRequestHeaders);
+    const requestRevision = (document.components?.schemas?.StaffSubmitReviewRequest as {
+      properties?: Record<string, { minimum?: number; maximum?: number }>;
+    })?.properties?.expectedRevision;
+    const responseRevision = (document.components?.schemas?.StaffSubmitReviewResponse as {
+      properties?: Record<string, { minimum?: number; maximum?: number }>;
+    })?.properties?.revision;
+    assert.equal(requestRevision?.minimum, 1);
+    assert.equal(requestRevision?.maximum, Number.MAX_SAFE_INTEGER);
+    assert.equal(responseRevision?.minimum, 1);
+    assert.equal(responseRevision?.maximum, Number.MAX_SAFE_INTEGER);
+
     const student = JSON.parse(JSON.stringify(generateStudentContractsOpenApi())) as StaffDocument;
     const studentOperationCount = Object.values(student.paths ?? {}).reduce(
       (count, path) => count + Object.keys(path).length,
@@ -87,6 +128,8 @@ describe("dedicated private staff GET artifacts", () => {
     assert.equal(student.components?.schemas?.StaffReviewContext, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/review-evidence"], undefined);
     assert.equal(student.components?.schemas?.StaffReviewEvidence, undefined);
+    assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/submit-review"], undefined);
+    assert.equal(student.components?.schemas?.StaffSubmitReviewRequest, undefined);
   });
 
   it("matches the committed private OpenAPI and operation-map artifacts and detects drift without rewriting", async () => {

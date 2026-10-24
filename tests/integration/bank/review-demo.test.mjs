@@ -72,7 +72,7 @@ test('disposable staff demo refuses production and missing opt-in before emittin
   }
 });
 
-test('staff review demo serves the real synthetic AUTHOR private GETs and closes its owned listener on terminal-group SIGINT', { timeout: 150_000 }, async (t) => {
+test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue/evidence, then closes its owned listener on terminal-group SIGINT', { timeout: 150_000 }, async (t) => {
   const processHandle = launch({}, true);
   t.after(() => stopChild(processHandle));
   const ready = await waitForReady(processHandle);
@@ -128,6 +128,19 @@ test('staff review demo serves the real synthetic AUTHOR private GETs and closes
   assert.equal(blockedText.includes('Bản xem trước tổng hợp'), false);
   assert.equal(blockedText.includes('Lời giải tổng hợp riêng'), false);
   assert.equal(blockedText.includes('<img src='), false);
+
+  const queued=available[0].context.version;
+  const submitted=await bankRequest(harness,author,`/api/v1/question-versions/${queued.versionId}/submit-review`,{
+    method:'POST',key:'synthetic-cli-handoff',body:{expectedRevision:1},
+  });
+  assert.equal(submitted.status,200);
+  assert.deepEqual(await submitted.json(),{versionId:queued.versionId,state:'IN_REVIEW',revision:2});
+  const reviewer=await loginActor(harness,'reviewer');
+  const queueResponse=await bankRequest(harness,reviewer,'/api/v1/questions',{query:'state=IN_REVIEW&limit=20'});
+  assert.equal(queueResponse.status,200);
+  assert.deepEqual((await queueResponse.json()).items.map(item=>item.versionId),[queued.versionId]);
+  const reviewerEvidence=await bankRequest(harness,reviewer,`/api/v1/question-versions/${queued.versionId}/review-evidence`);
+  assert.equal(reviewerEvidence.status,200);assert.equal((await reviewerEvidence.json()).accessBasis,'REVIEW_QUEUE');
 
   const evidencePath = `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-evidence`;
   assert.equal((await bankRequest(harness,author,evidencePath)).status,403);

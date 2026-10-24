@@ -83,7 +83,9 @@ async function request(path, { method = 'GET', body, csrf = false, idempotencyKe
       cache: 'no-store',
     });
   } catch {
-    throw new Error('Không thể kết nối với máy chủ cục bộ. Hãy kiểm tra tiến trình Track B rồi thử lại.');
+    const error = new Error('Không thể kết nối với máy chủ cục bộ. Hãy kiểm tra tiến trình Track B rồi thử lại.');
+    error.uncertain = true;
+    throw error;
   }
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
@@ -395,6 +397,10 @@ export async function openStaffWorkspace(container, onBack) {
     evidenceRequestId: 0,
     evidenceView: null,
     pendingCreate: null,
+    handoffRequestId: 0,
+    handoffStatus: null,
+    handoffConfirmation: null,
+    handoffDialog: null,
   };
   const returnToPractice = () => {
     if (!isWorkspaceActive()) return;
@@ -522,23 +528,199 @@ export async function openStaffWorkspace(container, onBack) {
     return JSON.stringify([principal.userId, principal.actorKey, [...principal.roles].sort()]);
   }
 
-  function clearPrivateReviewView({ restoreFocus = false } = {}) {
+  function closeHandoffDialog({ restoreFocus = false } = {}) {
+    const confirmation = state.handoffConfirmation;
+    state.handoffConfirmation = null;
+    if (state.handoffDialog?.open) state.handoffDialog.close();
+    if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
+  }
+
+  function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false } = {}) {
     const previousViews = [state.evidenceView, state.reviewView];
     const previous = previousViews.find(Boolean);
     state.reviewRequestId += 1;
     state.evidenceRequestId += 1;
     state.reviewView = null;
     state.evidenceView = null;
+    if (!preserveHandoff) {
+      state.handoffRequestId += 1;
+      state.handoffStatus = null;
+      closeHandoffDialog();
+    }
     for (const view of previousViews) view?.triggerElement?.setAttribute('aria-expanded', 'false');
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (host) {
       host.replaceChildren();
       host.hidden = true;
     }
+    renderHandoffPanel();
     if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
   }
 
-  function renderReviewPanel({ focusTitle = false } = {}) {
+  function handoffEligible(view = state.reviewView) {
+    const context = view?.context;
+    const version = context?.version;
+    const workflow = context?.workflow;
+    const handoffStatus = state.handoffStatus;
+    return isWorkspaceActive()
+      && state.principal?.roles?.includes('AUTHOR')
+      && view?.kind === 'context'
+      && view.status === 'loaded'
+      && typeof view.versionId === 'string'
+      && version?.versionId === view.versionId
+      && context?.accessBasis === 'AUTHOR_OWN'
+      && workflow?.state === 'DRAFT'
+      && Number.isSafeInteger(workflow.revision)
+      && workflow.revision > 0
+      && typeof version.contentHash === 'string'
+      && (!handoffStatus || (handoffStatus.stage === 'reloaded' && handoffStatus.targetVersionId === view.versionId));
+  }
+
+  function handoffAttemptIsCurrent(versionId, requestId, identityEpoch, requestPrincipal) {
+    return isWorkspaceActive()
+      && requestId === state.handoffRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.handoffStatus?.targetVersionId === versionId;
+  }
+
+  function handoffDialog() {
+    const dialog = state.handoffDialog;
+    if (!dialog) return null;
+    const confirmation = state.handoffConfirmation;
+    if (!confirmation || !handoffEligible()) return null;
+    const version = confirmation.version;
+    dialog.querySelector('[data-testid="handoff-dialog-version"]').textContent = version.versionId;
+    dialog.querySelector('[data-testid="handoff-dialog-hash"]').textContent = version.contentHash;
+    dialog.querySelector('[data-testid="handoff-dialog-revision"]').textContent = String(confirmation.revision);
+    return dialog;
+  }
+
+  function cancelHandoffConfirmation({ restoreFocus = true } = {}) {
+    closeHandoffDialog({ restoreFocus });
+  }
+
+  function openHandoffConfirmation(triggerElement) {
+    const view = state.reviewView;
+    if (!handoffEligible(view) || state.handoffConfirmation) return;
+    const workflow = view.context.workflow;
+    state.handoffConfirmation = {
+      version: view.context.version,
+      versionId: view.versionId,
+      revision: workflow.revision,
+      context: view.context,
+      identityEpoch: state.identityEpoch,
+      principal: principalKey(state.principal),
+      requestId: state.handoffRequestId,
+      triggerElement,
+    };
+    const dialog = handoffDialog();
+    if (!dialog || dialog.open) {
+      state.handoffConfirmation = null;
+      return;
+    }
+    dialog.showModal();
+    dialog.querySelector('[data-testid="handoff-cancel"]').focus();
+  }
+
+  function renderHandoffPanel() {
+    const host = container.querySelector('[data-testid="handoff-host"]');
+    if (!host) return;
+    host.replaceChildren();
+    const status = state.handoffStatus;
+    if (!status) return;
+
+    const isError = status.stage === 'rejected' || status.stage === 'reload-failed';
+    const panel = node('section', `staff-handoff-panel${isError ? ' is-error' : ''}`);
+    panel.setAttribute('aria-label', 'Trạng thái chuyển bản nháp');
+    const message = node('p', isError ? 'notice-panel' : 'staff-handoff-message');
+    message.dataset.testid = 'handoff-status';
+    message.dataset.state = status.stage;
+    message.dataset.stage = status.stage;
+    message.setAttribute('role', isError ? 'alert' : 'status');
+    message.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+    message.tabIndex = -1;
+
+    if (status.stage === 'pending') {
+      message.textContent = `Đang chuyển phiên bản ${status.intent.versionId}, revision ${status.intent.expectedRevision}, vào hàng chờ rà soát. Thao tác này không đánh giá nội dung hoặc xác nhận quyền.`;
+    } else if (status.stage === 'uncertain') {
+      message.textContent = `Chưa nhận được phản hồi cho yêu cầu chuyển bản nháp; chưa thể xác nhận thao tác thành công. Thử lại sẽ gửi phiên bản ${status.intent.versionId}, revision ${status.intent.expectedRevision}, với cùng nội dung yêu cầu và khóa idempotency.`;
+    } else if (status.stage === 'rejected') {
+      message.textContent = `Yêu cầu chuyển bản nháp chưa được chấp nhận (${status.code ?? 'request failed'}): ${status.message} Hãy tải lại metadata và kiểm tra phiên bản hiện tại trước khi xác nhận lại.`;
+    } else if (status.stage === 'reloading') {
+      message.textContent = status.receipt
+        ? `Máy chủ đã xác nhận yêu cầu chuyển: ${status.receipt.state}, revision ${status.receipt.revision}. Đang đọc lại trạng thái quy trình hiện tại và metadata.`
+        : 'Đang tải lại metadata và kiểm tra phiên bản hiện tại. Không gửi yêu cầu chuyển mới.';
+    } else if (status.stage === 'reload-failed') {
+      message.textContent = status.receipt
+        ? `Máy chủ đã xác nhận yêu cầu chuyển: ${status.receipt.state}, revision ${status.receipt.revision}. Không thể xác định trạng thái quy trình hiện tại vì lần đọc mới thất bại.`
+        : `Yêu cầu chuyển bản nháp chưa được chấp nhận (${status.code ?? 'request failed'}). Lần đọc mới dữ liệu kiểm tra cũng thất bại: ${status.message}`;
+    } else if (status.stage === 'reloaded') {
+      message.textContent = `Yêu cầu chuyển trước đó chưa được chấp nhận (${status.code ?? 'request failed'}). Lần đọc mới ghi nhận trạng thái ${status.currentState ?? 'không xác định'}${status.currentRevision ? `, revision ${status.currentRevision}` : ''}. Chỉ xác nhận lại nếu lần kiểm tra AUTHOR_OWN mới nhất cho thấy trạng thái DRAFT.`;
+    } else if (status.stage === 'acknowledged') {
+      const receipt = status.receipt;
+      const receiptText = `Máy chủ đã xác nhận yêu cầu chuyển: ${receipt.state}, revision ${receipt.revision}.`;
+      message.textContent = status.currentState
+        ? `${receiptText} Trạng thái hiện tại được máy chủ ghi nhận qua lần kiểm tra mới: ${status.currentState}${status.currentRevision ? `, revision ${status.currentRevision}` : ''}. Biên nhận và trạng thái hiện tại là hai thông tin riêng biệt.`
+        : status.currentReadPending
+          ? `${receiptText} Đang đọc trạng thái quy trình hiện tại.`
+          : `${receiptText} Trạng thái quy trình hiện tại chưa khả dụng vì lần đọc mới thất bại.`;
+    }
+    panel.append(message);
+
+    if (status.stage === 'uncertain') {
+      panel.append(button('Thử lại cùng yêu cầu chuyển', 'handoff-retry', async () => {
+        if (state.handoffStatus?.stage !== 'uncertain') return;
+        await sendHandoff(status.intent, state.handoffRequestId);
+      }));
+    }
+    if (['rejected', 'reload-failed', 'acknowledged'].includes(status.stage)) {
+      panel.append(button('Tải lại trạng thái hiện tại', 'handoff-reload', async () => {
+        await reloadHandoffTarget(status.targetVersionId, state.handoffRequestId);
+      }, 'button secondary'));
+    }
+    host.append(panel);
+  }
+
+  function createHandoffDialog() {
+    const dialog = node('dialog', 'staff-handoff-dialog');
+    dialog.id = 'handoff-dialog';
+    dialog.dataset.testid = 'handoff-dialog';
+    dialog.setAttribute('aria-labelledby', 'handoff-dialog-title');
+    dialog.setAttribute('aria-describedby', 'handoff-dialog-description');
+    const title = node('h2', '', 'Chuyển bản nháp này vào hàng chờ rà soát?');
+    title.id = 'handoff-dialog-title';
+    const description = node('p', 'staff-handoff-dialog-description', 'Thao tác này chuyển đúng bản DRAFT đã chọn vào hàng chờ rà soát. Đây không phải phê duyệt nội dung hay quyền sử dụng, và không có nghĩa là con người hoặc nền tảng đã rà soát nội dung.');
+    description.id = 'handoff-dialog-description';
+    const metadata = node('dl', 'staff-handoff-dialog-metadata');
+    const versionLabel = node('dt', '', 'Phiên bản');
+    const versionValue = node('dd');
+    versionValue.dataset.testid = 'handoff-dialog-version';
+    const hashLabel = node('dt', '', 'Hash nội dung');
+    const hashValue = node('dd');
+    hashValue.dataset.testid = 'handoff-dialog-hash';
+    const revisionLabel = node('dt', '', 'Revision hiện tại');
+    const revisionValue = node('dd');
+    revisionValue.dataset.testid = 'handoff-dialog-revision';
+    metadata.append(versionLabel, versionValue, hashLabel, hashValue, revisionLabel, revisionValue);
+    const actions = node('div', 'staff-handoff-dialog-actions');
+    actions.append(
+      button('Xác nhận chuyển bản nháp', 'handoff-confirm', async () => { await confirmHandoff(); }),
+      button('Hủy', 'handoff-cancel', () => cancelHandoffConfirmation(), 'button secondary'),
+    );
+    dialog.append(title, description, metadata, actions);
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      cancelHandoffConfirmation();
+    });
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) cancelHandoffConfirmation();
+    });
+    state.handoffDialog = dialog;
+    return dialog;
+  }
+
+  function renderReviewPanel({ focusTitle = false, focusHandoffStatus = false } = {}) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
@@ -574,6 +756,14 @@ export async function openStaffWorkspace(container, onBack) {
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
+    if (!isEvidence && handoffEligible(view)) {
+      const handoff = button('Chuyển bản nháp vào hàng chờ rà soát', 'handoff-open', async () => {
+        openHandoffConfirmation(handoff);
+      }, 'button secondary');
+      handoff.dataset.versionId = view.versionId;
+      handoff.setAttribute('aria-controls', 'handoff-dialog');
+      actions.append(handoff);
+    }
     actions.append(button(isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
       isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
         clearPrivateReviewView({ restoreFocus: true });
@@ -594,7 +784,9 @@ export async function openStaffWorkspace(container, onBack) {
       panel.append(isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
     }
     host.append(panel);
+    renderHandoffPanel();
     if (focusTitle) heading.focus();
+    else if (focusHandoffStatus) container.querySelector('[data-testid="handoff-status"]')?.focus();
   }
 
   function renderReviewContext(context) {
@@ -642,9 +834,9 @@ export async function openStaffWorkspace(container, onBack) {
     return content;
   }
 
-  async function loadReviewContext(versionId, triggerElement) {
+  async function loadReviewContext(versionId, triggerElement, { preserveHandoff = false } = {}) {
     if (!isWorkspaceActive() || !state.canReadList || typeof versionId !== 'string') return;
-    clearPrivateReviewView();
+    clearPrivateReviewView({ preserveHandoff });
     const requestId = ++state.reviewRequestId;
     const identityEpoch = state.identityEpoch;
     const requestPrincipal = principalKey(state.principal);
@@ -666,6 +858,134 @@ export async function openStaffWorkspace(container, onBack) {
       if (!isCurrent()) return;
       state.reviewView = { kind: 'context', versionId, status: 'error', triggerElement, error: error.message };
       renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  async function confirmHandoff() {
+    const confirmation = state.handoffConfirmation;
+    const view = state.reviewView;
+    if (!confirmation || !handoffEligible(view)
+      || confirmation.requestId !== state.handoffRequestId
+      || confirmation.identityEpoch !== state.identityEpoch
+      || confirmation.principal !== principalKey(state.principal)
+      || confirmation.versionId !== view.versionId
+      || confirmation.context !== view.context
+      || confirmation.revision !== view.context.workflow.revision) {
+      closeHandoffDialog();
+      return;
+    }
+
+    const body = Object.freeze({ expectedRevision: confirmation.revision });
+    const intent = Object.freeze({
+      versionId: confirmation.versionId,
+      expectedRevision: confirmation.revision,
+      body,
+      key: crypto.randomUUID(),
+      identityEpoch: confirmation.identityEpoch,
+      principal: confirmation.principal,
+    });
+    const requestId = ++state.handoffRequestId;
+    state.handoffStatus = { stage: 'pending', targetVersionId: intent.versionId, intent };
+    closeHandoffDialog({ restoreFocus: false });
+    renderReviewPanel({ focusHandoffStatus: true });
+    await sendHandoff(intent, requestId);
+  }
+
+  async function sendHandoff(intent, requestId) {
+    if (!handoffAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
+      || state.handoffStatus?.intent !== intent
+      || !['pending', 'uncertain'].includes(state.handoffStatus.stage)) return;
+
+    if (state.handoffStatus.stage === 'uncertain') {
+      state.handoffStatus = { ...state.handoffStatus, stage: 'pending' };
+      renderReviewPanel({ focusHandoffStatus: true });
+    }
+    try {
+      const receipt = await request(`/api/v1/question-versions/${encodeURIComponent(intent.versionId)}/submit-review`, {
+        method: 'POST', body: intent.body, csrf: true, idempotencyKey: intent.key,
+      });
+      if (!handoffAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
+        || state.handoffStatus?.intent !== intent) return;
+      if (receipt?.versionId !== intent.versionId
+        || receipt?.state !== 'IN_REVIEW'
+        || !Number.isSafeInteger(receipt?.revision)
+        || receipt.revision !== intent.expectedRevision + 1) {
+        const error = new Error('Không thể đối chiếu biên nhận từ máy chủ với yêu cầu chuyển này.');
+        error.uncertain = true;
+        throw error;
+      }
+      state.handoffStatus = {
+        stage: 'acknowledged', targetVersionId: intent.versionId, intent, receipt,
+        currentState: null, currentRevision: null, currentReadPending: true,
+      };
+      renderReviewPanel({ focusHandoffStatus: true });
+      await reloadHandoffTarget(intent.versionId, requestId);
+    } catch (error) {
+      if (!handoffAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
+        || state.handoffStatus?.intent !== intent) return;
+      const uncertain = error?.uncertain === true || (Number.isInteger(error?.status) && error.status >= 500);
+      state.handoffStatus = uncertain
+        ? { stage: 'uncertain', targetVersionId: intent.versionId, intent, message: error.message }
+        : {
+          stage: 'rejected', targetVersionId: intent.versionId,
+          code: error?.code, message: error?.message ?? 'The handoff request failed.',
+        };
+      renderReviewPanel({ focusHandoffStatus: true });
+    }
+  }
+
+  async function reloadHandoffTarget(versionId, requestId) {
+    const previous = state.handoffStatus;
+    if (!previous || previous.targetVersionId !== versionId || requestId !== state.handoffRequestId
+      || !['rejected', 'reload-failed', 'acknowledged'].includes(previous.stage)) return;
+    const hasReceipt = Boolean(previous.receipt);
+    const status = {
+      ...previous,
+      stage: 'reloading',
+      ...(hasReceipt ? { currentState: null, currentRevision: null, currentReadPending: true } : {}),
+    };
+    state.handoffStatus = status;
+    renderReviewPanel({ focusHandoffStatus: true });
+
+    const isCurrent = () => handoffAttemptIsCurrent(versionId, requestId, previous.intent?.identityEpoch ?? state.identityEpoch,
+      previous.intent?.principal ?? principalKey(state.principal));
+    try {
+      await loadQuestionList({ reset: true, preserveHandoff: true });
+      if (!isCurrent()) return;
+      const triggerElement = [...container.querySelectorAll('[data-testid="staff-review-inspect"]')]
+        .find((element) => element.dataset.versionId === versionId) ?? null;
+      await loadReviewContext(versionId, triggerElement, { preserveHandoff: true });
+      if (!isCurrent()) return;
+
+      const view = state.reviewView;
+      const fresh = view?.kind === 'context' && view.status === 'loaded'
+        && view.context?.version?.versionId === versionId;
+      if (!fresh) {
+        state.handoffStatus = hasReceipt
+          ? { ...status, stage: 'acknowledged', currentState: null, currentRevision: null, currentReadPending: false, currentReadFailed: true }
+          : { ...status, stage: 'reload-failed', message: view?.error ?? 'Lần đọc mới dữ liệu kiểm tra không khả dụng.' };
+      } else if (hasReceipt) {
+        state.handoffStatus = {
+          ...status, stage: 'acknowledged',
+          currentState: view.context.workflow?.state ?? null,
+          currentRevision: view.context.workflow?.revision ?? null,
+          currentReadPending: false,
+          currentReadFailed: false,
+        };
+      } else {
+        state.handoffStatus = {
+          ...status, stage: 'reloaded',
+          currentState: view.context.workflow?.state ?? null,
+          currentRevision: view.context.workflow?.revision ?? null,
+        };
+      }
+      renderReviewPanel({ focusHandoffStatus: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.handoffStatus = hasReceipt
+        ? { ...status, stage: 'acknowledged', currentState: null, currentRevision: null, currentReadPending: false, currentReadFailed: true }
+        : { ...status, stage: 'reload-failed', message: error.message ?? 'Lần đọc mới dữ liệu kiểm tra thất bại.' };
+      renderReviewPanel({ focusHandoffStatus: true });
     }
   }
 
@@ -720,13 +1040,14 @@ export async function openStaffWorkspace(container, onBack) {
       more.disabled = state.listLoading || !state.nextCursor;
     }
     renderReviewPanel();
+    renderHandoffPanel();
   }
 
-  async function loadQuestionList({ reset = true } = {}) {
+  async function loadQuestionList({ reset = true, preserveHandoff = false } = {}) {
     if (!isWorkspaceActive()) return;
     if (!state.canReadList) throw new Error('Vai trò này không được cấp quyền xem danh sách bản nháp.');
     if (!reset && (state.listLoading || !state.nextCursor)) return;
-    clearPrivateReviewView();
+    clearPrivateReviewView({ preserveHandoff });
 
     const requestId = ++state.listRequestId;
     const identityEpoch = state.identityEpoch;
@@ -1000,7 +1321,11 @@ export async function openStaffWorkspace(container, onBack) {
       reviewHost.dataset.testid = 'staff-review-host';
       reviewHost.id = 'staff-review-host';
       reviewHost.hidden = true;
+      const handoffHost = node('div');
+      handoffHost.dataset.testid = 'handoff-host';
+      listCard.append(handoffHost);
       listCard.append(reviewHost);
+      listCard.append(createHandoffDialog());
       shell.append(listCard);
     }
     shell.append(button('Quay lại khu luyện tập', 'staff-return', returnToPractice, 'button secondary'), footer());

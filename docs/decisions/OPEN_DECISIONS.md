@@ -17,6 +17,24 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
+## WEB-002 B3.1 — owner-approved author draft handoff, 2026-10-24
+
+- Status: **APPROVED IN SCOPE** by human repository owner,2026-10-24 Asia/Bangkok.
+  Exact instruction: “continue. Approve B3.1 author draft handoff
+  (docs/decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md) as a whole”.
+- Immutable approved scope: [B3.1](WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md) at5c1bded,
+  SHA-256 `2c8d8531fdcbf18a1e7c25d8f0be48a260ae80b93bdf0a90ece1c30d3e003980`.
+  This disposition supersedes historical approval-none statements in the frozen
+  proposal/design record; preserve approved specification bytes.
+- Authorizes explicit fresh AUTHOR_OWN/DRAFT UI handoff/confirmation, strict private
+  command DTO/artifact using the existing submit-review route/service, captured
+  idempotent intent and truthful receipt-versus-current-state recovery.
+- Existing backend AUTHOR/created_by policy, B1/B2/student contracts and grants
+  remain stable. No new route, SQL migration, imported authorship, human review
+  decision, rights mutation, quarantine or publication UI is approved.
+- Root accountable for implementation/integration and actual verification/review;
+  no production/content/qualified-human acceptance follows from this approval.
+
 ## WEB-002 B3.1 — proposed author draft handoff, 2026-10-24
 
 - Status: **PROPOSED / HUMAN_APPROVAL_REQUIRED**; approval identity/date: none.

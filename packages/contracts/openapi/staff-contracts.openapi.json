@@ -1567,6 +1567,992 @@
         ],
         "type": "object"
       },
+      "StaffSubmitReviewConcurrentModificationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "CONCURRENT_MODIFICATION"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "The resource changed while processing the request"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewConflictResponse": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "IDEMPOTENCY_CONFLICT"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "The idempotency key was already used for a different request"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "REVISION_CONFLICT"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "The resource has changed"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "CONCURRENT_MODIFICATION"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "The resource changed while processing the request"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "StaffSubmitReviewConstraintConflictResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "CONSTRAINT_CONFLICT"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "The request conflicts with a bank constraint"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewCsrfFailedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "CSRF_FAILED"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Request validation failed"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewCsrfOrForbiddenResponse": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "CSRF_FAILED"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "Request validation failed"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "FORBIDDEN"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "Access is not permitted"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "StaffSubmitReviewForbiddenResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "FORBIDDEN"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Access is not permitted"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewIdempotencyConflictResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "IDEMPOTENCY_CONFLICT"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "The idempotency key was already used for a different request"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewMalformedJsonResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "MALFORMED_JSON"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Request body is not valid JSON"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewNotFoundResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "NOT_FOUND"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Resource not found"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewPathParams": {
+        "additionalProperties": false,
+        "properties": {
+          "versionId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versionId"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewPayloadTooLargeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "PAYLOAD_TOO_LARGE"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Request body is too large"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedRevision": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewRequestHeaders": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency-key": {
+            "pattern": "^[\\x21-\\x7e]{1,128}$",
+            "type": "string"
+          },
+          "x-csrf-token": {
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "x-csrf-token",
+          "idempotency-key"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "IN_REVIEW"
+            ],
+            "type": "string"
+          },
+          "versionId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versionId",
+          "state",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewRevisionConflictResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "REVISION_CONFLICT"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "The resource has changed"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewRightsBlockedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "RIGHTS_BLOCKED"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "The rights record does not permit this operation"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewTemporarilyUnavailableResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "TEMPORARILY_UNAVAILABLE"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "The request could not be completed"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewUnauthenticatedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "UNAUTHENTICATED"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Authentication is required"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewValidationErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "VALIDATION_ERROR"
+                ],
+                "type": "string"
+              },
+              "details": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "message": {
+                "enum": [
+                  "Request is invalid"
+                ],
+                "type": "string"
+              },
+              "requestId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "details"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "StaffSubmitReviewValidationResponse": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "VALIDATION_ERROR"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "Request is invalid"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "RIGHTS_BLOCKED"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "The rights record does not permit this operation"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "CONSTRAINT_CONFLICT"
+                    ],
+                    "type": "string"
+                  },
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "enum": [
+                      "The request conflicts with a bank constraint"
+                    ],
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "requestId",
+                  "details"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "StaffTemporarilyUnavailableResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1696,9 +2682,9 @@
     }
   },
   "info": {
-    "description": "One private inspection operation for the local synthetic staff runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+    "description": "Private staff inspection, evidence, and author handoff operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     "title": "TSA Platform private staff API contracts",
-    "version": "staff-review-context/1"
+    "version": "staff-contracts/1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2302,6 +3288,478 @@
           }
         },
         "summary": "Read current recorded rights evidence for an exact question version"
+      }
+    },
+    "/api/v1/question-versions/{versionId}/submit-review": {
+      "post": {
+        "description": "Requires the trusted same-origin staff session, current CSRF cookie/token, and an idempotency key. Origin/session/CSRF validation runs before JSON parsing; command role, authorship, revision, and validation checks run after parsing. The strict JSON body is limited to 1 MiB. A successful response is an operation receipt and does not attest review, rights, or publication.",
+        "operationId": "staffSubmitReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{43}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "pattern": "^[\\x21-\\x7e]{1,128}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffSubmitReviewRequest"
+              }
+            }
+          },
+          "description": "Requires the trusted same-origin staff session, current CSRF cookie/token, and an idempotency key. Origin/session/CSRF validation runs before JSON parsing; command role, authorship, revision, and validation checks run after parsing. The strict JSON body is limited to 1 MiB. A successful response is an operation receipt and does not attest review, rights, or publication.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewResponse"
+                }
+              }
+            },
+            "description": "Receipt confirming the exact version was submitted to IN_REVIEW",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewMalformedJsonResponse"
+                }
+              }
+            },
+            "description": "Request body is not valid JSON",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewCsrfOrForbiddenResponse"
+                }
+              }
+            },
+            "description": "CSRF validation failed or current principal lacks author permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewNotFoundResponse"
+                }
+              }
+            },
+            "description": "Version is missing or malformed",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewConflictResponse"
+                }
+              }
+            },
+            "description": "Idempotency key, workflow revision, or concurrent state conflicts",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewPayloadTooLargeResponse"
+                }
+              }
+            },
+            "description": "Request body exceeds the 1 MiB limit",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewValidationResponse"
+                }
+              }
+            },
+            "description": "Request, current rights, or Bank constraints reject the handoff",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "The Bank command cannot currently complete",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Submit an author-owned draft to the review queue"
       }
     }
   },

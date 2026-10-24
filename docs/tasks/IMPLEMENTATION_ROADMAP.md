@@ -1,10 +1,18 @@
 # Implementation roadmap
 
+Current B3.1 author handoff, 2026-10-24: explicit whole-proposal owner approval;
+implementation and actual PG/Chromium/Firefox/recovery verification complete,
+independent review final no findings after P3 repair. [Evidence](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md)
+and [demo](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+No backend policy/grant/migration/student contract changes. Clean reproduction
+follows checkpoint. Review decisions/rights/holds/publication UI and qualified
+human input remain outside this increment.
+
 Current read-only staff queue UX, 2026-10-24: existing IN_REVIEW metadata shortcut
 verified Chrome24/B032 and separately reviewed (source/syntax/whitespace only).
 No new privilege or workflow command. Next [B3.1 author handoff proposal](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md)
-is documentation only/HUMAN_APPROVAL_REQUIRED; approval of read access does not
-authorize a new privileged frontend workflow action.
+was explicitly approved and implemented above; this historical sequencing does
+not authorize further privileged frontend actions.
 
 Current B2.1 staff increment, 2026-10-24: explicit owner approval recorded; private
 current recorded evidence GET/strict DTO/UI and actual role/closure/read-only/cap/

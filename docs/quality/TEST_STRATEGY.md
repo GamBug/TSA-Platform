@@ -22,6 +22,11 @@ Executed private staff B2 evidence (2026-10-24):
 Review status is separate from automated outcomes; B1's independent review does not
 establish B2 runtime review. No real rights/content qualification follows.
 
+Executed B3 author handoff (2026-10-24):
+[real command writes, idempotency/replay/current-state and browser confirmation/recovery](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md).
+Independent runtime review and actual Chrome/Firefox are recorded separately.
+This is no qualified content/rights/manual accessibility acceptance.
+
 ## Layers and release policy
 
 Unit tests cover pure scoring, response normalization, blueprint validators and policy transitions. Property tests are useful for answer-set permutations, randomized state sequences and assembly invariants; a large random sample is evidence, not mathematical proof. Integration tests use real PostgreSQL and exercise transaction ordering, uniqueness, triggers, queue leases and rollback. SQLite/mocked repositories cannot establish these properties.

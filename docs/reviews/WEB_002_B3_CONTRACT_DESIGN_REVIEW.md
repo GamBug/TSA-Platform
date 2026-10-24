@@ -8,6 +8,11 @@ Proposal: [exact B3.1](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md).
 Status **INDEPENDENTLY_REVIEWED DESIGN / HUMAN_APPROVAL_REQUIRED**.
 SHA-256 `2c8d8531fdcbf18a1e7c25d8f0be48a260ae80b93bdf0a90ece1c30d3e003980`.
 
+Current disposition: [explicit owner approval](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24)
+and [runtime evidence](WEB_002_B3_RUNTIME_VERIFICATION.md) now supersede the historical
+approval-pending/no-runtime statements at this design checkpoint. The frozen
+proposal bytes remain unchanged; engineering design and runtime review are distinct.
+
 Actual separate `/root/lifecycle_review`, configured native Codex Sol6.1/Medium,
 read-only, reviewed proposal against existing Bank handler/submitReview service,
 validation helper/idempotency wrapper and boundary tests. Final no concrete
