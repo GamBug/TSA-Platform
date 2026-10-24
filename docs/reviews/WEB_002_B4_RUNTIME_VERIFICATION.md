@@ -117,3 +117,27 @@ behavior remains independently timed. Full WEB-002/Technical MVP is incomplete.
 Clean-checkout reproduction follows the implementation commit; append only actual
 outcomes. Next useful engineering increment uses existing author-create contracts
 rather than inferring new publication authority.
+
+## Clean-checkout reproduction — f8aaf12
+
+Root cloned committed f8aaf12 using `git clone --no-hardlinks --quiet` into owned
+ignored `.local/verification-b4/clean-f8aaf12`. Actual commands in order:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+TRACK_B_ARTIFACT_DIR=../clean-chrome npm run test:track-b:browser
+STUDENT_FIREFOX_ARTIFACT_DIR=../clean-firefox npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run docs:check
+git status --porcelain
+```
+
+All exit0: focused33, Chrome32/14screenshots, Firefox9/17screenshots, emitted/private
+checks, artifact drift and docs PASS. Final clone Git status empty. No source
+patches, manual SQL/API setup or external paid services; fixtures provision their
+owned isolated data and tear down. Environment matches above. This reproduces
+synthetic local engineering behavior, not content/accessibility/production acceptance.
+Logs under `.local/verification-b4/clean-*.log`; no private evidence committed.

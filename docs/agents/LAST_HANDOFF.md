@@ -38,9 +38,9 @@ ignored `.local/verification-b4`; do not commit private evidence/DBs/tokens/prof
 
 ## Continuation
 
-Implementation is ready for the local review/doc checkpoint. Next run clean
-no-hardlink reproduction of that commit using locked install/build/focused/browser/
-built/drift/docs; append only observed outcomes. Then complete compact author form
+Implementation committed f8aaf12. Fresh no-hardlink clone locked install/build/
+focused33/Chrome32/Firefox9/built/drift/docs PASS, no patches/manual SQL/API setup,
+final clone Git status empty. Now completing compact author form
 interaction coverage over existing authorized create route, without new roles or
 contract changes. Owner explicitly asked no repeated routine approval prompts.
 Recommended root Codex Sol6.1/High integration, available native Luna/XHigh bounded

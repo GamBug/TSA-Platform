@@ -750,6 +750,14 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 **AUTHOR INTERACTION EDITOR — IMPLEMENTATION_IN_PROGRESS** atf8aaf12.
+Root selects existing-contract three-type compact editor; [scope/acceptance](../decisions/OPEN_DECISIONS.md#web-002-author-interaction-editor--selected-2026-10-24).
+Root owns integration/browser/shared records; bounded configured Luna/XHigh UI
+writer and separate Sol6.1/Medium read-only reviewer. No new route/schema/roles,
+rights/publication/qualified-human authority. Preserve owner AGENTS/research.
+Runtime evidence pending; B4 clean reproduction runs independently from committed
+f8aaf12. Default single-choice flow must remain usable.
+
 2026-10-24 **B4.1 IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED (scoped)**,
 base743a197. Root selected exact reviewed scope under owner engineering-choice
 delegation; [authority](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24).
@@ -764,8 +772,8 @@ Sol6.1/Medium review found two P2/one P3, repaired; independent focused33/scoped
 Chrome31 and static checks PASS; final supplemental source/CLI2/Chrome32 PASS, no unresolved findings.
 [Exact evidence/limitations](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
 Actual disjoint configured Luna/XHigh contract/UI writers released; root integration
-and shared records. Owner AGENTS/research and frozen B1–B4 preserved. Clean
-reproduction follows checkpoint. Next existing-contract author-form completeness;
+and shared records. Owner AGENTS/research and frozen B1–B4 preserved. Fresh no-hardlink f8aaf12 install/build/focused33/Chrome32/Firefox9/built/drift/docs
+PASS without patches/manual SQL/API setup; final clone Git status empty. Next existing-contract author-form completeness;
 full staff/qualified humans/manual accessibility/production remain separate.
 
 Historical proposal below is superseded by the delegated selection above.

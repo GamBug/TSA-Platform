@@ -4,7 +4,8 @@ Current B4.1, 2026-10-24: selected under owner engineering-choice delegation,
 negative dispositions/receipt recovery and original-import-operator repair
 implemented with actual PostgreSQL/Chrome/Firefox evidence and independent review.
 [Exact outcomes and limits](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
-Clean reproduction follows checkpoint. Next existing-contract author form
+Fresh no-hardlink f8aaf12 locked install/build/focused33/Chrome32/Firefox9/built/
+drift/docs PASS without patches/manual SQL/API setup; final clone Git status empty. Next existing-contract author form
 completeness; no APPROVE/rights-edit/publication or fabricated human evidence.
 
 Current B3.1 author handoff, 2026-10-24: explicit whole-proposal owner approval;

@@ -30,6 +30,27 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 author interaction editor — selected 2026-10-24
+
+- Actor: root under the recorded owner engineering-choice delegation. Existing
+  authorized AUTHOR create route/question schema only; no frozen contract changes.
+- Acceptance gap: author UI always creates SINGLE_CHOICE even though current
+  contracts, Bank creation and private preview support MULTIPLE_CHOICE and
+  TRUE_FALSE_GROUP. Select a compact two-option/two-statement editor for all three.
+- Preserve default single-choice selectors/flow. Multi-choice requires at least
+  one explicitly chosen key; true/false requires explicit values for both
+  statements. Selection bounds1..2 are disclosed and stored for multi-choice.
+  Private synthetic template remains AUTHOR-only; section/profile stays MATH.
+- No new endpoint/role/permission/publication/review/rights authority or dependency;
+  no database migration or historical rewrite. Switching type clears type-specific
+  key selection and must not silently post. Existing idempotent create behavior,
+  late-response fences and private storage boundaries remain stable.
+- Root owns browser/Firefox/integration/shared docs, bounded native Luna/XHigh UI
+  writer may own staff.js/scoped CSS, separate Sol6.1/Medium read-only review.
+  Required evidence: actual UI creates each shape, validation0POST for incomplete
+  keys, exact persisted/private-preview values after reload, handoff remains
+  explicit, mobile/keyboard checks and existing regression suites. Runtime pending.
+
 ## WEB-002 B4.1 — engineering scope selected under owner delegation, 2026-10-24
 
 - Status **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED (scoped)**. Selection actor:
