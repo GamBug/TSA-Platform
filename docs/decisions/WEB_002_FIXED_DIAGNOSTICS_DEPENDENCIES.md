@@ -1,7 +1,12 @@
 # WEB-002 remaining fixed-run diagnostics dependencies
 
 2026-10-24, source review at3251362 and B6 implementation c158d57.
-DESIGN_REQUIRED / NOT_IMPLEMENTED. Root accountable; native Luna/XHigh read-only
+Updated2026-10-25: the additive fixed manifest/reference/replay prerequisite is
+implemented and independently reviewed in [B7.1](WEB_002_B7_FIXED_REFERENCE_DECISION.md),
+[actual evidence](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md). Personal
+schema stays frozen; stored fixed projection/discovery/UI remain unimplemented.
+The source gap and initial design below are historical discovery, not current
+absence of the new fixed parser. Root accountable; native Luna/XHigh read-only
 worker actually mapped these dependencies. This is a concrete technical handoff,
 not approval of a new manifest or permission to expose personal runs. No tests were
 executed for this discovery; existing fixed fixtures are not runtime evidence.
@@ -24,7 +29,7 @@ read-only review; existing subscriptions only, no paid model API.
   manifest contains private history/source/rights/question identifiers. Existing
   proposed staff API table is not wholesale approval for disclosure or new routes.
 
-## Specific next design deliverable
+## Historical reference design deliverable — implemented in B7.1; stored/UI steps remain
 
 Prepare an additive fixed-manifest contract and replay algorithm with explicit
 mode/history semantics, immutable identity/hash/seed/limits/error behavior and

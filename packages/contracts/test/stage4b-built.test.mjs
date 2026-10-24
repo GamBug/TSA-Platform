@@ -5,9 +5,12 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { computeQuestionIdentity } from "../dist/identity.js";
 import { createDraftReceiptsV2 } from "../dist/factory-package-v2.js";
-import { runAssemblyReference } from "../dist/assembly-reference.js";
+import { parseFixedAssemblyManifest, runFixedAssemblyReference, replayFixedAssemblyReference, runAssemblyReference } from "../dist/assembly-reference.js";
 import { createHttpBoundaryHandler } from "../dist/http-boundary.js";
 
+import * as rootEntry from "../dist/index.js";
+import * as internalEntry from "../dist/internal.js";
+import * as staffEntry from "../dist/staff.js";
 import * as student from "../dist/student.js";
 import * as releasedReview from "../dist/released-review.js";
 import { StudentOperationPaths } from "../dist/generated/student-operations.js";
@@ -19,6 +22,31 @@ describe("emitted Stage 4B contract entries", () => {
     assert.equal(Object.hasOwn(student, "FactoryPackageV2Schema"), false);
     assert.equal(typeof releasedReview.AnswerKeySchema.parse, "function");
     assert.equal(Object.keys(StudentOperationPaths).length, 8);
+  });
+
+  it("exposes fixed reference only through trusted internal entry and runs ordinary emitted replay", () => {
+    for (const entry of [rootEntry, staffEntry, student, releasedReview]) {
+      assert.equal(Object.hasOwn(entry, "parseFixedAssemblyManifest"), false);
+      assert.equal(Object.hasOwn(entry, "runFixedAssemblyReference"), false);
+      assert.equal(Object.hasOwn(entry, "replayFixedAssemblyReference"), false);
+    }
+    assert.equal(typeof internalEntry.runFixedAssemblyReference, "function");
+    const producer = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", [
+      'import {makeManifest,makeUnit} from "./packages/contracts/test/fixtures/assembly-reference.ts";',
+      'const {schemaVersion,reuseMode,historyQuestionIds,historyGroupIds,...snapshot}=makeManifest({units:[makeUnit(1)],seed:0});',
+      'process.stdout.write(JSON.stringify({...snapshot,schemaVersion:"fixed-assembly-manifest/1",formMode:"PUBLISHED_FIXED",reuseMode:"FIXED_AS_PUBLISHED"}));',
+    ].join("\n")], { encoding: "utf8", timeout: 10_000 });
+    assert.ifError(producer.error); assert.equal(producer.status, 0, producer.stderr);
+    const fixed = JSON.parse(producer.stdout);
+    const parsed = parseFixedAssemblyManifest(fixed);
+    const result = runFixedAssemblyReference(fixed);
+    assert.equal(result.status, "SUCCESS");
+    assert.equal(result.manifestHash, parsed.manifestHash);
+    assert.equal(result.slotsHash, "sha256:e46d93859ed65ee718e3d11be7ebd636df554dcf19a7f45475a26d1181ff007f");
+    assert.equal(replayFixedAssemblyReference(fixed, result).matches, true);
+    assert.equal(replayFixedAssemblyReference(fixed, { ...result, manifestHash: "sha256:" + "0".repeat(64) }).matches, false);
+    assert.throws(() => runFixedAssemblyReference({ ...fixed, historyQuestionIds: [] }));
+    assert.throws(() => runAssemblyReference(fixed));
   });
 
   it("runs strict emitted validators and rejects unknown or private student fields", () => {

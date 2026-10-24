@@ -85,12 +85,14 @@ test('populated017 to018 preserves active, queued and graded exams and security;
     }
     if (errors.length) throw new AggregateError(errors, 'Populated upgrade fixture cleanup failed');
   });
-  const old = path.join(root, 'old'), bad = path.join(root, 'bad');
-  await mkdir(old); await mkdir(bad);
-  const files = (await readdir(migrations)).sort();
-  assert.equal(files.at(-1), latest, 'extend this pinned rehearsal explicitly when another migration is introduced');
+  const old = path.join(root, 'old'), bad = path.join(root, 'bad'), target = path.join(root, 'target');
+  await mkdir(old); await mkdir(bad); await mkdir(target);
+  // Rehearse this historical boundary, independently of later additive migrations.
+  const files = (await readdir(migrations)).filter((file) => /^\d{3}_.*\.sql$/.test(file) && file <= latest).sort();
+  assert.equal(files.at(-1), latest, 'the pinned historical target migration must be present');
   for (const file of files) {
     await copyFile(path.join(migrations, file), path.join(bad, file));
+    await copyFile(path.join(migrations, file), path.join(target, file));
     if (file !== latest) await copyFile(path.join(migrations, file), path.join(old, file));
   }
   await writeFile(path.join(bad, latest), (await readFile(path.join(migrations, latest), 'utf8')) + '\nSELECT * FROM tsa.no_such_upgrade_relation;\n');
@@ -130,14 +132,14 @@ test('populated017 to018 preserves active, queued and graded exams and security;
   assert.deepEqual(await functions(), originalFunctions, 'failed migration restores replaced function definitions too');
   assert.deepEqual((await f.pool.query('SELECT * FROM tsa_meta.schema_migrations ORDER BY version')).rows, ledger);
   assert.equal((await f.pool.query("SELECT to_regprocedure('tsa.guard_bundle_allocation_revision()') AS fn")).rows[0].fn, null);
-  assert.deepEqual((await migrate(f.pool)).applied, [latest]);
+  assert.deepEqual((await migrate(f.pool, { directory: target })).applied, [latest]);
   assert.deepEqual(await rows(f.pool), before, 'all application rows except the migration ledger survive byte-equivalent JSON projection');
   assert.deepEqual(await security(f.pool), privileges, 'existing owners, ACLs, RLS, roles and function security metadata survive');
   assert.notDeepEqual(await functions(), originalFunctions, 'the actual018 replacement functions were installed');
   assert.deepEqual((await f.pool.query('SELECT * FROM tsa_meta.schema_migrations WHERE version<>$1 ORDER BY version', [latest])).rows, ledger);
   const guard = (await f.pool.query("SELECT has_function_privilege('tsa_exam','tsa.guard_bundle_allocation_revision()','EXECUTE') AS exam,has_function_privilege('tsa_factory','tsa.guard_bundle_allocation_revision()','EXECUTE') AS factory")).rows[0];
   assert.deepEqual(guard, { exam: false, factory: false });
-  assert.deepEqual((await migrate(f.pool)).applied, [], 'exact migration replay makes no changes');
+  assert.deepEqual((await migrate(f.pool, { directory: target })).applied, [], 'exact migration replay makes no changes');
   service = createAttemptService({ ...serviceOptions, examPool: f.examPool });
   for (const item of [graded, queued, active]) {
     const replays = [

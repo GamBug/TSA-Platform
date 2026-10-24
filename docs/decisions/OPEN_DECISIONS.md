@@ -30,6 +30,17 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 B7.1 — additive fixed reference selected 2026-10-24
+
+- Root selected under owner delegated engineering choices; AUTHORIZED_IN_SCOPE /
+  IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED. [Exact contract/impact/migration/acceptance](WEB_002_B7_FIXED_REFERENCE_DECISION.md).
+- Separate internal fixed manifest/parser/reference/replay, no history fields or
+  REVIEW_ALLOWED mapping. Preserve frozen personal inputs/results and old tests.
+- Shared private mode-neutral helper factoring only; no DB migration/grant/HTTP/UI/
+  live service/publication/human authorization. Root integration/docs, bounded
+  native Luna/XHigh writer, separate Sol6.1/Medium read-only review.
+  [Executed evidence and limits](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
+
 ## WEB-002 B6.1 — canonical preflight selected 2026-10-24
 
 - Root-selected under owner engineering-choice delegation; AUTHORIZED_IN_SCOPE /

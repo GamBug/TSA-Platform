@@ -759,6 +759,22 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 **B7.1 FIXED REFERENCE — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base7571a36.
+Root selects additive pure fixed reference prerequisite under delegated authority;
+[exact scope/impact/acceptance](../decisions/WEB_002_B7_FIXED_REFERENCE_DECISION.md).
+One native Luna/XHigh writer owns assembly-reference.ts/new fixed tests only;
+root owns records/integration/compatibility evidence, separate Sol6.1/Medium
+read-only reviewer. Preserve old assembly test/fixture bytes and personal wire
+contracts, owner AGENTS/research. No DB/HTTP/UI or fixed-delivery claim. Actual
+read-only explorer mapped minimal shared-helper boundary, no tests run by scout.
+Actual reference31/contracts148/consumer12/build/type/built/drift/import/
+assembly50/student34/domains78 PASS. Historical017→018 rehearsal repaired after
+observed stale019-boundary failures; original contract test/fixture bytes unchanged.
+Separate Sol6.1/Medium reference31/actual10-case committed-baseline byte/result
+comparison/type/consumer12/drift/boundary/whitespace PASS, no findings; historical
+repair independently focusedPG1 PASS. [Exact evidence/limits](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
+Next stored fixed-only audited diagnostics + useful staff UI, not backend probes.
+
 2026-10-24 **B6.1 CANONICAL PREFLIGHT — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base3251362.
 Root selects existing-service manager report under delegated engineering authority;
 [exact scope/impact/acceptance](../decisions/WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md).

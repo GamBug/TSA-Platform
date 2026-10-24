@@ -72,6 +72,13 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Additive internal fixed reference — 2026-10-25
+
+[B7.1 selected contract/impact](../decisions/WEB_002_B7_FIXED_REFERENCE_DECISION.md)
+adds internal-only fixed-assembly-manifest/1 and fixed reference/replay. No HTTP
+route or DTO here; old personal schemas/bytes/results stay stable. Stored fixed
+HTTP diagnostics/discovery remain a separate scope. [Actual compatibility and regressions](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
+
 ### Delegated B6.1 canonical preflight addendum — 2026-10-24
 
 [Exact selected decision](../decisions/WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md)

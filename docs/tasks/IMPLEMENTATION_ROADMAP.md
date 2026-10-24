@@ -1,5 +1,12 @@
 # Implementation roadmap
 
+Current B7.1, 2026-10-25: additive internal fixed reference/replay implemented
+without widening personal manifest modes. Old byte/result/node-count compatibility,
+fixed oracle/goldens, actual PostgreSQL assembly/student and three-domain browser
+verification PASS, separate read-only review no findings. [Exact evidence](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
+Next narrow stored-run audited diagnostics and useful staff UI, no personal data
+disclosure or fixed-delivery/publication claim.
+
 Current B6.1, 2026-10-24: manager-only explicit canonical dataset preflight over
 unchanged internal service. Selection/pin/count/shortfall/blocker/recovery/focus
 verification, actual PG/Chrome/Firefox and independent review PASS. [Exact evidence/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).

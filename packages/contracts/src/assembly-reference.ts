@@ -50,21 +50,39 @@ const LimitsSchema = z.object({
   maxNodes: z.number().safe().int().min(0).max(MAX_NODES),
   maxUnits: z.number().safe().int().min(0).max(MAX_UNITS),
 }).strict();
-const ManifestSchema = z.object({
-  schemaVersion: z.literal("assembly-manifest/1"),
+const CommonManifestShape = {
   algorithmVersion: z.literal("assembly/1"),
   blueprintVersionId: UuidSchema,
   blueprintHash: HashSchema,
   blueprint: BlueprintConfigSchema,
   seed: z.number().safe().int().min(0).max(0xffff_ffff),
-  reuseMode: z.enum(["NEW_ONLY", "REVIEW_ALLOWED"]),
   bankRevision: z.string().min(1).refine((value) => value.trim().length > 0, "Expected a non-empty opaque revision"),
   rightsVersions: z.array(RightsVersionSchema),
-  historyQuestionIds: z.array(UuidSchema),
-  historyGroupIds: z.array(UuidSchema),
   units: z.array(UnitSchema).max(MAX_RAW_UNITS),
   conflicts: z.array(ConflictSchema),
   limits: LimitsSchema,
+} as const;
+const ManifestSchema = z.object({
+  schemaVersion: z.literal("assembly-manifest/1"),
+  algorithmVersion: CommonManifestShape.algorithmVersion,
+  blueprintVersionId: CommonManifestShape.blueprintVersionId,
+  blueprintHash: CommonManifestShape.blueprintHash,
+  blueprint: CommonManifestShape.blueprint,
+  seed: CommonManifestShape.seed,
+  reuseMode: z.enum(["NEW_ONLY", "REVIEW_ALLOWED"]),
+  bankRevision: CommonManifestShape.bankRevision,
+  rightsVersions: CommonManifestShape.rightsVersions,
+  historyQuestionIds: z.array(UuidSchema),
+  historyGroupIds: z.array(UuidSchema),
+  units: CommonManifestShape.units,
+  conflicts: CommonManifestShape.conflicts,
+  limits: CommonManifestShape.limits,
+}).strict();
+const FixedManifestSchema = z.object({
+  schemaVersion: z.literal("fixed-assembly-manifest/1"),
+  ...CommonManifestShape,
+  formMode: z.literal("PUBLISHED_FIXED"),
+  reuseMode: z.literal("FIXED_AS_PUBLISHED"),
 }).strict();
 
 export type AssemblyMember = z.infer<typeof MemberSchema>;
@@ -74,6 +92,8 @@ export type AssemblyConflict = z.infer<typeof ConflictSchema>;
 export type AssemblyLimits = z.infer<typeof LimitsSchema>;
 export type AssemblyManifest = z.infer<typeof ManifestSchema>;
 export type ParsedAssemblyManifest = { manifest: AssemblyManifest; bytes: Uint8Array; manifestHash: string };
+export type FixedAssemblyManifest = z.infer<typeof FixedManifestSchema>;
+export type ParsedFixedAssemblyManifest = { manifest: FixedAssemblyManifest; bytes: Uint8Array; manifestHash: string };
 export type AssemblySlot = {
   sectionId: string;
   ordinal: number;
@@ -93,9 +113,15 @@ export type AssemblyFailureCode =
 export type AssemblyResult =
   | { status: "SUCCESS"; manifestHash: string; visitedNodes: number; slots: AssemblySlot[]; slotsHash: string }
   | { status: "FAILURE"; code: AssemblyFailureCode; manifestHash: string; visitedNodes: number; slots: []; slotsHash: string };
+export type FixedAssemblyFailureCode = "INSUFFICIENT_ELIGIBLE_INVENTORY" | "CONSTRAINT_CONFLICT" | "SEARCH_EXHAUSTED";
+export type FixedAssemblyResult =
+  | { status: "SUCCESS"; manifestHash: string; visitedNodes: number; slots: AssemblySlot[]; slotsHash: string }
+  | { status: "FAILURE"; code: FixedAssemblyFailureCode; manifestHash: string; visitedNodes: number; slots: []; slotsHash: string };
 
 type Section = BlueprintConfig["sections"][number];
 type Quota = BlueprintConfig["quotas"][number];
+type AssemblySelectionContext = Pick<AssemblyManifest, "blueprint" | "seed" | "units" | "conflicts" | "limits">;
+type ExclusionContext = { questionIds: ReadonlySet<string>; groupIds: ReadonlySet<string> };
 type SearchResult = { kind: "FOUND"; selected: number[]; visited: number } | { kind: "INFEASIBLE"; visited: number } | { kind: "EXHAUSTED"; visited: number };
 
 function fail(message: string): never {
@@ -132,7 +158,7 @@ function memberQuotaValue(member: AssemblyMember, quota: Quota): boolean {
   return member.difficulty === quota.value;
 }
 
-function normalizeManifest(parsed: AssemblyManifest): AssemblyManifest {
+function normalizeCommonManifest<T extends AssemblyManifest | FixedAssemblyManifest>(parsed: T): T {
   const sectionById = new Map(parsed.blueprint.sections.map((section) => [section.id, section]));
   const unitIds = new Set<string>();
   const versionProjection = new Map<string, string>();
@@ -191,8 +217,6 @@ function normalizeManifest(parsed: AssemblyManifest): AssemblyManifest {
   if (rightsSeen.size !== sourceIds.size || [...sourceIds].some((sourceId) => !rightsSeen.has(sourceId))) {
     fail("Rights versions must cover every member source exactly");
   }
-  const historyQuestionIds = sortedUnique(parsed.historyQuestionIds, "historyQuestionIds", true);
-  const historyGroupIds = sortedUnique(parsed.historyGroupIds, "historyGroupIds", true);
   const conflictSeen = new Set<string>();
   const conflicts = parsed.conflicts.map((edge) => {
     if (edge.leftUnitId === edge.rightUnitId) fail("Conflict edges cannot be self edges");
@@ -206,11 +230,23 @@ function normalizeManifest(parsed: AssemblyManifest): AssemblyManifest {
     return { leftUnitId, rightUnitId };
   }).sort((left, right) => compare(left.leftUnitId, right.leftUnitId) || compare(left.rightUnitId, right.rightUnitId));
 
-  return { ...parsed, units, rightsVersions, historyQuestionIds, historyGroupIds, conflicts };
+  return { ...parsed, units, rightsVersions, conflicts };
 }
 
-/** Parse, validate and canonicalize a complete immutable assembly snapshot. */
-export function parseAssemblyManifest(input: unknown): ParsedAssemblyManifest {
+function normalizeManifest(parsed: AssemblyManifest): AssemblyManifest {
+  const normalized = normalizeCommonManifest(parsed);
+  return {
+    ...normalized,
+    historyQuestionIds: sortedUnique(parsed.historyQuestionIds, "historyQuestionIds", true),
+    historyGroupIds: sortedUnique(parsed.historyGroupIds, "historyGroupIds", true),
+  };
+}
+
+function normalizeFixedManifest(parsed: FixedAssemblyManifest): FixedAssemblyManifest {
+  return normalizeCommonManifest(parsed);
+}
+
+function copyAndCheckRawManifest(input: unknown): Record<string, unknown> {
   const copied = jsonCopy(input) as Record<string, unknown>;
   if (Array.isArray(copied.units) && copied.units.length > MAX_RAW_UNITS) fail("Manifest exceeds 10,000 raw units");
   if (Array.isArray(copied.units)) {
@@ -220,13 +256,33 @@ export function parseAssemblyManifest(input: unknown): ParsedAssemblyManifest {
       }
     }
   }
-  const parsed = ManifestSchema.parse(copied);
+  return copied;
+}
+
+function finishManifest<T extends AssemblyManifest | FixedAssemblyManifest>(
+  parsed: T,
+  normalize: (manifest: T) => T,
+): { manifest: T; bytes: Uint8Array; manifestHash: string } {
   const blueprintBytes = canonicalize(parsed.blueprint);
   if (sha256(blueprintBytes) !== parsed.blueprintHash) fail("Blueprint hash does not match canonical blueprint bytes");
-  const manifest = normalizeManifest(parsed);
+  const manifest = normalize(parsed);
   const bytes = canonicalize(manifest);
   if (bytes.byteLength > MAX_MANIFEST_BYTES) fail("Canonical assembly manifest exceeds 16 MiB");
   return { manifest, bytes, manifestHash: sha256(bytes) };
+}
+
+/** Parse, validate and canonicalize a complete immutable assembly snapshot. */
+export function parseAssemblyManifest(input: unknown): ParsedAssemblyManifest {
+  const copied = copyAndCheckRawManifest(input);
+  const parsed = ManifestSchema.parse(copied);
+  return finishManifest(parsed, normalizeManifest);
+}
+
+/** Parse, validate and canonicalize a complete fixed /1 snapshot. */
+export function parseFixedAssemblyManifest(input: unknown): ParsedFixedAssemblyManifest {
+  const copied = copyAndCheckRawManifest(input);
+  const parsed = FixedManifestSchema.parse(copied);
+  return finishManifest(parsed, normalizeFixedManifest);
 }
 
 function makeSectionCounts(sections: readonly Section[]): Map<string, number> {
@@ -244,7 +300,7 @@ type State = {
 };
 
 function stateFor(
-  manifest: AssemblyManifest,
+  manifest: AssemblySelectionContext,
   selected: readonly number[],
   rankedUnits: readonly AssemblyUnit[],
   conflictsByUnit: ReadonlyMap<string, ReadonlySet<string>>,
@@ -283,7 +339,7 @@ function conflictKey(left: string, right: string): string {
 }
 
 function unitIncompatible(
-  manifest: AssemblyManifest,
+  manifest: AssemblySelectionContext,
   state: State,
   unit: AssemblyUnit,
 ): boolean {
@@ -309,7 +365,7 @@ function unitIncompatible(
   return false;
 }
 
-function selectedValidPartial(manifest: AssemblyManifest, state: State): boolean {
+function selectedValidPartial(manifest: AssemblySelectionContext, state: State): boolean {
   for (const section of manifest.blueprint.sections) if ((state.sectionCounts.get(section.id) ?? 0) > section.count) return false;
   for (const quota of manifest.blueprint.quotas) if ((state.quotaCounts.get(quotaKey(quota)) ?? 0) > quota.max) return false;
   const cap = manifest.blueprint.maxPerSource;
@@ -325,7 +381,7 @@ function quotaContribution(unit: AssemblyUnit, quota: Quota): number {
 type Target = { kind: "QUOTA"; quota: Quota } | { kind: "SECTION"; section: Section };
 
 function chooseTarget(
-  manifest: AssemblyManifest,
+  manifest: AssemblySelectionContext,
   state: State,
   compatible: readonly AssemblyUnit[],
 ): Target | undefined {
@@ -357,7 +413,7 @@ function targetContribution(unit: AssemblyUnit, target: Target): boolean {
 }
 
 function canStillReach(
-  manifest: AssemblyManifest,
+  manifest: AssemblySelectionContext,
   state: State,
   compatible: readonly AssemblyUnit[],
 ): boolean {
@@ -374,7 +430,13 @@ function canStillReach(
   return true;
 }
 
-function validateFinalSelection(manifest: AssemblyManifest, selected: readonly number[], rankedUnits: readonly AssemblyUnit[], conflictSet: ReadonlySet<string>, history: boolean): boolean {
+function validateFinalSelection(
+  manifest: AssemblySelectionContext,
+  selected: readonly number[],
+  rankedUnits: readonly AssemblyUnit[],
+  conflictSet: ReadonlySet<string>,
+  exclusions: ExclusionContext,
+): boolean {
   const sectionCounts = makeSectionCounts(manifest.blueprint.sections);
   const quotaCounts = new Map(manifest.blueprint.quotas.map((quota) => [quotaKey(quota), 0]));
   const sourceCounts = new Map<string, number>();
@@ -382,8 +444,7 @@ function validateFinalSelection(manifest: AssemblyManifest, selected: readonly n
   const groups = new Set<string>();
   const units = selected.map((index) => rankedUnits[index]!);
   for (const unit of units) {
-    if (manifest.blueprint.excludedQuestionIds.some((id) => unit.members.some((member) => member.questionId === id))) return false;
-    if (history && unit.members.some((member) => manifest.historyQuestionIds.includes(member.questionId) || manifest.historyGroupIds.includes(member.groupId))) return false;
+    if (unit.members.some((member) => exclusions.questionIds.has(member.questionId) || exclusions.groupIds.has(member.groupId))) return false;
     sectionCounts.set(unit.sectionId, (sectionCounts.get(unit.sectionId) ?? 0) + unit.members.length);
     for (const member of unit.members) {
       if (questions.has(member.questionId) || groups.has(member.groupId)) return false;
@@ -408,7 +469,12 @@ function validateFinalSelection(manifest: AssemblyManifest, selected: readonly n
   return true;
 }
 
-function solve(manifest: AssemblyManifest, candidates: readonly AssemblyUnit[], budget: number, history: boolean): SearchResult {
+function solve(
+  manifest: AssemblySelectionContext,
+  candidates: readonly AssemblyUnit[],
+  budget: number,
+  exclusions: ExclusionContext,
+): SearchResult {
   const { rankedUnits } = rankedForSlots(manifest, candidates);
   const conflicts = new Set(manifest.conflicts.map((edge) => conflictKey(edge.leftUnitId, edge.rightUnitId)));
   const conflictsByUnit = new Map<string, Set<string>>();
@@ -433,7 +499,7 @@ function solve(manifest: AssemblyManifest, candidates: readonly AssemblyUnit[], 
     if (!canStillReach(manifest, state, compatible)) continue;
     const target = chooseTarget(manifest, state, compatible);
     if (!target) {
-      if (validateFinalSelection(manifest, stateFrame.selected, rankedUnits, conflicts, history)) {
+      if (validateFinalSelection(manifest, stateFrame.selected, rankedUnits, conflicts, exclusions)) {
         return { kind: "FOUND", selected: stateFrame.selected, visited };
       }
       continue;
@@ -449,7 +515,7 @@ function solve(manifest: AssemblyManifest, candidates: readonly AssemblyUnit[], 
   return { kind: "INFEASIBLE", visited };
 }
 
-function intrinsicConflict(manifest: AssemblyManifest): boolean {
+function intrinsicConflict(manifest: AssemblySelectionContext): boolean {
   for (const section of manifest.blueprint.sections) {
     const cognitiveMinimum = manifest.blueprint.quotas.filter((quota) => quota.sectionId === section.id && quota.dimension === "COGNITIVE_LEVEL").reduce((sum, quota) => sum + quota.min, 0);
     const difficultyMinimum = manifest.blueprint.quotas.filter((quota) => quota.sectionId === section.id && quota.dimension === "DIFFICULTY").reduce((sum, quota) => sum + quota.min, 0);
@@ -458,16 +524,13 @@ function intrinsicConflict(manifest: AssemblyManifest): boolean {
   return false;
 }
 
-function eligibleUnits(manifest: AssemblyManifest, history: boolean): AssemblyUnit[] {
-  const excluded = new Set(manifest.blueprint.excludedQuestionIds);
-  const historyQuestions = new Set(manifest.historyQuestionIds);
-  const historyGroups = new Set(manifest.historyGroupIds);
+function eligibleUnits(manifest: AssemblySelectionContext, exclusions: ExclusionContext): AssemblyUnit[] {
   return manifest.units.filter((unit) => !unit.members.some((member) =>
-    excluded.has(member.questionId) || (history && (historyQuestions.has(member.questionId) || historyGroups.has(member.groupId))),
+    exclusions.questionIds.has(member.questionId) || exclusions.groupIds.has(member.groupId),
   ));
 }
 
-function slotsFor(manifest: AssemblyManifest, selected: readonly number[], rankedUnits: readonly AssemblyUnit[], seededPosition: ReadonlyMap<string, number>): AssemblySlot[] {
+function slotsFor(manifest: AssemblySelectionContext, selected: readonly number[], rankedUnits: readonly AssemblyUnit[], seededPosition: ReadonlyMap<string, number>): AssemblySlot[] {
   const selectedUnits = selected.map((index) => rankedUnits[index]!);
   const result: AssemblySlot[] = [];
   for (const section of manifest.blueprint.sections) {
@@ -488,32 +551,69 @@ function emptyFailure(code: AssemblyFailureCode, manifestHash: string, visitedNo
   return { status: "FAILURE", code, manifestHash, visitedNodes, slots, slotsHash: sha256(canonicalize(slots)) };
 }
 
-/** Run bounded deterministic assembly/1 against the captured manifest only. */
-export function runAssemblyReference(input: unknown): AssemblyResult {
-  const { manifest, manifestHash } = parseAssemblyManifest(input);
-  if (intrinsicConflict(manifest)) return emptyFailure("CONSTRAINT_CONFLICT", manifestHash, 0);
-  if (manifest.units.length > manifest.limits.maxUnits) return emptyFailure("SEARCH_EXHAUSTED", manifestHash, 0);
-  if (manifest.reuseMode === "NEW_ONLY") {
-    const baseline = solve(manifest, eligibleUnits(manifest, false), manifest.limits.maxNodes, false);
-    if (baseline.kind === "EXHAUSTED") return emptyFailure("SEARCH_EXHAUSTED", manifestHash, baseline.visited);
-    if (baseline.kind === "INFEASIBLE") return emptyFailure("INSUFFICIENT_ELIGIBLE_INVENTORY", manifestHash, baseline.visited);
-    const personal = solve(manifest, eligibleUnits(manifest, true), manifest.limits.maxNodes - baseline.visited, true);
-    const visitedNodes = baseline.visited + personal.visited;
-    if (personal.kind === "EXHAUSTED") return emptyFailure("SEARCH_EXHAUSTED", manifestHash, visitedNodes);
-    if (personal.kind === "INFEASIBLE") return emptyFailure("INSUFFICIENT_UNSEEN_INVENTORY", manifestHash, visitedNodes);
-    const { rankedUnits, seededPosition } = rankedForSlots(manifest, eligibleUnits(manifest, true));
-    const slots = slotsFor(manifest, personal.selected, rankedUnits, seededPosition);
-    return { status: "SUCCESS", manifestHash, visitedNodes, slots, slotsHash: sha256(canonicalize(slots)) };
-  }
-  const searched = solve(manifest, eligibleUnits(manifest, false), manifest.limits.maxNodes, false);
-  if (searched.kind === "EXHAUSTED") return emptyFailure("SEARCH_EXHAUSTED", manifestHash, searched.visited);
-  if (searched.kind === "INFEASIBLE") return emptyFailure("INSUFFICIENT_ELIGIBLE_INVENTORY", manifestHash, searched.visited);
-  const { rankedUnits, seededPosition } = rankedForSlots(manifest, eligibleUnits(manifest, false));
+function emptyFixedFailure(code: FixedAssemblyFailureCode, manifestHash: string, visitedNodes: number): FixedAssemblyResult {
+  const slots: [] = [];
+  return { status: "FAILURE", code, manifestHash, visitedNodes, slots, slotsHash: sha256(canonicalize(slots)) };
+}
+
+function blueprintExclusions(manifest: AssemblySelectionContext): ExclusionContext {
+  return { questionIds: new Set(manifest.blueprint.excludedQuestionIds), groupIds: new Set() };
+}
+
+function personalHistoryExclusions(manifest: AssemblyManifest): ExclusionContext {
+  return {
+    questionIds: new Set([...manifest.blueprint.excludedQuestionIds, ...manifest.historyQuestionIds]),
+    groupIds: new Set(manifest.historyGroupIds),
+  };
+}
+
+function runSingleReference(
+  manifest: AssemblySelectionContext,
+  manifestHash: string,
+  exclusions: ExclusionContext,
+): FixedAssemblyResult {
+  if (intrinsicConflict(manifest)) return emptyFixedFailure("CONSTRAINT_CONFLICT", manifestHash, 0);
+  if (manifest.units.length > manifest.limits.maxUnits) return emptyFixedFailure("SEARCH_EXHAUSTED", manifestHash, 0);
+  const candidates = eligibleUnits(manifest, exclusions);
+  const searched = solve(manifest, candidates, manifest.limits.maxNodes, exclusions);
+  if (searched.kind === "EXHAUSTED") return emptyFixedFailure("SEARCH_EXHAUSTED", manifestHash, searched.visited);
+  if (searched.kind === "INFEASIBLE") return emptyFixedFailure("INSUFFICIENT_ELIGIBLE_INVENTORY", manifestHash, searched.visited);
+  const { rankedUnits, seededPosition } = rankedForSlots(manifest, candidates);
   const slots = slotsFor(manifest, searched.selected, rankedUnits, seededPosition);
   return { status: "SUCCESS", manifestHash, visitedNodes: searched.visited, slots, slotsHash: sha256(canonicalize(slots)) };
 }
 
-function rankedForSlots(manifest: AssemblyManifest, candidates: readonly AssemblyUnit[]): { rankedUnits: AssemblyUnit[]; seededPosition: Map<string, number> } {
+/** Run bounded deterministic assembly/1 against the captured manifest only. */
+export function runAssemblyReference(input: unknown): AssemblyResult {
+  const { manifest, manifestHash } = parseAssemblyManifest(input);
+  if (manifest.reuseMode === "NEW_ONLY") {
+    if (intrinsicConflict(manifest)) return emptyFailure("CONSTRAINT_CONFLICT", manifestHash, 0);
+    if (manifest.units.length > manifest.limits.maxUnits) return emptyFailure("SEARCH_EXHAUSTED", manifestHash, 0);
+    const baselineExclusions = blueprintExclusions(manifest);
+    const baselineUnits = eligibleUnits(manifest, baselineExclusions);
+    const baseline = solve(manifest, baselineUnits, manifest.limits.maxNodes, baselineExclusions);
+    if (baseline.kind === "EXHAUSTED") return emptyFailure("SEARCH_EXHAUSTED", manifestHash, baseline.visited);
+    if (baseline.kind === "INFEASIBLE") return emptyFailure("INSUFFICIENT_ELIGIBLE_INVENTORY", manifestHash, baseline.visited);
+    const personalExclusions = personalHistoryExclusions(manifest);
+    const personalUnits = eligibleUnits(manifest, personalExclusions);
+    const personal = solve(manifest, personalUnits, manifest.limits.maxNodes - baseline.visited, personalExclusions);
+    const visitedNodes = baseline.visited + personal.visited;
+    if (personal.kind === "EXHAUSTED") return emptyFailure("SEARCH_EXHAUSTED", manifestHash, visitedNodes);
+    if (personal.kind === "INFEASIBLE") return emptyFailure("INSUFFICIENT_UNSEEN_INVENTORY", manifestHash, visitedNodes);
+    const { rankedUnits, seededPosition } = rankedForSlots(manifest, personalUnits);
+    const slots = slotsFor(manifest, personal.selected, rankedUnits, seededPosition);
+    return { status: "SUCCESS", manifestHash, visitedNodes, slots, slotsHash: sha256(canonicalize(slots)) };
+  }
+  return runSingleReference(manifest, manifestHash, blueprintExclusions(manifest));
+}
+
+/** Run one bounded fixed baseline search without personal history exclusions. */
+export function runFixedAssemblyReference(input: unknown): FixedAssemblyResult {
+  const { manifest, manifestHash } = parseFixedAssemblyManifest(input);
+  return runSingleReference(manifest, manifestHash, blueprintExclusions(manifest));
+}
+
+function rankedForSlots(manifest: AssemblySelectionContext, candidates: readonly AssemblyUnit[]): { rankedUnits: AssemblyUnit[]; seededPosition: Map<string, number> } {
   const sorted = [...candidates].sort((left, right) => compare(left.id, right.id));
   const shuffled = shuffleAssemblyUnitsV1(sorted, manifest.seed);
   const positions = new Map(shuffled.map((unit, index) => [unit.id, index]));
@@ -529,6 +629,16 @@ function rankedForSlots(manifest: AssemblyManifest, candidates: readonly Assembl
 export function replayAssemblyReference(input: unknown, stored: { manifestHash: string; slotsHash: string }): { result: AssemblyResult; matches: boolean; mismatches: ("manifestHash" | "slotsHash")[] } {
   if (!HASH.test(stored.manifestHash) || !HASH.test(stored.slotsHash)) fail("Stored replay hashes must be sha256 digests");
   const result = runAssemblyReference(input);
+  const mismatches: ("manifestHash" | "slotsHash")[] = [];
+  if (stored.manifestHash !== result.manifestHash) mismatches.push("manifestHash");
+  if (stored.slotsHash !== result.slotsHash) mismatches.push("slotsHash");
+  return { result, matches: mismatches.length === 0, mismatches };
+}
+
+/** Compare both fixed replay pins against a fresh deterministic run without mutation. */
+export function replayFixedAssemblyReference(input: unknown, stored: { manifestHash: string; slotsHash: string }): { result: FixedAssemblyResult; matches: boolean; mismatches: ("manifestHash" | "slotsHash")[] } {
+  if (!HASH.test(stored.manifestHash) || !HASH.test(stored.slotsHash)) fail("Stored replay hashes must be sha256 digests");
+  const result = runFixedAssemblyReference(input);
   const mismatches: ("manifestHash" | "slotsHash")[] = [];
   if (stored.manifestHash !== result.manifestHash) mismatches.push("manifestHash");
   if (stored.slotsHash !== result.slotsHash) mismatches.push("slotsHash");

@@ -1,0 +1,202 @@
+[
+  {
+    "name": "NEW_ONLY/0",
+    "manifestHash": "sha256:eaad5d46b4f732a53c068a51f5c0d303ff41ef0c9a814d293a42fece608e7eb3",
+    "result": {
+      "status": "FAILURE",
+      "code": "SEARCH_EXHAUSTED",
+      "manifestHash": "sha256:eaad5d46b4f732a53c068a51f5c0d303ff41ef0c9a814d293a42fece608e7eb3",
+      "visitedNodes": 0,
+      "slots": [],
+      "slotsHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  {
+    "name": "NEW_ONLY/1",
+    "manifestHash": "sha256:5dcdfc2957c81532607c8945f84ffa8a5e11d14cb52f7b962561201974f04475",
+    "result": {
+      "status": "FAILURE",
+      "code": "SEARCH_EXHAUSTED",
+      "manifestHash": "sha256:5dcdfc2957c81532607c8945f84ffa8a5e11d14cb52f7b962561201974f04475",
+      "visitedNodes": 3,
+      "slots": [],
+      "slotsHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  {
+    "name": "NEW_ONLY/2",
+    "manifestHash": "sha256:727b5afe4792efe096537d71a139e290ceb323e5975a6dedd17f1eec4fe5430d",
+    "result": {
+      "status": "SUCCESS",
+      "manifestHash": "sha256:727b5afe4792efe096537d71a139e290ceb323e5975a6dedd17f1eec4fe5430d",
+      "visitedNodes": 6,
+      "slots": [
+        {
+          "sectionId": "math-section",
+          "ordinal": 0,
+          "unitId": "00000000-0000-4000-8000-000000000003",
+          "questionId": "00000000-0000-4000-8000-000000002713",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e23",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007533"
+        },
+        {
+          "sectionId": "math-section",
+          "ordinal": 1,
+          "unitId": "00000000-0000-4000-8000-000000000002",
+          "questionId": "00000000-0000-4000-8000-000000002712",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e22",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007532"
+        }
+      ],
+      "slotsHash": "sha256:40dd0dc6511f5f73d186cfac9dddab0b31b00bf4146b19edfc38ab17fe3480f0"
+    }
+  },
+  {
+    "name": "NEW_ONLY/3",
+    "manifestHash": "sha256:0b6e1ee27693ea6f3885a105629d8715544c20512193f42d4c919c7e811b446f",
+    "result": {
+      "status": "SUCCESS",
+      "manifestHash": "sha256:0b6e1ee27693ea6f3885a105629d8715544c20512193f42d4c919c7e811b446f",
+      "visitedNodes": 6,
+      "slots": [
+        {
+          "sectionId": "math-section",
+          "ordinal": 0,
+          "unitId": "00000000-0000-4000-8000-000000000003",
+          "questionId": "00000000-0000-4000-8000-000000002713",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e23",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007533"
+        },
+        {
+          "sectionId": "math-section",
+          "ordinal": 1,
+          "unitId": "00000000-0000-4000-8000-000000000002",
+          "questionId": "00000000-0000-4000-8000-000000002712",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e22",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007532"
+        }
+      ],
+      "slotsHash": "sha256:40dd0dc6511f5f73d186cfac9dddab0b31b00bf4146b19edfc38ab17fe3480f0"
+    }
+  },
+  {
+    "name": "NEW_ONLY/4",
+    "manifestHash": "sha256:53d1246ee3eb2290fe6a72ff45057ecd23424aa5d505c116b7bfe0e936ded949",
+    "result": {
+      "status": "FAILURE",
+      "code": "SEARCH_EXHAUSTED",
+      "manifestHash": "sha256:53d1246ee3eb2290fe6a72ff45057ecd23424aa5d505c116b7bfe0e936ded949",
+      "visitedNodes": 0,
+      "slots": [],
+      "slotsHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  {
+    "name": "REVIEW_ALLOWED/0",
+    "manifestHash": "sha256:03f06a81b27695d82a6f4c685fd524a9421919680004a1498f390cc890a348e9",
+    "result": {
+      "status": "FAILURE",
+      "code": "SEARCH_EXHAUSTED",
+      "manifestHash": "sha256:03f06a81b27695d82a6f4c685fd524a9421919680004a1498f390cc890a348e9",
+      "visitedNodes": 0,
+      "slots": [],
+      "slotsHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  {
+    "name": "REVIEW_ALLOWED/1",
+    "manifestHash": "sha256:62ca7873d1a54c276a3c1432809b5937725cddfcff11e6c78f0dd22f03c64f20",
+    "result": {
+      "status": "SUCCESS",
+      "manifestHash": "sha256:62ca7873d1a54c276a3c1432809b5937725cddfcff11e6c78f0dd22f03c64f20",
+      "visitedNodes": 3,
+      "slots": [
+        {
+          "sectionId": "math-section",
+          "ordinal": 0,
+          "unitId": "00000000-0000-4000-8000-000000000003",
+          "questionId": "00000000-0000-4000-8000-000000002713",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e23",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007533"
+        },
+        {
+          "sectionId": "math-section",
+          "ordinal": 1,
+          "unitId": "00000000-0000-4000-8000-000000000002",
+          "questionId": "00000000-0000-4000-8000-000000002712",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e22",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007532"
+        }
+      ],
+      "slotsHash": "sha256:40dd0dc6511f5f73d186cfac9dddab0b31b00bf4146b19edfc38ab17fe3480f0"
+    }
+  },
+  {
+    "name": "REVIEW_ALLOWED/2",
+    "manifestHash": "sha256:0b6db69103e6f5b6994cc773685c52e6d8d02a550c7fd2f47fc430a5ddf3ac68",
+    "result": {
+      "status": "SUCCESS",
+      "manifestHash": "sha256:0b6db69103e6f5b6994cc773685c52e6d8d02a550c7fd2f47fc430a5ddf3ac68",
+      "visitedNodes": 3,
+      "slots": [
+        {
+          "sectionId": "math-section",
+          "ordinal": 0,
+          "unitId": "00000000-0000-4000-8000-000000000003",
+          "questionId": "00000000-0000-4000-8000-000000002713",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e23",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007533"
+        },
+        {
+          "sectionId": "math-section",
+          "ordinal": 1,
+          "unitId": "00000000-0000-4000-8000-000000000004",
+          "questionId": "00000000-0000-4000-8000-000000002714",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e24",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007534"
+        }
+      ],
+      "slotsHash": "sha256:9de37e1c9f32040119854d5d8bbd329dc94628c649ec7ff6590d9c5cb4e613b7"
+    }
+  },
+  {
+    "name": "REVIEW_ALLOWED/3",
+    "manifestHash": "sha256:ad2b124c957b09eae2aacd740153aec5986c101c953317a8da980236efcfe3f3",
+    "result": {
+      "status": "SUCCESS",
+      "manifestHash": "sha256:ad2b124c957b09eae2aacd740153aec5986c101c953317a8da980236efcfe3f3",
+      "visitedNodes": 3,
+      "slots": [
+        {
+          "sectionId": "math-section",
+          "ordinal": 0,
+          "unitId": "00000000-0000-4000-8000-000000000002",
+          "questionId": "00000000-0000-4000-8000-000000002712",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e22",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007532"
+        },
+        {
+          "sectionId": "math-section",
+          "ordinal": 1,
+          "unitId": "00000000-0000-4000-8000-000000000004",
+          "questionId": "00000000-0000-4000-8000-000000002714",
+          "questionVersionId": "00000000-0000-4000-8000-000000004e24",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000007534"
+        }
+      ],
+      "slotsHash": "sha256:65af8e58aa67dac55b8411a4ae2f67bbc53794b4b06fe6566951572dcd7ed0db"
+    }
+  },
+  {
+    "name": "REVIEW_ALLOWED/4",
+    "manifestHash": "sha256:7bc32e975fdc8a17a086b524e2c6840e15a3d3cb212a8f5f530f223cb0d84f68",
+    "result": {
+      "status": "FAILURE",
+      "code": "SEARCH_EXHAUSTED",
+      "manifestHash": "sha256:7bc32e975fdc8a17a086b524e2c6840e15a3d3cb212a8f5f530f223cb0d84f68",
+      "visitedNodes": 0,
+      "slots": [],
+      "slotsHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+]
