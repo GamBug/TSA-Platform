@@ -132,3 +132,35 @@ student inference/push/merge/deploy. Clean-checkout reproduction and final doc
 checks follow the implementation checkpoint and are appended only when executed.
 Coordinator docs/scoped staged whitespace PASS, zero docs errors/one preserved
 historical whitespace warning.
+
+
+## Clean-checkout reproduction —bd45327
+
+Coordinator cloned committed bd45327 with
+`git clone --no-hardlinks --quiet <repository> .local/verification-b3/clean-cs02_68o`.
+The clone is owned/ignored, not part of retained app state. Actual commands in order:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+TRACK_B_ARTIFACT_DIR=../clean-chrome npm run test:track-b:browser
+STUDENT_FIREFOX_ARTIFACT_DIR=../clean-firefox npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run docs:check
+git status --short
+```
+
+All completed exit0 with no code patches, manual API setup or SQL edits. Install
+added24/audited26 with zero reported advisories; build PASS; focused27 PASS/zero
+failures/skips/cancellations. Actual Chrome156 PASS28/12screenshots,375/document375/
+scale1; Firefox156 PASS student+B1/B2/B3,1280/actual500 (375/450 clamped),8 check
+descriptions/15screenshots. Built private smoke2 and public/private drift PASS.
+Docs zero errors/one preserved historical whitespace warning. Final clone Git
+status empty and HEAD remained bd45327. Logs/captures under ignored
+`.local/verification-b3/clean-*` are retained locally, not committed.
+
+This closes local reproducibility for the approved B3 author handoff increment.
+The next [B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED; no B4 action/DTO/permission is added.

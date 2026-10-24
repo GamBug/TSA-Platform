@@ -4,8 +4,11 @@ Current B3.1 author handoff, 2026-10-24: explicit whole-proposal owner approval;
 implementation and actual PG/Chromium/Firefox/recovery verification complete,
 independent review final no findings after P3 repair. [Evidence](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md)
 and [demo](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
-No backend policy/grant/migration/student contract changes. Clean reproduction
-follows checkpoint. Review decisions/rights/holds/publication UI and qualified
+No backend policy/grant/migration/student contract changes. Clean no-hardlink
+bd45327 install/build/focused27/Chrome28/Firefox/built/drift/docs PASS, no patches/
+manual SQL/API setup, final clone Git status empty.
+Next [B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED; no B4 implementation. Review decisions/rights/holds/publication UI and qualified
 human input remain outside this increment.
 
 Current read-only staff queue UX, 2026-10-24: existing IN_REVIEW metadata shortcut

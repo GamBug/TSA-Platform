@@ -17,6 +17,25 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
+## WEB-002 B4.1 — proposed negative dispositions, 2026-10-24
+
+- Status **PROPOSED / HUMAN_APPROVAL_REQUIRED**; approval identity/date: none.
+- [Exact revised B4.1](WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md), SHA-256
+  `65b81b18c6d700e0858d0c214d8cc1944e48876e0beb289d7b0a6edf14eb9e21`.
+  [Independent design review](../reviews/WEB_002_B4_CONTRACT_DESIGN_REVIEW.md):
+  one server-attribution claim P2 resolved by explicitly including a bounded
+  original-import-operator enforcement repair; final no design blockers.
+- New approval would cover local synthetic REJECT-only and manager quarantine
+  DTO/confirmation/recovery UI over existing commands, plus that specific server
+  repair for receipt-less ancestors/fresh/replay reviewer independence. Current
+  backend gap is source evidence, not a reproduced exploit. No B4 implementation.
+- Quarantine may affect related descendants/forms/attempts/results and may return
+  503 after commit/drain failure. Rejection removes queued private-read access;
+  receipts and current state remain distinct. These effects are in the decision.
+- No APPROVE, rights edit, publication, qualified human or real-content authority;
+  no new grants/migration or historical rewrite. Privileged actions/repair need
+  explicit whole-B4.1 owner disposition, not an inference from B3 handoff approval.
+
 ## WEB-002 B3.1 — owner-approved author draft handoff, 2026-10-24
 
 - Status: **APPROVED IN SCOPE** by human repository owner,2026-10-24 Asia/Bangkok.

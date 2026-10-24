@@ -750,6 +750,17 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 next proposal [B4.1 negative dispositions](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
+is **PROPOSED / HUMAN_APPROVAL_REQUIRED**. Root documentation only, no B4 UI/DTO/
+permission implemented. Explicit synthetic rejection plus consequential manager
+quarantine over existing commands; no APPROVE/rights/publication action. Current
+private access loss after rejection, historical receipts and post-commit hold-drain
+failure/retry are explicit. Separate [design review](../reviews/WEB_002_B4_CONTRACT_DESIGN_REVIEW.md)
+P2 resolved by explicitly including the bounded receipt-less import-operator
+authorization repair in the new approval request; final no design blockers.
+No server repair implemented or runtime test claim. Recommended Sol6.1/High integration, available Luna/XHigh bounded UI (Sol
+fallback), separate Sol6.1/Medium read-only review, existing subscriptions only.
+
 2026-10-24 B3.1 **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** from5c1bded.
 Exact approved explicit fresh AUTHOR_OWN DRAFT confirmation/one captured intent/
 same-body-key uncertain retry/current receipt versus fresh observation delivered;
@@ -763,7 +774,9 @@ unresolved findings; independently focused27/contracts21/type/drift/boundary/syn
 Chrome28 PASS. Firefox inspection only. Latest CLI2 expanded to handoff→reviewer
 queue/evidence and terminal-safe cleanup, coordinator PASS. [Exact evidence/limits](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md).
 No backend/HTTP/ownership/grant/migration/student contract change or human review/
-rights/quarantine/publication UI. Next checkpoint/clean reproduction; full WEB-002
+rights/quarantine/publication UI. Clean no-hardlink bd45327 install/build/focused27/
+Chrome28/Firefox/built/drift/docs PASS, no patches/manual SQL/API setup, final clone
+Git status empty. Full WEB-002
 and qualified human prerequisites remain open. Historical approval-start notes
 below are superseded by these results.
 

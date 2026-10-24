@@ -38,13 +38,17 @@ while its command log is retained locally. Do not commit DBs/tokens/evidence.
 
 ## Next and remaining
 
-Create implementation checkpoint, then fresh no-hardlink clone locked install/
-build/focused27/Chrome28/Firefox/built/drift/docs. Append exact commit/results only
-when actually observed. No task-owned app server intentionally left live.
+Implementation checkpoint bd45327 reproduced in a fresh no-hardlink owned clone:
+locked install/build/focused27/Chrome28/Firefox/built/drift/docs PASS, no patches/
+manual SQL/API setup, final clone Git status empty. Exact commands in evidence. No task-owned app server intentionally left live.
 
-After clean reproduction, select the next useful authorized staff subset. Review
-commands/rights edits/holds/publication UI need their own bounded contract/role
-proposal, not an inference from backend capability or B3 handoff approval. Qualified
+Next [B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
+is documentation only/HUMAN_APPROVAL_REQUIRED. [Separate design review](../reviews/WEB_002_B4_CONTRACT_DESIGN_REVIEW.md)
+resolved P2 by explicitly adding the bounded receipt-less-import-operator server
+repair to the next approval request; final no design blockers. Synthetic rejection
+and consequential manager quarantine scope, no B4 UI/DTO/server repair implemented. No APPROVE/rights/publication authority.
+New privileged workflow actions need explicit disposition, not an inference from
+backend capability or B3 handoff approval. Qualified
 lawful12/6/12 stock, named rights attestor/independent human reviewer, manual AT/
 native zoom, real identity/load/operations and production remain separate. Full
 WEB-002/Technical MVP is not complete. Earlier records retained in Git.

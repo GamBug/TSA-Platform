@@ -13,8 +13,12 @@ student+B1/B2/B3/domains78/CLI2 PASS. Separate reviewer final no unresolved find
 (P3 fixed); independently focused27/contract21/type/drift/boundary/Chrome28/syntax/
 whitespace PASS. Firefox inspection only, latest CLI expansion root execution.
 
-Next checkpoint and clean no-hardlink reproduction; append exact outcomes. Then
-next useful authorized staff subset or bounded review/rights/hold proposal. B3 does
+Clean no-hardlink bd45327 install/build/focused27/Chrome28/Firefox/built/drift/docs
+PASS with no patches/manual SQL/API setup, final clone Git status empty. Next
+[B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
+documentation only/HUMAN_APPROVAL_REQUIRED, separate design review final no blockers.
+Revised scope explicitly includes receipt-less-import-operator authorization repair
+after source-only P2; no B4 code or repair implemented. B3 does
 not authorize human content decisions, rights mutations, quarantine/publication UI.
 Full staff/Technical MVP, lawful stock/manual AT/production remain distinct. No
 server intentionally left live; no paid API/Astra/push/merge/deployment. Recommended
