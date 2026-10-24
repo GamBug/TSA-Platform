@@ -290,6 +290,59 @@ async function runStaffReviewJourney() {
   assert.equal(dispositionPosts.every(post=>post.body.reason.startsWith('Local synthetic disposition: ')),true);
   report.checks.push('B4 Firefox explicit rubric/reason, native Escape privacy, actual synthetic rejection with private access loss, and manager quarantine with disclosed impact/current held metadata');
 
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'typed author Firefox login');
+  await evaluate(`${query('actor-select')}.value='author'`);await click('staff-login');
+  await waitFor(`Boolean(${query('draft-interaction-type')})`,'Firefox three-type author editor');
+  async function observeTypedDrafts() {
+    await evaluate(`(()=>{const original=window.fetch;window.__ffTyped={posts:[],reads:[]};window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);const response=await original(input,init);
+      if(url.pathname==='/api/v1/questions'&&init.method==='POST')window.__ffTyped.posts.push({body:JSON.parse(init.body),status:response.status,receipt:await response.clone().json()});
+      if(url.pathname.endsWith('/review-context'))window.__ffTyped.reads.push({status:response.status,body:await response.clone().json()});
+      return response;};return true})()`);
+  }
+  await observeTypedDrafts();
+  for(const type of ['MULTIPLE_CHOICE','TRUE_FALSE_GROUP']) {
+    await evaluate(`(()=>{const select=${query('draft-interaction-type')};select.value=${JSON.stringify(type)};select.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+    const prompt=`Bản nháp tổng hợp Firefox ${type}; không phải đề thi.`;
+    for(const [id,value] of [['draft-prompt',prompt],['draft-option-a','Nội dung tổng hợp A'],['draft-option-b','Nội dung tổng hợp B'],['draft-explanation','Lời giải tổng hợp riêng Firefox.']]) {
+      await evaluate(`(()=>{const input=${query(id)};input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);
+    }
+    const before=await evaluate('window.__ffTyped.posts.length');await click('draft-create');
+    await evaluate('new Promise(resolve=>setTimeout(()=>resolve(true),80))');
+    assert.equal(await evaluate('window.__ffTyped.posts.length'),before,'Firefox incomplete key sends no POST');
+    if(type==='MULTIPLE_CHOICE') {
+      assert.equal(await evaluate(`${query('draft-answer-multiple-a')}.checked||${query('draft-answer-multiple-b')}.checked`),false);
+      await evaluate(`(()=>{${query('draft-answer-multiple-b')}.focus();return true})()`);
+      await wd('POST','/actions',{actions:[{type:'key',id:'typed-keyboard',actions:[{type:'keyDown',value:' '},{type:'keyUp',value:' '}]}]});
+      assert.equal(await evaluate(`${query('draft-answer-multiple-b')}.checked`),true);
+    } else {
+      assert.equal(await evaluate(`${query('draft-answer-true-false-a')}.value+${query('draft-answer-true-false-b')}.value`),'');
+      await evaluate(`(()=>{${query('draft-answer-true-false-a')}.value='false';return true})()`);
+      await click('draft-create');await evaluate('new Promise(resolve=>setTimeout(()=>resolve(true),80))');
+      assert.equal(await evaluate('window.__ffTyped.posts.length'),before,'Firefox one unset TF value sends no POST');
+      await evaluate(`(()=>{${query('draft-answer-true-false-b')}.value='true';return true})()`);
+    }
+    await evaluate(`(()=>{${query('draft-interaction-type')}.scrollIntoView({block:'start'});return true})()`);
+    await capture(`staff-author-${type.toLowerCase()}-narrow-${narrowMeasured.innerWidth}`);
+    await click('draft-create');await waitFor(`window.__ffTyped.posts.length===${before+1}`,'Firefox typed draft receipt');
+    const posted=await evaluate('window.__ffTyped.posts.at(-1)');assert.equal(posted.status,201);
+    const expectedKey=type==='MULTIPLE_CHOICE'?{type,optionIds:['b']}:{type,values:{a:false,b:true}};
+    assert.deepEqual(posted.body.answerKey,expectedKey);
+    await wd('POST','/refresh',{});await waitFor(`Boolean(${query('staff-open')})`,'Firefox landing after typed reload');
+    await click('staff-open');await waitFor(`Boolean(${query('draft-interaction-type')}&&${query('staff-question-list')})`,'Firefox persisted author reopen');
+    await observeTypedDrafts();
+    const typedSelector=`[data-testid="staff-review-inspect"][data-version-id="${posted.receipt.versionId}"]`;
+    await waitFor(`Boolean(document.querySelector(${JSON.stringify(typedSelector)}))`,'Firefox typed metadata after reload');
+    const typedElement=await wd('POST','/element',{using:'css selector',value:typedSelector});
+    await wd('POST',`/element/${typedElement['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+    await waitFor(`Boolean(document.querySelector('.staff-review-preview')&&${query('handoff-open')})`,'Firefox typed private preview');
+    const persisted=await evaluate('window.__ffTyped.reads.at(-1)');assert.equal(persisted.status,200);
+    assert.equal(persisted.body.workflow.state,'DRAFT');assert.equal(persisted.body.preview.question.content[0].text,prompt);
+    assert.deepEqual(persisted.body.preview.question.interaction,posted.body.interaction);assert.deepEqual(persisted.body.preview.question.answerKey,expectedKey);
+    await wd('POST','/actions',{actions:[{type:'key',id:'typed-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  }
+  report.checks.push('Firefox existing-contract author MC/TF editor validates unset keys with zero POST, keyboard-selects a checkbox, creates real drafts and reads exact persistent keys/text after reload with handoff still explicit');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

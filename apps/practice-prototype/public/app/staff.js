@@ -1651,7 +1651,7 @@ export async function openStaffWorkspace(container, onBack) {
     input.dataset.testid = id;
     if (!multiline) input.type = 'text';
     field.append(label, input);
-    return { field, input };
+    return { field, input, label };
   }
 
   function renderWorkspace() {
@@ -1733,36 +1733,174 @@ export async function openStaffWorkspace(container, onBack) {
       const formCard = node('section', 'staff-card');
       formCard.append(node('h2', '', 'Bản nháp từ mẫu tổng hợp riêng'));
       formCard.append(node('p', 'staff-private-notice', 'Mẫu riêng chỉ được gửi sau khi máy chủ xác nhận vai trò AUTHOR. Chỉnh sửa văn bản, lựa chọn, đáp án và lời giải trước khi tạo bản nháp.'));
+      formCard.append(node('p', 'staff-form-help', 'Trình soạn thảo này hỗ trợ tối đa hai lựa chọn hoặc hai mệnh đề. Miền câu hỏi vẫn là Toán học; chỉ dùng nội dung tổng hợp trong môi trường cục bộ.'));
       const form = node('form', 'staff-draft-form');
       const prompt = labeledInput('Nội dung câu hỏi', 'draft-prompt', state.template.content[0]?.text ?? '', true);
       prompt.input.rows = 3;
       const firstOption = labeledInput('Lựa chọn A', 'draft-option-a', state.template.interaction.options[0]?.content[0]?.text ?? '');
       const secondOption = labeledInput('Lựa chọn B', 'draft-option-b', state.template.interaction.options[1]?.content[0]?.text ?? '');
-      const answerField = node('div', 'staff-field');
-      const answerLabel = node('label', '', 'Đáp án trong bản nháp');
-      answerLabel.htmlFor = 'draft-answer';
-      const answer = node('select', 'staff-input');
-      answer.id = 'draft-answer';
-      answer.dataset.testid = 'draft-answer';
-      for (const [value, labelText] of [['a', 'A'], ['b', 'B']]) {
+      const interactionTypeField = node('div', 'staff-field');
+      const interactionTypeLabel = node('label', '', 'Loại tương tác');
+      interactionTypeLabel.htmlFor = 'draft-interaction-type';
+      const interactionType = node('select', 'staff-input');
+      interactionType.id = 'draft-interaction-type';
+      interactionType.dataset.testid = 'draft-interaction-type';
+      for (const [value, labelText] of [
+        ['SINGLE_CHOICE', 'Một đáp án đúng'],
+        ['MULTIPLE_CHOICE', 'Nhiều đáp án đúng'],
+        ['TRUE_FALSE_GROUP', 'Đúng hoặc sai cho từng mệnh đề'],
+      ]) {
         const option = node('option', '', labelText);
         option.value = value;
-        answer.append(option);
+        interactionType.append(option);
       }
-      answer.value = state.template.answerKey.optionId;
-      answerField.append(answerLabel, answer);
+      interactionType.value = 'SINGLE_CHOICE';
+      interactionTypeField.append(interactionTypeLabel, interactionType);
+      const interactionHelp = node('p', 'staff-form-help', 'Chuyển loại sẽ xóa các đáp án đã chọn. Hãy chọn lại đáp án cho loại mới trước khi tạo bản nháp.');
+      interactionHelp.id = 'draft-interaction-help';
+      interactionType.setAttribute('aria-describedby', interactionHelp.id);
+      interactionTypeField.append(interactionHelp);
+      const answerField = node('fieldset', 'staff-interaction-fieldset');
+      let activeAnswerControls = null;
+      function renderAnswerControls(initialSingleChoice = '') {
+        answerField.replaceChildren();
+        const type = interactionType.value;
+        firstOption.label.textContent = type === 'TRUE_FALSE_GROUP' ? 'Mệnh đề A' : 'Lựa chọn A';
+        secondOption.label.textContent = type === 'TRUE_FALSE_GROUP' ? 'Mệnh đề B' : 'Lựa chọn B';
+
+        if (type === 'SINGLE_CHOICE') {
+          answerField.append(node('legend', '', 'Đáp án trong bản nháp'));
+          const answerLabel = node('label', '', 'Lựa chọn đúng');
+          answerLabel.htmlFor = 'draft-answer';
+          const answer = node('select', 'staff-input');
+          answer.id = 'draft-answer';
+          answer.dataset.testid = 'draft-answer';
+          answer.required = true;
+          for (const [value, labelText] of [['', 'Chọn đáp án đúng'], ['a', 'Lựa chọn A'], ['b', 'Lựa chọn B']]) {
+            const option = node('option', '', labelText);
+            option.value = value;
+            answer.append(option);
+          }
+          answer.value = initialSingleChoice;
+          answerField.append(answerLabel, answer);
+          activeAnswerControls = { type, answer };
+          return;
+        }
+
+        if (type === 'MULTIPLE_CHOICE') {
+          const legend = node('legend', '', 'Các đáp án đúng');
+          const help = node('p', 'staff-form-help', 'Chọn ít nhất một đáp án; với hai lựa chọn, số đáp án được chọn từ 1 đến 2.');
+          help.id = 'draft-multiple-answer-help';
+          answerField.append(legend, help);
+          const choices = [];
+          for (const [value, labelText, testId] of [
+            ['a', 'Lựa chọn A', 'draft-answer-multiple-a'],
+            ['b', 'Lựa chọn B', 'draft-answer-multiple-b'],
+          ]) {
+            const label = node('label', 'staff-answer-choice');
+            const checkbox = node('input', 'staff-answer-checkbox');
+            checkbox.type = 'checkbox';
+            checkbox.value = value;
+            checkbox.id = testId;
+            checkbox.dataset.testid = testId;
+            checkbox.setAttribute('aria-describedby', help.id);
+            const text = node('span', '', labelText);
+            label.htmlFor = testId;
+            label.append(checkbox, text);
+            choices.push(checkbox);
+            answerField.append(label);
+          }
+          const syncRequiredChoice = () => {
+            choices[0].setCustomValidity(choices.some((choice) => choice.checked)
+              ? '' : 'Chọn ít nhất một đáp án đúng.');
+          };
+          for (const choice of choices) choice.addEventListener('change', syncRequiredChoice);
+          syncRequiredChoice();
+          activeAnswerControls = { type, choices, syncRequiredChoice };
+          return;
+        }
+
+        answerField.append(node('legend', '', 'Đáp án cho từng mệnh đề'));
+        const trueFalseAnswers = [];
+        for (const [value, statementLabel, testId] of [
+          ['a', 'Mệnh đề A', 'draft-answer-true-false-a'],
+          ['b', 'Mệnh đề B', 'draft-answer-true-false-b'],
+        ]) {
+          const field = node('div', 'staff-field staff-answer-true-false-field');
+          const label = node('label', '', `${statementLabel}: chọn Đúng hoặc Sai`);
+          label.htmlFor = testId;
+          const answer = node('select', 'staff-input');
+          answer.id = testId;
+          answer.dataset.testid = testId;
+          answer.required = true;
+          for (const [answerValue, answerText] of [['', 'Chọn Đúng hoặc Sai'], ['true', 'Đúng'], ['false', 'Sai']]) {
+            const option = node('option', '', answerText);
+            option.value = answerValue;
+            answer.append(option);
+          }
+          field.append(label, answer);
+          answerField.append(field);
+          trueFalseAnswers.push(answer);
+        }
+        activeAnswerControls = { type, trueFalseAnswers };
+      }
+      renderAnswerControls(state.template.answerKey?.type === 'SINGLE_CHOICE'
+        ? state.template.answerKey.optionId : '');
+      interactionType.addEventListener('change', () => {
+        if (isWorkspaceActive()) renderAnswerControls();
+      });
       const explanation = labeledInput('Lời giải riêng', 'draft-explanation', state.template.explanation[0]?.text ?? '', true);
       explanation.input.rows = 3;
+      const requiredTextInputs = [
+        [prompt.input, 'Nhập nội dung câu hỏi.'],
+        [firstOption.input, 'Nhập nội dung lựa chọn hoặc mệnh đề A.'],
+        [secondOption.input, 'Nhập nội dung lựa chọn hoặc mệnh đề B.'],
+        [explanation.input, 'Nhập lời giải riêng.'],
+      ];
+      for (const [input, message] of requiredTextInputs) {
+        input.addEventListener('input', () => input.setCustomValidity(input.value.trim() ? '' : message));
+      }
       const create = node('button', 'button', 'Tạo bản nháp');
       create.type = 'submit';
       create.dataset.testid = 'draft-create';
-      form.append(prompt.field, firstOption.field, secondOption.field, answerField, explanation.field, create);
+      form.append(prompt.field, interactionTypeField, firstOption.field, secondOption.field, answerField, explanation.field, create);
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!isWorkspaceActive() || state.busy) return;
+        for (const [input, message] of requiredTextInputs) {
+          input.setCustomValidity(input.value.trim() ? '' : message);
+        }
+        activeAnswerControls?.syncRequiredChoice?.();
+        if (!form.reportValidity()) return;
         state.busy = true;
         create.disabled = true;
         try {
+          const type = interactionType.value;
+          const optionBlocks = [firstOption, secondOption].map((option) => ({
+            id: option === firstOption ? 'a' : 'b',
+            content: [{ type: 'text', text: option.input.value }],
+          }));
+          let interaction;
+          let answerKey;
+          if (type === 'SINGLE_CHOICE') {
+            interaction = { type, options: optionBlocks };
+            answerKey = { type, optionId: activeAnswerControls.answer.value };
+          } else if (type === 'MULTIPLE_CHOICE') {
+            interaction = { type, minSelections: 1, maxSelections: 2, options: optionBlocks };
+            answerKey = { type, optionIds: activeAnswerControls.choices
+              .filter((choice) => choice.checked).map((choice) => choice.value) };
+          } else {
+            interaction = {
+              type,
+              statements: optionBlocks.map(({ id, content }) => ({ id, content })),
+            };
+            answerKey = {
+              type,
+              values: Object.fromEntries(activeAnswerControls.trueFalseAnswers.map((answer, index) => [
+                index === 0 ? 'a' : 'b', answer.value === 'true',
+              ])),
+            };
+          }
           const draft = {
             schemaVersion: 'question/1',
             language: 'vi-VN',
@@ -1775,14 +1913,8 @@ export async function openStaffWorkspace(container, onBack) {
             targetDifficulty: 'EASY',
             content: [{ type: 'text', text: prompt.input.value }],
             stimulusVersionId: null,
-            interaction: {
-              type: 'SINGLE_CHOICE',
-              options: [
-                { id: 'a', content: [{ type: 'text', text: firstOption.input.value }] },
-                { id: 'b', content: [{ type: 'text', text: secondOption.input.value }] },
-              ],
-            },
-            answerKey: { type: 'SINGLE_CHOICE', optionId: answer.value },
+            interaction,
+            answerKey,
             explanation: [{ type: 'text', text: explanation.input.value }],
             evidenceRefs: state.template.evidenceRefs,
             origin: 'MANUAL',

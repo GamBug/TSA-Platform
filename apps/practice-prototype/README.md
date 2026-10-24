@@ -301,3 +301,8 @@ before fixture creation. Ctrl+C discards the private fixture. It does not create
 retained stock or establish lawful inventory, qualified human content review,
 official examination timing/scoring or manual accessibility acceptance.
 [Executed HTTP/browser and rights-revocation evidence](../../docs/reviews/WEB_001_SHARED_READING_VERIFICATION.md).
+
+The local AUTHOR editor creates compact two-entry MATH synthetic SC, MC or TF
+drafts through the existing Bank API. New types require explicit private keys;
+switching types clears selections. Draft creation and review handoff stay separate.
+[Executed author editor evidence](../../docs/reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).

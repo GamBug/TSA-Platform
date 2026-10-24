@@ -750,13 +750,17 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
-2026-10-24 **AUTHOR INTERACTION EDITOR — IMPLEMENTATION_IN_PROGRESS** atf8aaf12.
+2026-10-24 **AUTHOR INTERACTION EDITOR — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** atf8aaf12.
 Root selects existing-contract three-type compact editor; [scope/acceptance](../decisions/OPEN_DECISIONS.md#web-002-author-interaction-editor--selected-2026-10-24).
 Root owns integration/browser/shared records; bounded configured Luna/XHigh UI
 writer and separate Sol6.1/Medium read-only reviewer. No new route/schema/roles,
 rights/publication/qualified-human authority. Preserve owner AGENTS/research.
-Runtime evidence pending; B4 clean reproduction runs independently from committed
-f8aaf12. Default single-choice flow must remain usable.
+Actual Chrome33/16captures, Firefox10/19captures, B032/local15/import/syntax/
+whitespace PASS. Separate Sol6.1/Medium source+actual Chrome33/syntax/whitespace
+PASS, no findings; Firefox independently source/syntax only. [Exact evidence](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
+Configured Luna/XHigh writer released staff.js/scoped CSS; root integration/docs.
+Default SC/retry/explicit handoff preserved; new MC/TF persist after reload.
+No broad Bank/contract rerun for UI-only scope. B4 clean reproduction recorded above.
 
 2026-10-24 **B4.1 IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED (scoped)**,
 base743a197. Root selected exact reviewed scope under owner engineering-choice

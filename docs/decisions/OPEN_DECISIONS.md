@@ -49,7 +49,8 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   writer may own staff.js/scoped CSS, separate Sol6.1/Medium read-only review.
   Required evidence: actual UI creates each shape, validation0POST for incomplete
   keys, exact persisted/private-preview values after reload, handoff remains
-  explicit, mobile/keyboard checks and existing regression suites. Runtime pending.
+  explicit, mobile/keyboard checks and existing regression suites.
+- IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED: [actual evidence](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md). No frozen contract change.
 
 ## WEB-002 B4.1 — engineering scope selected under owner delegation, 2026-10-24
 

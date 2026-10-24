@@ -106,7 +106,7 @@ a DRAFT, filter the version list and choose **Kiểm tra riêng phiên bản**. 
 returns exact version/hash/workflow and current source-rights metadata. The retained
 source remains UNKNOWN, so its content preview is blocked truthfully. B1 supplies
 no raw rights evidence; the separate approved B2 action below reads it without
-changing rights. Review decisions and publication controls remain unavailable.
+changing rights. Approval, rights-edit and publication controls remain unavailable.
 
 For a complete disposable private-preview demonstration, stop retained mode and run:
 
@@ -120,6 +120,15 @@ explicitly: three show the supported interactions, locally typeset math, table,
 private key and explanation; the unsafe synthetic version shows a metadata-only
 CONTENT_UNSUPPORTED block. Close the view by its control or Escape; return/logout
 clears private content. These private reads are denied to ordinary students.
+
+The author form now supports **Một đáp án đúng**, **Nhiều đáp án đúng** and
+**Đúng hoặc sai cho từng mệnh đề**. This compact synthetic MATH editor has exactly
+two options/statements. MC requires one or both correct options (student selection
+bounds1..2); TF requires an explicit Đúng/Sai value for both statements. Changing
+type clears answer choices; empty/whitespace text cannot be submitted. Create a
+draft, reload, reopen the staff workspace and inspect its exact private version to
+verify persistence. Creating a draft never submits it for review automatically.
+[Browser evidence](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
 
 To demonstrate the author-to-reviewer handoff, create a safe original synthetic
 DRAFT through the author form, or inspect one of the three safe fixture versions.

@@ -232,6 +232,13 @@ dialog p { color: var(--muted); line-height: 1.6; }
 .staff-input { width: 100%; min-width: 0; min-height: 46px; border: 1px solid #c7cfdd; border-radius: 9px; padding: 10px 12px; color: var(--ink); background: #fff; }
 .staff-input:focus-visible { outline: 3px solid #f0a64f; outline-offset: 2px; }
 textarea.staff-input { min-height: 82px; resize: vertical; line-height: 1.5; }
+.staff-form-help { margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.staff-interaction-fieldset { min-width: 0; margin: 0; padding: 14px; border: 1px solid #c7cfdd; border-radius: 10px; }
+.staff-interaction-fieldset legend { padding: 0 6px; color: var(--ink); font-size: .86rem; font-weight: 750; }
+.staff-answer-choice { display: flex; align-items: center; gap: 12px; min-height: 46px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); cursor: pointer; }
+.staff-answer-choice:focus-within { outline: 3px solid #f0a64f; outline-offset: 2px; }
+.staff-answer-checkbox { width: 20px; height: 20px; margin: 0; accent-color: var(--brand); flex: 0 0 auto; }
+.staff-answer-true-false-field { margin-top: 10px; }
 .staff-private-notice { padding: 12px 14px; border-left: 3px solid #eab85d; border-radius: 0 8px 8px 0; color: #765824; background: var(--amber-soft); font-size: .83rem; line-height: 1.55; }
 .staff-question-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .staff-question-item { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 13px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }

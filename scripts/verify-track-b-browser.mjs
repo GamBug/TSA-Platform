@@ -1214,6 +1214,95 @@ try {
   assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false);
   report.checks.push('B4 genuine imported ancestor without candidate receipt remains unavailable to its original operator even with current REVIEWER role; UI exposes no review mutation');
 
+  // Existing-contract author form: create real typed drafts, then reload/read
+  // their private preview. The transport observer never fabricates responses.
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'typed author login');
+  await evaluate(`${query('actor-select')}.value='author'`);await click('staff-login');
+  await waitFor(`Boolean(${query('draft-interaction-type')})`,'three-type author editor');
+  async function observeAuthorEditor() {
+    await evaluate(`(()=>{const original=window.fetch;window.__authorEditor={posts:[],reads:[]};window.fetch=async(input,init={})=>{
+      const url=new URL(typeof input==='string'?input:input.url,location.href);const response=await original(input,init);
+      if(url.pathname==='/api/v1/questions'&&init.method==='POST')window.__authorEditor.posts.push({body:JSON.parse(init.body),status:response.status,receipt:await response.clone().json()});
+      if(url.pathname.endsWith('/review-context'))window.__authorEditor.reads.push({path:url.pathname,status:response.status,body:await response.clone().json()});
+      return response;};})()`);
+  }
+  async function chooseDraftType(type) {
+    await evaluate(`(()=>{const select=${query('draft-interaction-type')};select.value=${JSON.stringify(type)};select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  }
+  async function setDraftText(id,value) {
+    await evaluate(`(()=>{const input=${query(id)};input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  }
+  await observeAuthorEditor();
+  for(const type of ['MULTIPLE_CHOICE','TRUE_FALSE_GROUP']) {
+    await chooseDraftType(type);
+    const prompt=`Bản nháp tổng hợp ${type}; chỉ kiểm thử trình biên soạn, không phải đề thi.`;
+    const texts=type==='MULTIPLE_CHOICE'?['Phương án tổng hợp A','Phương án tổng hợp B']:['Mệnh đề tổng hợp đúng','Mệnh đề tổng hợp sai'];
+    await setDraftText('draft-prompt',prompt);
+    await setDraftText('draft-option-a',texts[0]);await setDraftText('draft-option-b',texts[1]);
+    await setDraftText('draft-explanation','Lời giải riêng tổng hợp cho trình biên soạn.');
+    if(type==='MULTIPLE_CHOICE') {
+      assert.equal(await evaluate(`${query('draft-answer-multiple-a')}.checked||${query('draft-answer-multiple-b')}.checked`),false);
+    } else {
+      assert.equal(await evaluate(`${query('draft-answer-true-false-a')}.value+${query('draft-answer-true-false-b')}.value`),'');
+    }
+    const before=await evaluate('window.__authorEditor.posts.length');
+    await click('draft-create');
+    await evaluate('new Promise(resolve=>setTimeout(resolve,80))');
+    assert.equal(await evaluate('window.__authorEditor.posts.length'),before,'incomplete key never sends create POST');
+    if(type==='MULTIPLE_CHOICE') {
+      await evaluate(`${query('draft-answer-multiple-a')}.focus()`);await pressKey(' ','Space',32,' ');
+      assert.equal(await evaluate(`${query('draft-answer-multiple-a')}.checked`),true,'checkbox supports keyboard Space');
+      await evaluate(`${query('draft-answer-multiple-b')}.focus()`);await pressKey(' ','Space',32,' ');
+    } else {
+      await setDraftText('draft-answer-true-false-a','true');await click('draft-create');
+      await evaluate('new Promise(resolve=>setTimeout(resolve,80))');
+      assert.equal(await evaluate('window.__authorEditor.posts.length'),before,'one unset TF statement never sends create POST');
+      await setDraftText('draft-answer-true-false-b','false');
+    }
+    await setDraftText('draft-option-a','   ');await click('draft-create');
+    await evaluate('new Promise(resolve=>setTimeout(resolve,80))');
+    assert.equal(await evaluate('window.__authorEditor.posts.length'),before,'whitespace-only entry never sends create POST');
+    await setDraftText('draft-option-a',texts[0]);
+    await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});
+    await noHorizontalOverflow();await evaluate(`${query('draft-interaction-type')}.scrollIntoView({block:'start'})`);
+    await screenshot(`staff-author-${type.toLowerCase()}-mobile`);
+    await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+    await click('draft-create');await waitFor(`window.__authorEditor.posts.length===${before+1}`,'typed draft real receipt');
+    const posted=await evaluate('window.__authorEditor.posts.at(-1)');assert.equal(posted.status,201);
+    const expectedInteraction=type==='MULTIPLE_CHOICE'?{type,options:[{id:'a',content:[{type:'text',text:texts[0]}]},{id:'b',content:[{type:'text',text:texts[1]}]}],minSelections:1,maxSelections:2}:{type,statements:[{id:'a',content:[{type:'text',text:texts[0]}]},{id:'b',content:[{type:'text',text:texts[1]}]}]};
+    const expectedKey=type==='MULTIPLE_CHOICE'?{type,optionIds:['a','b']}:{type,values:{a:true,b:false}};
+    assert.deepEqual(posted.body.interaction,expectedInteraction);assert.deepEqual(posted.body.answerKey,expectedKey);
+    const postsBeforeReload=networkOperations.filter(op=>op.method==='POST'&&new URL(op.url).pathname==='/api/v1/questions').length;
+    await command('Page.reload');await waitFor(`Boolean(${query('staff-open')})`,'landing after typed draft reload');
+    await click('staff-open');await waitFor(`Boolean(${query('draft-interaction-type')}&&${query('staff-question-list')})`,'typed draft survives author reopen');
+    assert.equal(networkOperations.filter(op=>op.method==='POST'&&new URL(op.url).pathname==='/api/v1/questions').length,postsBeforeReload,'reload creates no draft');
+    await observeAuthorEditor();
+    const typedSelector=`[data-testid="staff-review-inspect"][data-version-id="${posted.receipt.versionId}"]`;
+    await waitFor(`Boolean(document.querySelector(${JSON.stringify(typedSelector)}))`,'persisted typed draft metadata');
+    await evaluate(`document.querySelector(${JSON.stringify(typedSelector)}).focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));
+    await waitFor(`Boolean(document.querySelector('.staff-review-preview')&&${query('handoff-open')})`,'typed private inspection with separate explicit handoff');
+    const persisted=await evaluate('window.__authorEditor.reads.at(-1)');assert.equal(persisted.status,200);
+    assert.equal(persisted.body.workflow.state,'DRAFT');assert.equal(persisted.body.version.versionId,posted.receipt.versionId);
+    assert.deepEqual(persisted.body.preview.question.interaction,expectedInteraction);assert.deepEqual(persisted.body.preview.question.answerKey,expectedKey);
+    assert.equal(persisted.body.preview.question.content[0].text,prompt);
+    const privateText=await evaluate(`document.querySelector('.staff-review-preview').textContent`);
+    assert.equal(texts.every(text=>privateText.includes(text)),true);
+    assert.equal(privateText.includes(type==='MULTIPLE_CHOICE'?'a, b':'a: Đúng · b: Sai'),true);
+    await pressKey('Escape','Escape',27,String.fromCharCode(27));
+  }
+  await chooseDraftType('MULTIPLE_CHOICE');
+  await evaluate(`${query('draft-answer-multiple-a')}.click()`);
+  await chooseDraftType('TRUE_FALSE_GROUP');await setDraftText('draft-answer-true-false-a','true');
+  await chooseDraftType('MULTIPLE_CHOICE');
+  assert.equal(await evaluate(`${query('draft-answer-multiple-a')}.checked||${query('draft-answer-multiple-b')}.checked`),false,'returning to a type clears prior private key choice');
+  await chooseDraftType('SINGLE_CHOICE');assert.equal(await evaluate(`${query('draft-answer')}.value`),'','returning to single choice requires an explicit key');
+  const beforeSwitchInvalid=await evaluate('window.__authorEditor.posts.length');await click('draft-create');
+  await evaluate('new Promise(resolve=>setTimeout(resolve,80))');assert.equal(await evaluate('window.__authorEditor.posts.length'),beforeSwitchInvalid);
+  await setDraftText('draft-answer','b');
+  assert.equal(await evaluate(`${query('draft-create')}.form.checkValidity()`),true,'removed invalid MC/TF controls cannot block valid SC');
+  assert.equal(await evaluate('window.__authorEditor.posts.length'),beforeSwitchInvalid,'type/key changes do not auto-create');
+  report.checks.push('Existing-contract author editor validates unset keys with zero POST, keyboard-selects MC, creates actual MC/TF drafts and reads exact persisted private previews after reload; switching types clears answer choices and never auto-handoffs');
+
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });
   await waitFor(`Boolean(${query('staff-open')})`, 'mock-only landing');

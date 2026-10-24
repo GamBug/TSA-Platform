@@ -1,5 +1,10 @@
 # Implementation roadmap
 
+Current author editor, 2026-10-24: existing-route compact SC/MC/TF form with
+explicit key validation, exact persistent private-preview reload and mobile/
+keyboard evidence, separately reviewed with no findings. [Actual checks/limits](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
+No backend/schema/role/rights/publication changes.
+
 Current B4.1, 2026-10-24: selected under owner engineering-choice delegation,
 negative dispositions/receipt recovery and original-import-operator repair
 implemented with actual PostgreSQL/Chrome/Firefox evidence and independent review.
