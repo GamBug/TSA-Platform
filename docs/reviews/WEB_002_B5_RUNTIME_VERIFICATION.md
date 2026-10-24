@@ -110,3 +110,27 @@ remain inaccessible to general staff. Lawful accepted12/6/12 inventory and named
 attestor/qualified reviewer remain external inputs. No push/merge/deploy/Astra/
 paid API/live student inference. Clean reproduction follows implementation commit;
 append only observed outcomes.
+
+## Clean-checkout reproduction — bd41e26
+
+Root cloned committed bd41e26 with `git clone --no-hardlinks --quiet` into owned
+ignored `.local/verification-b5/clean-bd41e26`. Actual commands in order:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+TRACK_B_ARTIFACT_DIR=../clean-chrome npm run test:track-b:browser
+STUDENT_FIREFOX_ARTIFACT_DIR=../clean-firefox npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain
+```
+
+All exit0: focused37, Chrome37/18captures, Firefox11/21captures, built/private
+drift/import/docs PASS. Final clone Git status empty; no patches/manual SQL/API
+setup or external paid services. Fixture setup/teardown owns isolated synthetic
+data. This is local engineering reproducibility, not qualified human/production
+acceptance. Logs under parent `clean-*.log`; no private evidence committed.

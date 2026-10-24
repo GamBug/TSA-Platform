@@ -761,8 +761,9 @@ drift/import/Chrome37(18captures)/Firefox11(21captures)/domains78/CLI2 PASS.
 Separate Sol6.1/Medium P2 disclosure wording repaired; final no findings,
 independent PG4/contracts9/type/boundary/drift/syntax/whitespace/Chrome37 PASS.
 [Exact evidence/limits](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
-Configured Luna/XHigh contract/UI writers released ownership. Clean reproduction
-follows checkpoint. No qualified-human approval from a stored decision.
+Configured Luna/XHigh contract/UI writers released ownership. Fresh no-hardlink
+bd41e26 install/build/focused37/Chrome37/Firefox11/built/drift/import/docs PASS, no
+patches/manual SQL/API setup; final clone Git status empty. No qualified-human approval from a stored decision.
 
 2026-10-24 **AUTHOR INTERACTION EDITOR — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED** atf8aaf12.
 Root selects existing-contract three-type compact editor; [scope/acceptance](../decisions/OPEN_DECISIONS.md#web-002-author-interaction-editor--selected-2026-10-24).

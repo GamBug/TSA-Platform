@@ -39,13 +39,16 @@ ignored `.local/verification-b5`, no private DBs/tokens/profiles/evidence commit
 
 ## Continuation
 
-Implementation ready for local checkpoint and clean reproduction. Previous editor
+Implementation bd41e26 clean no-hardlink reproduction PASS: locked install/build/
+focused37/Chrome37/Firefox11/built/drift/import/docs, no patches/manual SQL/API setup,
+final clone Git status empty. Previous editor
 b0091c5 and B4f8aaf12 already clean no-hardlink reproduced; exact evidence linked
 from project state. No task-owned app server intentionally left running.
 
 Next evaluate remaining safe fixed-run diagnostics/eligibility contract/service
-work, keeping personal manifests/history inaccessible to general staff. Existing
-API specifies audited fixed-run diagnostics, but current app has only personalized
+work, keeping personal manifests/history inaccessible to general staff. The broader
+proposed API table describes audited fixed-run diagnostics and is not approved
+wholesale; current app has only personalized
 allocation service. Do not expose personal runs to fill that gap or invent fixed
 assembly completion. Full WEB-002/Technical MVP remains incomplete; qualification/
 publicationEligibility remain NOT_ATTESTED_BY_PLATFORM/NOT_EVALUATED. Qualified

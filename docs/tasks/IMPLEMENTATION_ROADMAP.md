@@ -3,7 +3,9 @@
 Current B5.1 recorded manager history, 2026-10-24: exact explicit latest20 read
 with current workflow separate, untrusted verbatim reasons inert, no qualification/
 rights/eligibility inference. [Actual PostgreSQL/browser/independent evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
-No migration/grants/frozen contract change. Clean reproduction next. Fixed-run
+No migration/grants/frozen contract change. Clean no-hardlink bd41e26 install/
+build/focused37/Chrome37/Firefox11/built/drift/import/docs PASS without patches/
+manual SQL/API setup; final clone Git status empty. Fixed-run
 diagnostics/eligibility/qualified human inputs remain separate.
 
 Current author editor, 2026-10-24: existing-route compact SC/MC/TF form with
