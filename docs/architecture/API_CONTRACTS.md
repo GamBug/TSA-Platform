@@ -72,6 +72,17 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Delegated B6.1 canonical preflight addendum — 2026-10-24
+
+[Exact selected decision](../decisions/WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md)
+adds private opt-in POST `/datasets/preflight`, current BANK_MANAGER/diagnostics
+role and CSRF required, no idempotency header required for this pure read. Strict
+pinned versions→canonical counts/shortfalls/mandatory blockers and version workflow
+observations; no raw internal manifest/review packet/reference/actor/history data.
+This is NOT accepted stock/current rights/human review/publication eligibility or
+fixed-run assembly feasibility. Existing core helper/transaction and frozen schemas
+stay stable. [Actual runtime/review](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+
 ### Delegated B5.1 recorded-history addendum — 2026-10-24
 
 [Exact additive decision/impact/policy](../decisions/WEB_002_B5_REVIEW_HISTORY_DECISION.md)

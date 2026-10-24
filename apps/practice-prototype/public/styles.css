@@ -996,6 +996,42 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-review-history-reason { padding: 11px; }
 }
 
+/* Canonical preflight selections and reports stay private to the staff manager view. */
+.staff-dataset-preflight-controls { min-width: 0; margin: 18px 0; padding: 16px; border: 1px solid #cfd7f2; border-radius: 12px; background: #f8f9ff; }
+.staff-dataset-preflight-controls h3 { margin: 0 0 8px; }
+.staff-dataset-preflight-count { margin: 12px 0; font-weight: 700; }
+.staff-dataset-preflight-controls [data-testid="staff-preflight-status"] { margin: 12px 0 0; overflow-wrap: anywhere; }
+.staff-preflight-selection { min-width: 0; margin: 14px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.staff-preflight-selection legend { padding: 0 6px; font-weight: 700; }
+.staff-preflight-selection > .staff-form-help { margin: 0 0 10px; }
+.staff-preflight-choice { display: inline-flex; align-items: flex-start; gap: 9px; margin: 10px 12px 8px 0; color: var(--ink); line-height: 1.5; cursor: pointer; }
+.staff-preflight-checkbox { flex: 0 0 auto; width: 1.15rem; height: 1.15rem; margin: .2rem 0 0; accent-color: #344bb5; }
+.staff-preflight-checkbox:focus-visible { outline: 3px solid #f0a64f; outline-offset: 3px; }
+.staff-dataset-preflight-content, .staff-dataset-preflight-panel { min-width: 0; max-width: 100%; }
+.staff-dataset-preflight-warning, .staff-dataset-preflight-required-blockers { margin: 16px 0; padding: 14px 16px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; }
+.staff-dataset-preflight-required-blockers { border-left-color: #a45b26; }
+.staff-dataset-preflight-duplicates { font-weight: 650; }
+.staff-dataset-preflight-blockers { margin: 16px 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; }
+.staff-dataset-preflight-blockers h3 { margin: 0 0 8px; }
+.staff-dataset-preflight-blockers ul { display: grid; gap: 8px; margin: 0; padding-left: 1.4rem; }
+.staff-dataset-preflight-blockers li { overflow-wrap: anywhere; line-height: 1.5; }
+.staff-dataset-preflight-table-wrap { max-width: 100%; margin: 14px 0; overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
+.staff-dataset-preflight-table-wrap:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+.staff-dataset-preflight-table { width: 100%; min-width: 520px; border-collapse: collapse; text-align: left; }
+.staff-dataset-preflight-table caption { padding: .7em .9em; font-weight: 700; color: #334155; background: #f8fafc; text-align: left; }
+.staff-dataset-preflight-table th, .staff-dataset-preflight-table td { min-width: 5em; padding: .6em .8em; border-top: 1px solid #cbd5e1; overflow-wrap: anywhere; vertical-align: top; }
+.staff-dataset-preflight-table th { color: #1e293b; background: #eef2f7; }
+.staff-dataset-preflight-table tbody tr:nth-child(even) { background: #f8fafc; }
+@media (max-width: 680px) {
+  .staff-dataset-preflight-controls { padding: 12px; }
+  .staff-dataset-preflight-controls .staff-header-actions { align-items: stretch; }
+  .staff-dataset-preflight-controls .button { width: 100%; }
+  .staff-preflight-selection { padding: 10px; }
+  .staff-preflight-choice { display: flex; margin-right: 0; }
+  .staff-dataset-preflight-warning, .staff-dataset-preflight-required-blockers { padding: 11px 12px; }
+  .staff-dataset-preflight-table { min-width: 500px; }
+}
+
 /* Explicit private author handoff and truthful operation recovery. */
 .staff-handoff-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; padding: 14px 16px; border: 1px solid #cfd7f2; border-radius: 10px; background: #f8f9ff; }
 .staff-handoff-panel.is-error { border-color: #e5b7b7; background: #fff8f8; }
@@ -1055,3 +1091,5 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-disposition-dialog-actions { flex-direction: column-reverse; }
   .staff-disposition-dialog-actions .button { width: 100%; }
 }
+
+.staff-dataset-preflight-count:focus-visible { outline: 3px solid #f0a64f; outline-offset: 4px; border-radius: 4px; }

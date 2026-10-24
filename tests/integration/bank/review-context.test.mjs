@@ -10,13 +10,15 @@ import { createStudentRuntime } from '../../../src/local/student.mjs';
 import { createDatabasePool, withTransaction } from '../../../src/modules/database/pool.mjs';
 import { inspectionImportPackage } from './review-import-fixture.mjs';
 import { createFactoryImportService } from '../../../src/modules/bank/factory-import.mjs';
+import { createDatasetPreflightService } from '../../../src/modules/bank/dataset-preflight-service.mjs';
+import { createStaffDatasetPreflightService } from '../../../src/modules/bank/staff-dataset-preflight.mjs';
 import { createReviewHistoryService } from '../../../src/modules/bank/review-history.mjs';
 import { createReviewEvidenceService } from '../../../src/modules/bank/review-evidence.mjs';
 import { createPublicationService } from '../../../src/modules/bank/publication.mjs';
 import { createEquivalenceService } from '../../../src/modules/bank/equivalence.mjs';
 import { jsonDigest } from '../../../src/modules/bank/common.mjs';
 import { createSharedReadingFixture } from '../student-runtime/shared-reading-fixture.mjs';
-import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffReviewHistorySchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffDatasetPreflightSchema, StaffReviewHistorySchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 
 let f, pool, author, reviewer, manager, candidate, examManager;
 const historyPath = (id) => `/api/v1/question-versions/${id}/review-history`;
@@ -28,7 +30,7 @@ async function success(response, status = 200) {
   const payload = await response.json();
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-  if (status === 200) return (payload.schemaVersion === 'staff-review-history/1' ? StaffReviewHistorySchema : payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
+  if (status === 200) return (payload.schemaVersion === 'staff-dataset-preflight/1' ? StaffDatasetPreflightSchema : payload.schemaVersion === 'staff-review-history/1' ? StaffReviewHistorySchema : payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
   assert.deepEqual(Object.keys(payload), ['error']);
   assert.deepEqual(Object.keys(payload.error).sort(), ['code','details','message','requestId']);
   assert.deepEqual(payload.error.details, {});
@@ -852,4 +854,75 @@ test('B5 malformed stored review is safe503 rather than empty/partial history, a
   }};}};
   const service=await createReviewHistoryService({bankPool,identityService:f.identity});
   await assert.rejects(service.read(await principal(manager),f.questions[0].versionId),error=>error.status===503&&error.code==='TEMPORARILY_UNAVAILABLE');
+});
+
+
+const preflightPath='/api/v1/datasets/preflight';
+const pinFor=(draft)=>({versionId:draft.versionId,contentHash:draft.contentHash});
+async function requestPreflight(browser,body,options={}) {
+  return bankRequest(f,browser,preflightPath,{method:'POST',body,...options});
+}
+
+test('B6 exact canonical projection agrees with existing service without manifest/packet leakage or application writes', async () => {
+  const input={versions:f.questions.slice(0,3).map(pinFor).reverse()};
+  const before=await databaseSnapshot(),actor=await principal(manager);
+  const legacy=await createDatasetPreflightService({bankPool:f.fixture.bankPool,identityService:f.identity});
+  const original=await legacy.preflight(actor,input);
+  const value=await success(await requestPreflight(manager,input));
+  assert.equal(value.scope,'CANONICAL_GRAPH_ONLY_NOT_PUBLICATION_AUTHORIZATION');
+  assert.equal(value.publishing,false);assert.equal(value.publicationEligibility,'NOT_EVALUATED');
+  assert.deepEqual(value.counts,{total:3,bySection:original.report.counts.bySection,byInteractionType:original.report.counts.byInteractionType});
+  assert.deepEqual(value.targets,{MATH:12,READING:6,SCIENCE:12});assert.deepEqual(value.shortfalls,{MATH:9,READING:6,SCIENCE:12});
+  assert.deepEqual(value.blockerCodes,original.report.blockerCodes);
+  assert.equal(value.duplicateFingerprintGroupCount,original.report.duplicateFingerprintGroups.length);
+  assert.equal(value.eligibilityRevision,original.databaseSnapshot.eligibilityRevision);
+  assert.deepEqual(value.versions.map(v=>({versionId:v.versionId,contentHash:v.contentHash})),input.versions.toSorted((a,b)=>a.versionId.localeCompare(b.versionId)));
+  assert.doesNotMatch(JSON.stringify(value),/answerKey|manifestDigest|reviewPacket|referenceClosure|fingerprint":|sourceVersionId|reviewer_id|historyQuestionIds/);
+  assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B6 manager role/CSRF/Origin/opt-in/body/query/pin failures are safe and never create diagnostic state', async () => {
+  const input={versions:[pinFor(f.questions[0])]},before=await databaseSnapshot();
+  assert.equal((await success(await fetch(f.origin+preflightPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)}),401)).error.code,'UNAUTHENTICATED');
+  for(const browser of [author,reviewer,candidate,examManager])assert.equal((await success(await requestPreflight(browser,input),403)).error.code,'FORBIDDEN');
+  const raw=(headers={},body=JSON.stringify(input),query='')=>fetch(f.origin+preflightPath+query,{method:'POST',headers:{origin:f.origin,cookie:manager.cookies.join('; '),'x-csrf-token':manager.csrf,'content-type':'application/json',...headers},body});
+  assert.equal((await success(await raw({'x-csrf-token':'wrong'}),403)).error.code,'CSRF_FAILED');
+  assert.equal((await success(await raw({origin:'https://invalid.example'}),403)).error.code,'FORBIDDEN');
+  assert.equal((await success(await raw({},JSON.stringify(input),'?limit=1'),422)).error.code,'VALIDATION_ERROR');
+  assert.equal((await success(await raw({},'{'),400)).error.code,'MALFORMED_JSON');
+  assert.equal((await success(await raw({'content-type':'text/plain'}),422)).error.code,'VALIDATION_ERROR');
+  for(const body of [{versions:[]},{versions:[input.versions[0],input.versions[0]]},{versions:[{...input.versions[0],extra:true}]},{versions:[{versionId:'bad',contentHash:input.versions[0].contentHash}]},{versions:input.versions,extra:true}])
+    assert.equal((await success(await requestPreflight(manager,body),422)).error.code,'VALIDATION_ERROR');
+  assert.equal((await success(await requestPreflight(manager,{versions:[{...input.versions[0],versionId:randomUUID()}]}),404)).error.code,'NOT_FOUND');
+  assert.equal((await success(await requestPreflight(manager,{versions:[{...input.versions[0],contentHash:'sha256:'+'0'.repeat(64)}]}),409)).error.code,'CONCURRENT_MODIFICATION');
+  assert.equal((await success(await bankRequest(f,manager,preflightPath),404)).error.code,'NOT_FOUND');
+  const disabled=await createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin});
+  const request=()=>new Request(f.origin+preflightPath,{method:'POST',headers:{origin:f.origin,cookie:manager.cookies.join('; '),'x-csrf-token':manager.csrf,'content-type':'application/json'},body:JSON.stringify(input)});
+  assert.equal((await success(await disabled(request()),404)).error.code,'NOT_FOUND');
+  await assert.rejects(createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin,enableDatasetPreflight:'true'}),TypeError);
+  assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B6 multiple versions of one logical question reject without partial report or workflow/publication writes', async () => {
+  const draft=await createDraft();
+  const versionResponse=await bankRequest(f,author,`/api/v1/questions/${draft.questionId}/versions`,{method:'POST',key:randomUUID(),body:{parentVersionId:draft.versionId,draft:{...f.template,content:[{type:'text',text:'Synthetic preflight revised version '+randomUUID()}]}}});
+  assert.equal(versionResponse.status,201);const version=await versionResponse.json();
+  const before=await databaseSnapshot();
+  assert.equal((await success(await requestPreflight(manager,{versions:[pinFor(draft),pinFor(version)]}),422)).error.code,'VALIDATION_ERROR');
+  assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B6 unexpected canonical read failure is private503 and a later explicit check succeeds without writes', async () => {
+  let failRead=true;
+  const bankPool={query:(...args)=>f.fixture.bankPool.query(...args),async connect(){const client=await f.fixture.bankPool.connect();return {release:(...args)=>client.release(...args),async query(sql,params){
+    if(failRead&&sql.includes('SELECT eligibility_revision::text')){failRead=false;throw new Error('Synthetic private diagnostic SQL/secret sentinel.');}
+    return client.query(sql,params);
+  }};}};
+  const handler=await createBankHandler({bankPool,identityService:f.identity,trustedOrigin:f.origin,enableDatasetPreflight:true});
+  const input={versions:[pinFor(f.questions[0])]},before=await databaseSnapshot();
+  const request=()=>new Request(f.origin+preflightPath,{method:'POST',headers:{origin:f.origin,cookie:manager.cookies.join('; '),'x-csrf-token':manager.csrf,'content-type':'application/json'},body:JSON.stringify(input)});
+  const failed=await success(await handler(request()),503);assert.equal(failed.error.code,'TEMPORARILY_UNAVAILABLE');
+  assert.doesNotMatch(JSON.stringify(failed),/sentinel|SQL|secret|eligibility_revision/);
+  assert.equal((await success(await handler(request()))).counts.total,1);
+  assert.deepEqual(await databaseSnapshot(),before);
 });

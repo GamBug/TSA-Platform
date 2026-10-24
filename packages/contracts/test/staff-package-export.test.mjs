@@ -5,6 +5,8 @@ import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
   StaffReviewHistorySchema,
+  StaffDatasetPreflightRequestSchema,
+  StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
   StaffQuarantineResponseSchema,
   StaffRejectReviewRequestSchema,
@@ -35,6 +37,43 @@ describe("@tsa/contracts/staff package subpath", () => {
       limit: 20,
       truncated: false,
       reviews: [],
+    }).success, true);
+    const preflightRequest = {
+      versions: [{ versionId: "44444444-4444-4444-8444-444444444444", contentHash: `sha256:${"a".repeat(64)}` }],
+    };
+    assert.equal(StaffDatasetPreflightRequestSchema.safeParse(preflightRequest).success, true);
+    assert.equal(StaffDatasetPreflightSchema.safeParse({
+      schemaVersion: "staff-dataset-preflight/1",
+      environment: "LOCAL_SYNTHETIC_ONLY",
+      accessBasis: "BANK_MANAGER",
+      scope: "CANONICAL_GRAPH_ONLY_NOT_PUBLICATION_AUTHORIZATION",
+      generatedAt: "2026-10-24T12:34:56.123456Z",
+      qualification: "NOT_ATTESTED_BY_PLATFORM",
+      publicationEligibility: "NOT_EVALUATED",
+      publishing: false,
+      eligibilityRevision: "0",
+      targets: { MATH: 12, READING: 6, SCIENCE: 12 },
+      counts: {
+        total: 1,
+        bySection: { MATH: 1, READING: 0, SCIENCE: 0 },
+        byInteractionType: { SINGLE_CHOICE: 1, MULTIPLE_CHOICE: 0, TRUE_FALSE_GROUP: 0 },
+      },
+      shortfalls: { MATH: 11, READING: 6, SCIENCE: 12 },
+      duplicateFingerprintGroupCount: 0,
+      blockerCodes: [
+        "CURRENT_RIGHTS_UNVERIFIED",
+        "HUMAN_EQUIVALENCE_REVIEW_REQUIRED",
+        "LAWFUL_INVENTORY_UNVERIFIED",
+        "NAMED_HUMAN_AUTHOR_REQUIRED",
+        "NAMED_INDEPENDENT_REVIEWER_REQUIRED",
+        "STARTER_TARGET_SHORTFALL",
+      ],
+      versions: [{
+        versionId: "44444444-4444-4444-8444-444444444444",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        workflowRevision: 1,
+        state: "APPROVED",
+      }],
     }).success, true);
     assert.equal(StaffSubmitReviewRequestSchema.safeParse({ expectedRevision: 1 }).success, true);
     assert.equal(StaffSubmitReviewResponseSchema.safeParse({

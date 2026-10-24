@@ -499,3 +499,156 @@ export const StaffReviewHistorySchema = z
   });
 
 export type StaffReviewHistory = z.infer<typeof StaffReviewHistorySchema>;
+
+const DatasetPreflightCount = z.number().int().min(0).max(100);
+const DatasetPreflightBlockerSchema = z.enum([
+  "CURRENT_RIGHTS_UNVERIFIED",
+  "DUPLICATE_FINGERPRINTS_REQUIRE_REVIEW",
+  "HUMAN_EQUIVALENCE_REVIEW_REQUIRED",
+  "LAWFUL_INVENTORY_UNVERIFIED",
+  "NAMED_HUMAN_AUTHOR_REQUIRED",
+  "NAMED_INDEPENDENT_REVIEWER_REQUIRED",
+  "STARTER_TARGET_SHORTFALL",
+]);
+
+/** Strict private pins for one explicit canonical dataset preflight. */
+export const StaffDatasetPreflightRequestSchema = z
+  .object({
+    versions: z
+      .array(z.object({ versionId: UUID, contentHash: Hash }).strict())
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seen = new Set<string>();
+    value.versions.forEach((version, index) => {
+      if (seen.has(version.versionId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["versions", index, "versionId"],
+          message: "Version IDs must be unique",
+        });
+      }
+      seen.add(version.versionId);
+    });
+  });
+
+export type StaffDatasetPreflightRequest = z.infer<typeof StaffDatasetPreflightRequestSchema>;
+
+const DatasetPreflightTargetsSchema = z
+  .object({ MATH: z.literal(12), READING: z.literal(6), SCIENCE: z.literal(12) })
+  .strict();
+
+const DatasetPreflightSectionCountsSchema = z
+  .object({ MATH: DatasetPreflightCount, READING: DatasetPreflightCount, SCIENCE: DatasetPreflightCount })
+  .strict();
+
+const DatasetPreflightInteractionCountsSchema = z
+  .object({
+    SINGLE_CHOICE: DatasetPreflightCount,
+    MULTIPLE_CHOICE: DatasetPreflightCount,
+    TRUE_FALSE_GROUP: DatasetPreflightCount,
+  })
+  .strict();
+
+const DatasetPreflightVersionsSchema = z
+  .array(
+    z
+      .object({
+        versionId: UUID,
+        contentHash: Hash,
+        workflowRevision: PositiveSafeRevision,
+        state: WorkflowStateSchema,
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(100);
+
+const REQUIRED_DATASET_PREFLIGHT_BLOCKERS = [
+  "CURRENT_RIGHTS_UNVERIFIED",
+  "HUMAN_EQUIVALENCE_REVIEW_REQUIRED",
+  "LAWFUL_INVENTORY_UNVERIFIED",
+  "NAMED_HUMAN_AUTHOR_REQUIRED",
+  "NAMED_INDEPENDENT_REVIEWER_REQUIRED",
+] as const;
+
+/** Strict bounded manager-only projection of canonical preflight observations. */
+export const StaffDatasetPreflightSchema = z
+  .object({
+    schemaVersion: z.literal("staff-dataset-preflight/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("BANK_MANAGER"),
+    scope: z.literal("CANONICAL_GRAPH_ONLY_NOT_PUBLICATION_AUTHORIZATION"),
+    generatedAt: UTCDateTime,
+    qualification: z.literal("NOT_ATTESTED_BY_PLATFORM"),
+    publicationEligibility: z.literal("NOT_EVALUATED"),
+    publishing: z.literal(false),
+    eligibilityRevision: z.string().regex(/^(0|[1-9][0-9]*)$/, "Expected a nonnegative decimal revision"),
+    targets: DatasetPreflightTargetsSchema,
+    counts: z
+      .object({
+        total: z.number().int().min(1).max(100),
+        bySection: DatasetPreflightSectionCountsSchema,
+        byInteractionType: DatasetPreflightInteractionCountsSchema,
+      })
+      .strict(),
+    shortfalls: z
+      .object({ MATH: DatasetPreflightCount, READING: DatasetPreflightCount, SCIENCE: DatasetPreflightCount })
+      .strict(),
+    duplicateFingerprintGroupCount: DatasetPreflightCount,
+    blockerCodes: z.array(DatasetPreflightBlockerSchema).min(5).max(7),
+    versions: DatasetPreflightVersionsSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.counts.total !== value.versions.length) {
+      context.addIssue({ code: "custom", path: ["counts", "total"], message: "Total count must equal the version count" });
+    }
+
+    const sectionTotal = Object.values(value.counts.bySection).reduce((sum, count) => sum + count, 0);
+    if (sectionTotal !== value.counts.total) {
+      context.addIssue({ code: "custom", path: ["counts", "bySection"], message: "Section counts must sum to total" });
+    }
+
+    const interactionTotal = Object.values(value.counts.byInteractionType).reduce((sum, count) => sum + count, 0);
+    if (interactionTotal !== value.counts.total) {
+      context.addIssue({ code: "custom", path: ["counts", "byInteractionType"], message: "Interaction counts must sum to total" });
+    }
+
+    for (const section of ["MATH", "READING", "SCIENCE"] as const) {
+      const expectedShortfall = Math.max(0, value.targets[section] - value.counts.bySection[section]);
+      if (value.shortfalls[section] !== expectedShortfall) {
+        context.addIssue({ code: "custom", path: ["shortfalls", section], message: "Shortfall must match the target and section count" });
+      }
+    }
+
+    const hasShortfall = Object.values(value.shortfalls).some((shortfall) => shortfall > 0);
+    const expectedBlockers: z.infer<typeof DatasetPreflightBlockerSchema>[] = [...REQUIRED_DATASET_PREFLIGHT_BLOCKERS];
+    if (value.duplicateFingerprintGroupCount > 0) expectedBlockers.push("DUPLICATE_FINGERPRINTS_REQUIRE_REVIEW");
+    if (hasShortfall) expectedBlockers.push("STARTER_TARGET_SHORTFALL");
+    expectedBlockers.sort();
+    if (value.blockerCodes.length !== expectedBlockers.length
+        || value.blockerCodes.some((code, index) => code !== expectedBlockers[index])) {
+      context.addIssue({ code: "custom", path: ["blockerCodes"], message: "Blocker codes must be complete, unique, and sorted" });
+    }
+
+    const seenVersionIds = new Set<string>();
+    value.versions.forEach((version, index) => {
+      if (seenVersionIds.has(version.versionId)) {
+        context.addIssue({ code: "custom", path: ["versions", index, "versionId"], message: "Version IDs must be unique" });
+      }
+      seenVersionIds.add(version.versionId);
+      if (index > 0 && value.versions[index - 1]!.versionId >= version.versionId) {
+        context.addIssue({ code: "custom", path: ["versions", index, "versionId"], message: "Version UUIDs must be sorted ascending" });
+      }
+    });
+
+    const serialized = JSON.stringify(value);
+    if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > MAX_RESPONSE_BYTES) {
+      context.addIssue({ code: "custom", message: "Staff dataset preflight must not exceed 1 MiB serialized" });
+    }
+  });
+
+export type StaffDatasetPreflight = z.infer<typeof StaffDatasetPreflightSchema>;

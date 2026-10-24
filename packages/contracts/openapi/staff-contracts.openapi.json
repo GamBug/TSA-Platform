@@ -2,6 +2,310 @@
   "components": {
     "parameters": {},
     "schemas": {
+      "StaffDatasetPreflight": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER"
+            ],
+            "type": "string"
+          },
+          "blockerCodes": {
+            "items": {
+              "enum": [
+                "CURRENT_RIGHTS_UNVERIFIED",
+                "DUPLICATE_FINGERPRINTS_REQUIRE_REVIEW",
+                "HUMAN_EQUIVALENCE_REVIEW_REQUIRED",
+                "LAWFUL_INVENTORY_UNVERIFIED",
+                "NAMED_HUMAN_AUTHOR_REQUIRED",
+                "NAMED_INDEPENDENT_REVIEWER_REQUIRED",
+                "STARTER_TARGET_SHORTFALL"
+              ],
+              "type": "string"
+            },
+            "maxItems": 7,
+            "minItems": 5,
+            "type": "array"
+          },
+          "counts": {
+            "additionalProperties": false,
+            "properties": {
+              "byInteractionType": {
+                "additionalProperties": false,
+                "properties": {
+                  "MULTIPLE_CHOICE": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "SINGLE_CHOICE": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "TRUE_FALSE_GROUP": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "SINGLE_CHOICE",
+                  "MULTIPLE_CHOICE",
+                  "TRUE_FALSE_GROUP"
+                ],
+                "type": "object"
+              },
+              "bySection": {
+                "additionalProperties": false,
+                "properties": {
+                  "MATH": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "READING": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "SCIENCE": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "MATH",
+                  "READING",
+                  "SCIENCE"
+                ],
+                "type": "object"
+              },
+              "total": {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "bySection",
+              "byInteractionType"
+            ],
+            "type": "object"
+          },
+          "duplicateFingerprintGroupCount": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "eligibilityRevision": {
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "generatedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "publicationEligibility": {
+            "enum": [
+              "NOT_EVALUATED"
+            ],
+            "type": "string"
+          },
+          "publishing": {
+            "enum": [
+              false
+            ],
+            "type": "boolean"
+          },
+          "qualification": {
+            "enum": [
+              "NOT_ATTESTED_BY_PLATFORM"
+            ],
+            "type": "string"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-dataset-preflight/1"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "CANONICAL_GRAPH_ONLY_NOT_PUBLICATION_AUTHORIZATION"
+            ],
+            "type": "string"
+          },
+          "shortfalls": {
+            "additionalProperties": false,
+            "properties": {
+              "MATH": {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "READING": {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "SCIENCE": {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "MATH",
+              "READING",
+              "SCIENCE"
+            ],
+            "type": "object"
+          },
+          "targets": {
+            "additionalProperties": false,
+            "properties": {
+              "MATH": {
+                "enum": [
+                  12
+                ],
+                "type": "number"
+              },
+              "READING": {
+                "enum": [
+                  6
+                ],
+                "type": "number"
+              },
+              "SCIENCE": {
+                "enum": [
+                  12
+                ],
+                "type": "number"
+              }
+            },
+            "required": [
+              "MATH",
+              "READING",
+              "SCIENCE"
+            ],
+            "type": "object"
+          },
+          "versions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "contentHash": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "DRAFT",
+                    "IN_REVIEW",
+                    "APPROVED",
+                    "REJECTED",
+                    "QUARANTINED",
+                    "RETIRED"
+                  ],
+                  "type": "string"
+                },
+                "versionId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "workflowRevision": {
+                  "maximum": 9007199254740991,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "versionId",
+                "contentHash",
+                "workflowRevision",
+                "state"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "scope",
+          "generatedAt",
+          "qualification",
+          "publicationEligibility",
+          "publishing",
+          "eligibilityRevision",
+          "targets",
+          "counts",
+          "shortfalls",
+          "duplicateFingerprintGroupCount",
+          "blockerCodes",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "StaffDatasetPreflightRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "versions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "contentHash": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "versionId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "versionId",
+                "contentHash"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "versions"
+        ],
+        "type": "object"
+      },
+      "StaffDatasetPreflightRequestHeaders": {
+        "additionalProperties": false,
+        "properties": {
+          "x-csrf-token": {
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "x-csrf-token"
+        ],
+        "type": "object"
+      },
       "StaffForbiddenResponse": {
         "additionalProperties": false,
         "properties": {
@@ -3019,12 +3323,466 @@
     }
   },
   "info": {
-    "description": "Private staff inspection, evidence, recorded review history, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+    "description": "Private staff inspection, evidence, recorded review history, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     "title": "TSA Platform private staff API contracts",
     "version": "staff-contracts/1"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/datasets/preflight": {
+      "post": {
+        "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission and a valid CSRF token. This read-only report validates only the explicitly pinned canonical graphs; it does not establish accepted inventory, rights, qualified human review, assembly feasibility, or publication eligibility. The strict JSON body is limited to 1 MiB and requires no idempotency key.",
+        "operationId": "staffDatasetPreflight",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{43}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffDatasetPreflightRequest"
+              }
+            }
+          },
+          "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission and a valid CSRF token. This read-only report validates only the explicitly pinned canonical graphs; it does not establish accepted inventory, rights, qualified human review, assembly feasibility, or publication eligibility. The strict JSON body is limited to 1 MiB and requires no idempotency key.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffDatasetPreflight"
+                }
+              }
+            },
+            "description": "Canonical graph observations for the exact requested version pins",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewMalformedJsonResponse"
+                }
+              }
+            },
+            "description": "Request body is not valid JSON",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewCsrfOrForbiddenResponse"
+                }
+              }
+            },
+            "description": "CSRF validation failed or current principal lacks manager permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewNotFoundResponse"
+                }
+              }
+            },
+            "description": "A pinned version is missing or not visible",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewConflictResponse"
+                }
+              }
+            },
+            "description": "A pinned content hash or canonical reference changed",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewPayloadTooLargeResponse"
+                }
+              }
+            },
+            "description": "Request body exceeds the 1 MiB limit",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Request or canonical graph is invalid",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "The canonical preflight cannot currently complete",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Run an explicit canonical dataset preflight"
+      }
+    },
     "/api/v1/question-versions/{versionId}/quarantine": {
       "post": {
         "description": "Requires the trusted same-origin staff session, current CSRF cookie/token, and an idempotency key. Origin/session/CSRF validation runs before JSON parsing; command role, revision, and validation checks run after parsing. The strict JSON body is limited to 1 MiB. A successful response is an operation receipt and does not report delivery-hold drain completion.",

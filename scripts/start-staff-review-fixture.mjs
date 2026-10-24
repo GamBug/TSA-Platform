@@ -66,6 +66,7 @@ async function runWorker() {
     process.stdout.write('An independent synthetic REVIEWER may explicitly reject a previewable queued version after six rubric choices and a reason. BANK_MANAGER may quarantine with the disclosed related-access impact. No content approval or publication control is provided.\n');
     process.stdout.write('For recorded evidence, sign out and choose synthetic BANK_MANAGER “Quản lý ngân hàng câu hỏi tổng hợp”; open evidence explicitly.\n');
     process.stdout.write('BANK_MANAGER can explicitly open recorded review history for an exact version; historical decisions and verbatim reasons do not attest qualification, rights or current eligibility.\n');
+    process.stdout.write('BANK_MANAGER may explicitly select displayed versions for a canonical dataset preflight. Counts are not accepted inventory, rights, human review, or assembly feasibility; mandatory human/rights blockers remain.\n');
     process.stdout.write('The synthetic reviewer is not a qualified reviewer. This demo makes no real rights, content-approval, or publication claim.\n');
     process.stdout.write('Keep this terminal running. Ctrl+C stops the app and deletes its disposable database.\n\n');
   } catch (error) {

@@ -65,6 +65,27 @@ const REVIEW_HISTORY_KEYS = Object.freeze([
   'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'version',
   'workflowState', 'qualification', 'publicationEligibility', 'limit', 'truncated', 'reviews',
 ]);
+const DATASET_PREFLIGHT_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'scope', 'generatedAt', 'qualification',
+  'publicationEligibility', 'publishing', 'eligibilityRevision', 'targets', 'counts',
+  'shortfalls', 'duplicateFingerprintGroupCount', 'blockerCodes', 'versions',
+]);
+const PREFLIGHT_BLOCKER_LABELS = Object.freeze({
+  CURRENT_RIGHTS_UNVERIFIED: 'Quyền sử dụng hiện tại chưa được xác minh.',
+  HUMAN_EQUIVALENCE_REVIEW_REQUIRED: 'Cần người có thẩm quyền rà soát tính tương đương.',
+  LAWFUL_INVENTORY_UNVERIFIED: 'Kho nội dung hợp pháp chưa được xác minh.',
+  NAMED_HUMAN_AUTHOR_REQUIRED: 'Cần ghi nhận tác giả là con người có tên.',
+  NAMED_INDEPENDENT_REVIEWER_REQUIRED: 'Cần ghi nhận người rà soát độc lập có tên.',
+  STARTER_TARGET_SHORTFALL: 'Số lượng dưới một hoặc nhiều mục tiêu khởi động.',
+  DUPLICATE_FINGERPRINTS_REQUIRE_REVIEW: 'Có nhóm dấu vân tay trùng cần được rà soát.',
+});
+const REQUIRED_PREFLIGHT_BLOCKERS = Object.freeze([
+  'CURRENT_RIGHTS_UNVERIFIED',
+  'HUMAN_EQUIVALENCE_REVIEW_REQUIRED',
+  'LAWFUL_INVENTORY_UNVERIFIED',
+  'NAMED_HUMAN_AUTHOR_REQUIRED',
+  'NAMED_INDEPENDENT_REVIEWER_REQUIRED',
+]);
 
 function hasExactKeys(value, keys) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -127,6 +148,85 @@ function reviewHistorySupportsResponse(history, versionId, contentHash) {
     previousId = normalizedReviewId;
     return true;
   });
+}
+
+function datasetPreflightSupportsResponse(report, requestedPins) {
+  const sectionKeys = ['MATH', 'READING', 'SCIENCE'];
+  const interactionKeys = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE_GROUP'];
+  const knownBlockers = new Set(Object.keys(PREFLIGHT_BLOCKER_LABELS));
+  const targets = { MATH: 12, READING: 6, SCIENCE: 12 };
+  if (!hasExactKeys(report, DATASET_PREFLIGHT_KEYS)
+    || report.schemaVersion !== 'staff-dataset-preflight/1'
+    || report.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || report.accessBasis !== 'BANK_MANAGER'
+    || report.scope !== 'CANONICAL_GRAPH_ONLY_NOT_PUBLICATION_AUTHORIZATION'
+    || utcInstantMicros(report.generatedAt) === null
+    || report.qualification !== 'NOT_ATTESTED_BY_PLATFORM'
+    || report.publicationEligibility !== 'NOT_EVALUATED'
+    || report.publishing !== false
+    || typeof report.eligibilityRevision !== 'string'
+    || !/^(0|[1-9]\d*)$/.test(report.eligibilityRevision)
+    || !hasExactKeys(report.targets, sectionKeys)
+    || !sectionKeys.every((key) => report.targets[key] === targets[key])
+    || !hasExactKeys(report.counts, ['total', 'bySection', 'byInteractionType'])
+    || !Number.isSafeInteger(report.counts.total) || report.counts.total < 1 || report.counts.total > 100
+    || !hasExactKeys(report.counts.bySection, sectionKeys)
+    || !sectionKeys.every((key) => Number.isSafeInteger(report.counts.bySection[key])
+      && report.counts.bySection[key] >= 0 && report.counts.bySection[key] <= 100)
+    || !hasExactKeys(report.counts.byInteractionType, interactionKeys)
+    || !interactionKeys.every((key) => Number.isSafeInteger(report.counts.byInteractionType[key])
+      && report.counts.byInteractionType[key] >= 0 && report.counts.byInteractionType[key] <= 100)
+    || !hasExactKeys(report.shortfalls, sectionKeys)
+    || !sectionKeys.every((key) => Number.isSafeInteger(report.shortfalls[key])
+      && report.shortfalls[key] === Math.max(0, targets[key] - report.counts.bySection[key]))
+    || !Number.isSafeInteger(report.duplicateFingerprintGroupCount)
+    || report.duplicateFingerprintGroupCount < 0 || report.duplicateFingerprintGroupCount > 100
+    || !Array.isArray(report.blockerCodes) || report.blockerCodes.length > knownBlockers.size
+    || !Array.isArray(report.versions) || report.versions.length !== report.counts.total
+    || report.versions.length < 1 || report.versions.length > 100
+    || !Array.isArray(requestedPins) || requestedPins.length < 1 || requestedPins.length > 100) return false;
+
+  if (sectionKeys.reduce((sum, key) => sum + report.counts.bySection[key], 0) !== report.counts.total
+    || interactionKeys.reduce((sum, key) => sum + report.counts.byInteractionType[key], 0) !== report.counts.total) return false;
+
+  const expectedPins = new Map();
+  for (const pin of requestedPins) {
+    if (!hasExactKeys(pin, ['versionId', 'contentHash'])
+      || typeof pin.versionId !== 'string' || !UUID_PATTERN.test(pin.versionId)
+      || typeof pin.contentHash !== 'string' || !HASH_PATTERN.test(pin.contentHash)
+      || expectedPins.has(pin.versionId)) return false;
+    expectedPins.set(pin.versionId, pin.contentHash);
+  }
+
+  const returnedPins = new Set();
+  let previousVersionId = '';
+  for (const version of report.versions) {
+    if (!hasExactKeys(version, ['versionId', 'contentHash', 'workflowRevision', 'state'])
+      || typeof version.versionId !== 'string' || !UUID_PATTERN.test(version.versionId)
+      || returnedPins.has(version.versionId)
+      || expectedPins.get(version.versionId) !== version.contentHash
+      || typeof version.contentHash !== 'string' || !HASH_PATTERN.test(version.contentHash)
+      || !Number.isSafeInteger(version.workflowRevision) || version.workflowRevision < 1
+      || !Object.hasOwn(STATE_LABELS, version.state)
+      || (previousVersionId && previousVersionId >= version.versionId)) return false;
+    returnedPins.add(version.versionId);
+    previousVersionId = version.versionId;
+  }
+  if (returnedPins.size !== expectedPins.size
+    || [...expectedPins.keys()].some((versionId) => !returnedPins.has(versionId))) return false;
+
+  let previousBlocker = '';
+  for (const blocker of report.blockerCodes) {
+    if (typeof blocker !== 'string' || !knownBlockers.has(blocker)
+      || (previousBlocker && previousBlocker >= blocker)) return false;
+    previousBlocker = blocker;
+  }
+  const requiredBlockers = [...REQUIRED_PREFLIGHT_BLOCKERS];
+  const hasShortfall = sectionKeys.some((key) => report.shortfalls[key] > 0);
+  if (hasShortfall) requiredBlockers.push('STARTER_TARGET_SHORTFALL');
+  if (report.duplicateFingerprintGroupCount > 0) requiredBlockers.push('DUPLICATE_FINGERPRINTS_REQUIRE_REVIEW');
+  return requiredBlockers.every((code) => report.blockerCodes.includes(code))
+    && report.blockerCodes.length === requiredBlockers.length;
 }
 
 function node(tag, className, text) {
@@ -450,6 +550,95 @@ function renderReviewHistory(history) {
   return content;
 }
 
+function renderDatasetPreflight(report) {
+  const content = node('div', 'staff-dataset-preflight-content');
+  const metadata = node('dl', 'staff-review-metadata');
+  appendMetadataPair(metadata, 'Môi trường', report.environment);
+  appendMetadataPair(metadata, 'Cơ sở truy cập', report.accessBasis);
+  appendMetadataPair(metadata, 'Phạm vi', report.scope);
+  appendMetadataPair(metadata, 'Đủ điều kiện được nền tảng xác nhận', report.qualification);
+  appendMetadataPair(metadata, 'Đánh giá quyền xuất bản', report.publicationEligibility);
+  appendMetadataPair(metadata, 'Có thao tác xuất bản', report.publishing ? 'Có' : 'Không');
+  appendMetadataPair(metadata, 'Revision điều kiện ghi nhận', report.eligibilityRevision);
+  appendMetadataPair(metadata, 'Thời điểm tạo báo cáo từ máy chủ', report.generatedAt);
+  content.append(metadata);
+
+  content.append(node('p', 'staff-dataset-preflight-warning', 'Đây chỉ là kiểm tra đồ thị chuẩn tắc của các phiên bản đã chọn. Báo cáo không xác nhận kho câu hỏi đã được chấp nhận hoặc đủ điều kiện, quyền sử dụng hiện tại, rà soát của con người hay khả năng lắp đề. Báo cáo phản ánh một lần kiểm tra; quyền và trạng thái có thể thay đổi sau đó.'));
+  content.append(node('p', 'staff-dataset-preflight-required-blockers', 'Năm điều kiện về quyền, nguồn hợp pháp và rà soát của con người vẫn cần được xác nhận, kể cả khi số lượng đạt mục tiêu.'));
+
+  const sectionRows = ['MATH', 'READING', 'SCIENCE'].map((key) => [
+    key,
+    String(report.targets[key]),
+    String(report.counts.bySection[key]),
+    String(report.shortfalls[key]),
+  ]);
+  content.append(preflightTable('Mục tiêu chuẩn tắc và số lượng báo cáo', ['Miền', 'Mục tiêu', 'Số lượng', 'Thiếu'], sectionRows));
+
+  const interactionRows = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE_GROUP'].map((key) => [
+    key, String(report.counts.byInteractionType[key]),
+  ]);
+  interactionRows.push(['Tổng số phiên bản', String(report.counts.total)]);
+  content.append(preflightTable('Số lượng theo kiểu tương tác', ['Kiểu tương tác', 'Số lượng'], interactionRows));
+  content.append(node('p', 'staff-dataset-preflight-duplicates', `Số nhóm dấu vân tay trùng cần rà soát: ${report.duplicateFingerprintGroupCount}.`));
+
+  const blockers = node('section', 'staff-dataset-preflight-blockers');
+  blockers.append(node('h3', '', 'Điều kiện chưa được xác nhận'));
+  const blockerList = node('ul');
+  for (const code of report.blockerCodes) {
+    const item = node('li');
+    item.append(node('strong', '', code), node('span', '', ` — ${PREFLIGHT_BLOCKER_LABELS[code]}`));
+    blockerList.append(item);
+  }
+  blockers.append(blockerList);
+  content.append(blockers);
+
+  const versionRows = report.versions.map((version) => {
+    const row = node('tr');
+    row.dataset.versionId = version.versionId;
+    row.dataset.contentHash = version.contentHash;
+    row.dataset.workflowRevision = String(version.workflowRevision);
+    row.dataset.workflowState = version.state;
+    for (const value of [version.versionId, version.contentHash, String(version.workflowRevision), `${STATE_LABELS[version.state] ?? version.state} (${version.state})`]) {
+      const cell = node('td', '', value);
+      row.append(cell);
+    }
+    return row;
+  });
+  const pinTable = preflightTable('Phiên bản và hash được kiểm tra chính xác', ['Mã phiên bản', 'Hash nội dung', 'Revision quy trình', 'Trạng thái'], []);
+  const pinBody = pinTable.querySelector('tbody');
+  pinBody.replaceChildren(...versionRows);
+  pinTable.dataset.testid = 'staff-preflight-version-pins';
+  content.append(node('p', 'staff-form-help', 'Trên màn hình hẹp, cuộn ngang bảng để xem đủ phiên bản, hash và trạng thái. Khi dùng bàn phím, chọn vùng bảng rồi dùng các phím mũi tên.'), pinTable);
+  return content;
+}
+
+function preflightTable(captionText, headings, rows) {
+  const region = node('div', 'staff-dataset-preflight-table-wrap');
+  region.tabIndex = 0;
+  region.setAttribute('role', 'region');
+  region.setAttribute('aria-label', captionText);
+  const table = node('table', 'staff-dataset-preflight-table');
+  table.append(node('caption', '', captionText));
+  const head = node('thead');
+  const headerRow = node('tr');
+  for (const headingText of headings) {
+    const heading = node('th', '', headingText);
+    heading.scope = 'col';
+    headerRow.append(heading);
+  }
+  head.append(headerRow);
+  table.append(head);
+  const body = node('tbody');
+  for (const values of rows) {
+    const row = node('tr');
+    for (const value of values) row.append(node('td', '', value));
+    body.append(row);
+  }
+  table.append(body);
+  region.append(table);
+  return region;
+}
+
 function renderPrivateQuestion(question) {
   const article = node('article', 'review-item');
   article.append(node('h3', '', 'Nội dung câu hỏi riêng'));
@@ -568,6 +757,12 @@ export async function openStaffWorkspace(container, onBack) {
     dispositionStatus: null,
     dispositionConfirmation: null,
     dispositionDialog: null,
+    datasetPreflightSelections: new Map(),
+    datasetPreflightRequestId: 0,
+    datasetPreflightInFlight: false,
+    datasetPreflightView: null,
+    datasetPreflightStatus: { stage: 'idle', message: 'Chưa chạy kiểm tra tập phiên bản.' },
+    datasetPreflightControls: null,
   };
   const returnToPractice = () => {
     if (!isWorkspaceActive()) return;
@@ -651,6 +846,103 @@ export async function openStaffWorkspace(container, onBack) {
     container.replaceChildren(shell);
   }
 
+  function updateDatasetPreflightControls() {
+    const controls = state.datasetPreflightControls;
+    if (!controls) return;
+    const selectedCount = state.datasetPreflightSelections.size;
+    controls.count.textContent = `Đã chọn ${selectedCount} phiên bản.`;
+    controls.clear.disabled = selectedCount === 0;
+    controls.run.disabled = selectedCount === 0 || state.datasetPreflightInFlight || state.listLoading
+      || !state.principal?.roles?.includes('BANK_MANAGER');
+    controls.status.dataset.stage = state.datasetPreflightStatus.stage;
+    controls.status.textContent = state.datasetPreflightStatus.message;
+    const statusIsError = ['error', 'selection-limit'].includes(state.datasetPreflightStatus.stage);
+    controls.status.setAttribute('role', statusIsError ? 'alert' : 'status');
+    controls.status.setAttribute('aria-live', statusIsError ? 'assertive' : 'polite');
+    for (const checkbox of container.querySelectorAll('[data-testid="staff-preflight-select"]')) {
+      checkbox.checked = state.datasetPreflightSelections.has(checkbox.dataset.versionId);
+    }
+  }
+
+  function clearDatasetPreflight({ clearSelection = true } = {}) {
+    state.datasetPreflightRequestId += 1;
+    state.datasetPreflightView = null;
+    if (clearSelection) state.datasetPreflightSelections.clear();
+    state.datasetPreflightStatus = state.datasetPreflightInFlight
+      ? { stage: 'superseded', message: 'Đã bỏ qua báo cáo đang chờ vì lựa chọn, trang, mục tiêu hoặc phiên đã thay đổi. Hãy chờ yêu cầu kết thúc rồi chạy kiểm tra mới.' }
+      : { stage: 'idle', message: 'Chưa có báo cáo hiện hành. Hãy chọn phiên bản rồi chủ động chạy kiểm tra.' };
+    updateDatasetPreflightControls();
+  }
+
+  function datasetPreflightControls() {
+    const section = node('section', 'staff-dataset-preflight-controls');
+    section.dataset.testid = 'staff-preflight-controls';
+    section.append(node('h3', '', 'Kiểm tra tập phiên bản chuẩn tắc'));
+    section.append(node('p', 'staff-form-help', 'Chỉ BANK_MANAGER có thể chạy kiểm tra chỉ đọc sau khi chọn từng phiên bản đang hiển thị. Tối đa 100 phiên bản; không tự chọn mục ở trang chưa tải.'));
+    const count = node('p', 'staff-dataset-preflight-count', 'Đã chọn 0 phiên bản.');
+    count.dataset.testid = 'staff-preflight-selected-count';
+    count.tabIndex = -1;
+    count.setAttribute('aria-live', 'polite');
+    const actions = node('div', 'staff-header-actions');
+    const clear = button('Xóa lựa chọn', 'staff-preflight-clear', async () => {
+      if (!isWorkspaceActive()) return;
+      clearPrivateReviewView({ preservePreflight: true });
+      clearDatasetPreflight();
+      updateQuestionListView();
+    }, 'button secondary');
+    const run = button('Kiểm tra tập phiên bản', 'staff-preflight-run', async () => {
+      await runDatasetPreflight(run);
+    }, 'button');
+    run.setAttribute('aria-controls', 'staff-review-host');
+    actions.append(clear, run);
+    const status = node('p', 'notice-panel', 'Chưa chạy kiểm tra tập phiên bản.');
+    status.dataset.testid = 'staff-preflight-status';
+    status.dataset.stage = 'idle';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    section.append(count, actions, status);
+    state.datasetPreflightControls = { section, count, clear, run, status };
+    updateDatasetPreflightControls();
+    return section;
+  }
+
+  function metadataListView(items) {
+    const list = metadataList(items);
+    if (!state.principal?.roles?.includes('BANK_MANAGER')) return list;
+    const fieldset = node('fieldset', 'staff-preflight-selection');
+    fieldset.append(node('legend', '', 'Chọn các phiên bản cần kiểm tra'));
+    const help = node('p', 'staff-form-help', 'Chỉ các phiên bản có checkbox được chọn mới được gửi. Khi đổi bộ lọc, làm mới hoặc tải trang khác, lựa chọn và báo cáo sẽ bị xóa.');
+    help.id = 'staff-preflight-selection-help';
+    fieldset.append(help, list);
+    return fieldset;
+  }
+
+  function changeDatasetPreflightSelection(item, checkbox) {
+    if (!isWorkspaceActive() || !state.principal?.roles?.includes('BANK_MANAGER')) {
+      checkbox.checked = false;
+      return;
+    }
+    const wantsSelected = checkbox.checked;
+    clearPrivateReviewView({ preservePreflight: true });
+    clearDatasetPreflight({ clearSelection: false });
+    if (wantsSelected) {
+      if (state.datasetPreflightSelections.size >= 100) {
+        checkbox.checked = false;
+        state.datasetPreflightStatus = state.datasetPreflightInFlight
+          ? { stage: 'superseded', message: 'Đã bỏ qua kết quả đang chờ. Chỉ được chọn tối đa 100 phiên bản.' }
+          : { stage: 'selection-limit', message: 'Chỉ được chọn tối đa 100 phiên bản cho một lần kiểm tra.' };
+      } else {
+        state.datasetPreflightSelections.set(item.versionId, {
+          versionId: item.versionId,
+          contentHash: item.contentHash,
+        });
+      }
+    } else {
+      state.datasetPreflightSelections.delete(item.versionId);
+    }
+    updateDatasetPreflightControls();
+  }
+
   function metadataList(items) {
     const list = node('ul', 'staff-question-list');
     if (items.length === 0) {
@@ -664,6 +956,25 @@ export async function openStaffWorkspace(container, onBack) {
       info.append(node('strong', '', `${item.section} · ${item.interactionType}`));
       info.append(node('code', '', item.questionId));
       info.append(node('small', '', `Phiên bản ${item.versionId} · ${item.contentHash}`));
+      if (state.canReadList && state.principal?.roles?.includes('BANK_MANAGER')) {
+        const checkboxId = `staff-preflight-select-${item.versionId}`;
+        const label = node('label', 'staff-preflight-choice');
+        label.htmlFor = checkboxId;
+        const checkbox = node('input', 'staff-preflight-checkbox');
+        checkbox.type = 'checkbox';
+        checkbox.id = checkboxId;
+        checkbox.dataset.testid = 'staff-preflight-select';
+        checkbox.dataset.versionId = item.versionId;
+        checkbox.dataset.contentHash = item.contentHash;
+        checkbox.dataset.hash = item.contentHash;
+        checkbox.checked = state.datasetPreflightSelections.has(item.versionId);
+        checkbox.disabled = state.listLoading;
+        checkbox.setAttribute('aria-describedby', 'staff-preflight-selection-help');
+        checkbox.setAttribute('aria-label', `Chọn phiên bản ${item.versionId}, hash ${item.contentHash} để kiểm tra tập phiên bản`);
+        checkbox.addEventListener('change', () => changeDatasetPreflightSelection(item, checkbox));
+        label.append(checkbox, node('span', '', 'Chọn phiên bản này để kiểm tra'));
+        info.append(label);
+      }
       if (state.canReadList) {
         let inspect;
         inspect = button('Kiểm tra phiên bản này', 'staff-review-inspect', async () => {
@@ -725,9 +1036,13 @@ export async function openStaffWorkspace(container, onBack) {
     if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
   }
 
-  function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false } = {}) {
-    const previousViews = [state.reviewHistoryView, state.evidenceView, state.reviewView];
+  function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false, preservePreflight = false } = {}) {
+    const previousViews = [
+      ...(preservePreflight ? [] : [state.datasetPreflightView]),
+      state.reviewHistoryView, state.evidenceView, state.reviewView,
+    ];
     const previous = previousViews.find(Boolean);
+    if (!preservePreflight) clearDatasetPreflight();
     state.reviewHistoryRequestId += 1;
     state.reviewHistoryView = null;
     state.reviewRequestId += 1;
@@ -752,7 +1067,10 @@ export async function openStaffWorkspace(container, onBack) {
     }
     renderHandoffPanel();
     renderDispositionPanel();
-    if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
+    if (restoreFocus && previous?.kind === 'preflight' && state.datasetPreflightControls?.count?.isConnected) {
+      // Clearing the selection disables Run, so focus the stable selection summary.
+      state.datasetPreflightControls.count.focus();
+    } else if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
   }
   ACTIVE_PRIVATE_VIEW_CLEARERS.set(container, () => clearPrivateReviewView());
 
@@ -1179,15 +1497,22 @@ export async function openStaffWorkspace(container, onBack) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
-    const view = state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
+    const view = state.datasetPreflightView ?? state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
     host.replaceChildren();
     host.hidden = !view;
     if (!view) return;
 
+    const isPreflight = view.kind === 'preflight';
     const isHistory = view.kind === 'history';
     const isEvidence = view.kind === 'evidence';
-    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}`);
-    panel.dataset.testid = isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
+    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}`);
+    panel.dataset.testid = isPreflight ? 'staff-preflight-report' : isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
+    if (isPreflight) {
+      panel.dataset.scope = view.report.scope;
+      panel.dataset.versionCount = String(view.report.versions.length);
+      panel.dataset.generatedAt = view.report.generatedAt;
+      panel.dataset.eligibilityRevision = view.report.eligibilityRevision;
+    }
     if (isHistory) {
       panel.dataset.versionId = view.versionId;
       panel.dataset.contentHash = view.contentHash;
@@ -1200,7 +1525,7 @@ export async function openStaffWorkspace(container, onBack) {
         panel.dataset.truncated = String(view.history.truncated);
       }
     }
-    const titleId = isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
+    const titleId = isPreflight ? 'staff-preflight-title' : isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
     panel.setAttribute('aria-labelledby', titleId);
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
@@ -1209,18 +1534,19 @@ export async function openStaffWorkspace(container, onBack) {
       }
     });
     const titleText = view.status === 'loading'
-      ? (isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
+      ? (isPreflight ? 'Đang tạo báo cáo tập phiên bản…' : isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
       : view.status === 'error'
-        ? (isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
-        : (isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
+        ? (isPreflight ? 'Không thể tạo báo cáo tập phiên bản' : isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
+        : (isPreflight ? 'Báo cáo kiểm tra đồ thị chuẩn tắc' : isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
     const heading = node('h2', '', titleText);
     heading.id = titleId;
     heading.tabIndex = -1;
     const actions = node('div', 'staff-header-actions');
     if (view.status === 'error') {
-      actions.append(button(isHistory ? 'Tải lại lịch sử rà soát' : isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
+      actions.append(button(isPreflight ? 'Chạy kiểm tra mới' : isHistory ? 'Tải lại lịch sử rà soát' : isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
         isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
-          if (isHistory) await loadReviewHistory(view.versionId, view.contentHash, view.triggerElement);
+          if (isPreflight) await runDatasetPreflight(state.datasetPreflightControls?.run);
+          else if (isHistory) await loadReviewHistory(view.versionId, view.contentHash, view.triggerElement);
           else if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
           else if (state.dispositionStatus?.stage === 'acknowledged'
             && state.dispositionStatus.targetVersionId === view.versionId) {
@@ -1229,7 +1555,7 @@ export async function openStaffWorkspace(container, onBack) {
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
-    if (!isEvidence && !isHistory && handoffEligible(view)) {
+    if (!isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
       const handoff = button('Chuyển bản nháp vào hàng chờ rà soát', 'handoff-open', async () => {
         openHandoffConfirmation(handoff);
       }, 'button secondary');
@@ -1237,7 +1563,7 @@ export async function openStaffWorkspace(container, onBack) {
       handoff.setAttribute('aria-controls', 'handoff-dialog');
       actions.append(handoff);
     }
-    if (!isEvidence && !isHistory && dispositionEligible('reject', view)) {
+    if (!isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
       const reject = button('Từ chối phiên bản đang chờ rà soát', 'disposition-reject-open', async () => {
         openDispositionDialog('reject', reject);
       }, 'button secondary');
@@ -1245,7 +1571,7 @@ export async function openStaffWorkspace(container, onBack) {
       reject.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(reject);
     }
-    if (!isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
+    if (!isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
       const quarantine = button('Cách ly phiên bản', 'disposition-quarantine-open', async () => {
         openDispositionDialog('quarantine', quarantine);
       }, 'button secondary');
@@ -1253,8 +1579,8 @@ export async function openStaffWorkspace(container, onBack) {
       quarantine.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(quarantine);
     }
-    actions.append(button(isHistory ? 'Đóng lịch sử rà soát' : isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
-      isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+    actions.append(button(isPreflight ? 'Đóng báo cáo' : isHistory ? 'Đóng lịch sử rà soát' : isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
+      isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
         clearPrivateReviewView({ restoreFocus: true });
       }, 'button secondary'));
     panel.append(heading, actions);
@@ -1278,7 +1604,7 @@ export async function openStaffWorkspace(container, onBack) {
       status.setAttribute('aria-live', 'assertive');
       panel.append(status);
     } else {
-      panel.append(isHistory ? renderReviewHistory(view.history)
+      panel.append(isPreflight ? renderDatasetPreflight(view.report) : isHistory ? renderReviewHistory(view.history)
         : isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
     }
     host.append(panel);
@@ -1782,10 +2108,89 @@ export async function openStaffWorkspace(container, onBack) {
     }
   }
 
+  async function runDatasetPreflight(triggerElement) {
+    if (!isWorkspaceActive() || !state.canReadList
+      || !state.principal?.roles?.includes('BANK_MANAGER')
+      || state.datasetPreflightInFlight || state.datasetPreflightSelections.size < 1
+      || state.datasetPreflightSelections.size > 100) return;
+    const pins = Object.freeze([...state.datasetPreflightSelections.values()].map((pin) => Object.freeze({
+      versionId: pin.versionId,
+      contentHash: pin.contentHash,
+    })));
+    const body = Object.freeze({ versions: pins });
+    if (!pins.every((pin) => state.items.some((item) => item.versionId === pin.versionId
+      && item.contentHash === pin.contentHash))) {
+      clearPrivateReviewView();
+      state.datasetPreflightStatus = {
+        stage: 'error',
+        message: 'Danh sách hiện tại không còn khớp với các phiên bản đã chọn. Lựa chọn đã được xóa; hãy tải lại metadata rồi chọn lại.',
+      };
+      updateDatasetPreflightControls();
+      return;
+    }
+
+    clearPrivateReviewView({ preservePreflight: true });
+    const requestId = ++state.datasetPreflightRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.datasetPreflightView = null;
+    state.datasetPreflightStatus = { stage: 'pending', message: `Đang kiểm tra ${pins.length} phiên bản đã chọn. Không có thao tác thay đổi.` };
+    state.datasetPreflightInFlight = true;
+    updateDatasetPreflightControls();
+
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.datasetPreflightRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.canReadList
+      && state.principal?.roles?.includes('BANK_MANAGER')
+      && state.datasetPreflightSelections.size === pins.length
+      && pins.every((pin) => state.datasetPreflightSelections.get(pin.versionId)?.contentHash === pin.contentHash
+        && state.items.some((item) => item.versionId === pin.versionId && item.contentHash === pin.contentHash));
+    try {
+      const report = await request('/api/v1/datasets/preflight', {
+        method: 'POST', body, csrf: true,
+      });
+      if (!isCurrent()) return;
+      if (!datasetPreflightSupportsResponse(report, pins)) {
+        throw new Error('Máy chủ không trả về báo cáo hợp lệ khớp chính xác với các phiên bản đã chọn.');
+      }
+      state.datasetPreflightView = {
+        kind: 'preflight', status: 'loaded', report, pins, triggerElement,
+      };
+      state.datasetPreflightStatus = {
+        stage: 'loaded', message: 'Báo cáo khớp với các phiên bản đã chọn. Đây không phải xác nhận đủ điều kiện, quyền, rà soát con người hoặc khả năng lắp đề.',
+      };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.datasetPreflightView = null;
+      const errorMessage = error.code === 'VALIDATION_ERROR'
+        ? 'Máy chủ từ chối tập phiên bản này. Hãy thay đổi lựa chọn hoặc tải lại metadata.'
+        : error.message;
+      state.datasetPreflightStatus = {
+        stage: 'error',
+        message: `Không thể tạo báo cáo hiện hành: ${errorMessage} Hãy chủ động chạy kiểm tra mới sau khi kiểm tra lựa chọn hoặc tải lại metadata.`,
+      };
+      renderReviewPanel();
+    } finally {
+      if (isWorkspaceActive()) {
+        state.datasetPreflightInFlight = false;
+        if (state.datasetPreflightStatus.stage === 'superseded') {
+          state.datasetPreflightStatus = {
+            stage: 'idle',
+            message: 'Báo cáo đã bị bỏ qua vì lựa chọn, trang, mục tiêu hoặc phiên thay đổi. Hãy xem lại lựa chọn rồi chủ động chạy kiểm tra mới.',
+          };
+        }
+        updateDatasetPreflightControls();
+      }
+    }
+  }
+
   function updateQuestionListView() {
     if (!isWorkspaceActive()) return;
     const target = container.querySelector('[data-testid="staff-question-list"]');
-    if (target) target.replaceChildren(metadataList(state.items));
+    if (target) target.replaceChildren(metadataListView(state.items));
 
     const status = container.querySelector('[data-testid="staff-list-status"]');
     if (status) {
@@ -1806,6 +2211,7 @@ export async function openStaffWorkspace(container, onBack) {
     renderReviewPanel();
     renderHandoffPanel();
     renderDispositionPanel();
+    updateDatasetPreflightControls();
   }
 
   async function loadQuestionList({ reset = true, preserveHandoff = false, preserveDisposition = false } = {}) {
@@ -1945,7 +2351,7 @@ export async function openStaffWorkspace(container, onBack) {
     }, 'button secondary small'));
     heading.append(headingText, actions);
     shell.append(heading);
-    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
+    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. BANK_MANAGER có thể chủ động kiểm tra đồ thị chuẩn tắc của các phiên bản được chọn; báo cáo không xác nhận tồn kho đủ điều kiện, quyền hiện tại, rà soát của con người hay khả năng lắp đề. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 
     if (!state.principal.roles.includes('AUTHOR')) {
@@ -2198,6 +2604,7 @@ export async function openStaffWorkspace(container, onBack) {
         state.filters.section = value;
         void loadQuestionList({ reset: true });
       }));
+      if (state.principal.roles.includes('BANK_MANAGER')) listCard.append(datasetPreflightControls());
       listCard.append(filters);
       const status = node('p', 'notice-panel', 'Đang tải danh sách metadata…');
       status.dataset.testid = 'staff-list-status';
@@ -2206,7 +2613,7 @@ export async function openStaffWorkspace(container, onBack) {
       listCard.append(status);
       const list = node('div', 'staff-question-list-wrap');
       list.dataset.testid = 'staff-question-list';
-      list.append(metadataList(state.items));
+      list.append(metadataListView(state.items));
       listCard.append(list);
       const more = button('Tải thêm metadata', 'staff-load-more', async () => {
         if (isWorkspaceActive()) await loadQuestionList({ reset: false });

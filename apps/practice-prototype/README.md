@@ -311,3 +311,8 @@ BANK_MANAGER can explicitly inspect the latest20 recorded review decisions for
 an exact version. Verbatim reasons are untrusted private text; historical decisions
 do not establish qualified review, rights or present publication eligibility.
 [History evidence](../../docs/reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+
+BANK_MANAGER can explicitly select current metadata versions for a read-only
+canonical dataset preflight. Counts/12-6-12 shortfalls and mandatory human/rights
+blockers are not accepted inventory, current eligibility or assembly feasibility.
+[Executed scope/limits](../../docs/reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).

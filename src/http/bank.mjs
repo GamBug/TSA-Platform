@@ -7,6 +7,7 @@ import { createSourceService } from '../modules/sources/service.mjs';
 import { createReviewContextService } from '../modules/bank/review-context.mjs';
 import { createReviewEvidenceService } from '../modules/bank/review-evidence.mjs';
 import { createReviewHistoryService } from '../modules/bank/review-history.mjs';
+import { createStaffDatasetPreflightService } from '../modules/bank/staff-dataset-preflight.mjs';
 
 const MAX_JSON_BYTES = 1024 * 1024;
 
@@ -169,7 +170,7 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
@@ -178,6 +179,8 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
   if (typeof enableReviewContext !== 'boolean') throw new TypeError('Private inspection opt-in must be boolean');
   if (typeof enableReviewEvidence !== 'boolean') throw new TypeError('Private evidence opt-in must be boolean');
   if (typeof enableReviewHistory !== 'boolean') throw new TypeError('Private review history opt-in must be boolean');
+  if (typeof enableDatasetPreflight !== 'boolean') throw new TypeError('Private dataset preflight opt-in must be boolean');
+  const datasetPreflight = enableDatasetPreflight ? await createStaffDatasetPreflightService({ bankPool, identityService }) : null;
   const reviewHistory = enableReviewHistory ? await createReviewHistoryService({ bankPool, identityService }) : null;
   const reviewEvidence = enableReviewEvidence ? await createReviewEvidenceService({ bankPool, identityService }) : null;
   const reviewContext = enableReviewContext ? await createReviewContextService({ bankPool, identityService }) : null;
@@ -193,6 +196,17 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
       if (!requestIsTrusted(request, trusted)) return errorResponse(403, 'FORBIDDEN', requestId);
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
+      if (datasetPreflight && url.pathname === '/api/v1/datasets/preflight') {
+        if (method !== 'POST') return errorResponse(404, 'NOT_FOUND', requestId);
+        const authenticated = await identityService.authenticate(request);
+        if (!authenticated) return errorResponse(401, 'UNAUTHENTICATED', requestId);
+        if (!identityService.mayPerform(authenticated, 'bank.diagnostics.read')
+            || !authenticated.roles?.includes('BANK_MANAGER')) return errorResponse(403, 'FORBIDDEN', requestId);
+        const principal = await identityService.validateMutation(request);
+        if (!principal) return errorResponse(403, 'CSRF_FAILED', requestId);
+        if (url.search) return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        return jsonResponse(200, await datasetPreflight.preflight(principal, await readJson(request)), requestId);
+      }
       if (reviewContext && /^\/api\/v1\/question-versions\/[^/]+\/review-context$/.test(url.pathname)) {
         if (method !== 'GET') return errorResponse(404, 'NOT_FOUND', requestId);
         const principal = await identityService.authenticate(request);

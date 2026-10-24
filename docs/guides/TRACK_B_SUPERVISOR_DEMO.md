@@ -182,6 +182,25 @@ none shows an empty state. Close/Escape restores focus; return/logout clears it.
 AUTHOR/REVIEWER/student accounts cannot access this administrative history.
 [History evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
 
+For a canonical dataset check, remain BANK_MANAGER, select the supported manual
+synthetic versions using their labeled checkboxes, then choose **Kiểm tra tập
+phiên bản**. Nothing runs automatically. The report shows only the selected
+versions' canonical counts, fixed starter targets12/6/12, shortfalls and required
+human/rights blockers. These are NOT accepted/eligible inventory counts or assembly
+feasibility; meeting the counts does not remove human/rights requirements.
+No content is approved or published. Exact version/hash/workflow observations and
+server report-creation time identify the selection, not an exam deadline.
+
+Changing the selection, filter/page, refresh, private target, return or logout
+clears the report and fences pending results. Close/Escape clears selection/report
+and focuses the selection summary; choose versions again for a new explicit check.
+An unavailable/lost report is an error, never a saved success. A new check is
+explicit and read-only. Some existing Factory opaque-ID graphs are unsupported by
+the unchanged canonical service and return a safe validation error; no partial
+success or alternate graph substitution. [Executed preflight scope/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+This is not fixed-run assembly diagnostics: frozen fixed-manifest/replay semantics
+need separate reconciliation, and personal manifests/history stay private.
+
 For quarantine, sign out and choose BANK_MANAGER. Select a different DRAFT or
 IN_REVIEW version (use the state filter if necessary), inspect it and choose
 **Cách ly phiên bản**. Enter a reason and read the impact warning: related published

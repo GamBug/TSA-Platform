@@ -373,6 +373,30 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`Boolean(${query('staff-review-history')})||document.body.textContent.includes('https://invalid.example/history.png')`),false);
   report.checks.push('B5 Firefox manager exact-version empty/real REJECT history preserves inert hostile reason, current workflow and no-qualification warning; desktop/narrow captures, Escape focus and close/logout privacy');
 
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-preflight-run')})`,'Firefox manager canonical controls');
+  await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'Firefox canonical all states');
+  await evaluate(`(()=>{const original=window.fetch;window.__ffPreflight=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.pathname==='/api/v1/datasets/preflight')window.__ffPreflight.push({status:response.status,request:JSON.parse(init.body),body:await response.clone().json(),csrf:Boolean(new Headers(init.headers).get('x-csrf-token')),key:new Headers(init.headers).get('idempotency-key')});return response;};return true})()`);
+  assert.equal(await evaluate(`${query('staff-preflight-run')}.disabled`),true);
+  for(const version of [selected,quarantineVersion]) {
+    const selector=`[data-testid="staff-preflight-select"][data-version-id="${version.versionId}"]`;
+    await evaluate(`(()=>{document.querySelector(${JSON.stringify(selector)}).focus();return true})()`);
+    await wd('POST','/actions',{actions:[{type:'key',id:'preflight-keyboard',actions:[{type:'keyDown',value:' '},{type:'keyUp',value:' '}]}]});
+  }
+  assert.equal(await evaluate('window.__ffPreflight.length'),0,'Firefox selection never runs automatic check');
+  await click('staff-preflight-run');await waitFor(`${query('staff-preflight-status')}?.dataset.stage==='loaded'`,'Firefox actual canonical report');
+  const canonical=await evaluate('window.__ffPreflight[0]');assert.equal(canonical.status,200);assert.equal(canonical.csrf,true);assert.equal(canonical.key,null);
+  assert.equal(canonical.request.versions.length,2);assert.equal(canonical.body.counts.total,2);assert.deepEqual(canonical.body.shortfalls,{MATH:10,READING:6,SCIENCE:12});
+  assert.equal(canonical.body.publishing,false);assert.equal(await evaluate(`${query('staff-preflight-report')}.dataset.versionCount`),'2');
+  const canonicalText=await evaluate(`${query('staff-preflight-report')}.textContent`);assert.equal(canonical.body.blockerCodes.every(code=>canonicalText.includes(code)),true);
+  await setViewport(1280,900,'canonical desktop');await evaluate(`(()=>{${query('staff-preflight-report')}.scrollIntoView({block:'start'});return true})()`);await capture('staff-canonical-preflight-desktop');
+  await setViewport(narrowMeasured.innerWidth,812,'canonical narrow actual');await evaluate(`(()=>{${query('staff-preflight-version-pins')}.scrollIntoView({block:'center'});return true})()`);await capture(`staff-canonical-preflight-pins-narrow-${narrowMeasured.innerWidth}`);
+  await wd('POST','/actions',{actions:[{type:'key',id:'preflight-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false);assert.equal(await evaluate(`${query('staff-preflight-run')}.disabled`),true);
+  assert.equal(await evaluate(`document.activeElement===${query('staff-preflight-selected-count')}`),true,'Firefox Escape has a logical focus destination');
+  report.checks.push('B6 Firefox explicit manager keyboard selection/CSRF-only read POST produces exact canonical counts/pins/shortfalls/blockers, no publishing claim; desktop/narrow captures and Escape selection/report cleanup with logical focus');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

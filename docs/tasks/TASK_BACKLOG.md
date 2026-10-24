@@ -750,6 +750,21 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 **B6.1 CANONICAL PREFLIGHT — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base3251362.
+Root selects existing-service manager report under delegated engineering authority;
+[exact scope/impact/acceptance](../decisions/WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md).
+Root backend/HTTP-PG/browser/Firefox/shared records; disjoint configured Luna/XHigh
+private contracts/UI writers, separate Sol6.1/Medium read-only review. No new
+migration/grant/frozen contract change or false fixed diagnostics/accepted stock.
+Owner AGENTS/research preserved. Actual focused41/Bank135/contracts137/consumer11/
+local15/B032/type/build/built/drift/import/Chrome40(20captures)/Firefox12(23captures)/
+domains78/CLI2 PASS. Separate Sol6.1/Medium PG4/contracts8/type/drift/boundary/
+CLI2/Chrome40/static PASS, no unresolved findings; focus defect reproduced/repaired
+by root and independently verified. [Exact evidence/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+Luna/XHigh writers released. Clean reproduction follows checkpoint. Fixed manifest
+reuse-mode gap and source-only opaque-import limitation remain explicit; no
+personal run disclosure to general staff or accepted-stock/feasibility claim.
+
 2026-10-24 **B5.1 RECORDED HISTORY — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, basefec7467.
 Root selects manager-only read under delegated engineering authority;
 [scope/impact/acceptance](../decisions/WEB_002_B5_REVIEW_HISTORY_DECISION.md).

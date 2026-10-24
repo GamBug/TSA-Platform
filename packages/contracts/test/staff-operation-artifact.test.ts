@@ -37,12 +37,13 @@ type StaffDocument = {
 };
 
 describe("dedicated private staff artifacts", () => {
-  it("describes exact private B1/B2/B3/B4/B5 routes while leaving the student registry separate", async () => {
+  it("describes exact private B1/B2/B3/B4/B5/B6 routes while leaving the student registry separate", async () => {
     const artifact = staffStableJson(generateStaffContractsOpenApi());
     assert.equal(artifact, staffStableJson(generateStaffContractsOpenApi()));
     const document = JSON.parse(artifact) as StaffDocument;
     assert.equal(document.openapi, "3.1.0");
     assert.deepEqual(Object.keys(document.paths ?? {}), [
+      "/api/v1/datasets/preflight",
       "/api/v1/question-versions/{versionId}/quarantine",
       "/api/v1/question-versions/{versionId}/review-context",
       "/api/v1/question-versions/{versionId}/review-evidence",
@@ -151,6 +152,31 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(historySchema?.properties?.observedAt?.pattern, canonicalUtcPattern);
     assert.equal(historySchema?.properties?.reviews?.items?.properties?.recordedAt?.pattern, canonicalUtcPattern);
 
+    const preflightPath = document.paths?.["/api/v1/datasets/preflight"];
+    assert.deepEqual(Object.keys(preflightPath ?? {}), ["post"]);
+    const preflight = preflightPath?.post;
+    assert.equal(preflight?.operationId, "staffDatasetPreflight");
+    assert.match(preflight?.description ?? "", /BANK_MANAGER/);
+    assert.match(preflight?.description ?? "", /does not establish accepted inventory/);
+    assert.match(preflight?.description ?? "", /no idempotency key/);
+    assert.equal(preflight?.requestBody?.required, true);
+    assert.deepEqual(preflight?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "x-csrf-token", in: "header", required: true },
+    ]);
+    assert.deepEqual(Object.keys(preflight?.responses ?? {}), ["200", "400", "401", "403", "404", "409", "413", "422", "503"]);
+    assert.ok(preflight?.requestBody?.content?.["application/json"]?.schema);
+    assert.ok(preflight?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(preflight?.responses?.["200"]?.headers ?? {}).sort(), [
+      "Cache-Control",
+      "Vary",
+      "X-Content-Type-Options",
+      "X-Request-Id",
+    ]);
+    assert.ok(document.components?.schemas?.StaffDatasetPreflightRequest);
+    assert.ok(document.components?.schemas?.StaffDatasetPreflightRequestHeaders);
+    assert.ok(document.components?.schemas?.StaffDatasetPreflight);
+    assert.equal(preflight?.parameters?.some(({ in: location }) => location === "query" || location === "path"), false);
+
     const rejectPath = document.paths?.["/api/v1/question-versions/{versionId}/reviews"];
     assert.deepEqual(Object.keys(rejectPath ?? {}), ["post"]);
     const reject = rejectPath?.post;
@@ -198,6 +224,9 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(student.components?.schemas?.StaffReviewEvidence, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/review-history"], undefined);
     assert.equal(student.components?.schemas?.StaffReviewHistory, undefined);
+    assert.equal(student.paths?.["/api/v1/datasets/preflight"], undefined);
+    assert.equal(student.components?.schemas?.StaffDatasetPreflight, undefined);
+    assert.equal(student.components?.schemas?.StaffDatasetPreflightRequest, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/submit-review"], undefined);
     assert.equal(student.components?.schemas?.StaffSubmitReviewRequest, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/reviews"], undefined);

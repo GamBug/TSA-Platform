@@ -115,3 +115,11 @@ observation versus historical decisions, six rubric fields and inert wrapped
 verbatim reasons. Close/Escape/return/logout must remove private history. Check
 with qualified AT/native zoom; automated375px Chrome/actual500px Firefox evidence
 does not establish formal accessibility acceptance.
+
+## Separate B6 canonical preflight — MANUAL_CHECK_PENDING
+
+Verify labeled keyboard checkbox selection, none-selected/pending controls, exact
+canonical count/shortfall/blocker warnings and versions. Focusable horizontal-scroll
+pin tables need keyboard/AT/native zoom checks. Close/Escape clears selection/report
+and focuses the stable selection summary because Run becomes disabled. Automated
+Chrome375/Firefox actual500 checks are not formal accessibility acceptance.

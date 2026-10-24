@@ -166,6 +166,12 @@ test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue
   const heldContext=await bankRequest(harness,holdManager,`/api/v1/question-versions/${heldVersion.versionId}/review-context`);
   assert.equal(heldContext.status,200);assert.deepEqual((await heldContext.json()).preview,{status:'BLOCKED',reason:'WORKFLOW_HELD'});
 
+  const preflight=await bankRequest(harness,holdManager,'/api/v1/datasets/preflight',{method:'POST',body:{versions:available.map(item=>({versionId:item.context.version.versionId,contentHash:item.context.version.contentHash}))}});
+  assert.equal(preflight.status,200);const canonical=await preflight.json();assert.equal(canonical.counts.total,3);
+  assert.deepEqual(canonical.shortfalls,{MATH:9,READING:6,SCIENCE:12});assert.equal(canonical.publishing,false);
+  assert.equal(canonical.publicationEligibility,'NOT_EVALUATED');assert.ok(canonical.blockerCodes.includes('LAWFUL_INVENTORY_UNVERIFIED'));
+  for(const browser of [author,reviewer])assert.equal((await bankRequest(harness,browser,'/api/v1/datasets/preflight',{method:'POST',body:{versions:[]}})).status,403);
+
   const evidencePath = `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-evidence`;
   assert.equal((await bankRequest(harness,author,evidencePath)).status,403);
   const manager=await loginActor(harness,'bankManager');

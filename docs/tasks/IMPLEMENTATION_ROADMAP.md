@@ -1,5 +1,12 @@
 # Implementation roadmap
 
+Current B6.1, 2026-10-24: manager-only explicit canonical dataset preflight over
+unchanged internal service. Selection/pin/count/shortfall/blocker/recovery/focus
+verification, actual PG/Chrome/Firefox and independent review PASS. [Exact evidence/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+No accepted inventory/rights/human/assembly-feasibility inference; frozen fixed
+manifest/replay semantics and source-only opaque-import compatibility are separate.
+Clean reproduction next. No new grants/migrations or publication action.
+
 Current B5.1 recorded manager history, 2026-10-24: exact explicit latest20 read
 with current workflow separate, untrusted verbatim reasons inert, no qualification/
 rights/eligibility inference. [Actual PostgreSQL/browser/independent evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).

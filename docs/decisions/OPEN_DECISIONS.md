@@ -30,6 +30,18 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 B6.1 — canonical preflight selected 2026-10-24
+
+- Root-selected under owner engineering-choice delegation; AUTHORIZED_IN_SCOPE /
+  IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED. [Exact scope/impact/acceptance](WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md).
+- Manager-only explicit pinned canonical dataset report over existing internal
+  service, not accepted inventory or assembly feasibility. No fixed/personal
+  manifest contract changes, grants/migrations, publication/rights/human approval.
+- Actual read-only discovery found fixed manifest reuse-mode mismatch and no
+  genuine fixed solver-run fixture; preserve frozen contracts and personal data.
+  Root integration/backend/tests/docs; native Luna/XHigh contracts/UI writers,
+  separate Sol6.1/Medium read-only review. [Executed evidence/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+
 ## WEB-002 B5.1 — recorded review history selected 2026-10-24
 
 - Root-selected under owner engineering-choice delegation; AUTHORIZED_IN_SCOPE /

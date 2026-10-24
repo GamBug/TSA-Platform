@@ -5,6 +5,8 @@ import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
   StaffReviewHistorySchema,
+  StaffDatasetPreflightRequestSchema,
+  StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
   StaffQuarantineResponseSchema,
   StaffRejectReviewRequestSchema,
@@ -41,6 +43,10 @@ export const StaffReviewHistoryPathParamsSchema = z
 
 const IdempotencyKeySchema = z.string().regex(/^[\x21-\x7e]{1,128}$/, "Expected 1–128 visible ASCII characters");
 const CsrfTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, "Expected the current CSRF token");
+
+export const StaffDatasetPreflightRequestHeadersSchema = z
+  .object({ "x-csrf-token": CsrfTokenSchema })
+  .strict();
 
 export const StaffSubmitReviewRequestHeadersSchema = z
   .object({
@@ -211,6 +217,25 @@ export const staffRouteRegistry = {
       404: json(StaffNotFoundResponseSchema, "Version is missing or malformed"),
       422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
       503: json(StaffTemporarilyUnavailableResponseSchema, "Stored history projection is unavailable"),
+    },
+  },
+  staffDatasetPreflight: {
+    method: "POST",
+    path: "/api/v1/datasets/preflight",
+    summary: "Run an explicit canonical dataset preflight",
+    description: "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission and a valid CSRF token. This read-only report validates only the explicitly pinned canonical graphs; it does not establish accepted inventory, rights, qualified human review, assembly feasibility, or publication eligibility. The strict JSON body is limited to 1 MiB and requires no idempotency key.",
+    headers: StaffDatasetPreflightRequestHeadersSchema,
+    body: StaffDatasetPreflightRequestSchema,
+    responses: {
+      200: json(StaffDatasetPreflightSchema, "Canonical graph observations for the exact requested version pins"),
+      400: json(StaffSubmitReviewMalformedJsonResponseSchema, "Request body is not valid JSON"),
+      401: json(StaffSubmitReviewUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffSubmitReviewCsrfOrForbiddenResponseSchema, "CSRF validation failed or current principal lacks manager permission"),
+      404: json(StaffSubmitReviewNotFoundResponseSchema, "A pinned version is missing or not visible"),
+      409: json(StaffSubmitReviewConflictResponseSchema, "A pinned content hash or canonical reference changed"),
+      413: json(StaffSubmitReviewPayloadTooLargeResponseSchema, "Request body exceeds the 1 MiB limit"),
+      422: json(StaffSubmitReviewValidationErrorResponseSchema, "Request or canonical graph is invalid"),
+      503: json(StaffSubmitReviewTemporarilyUnavailableResponseSchema, "The canonical preflight cannot currently complete"),
     },
   },
   staffSubmitReview: {

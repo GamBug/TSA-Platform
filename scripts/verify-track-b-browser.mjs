@@ -73,6 +73,7 @@ async function waitFor(expression, label) {
   throw new Error(`Timed out waiting for ${label}`);
 }
 
+const pinForBrowser = (version) => ({versionId:version.versionId,contentHash:version.contentHash});
 const selector = (id) => `[data-testid="${id}"]`;
 const query = (id) => `document.querySelector(${JSON.stringify(selector(id))})`;
 
@@ -1391,6 +1392,71 @@ try {
   }
   assert.equal(networkOperations.filter(op=>new URL(op.url).pathname.endsWith('/review-history')).every(op=>op.method==='GET'&&!op.hasPostData),true);
   report.checks.push('B5 logout/identity fencing clears late private history; candidate/reviewer have no history action and exact direct endpoint returns403; all history calls are bodyless GET');
+
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-run')})`),false,'reviewer cannot run canonical dataset diagnostic');
+  const reviewerPreflight=await evaluate(`fetch('/api/v1/datasets/preflight',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({versions:${JSON.stringify([pinForBrowser(queuedVersion)])}})}).then(async response=>({status:response.status,body:await response.json()}))`);
+  assert.equal(reviewerPreflight.status,403);assert.equal(reviewerPreflight.body.error.code,'FORBIDDEN');
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname==='/api/v1/datasets/preflight').length,1,'no preflight is automatic');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager preflight login');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-preflight-run')})`,'manager preflight controls');
+  async function allPreflightStates(){await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'all-state preflight list');}
+  async function selectPreflight(version){const input=`[data-testid="staff-preflight-select"][data-version-id="${version.versionId}"]`;await waitFor(`Boolean(document.querySelector(${JSON.stringify(input)}))`,'exact preflight pin checkbox');await evaluate(`document.querySelector(${JSON.stringify(input)}).focus()`);await pressKey(' ','Space',32,' ');}
+  await allPreflightStates();
+  await evaluate(`(()=>{const original=window.fetch;window.__b6={calls:[],mode:'normal',held:false,release:null};window.fetch=async(input,init={})=>{
+    const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);
+    if(url.pathname==='/api/v1/datasets/preflight'){const body=await response.clone().json();window.__b6.calls.push({status:response.status,body,request:JSON.parse(init.body),csrf:Boolean(new Headers(init.headers).get('x-csrf-token')),key:new Headers(init.headers).get('idempotency-key')});
+      const mode=window.__b6.mode;window.__b6.mode='normal';if(mode==='hold'){window.__b6.held=true;await new Promise(resolve=>window.__b6.release=resolve);}
+      if(mode==='drop')throw new TypeError('Synthetic lost canonical report');
+      if(mode==='wrong'&&response.status===200){body.versions[0].contentHash='sha256:'+'0'.repeat(64);return new Response(JSON.stringify(body),{status:200,headers:response.headers});}}
+    return response;};})()`);
+  assert.equal(await evaluate(`${query('staff-preflight-run')}.disabled`),true);
+  assert.equal(await evaluate('document.querySelectorAll("[data-testid=staff-preflight-select]:checked").length'),0);
+  const preflightA=reviewFixture.questions[0],preflightB=reviewFixture.questions[1];
+  await selectPreflight(preflightA);await selectPreflight(preflightB);
+  assert.equal(await evaluate('window.__b6.calls.length'),0,'selection alone never POSTs');
+  await evaluate(`${query('staff-preflight-run')}.focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  await waitFor(`${query('staff-preflight-status')}?.dataset.stage==='loaded'`,'actual explicit canonical report');
+  const canonical=await evaluate('window.__b6.calls[0]');assert.equal(canonical.status,200);assert.equal(canonical.csrf,true);assert.equal(canonical.key,null);
+  assert.deepEqual(canonical.request.versions.toSorted((a,b)=>a.versionId.localeCompare(b.versionId)),[pinForBrowser(preflightA),pinForBrowser(preflightB)].sort((a,b)=>a.versionId.localeCompare(b.versionId)));
+  assert.equal(canonical.body.counts.total,2);assert.deepEqual(canonical.body.shortfalls,{MATH:10,READING:6,SCIENCE:12});
+  assert.equal(canonical.body.publishing,false);assert.equal(canonical.body.publicationEligibility,'NOT_EVALUATED');
+  assert.equal(await evaluate(`${query('staff-preflight-report')}.dataset.versionCount`),'2');
+  assert.equal(await evaluate(`${query('staff-preflight-report')}.dataset.scope`),'CANONICAL_GRAPH_ONLY_NOT_PUBLICATION_AUTHORIZATION');
+  const reportText=await evaluate(`${query('staff-preflight-report')}.textContent`);assert.equal(canonical.body.blockerCodes.every(code=>reportText.includes(code)),true);
+  await evaluate(`${query('staff-preflight-report')}.scrollIntoView({block:'start'})`);await screenshot('staff-canonical-preflight-desktop');
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});await noHorizontalOverflow();
+  await evaluate(`${query('staff-preflight-version-pins')}.scrollIntoView({block:'center'})`);await screenshot('staff-canonical-preflight-pins-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await pressKey('Escape','Escape',27,String.fromCharCode(27));
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false);assert.equal(await evaluate(`${query('staff-preflight-run')}.disabled`),true);
+  assert.equal(await evaluate(`document.activeElement===${query('staff-preflight-selected-count')}`),true,'Escape retains a logical keyboard focus target after selection clears');
+  report.checks.push('B6 explicit manager keyboard pin selection sends CSRF-only read POST and shows exact canonical counts/shortfalls and mandatory human/rights blockers; no accepted inventory/publication inference; Escape clears report/selection');
+
+  await selectPreflight(preflightA);await evaluate("window.__b6.mode='hold';window.__b6.held=false");await click('staff-preflight-run');await waitFor('window.__b6.held','held canonical report');
+  const heldCount=await evaluate('window.__b6.calls.length');await evaluate(`${query('staff-preflight-run')}.click()`);assert.equal(await evaluate('window.__b6.calls.length'),heldCount,'pending duplicate activation is disabled');
+  await selectPreflight(preflightB);await evaluate('window.__b6.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false,'changed selection discards old report');
+  await evaluate("window.__b6.mode='drop'");await click('staff-preflight-run');await waitFor(`${query('staff-preflight-status')}?.dataset.stage==='error'`,'lost report is a truthful error');
+  const afterLost=await evaluate('window.__b6.calls.length');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');assert.equal(await evaluate('window.__b6.calls.length'),afterLost,'no automatic report retry');
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false);await click('staff-preflight-run');await waitFor(`${query('staff-preflight-status')}?.dataset.stage==='loaded'`,'explicit new canonical check recovers');
+  await evaluate("window.__b6.mode='wrong'");await click('staff-preflight-run');await waitFor(`${query('staff-preflight-status')}?.dataset.stage==='error'`,'wrong pinned hash rejected without stale report');
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false);
+  await click('staff-preflight-run');await waitFor(`${query('staff-preflight-status')}?.dataset.stage==='loaded'`,'new matching canonical report');
+  await click('staff-refresh');await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'metadata refresh clears canonical selection');
+  assert.equal(await evaluate(`${query('staff-preflight-run')}.disabled`),true);assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false);
+  report.checks.push('B6 pending duplicate activation is blocked; selection changes fence delayed reports, lost/wrong-hash responses clear stale output and require an explicit new check; metadata refresh resets selection');
+
+  await selectPreflight(preflightA);await evaluate("window.__b6.mode='hold';window.__b6.held=false");await click('staff-preflight-run');await waitFor('window.__b6.held','canonical report held before workspace return');
+  await click('staff-return');await waitFor(`Boolean(${query('staff-open')})`,'canonical return clears private view');await click('staff-open');await waitFor(`Boolean(${query('staff-preflight-run')})`,'manager new canonical workspace');
+  await evaluate('window.__b6.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})`),false);assert.equal(await evaluate(`${query('staff-preflight-run')}.disabled`),true);
+  await allPreflightStates();await selectPreflight(preflightA);await evaluate("window.__b6.mode='hold';window.__b6.held=false");await click('staff-preflight-run');await waitFor('window.__b6.held','canonical report held before logout');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'canonical logout');await evaluate(`${query('actor-select')}.value='studentA'`);await click('staff-login');await waitFor(`Boolean(document.querySelector('.staff-denied'))`,'candidate canonical denial');
+  await evaluate('window.__b6.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`Boolean(${query('staff-preflight-report')})||Boolean(${query('staff-preflight-run')})`),false);
+  const candidatePreflight=await evaluate(`fetch('/api/v1/datasets/preflight',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({versions:${JSON.stringify([pinForBrowser(preflightA)])}})}).then(async response=>({status:response.status,body:await response.json()}))`);
+  assert.equal(candidatePreflight.status,403);assert.equal(candidatePreflight.body.error.code,'FORBIDDEN');
+  report.checks.push('B6 return/reopen and logout/identity fences discard pending canonical reports; candidate/reviewer have no selection controls and direct POST403; no student contract/clock/policy change');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });
