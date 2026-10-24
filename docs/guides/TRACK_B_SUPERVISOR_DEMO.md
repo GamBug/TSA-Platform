@@ -134,7 +134,8 @@ unsafe content truthfully fails validation.
 Sign out and choose synthetic REVIEWER **Người rà soát tổng hợp**. Choose
 **Hàng chờ rà soát**, inspect the exact submitted version and open its recorded
 evidence. This is independent queued-role access, not qualified human review.
-The UI cannot approve content, change rights, reject/quarantine or publish it.
+The UI cannot approve content, change rights or publish it. The bounded synthetic
+negative actions below require explicit confirmation.
 
 For recorded evidence, sign out and choose synthetic BANK_MANAGER **Quản lý ngân
 hàng câu hỏi tổng hợp**. Select **Xem bằng chứng quyền** for an exact version.
@@ -150,6 +151,26 @@ independent IN_REVIEW versions; the fixture does not manufacture a human approva
 This is an unverified administrative claim, including any pasted sensitive text,
 not a rights attestation. No manual SQL or API calls are required.
 
+For a simulated rejection, remain the independent REVIEWER, inspect a queued
+version with an AVAILABLE preview and select **Từ chối phiên bản đang chờ rà soát**.
+All six Pass/Fail choices initially remain unset. Make explicit demonstration
+choices, enter a synthetic reason, review the version/hash/revision and confirm.
+Cancel/Escape makes no change and clears typed private summary text. Stored reasons
+are prefixed `Local synthetic disposition: `; neither the role nor the rubric is
+qualified human review. After REJECTED, queue private access normally disappears.
+The UI retains the acknowledged receipt and says exact current state is unobserved;
+a missing queue row alone is not proof of its current state.
+
+For quarantine, sign out and choose BANK_MANAGER. Select a different DRAFT or
+IN_REVIEW version (use the state filter if necessary), inspect it and choose
+**Cách ly phiên bản**. Enter a reason and read the impact warning: related published
+descendants, forms, attempts, results and access may be affected. Confirm only the
+intended synthetic version. Fresh QUARANTINED metadata contains no question/key/
+explanation. An error may occur after commit; the explicit retry reuses the same
+command key/body. Do not infer that a hold never happened from an error response.
+There is no automatic undo, APPROVE or publication action. All of this runs in the
+owned disposable fixture; it creates no lawful published inventory.
+
 The isolated fixture's rights records are simulations, not a lawful real-content
 attestation or qualified human review. It creates no published inventory. The
 synthetic REVIEWER has only server-authorized access to independent IN_REVIEW
@@ -161,8 +182,9 @@ data. Use separate browser profiles/private windows between modes because cookie
 are shared across localhost ports. The [B1 authority](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23)
 grants inspection only. [B2 authority](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23)
 separately grants the bounded recorded-text read. [B3 authority](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24)
-grants only the explicit author draft handoff above. Review decisions, rights edits
-and diagnostics need their own scoped contracts and authorization.
+grants the explicit author draft handoff. [B4 engineering disposition](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24)
+adds only the simulated negative actions above and attribution repair; rights
+edits/approval/publication and qualified human acceptance remain separate.
 
 ## Reproduce verification
 

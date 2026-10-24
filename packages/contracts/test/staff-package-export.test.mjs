@@ -4,6 +4,10 @@ import { describe, it } from "node:test";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffQuarantineRequestSchema,
+  StaffQuarantineResponseSchema,
+  StaffRejectReviewRequestSchema,
+  StaffRejectReviewResponseSchema,
   StaffSubmitReviewRequestSchema,
   StaffSubmitReviewResponseSchema,
 } from "@tsa/contracts/staff";
@@ -20,5 +24,26 @@ describe("@tsa/contracts/staff package subpath", () => {
       state: "IN_REVIEW",
       revision: 2,
     }).success, true);
+    assert.equal(StaffRejectReviewRequestSchema.safeParse({
+      expectedRevision: 1,
+      contentHash: `sha256:${"a".repeat(64)}`,
+      decision: "REJECT",
+      rubric: {
+        correctness: true,
+        unambiguous: true,
+        relevant: true,
+        language: true,
+        explanation: true,
+        rights: true,
+      },
+      reason: "Explicit reason",
+    }).success, true);
+    assert.equal(StaffRejectReviewResponseSchema.safeParse({
+      reviewId: "01234567-89ab-4cde-8fab-0123456789ab",
+      state: "REJECTED",
+      revision: 2,
+    }).success, true);
+    assert.equal(StaffQuarantineRequestSchema.safeParse({ expectedRevision: 2, reason: "Explicit reason" }).success, true);
+    assert.equal(StaffQuarantineResponseSchema.safeParse({ state: "QUARANTINED", revision: 3 }).success, true);
   });
 });

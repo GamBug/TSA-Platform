@@ -365,3 +365,62 @@ export const StaffSubmitReviewResponseSchema = z
 
 export type StaffSubmitReviewRequest = z.infer<typeof StaffSubmitReviewRequestSchema>;
 export type StaffSubmitReviewResponse = z.infer<typeof StaffSubmitReviewResponseSchema>;
+
+const NonBlankReason = z
+  .string()
+  .min(1)
+  .max(4_096)
+  .refine((value) => value.trim().length > 0, "Expected a nonblank reason");
+
+const StaffRejectReviewRubricSchema = z
+  .object({
+    correctness: z.boolean(),
+    unambiguous: z.boolean(),
+    relevant: z.boolean(),
+    language: z.boolean(),
+    explanation: z.boolean(),
+    rights: z.boolean(),
+  })
+  .strict();
+
+/** Strict private request DTO for a staff review rejection using the existing reviews command. */
+export const StaffRejectReviewRequestSchema = z
+  .object({
+    expectedRevision: PositiveSafeRevision,
+    contentHash: Hash,
+    decision: z.literal("REJECT"),
+    rubric: StaffRejectReviewRubricSchema,
+    reason: NonBlankReason,
+  })
+  .strict();
+
+/** Strict operation receipt for the existing Bank review rejection command. */
+export const StaffRejectReviewResponseSchema = z
+  .object({
+    reviewId: UUID,
+    state: z.literal("REJECTED"),
+    revision: PositiveSafeRevision,
+  })
+  .strict();
+
+export type StaffRejectReviewRequest = z.infer<typeof StaffRejectReviewRequestSchema>;
+export type StaffRejectReviewResponse = z.infer<typeof StaffRejectReviewResponseSchema>;
+
+/** Strict private request DTO for a staff quarantine using the existing quarantine command. */
+export const StaffQuarantineRequestSchema = z
+  .object({
+    expectedRevision: PositiveSafeRevision,
+    reason: NonBlankReason,
+  })
+  .strict();
+
+/** Strict operation receipt for the existing Bank quarantine command. */
+export const StaffQuarantineResponseSchema = z
+  .object({
+    state: z.literal("QUARANTINED"),
+    revision: PositiveSafeRevision,
+  })
+  .strict();
+
+export type StaffQuarantineRequest = z.infer<typeof StaffQuarantineRequestSchema>;
+export type StaffQuarantineResponse = z.infer<typeof StaffQuarantineResponseSchema>;

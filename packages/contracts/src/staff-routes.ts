@@ -4,6 +4,10 @@ import type { RouteDefinitionValue } from "./routes.ts";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffQuarantineRequestSchema,
+  StaffQuarantineResponseSchema,
+  StaffRejectReviewRequestSchema,
+  StaffRejectReviewResponseSchema,
   StaffSubmitReviewRequestSchema,
   StaffSubmitReviewResponseSchema,
 } from "./staff.ts";
@@ -19,6 +23,14 @@ export const StaffReviewEvidencePathParamsSchema = z
   .strict();
 
 export const StaffSubmitReviewPathParamsSchema = z
+  .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffRejectReviewPathParamsSchema = z
+  .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffQuarantinePathParamsSchema = z
   .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
   .strict();
 
@@ -198,6 +210,46 @@ export const staffRouteRegistry = {
       409: json(StaffSubmitReviewConflictResponseSchema, "Idempotency key, workflow revision, or concurrent state conflicts"),
       413: json(StaffSubmitReviewPayloadTooLargeResponseSchema, "Request body exceeds the 1 MiB limit"),
       422: json(StaffSubmitReviewValidationResponseSchema, "Request, current rights, or Bank constraints reject the handoff"),
+      503: json(StaffSubmitReviewTemporarilyUnavailableResponseSchema, "The Bank command cannot currently complete"),
+    },
+  },
+  staffRejectReview: {
+    method: "POST",
+    path: "/api/v1/question-versions/{versionId}/reviews",
+    summary: "Record a staff review rejection",
+    description: "Requires the trusted same-origin staff session, current CSRF cookie/token, and an idempotency key. Origin/session/CSRF validation runs before JSON parsing; command role, independence, revision, hash, and validation checks run after parsing. The strict JSON body is limited to 1 MiB. A successful response is an operation receipt and does not attest qualified human review, rights, or publication.",
+    params: StaffRejectReviewPathParamsSchema,
+    headers: StaffSubmitReviewRequestHeadersSchema,
+    body: StaffRejectReviewRequestSchema,
+    responses: {
+      201: json(StaffRejectReviewResponseSchema, "Receipt confirming the review command recorded REJECTED"),
+      400: json(StaffSubmitReviewMalformedJsonResponseSchema, "Request body is not valid JSON"),
+      401: json(StaffSubmitReviewUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffSubmitReviewCsrfOrForbiddenResponseSchema, "CSRF validation failed or current principal lacks permission"),
+      404: json(StaffSubmitReviewNotFoundResponseSchema, "Version is missing or malformed"),
+      409: json(StaffSubmitReviewConflictResponseSchema, "Idempotency key, workflow revision, or concurrent state conflicts"),
+      413: json(StaffSubmitReviewPayloadTooLargeResponseSchema, "Request body exceeds the 1 MiB limit"),
+      422: json(StaffSubmitReviewValidationResponseSchema, "Request or Bank constraints reject the command"),
+      503: json(StaffSubmitReviewTemporarilyUnavailableResponseSchema, "The Bank command cannot currently complete"),
+    },
+  },
+  staffQuarantine: {
+    method: "POST",
+    path: "/api/v1/question-versions/{versionId}/quarantine",
+    summary: "Quarantine a question version",
+    description: "Requires the trusted same-origin staff session, current CSRF cookie/token, and an idempotency key. Origin/session/CSRF validation runs before JSON parsing; command role, revision, and validation checks run after parsing. The strict JSON body is limited to 1 MiB. A successful response is an operation receipt and does not report delivery-hold drain completion.",
+    params: StaffQuarantinePathParamsSchema,
+    headers: StaffSubmitReviewRequestHeadersSchema,
+    body: StaffQuarantineRequestSchema,
+    responses: {
+      200: json(StaffQuarantineResponseSchema, "Receipt confirming the quarantine command recorded QUARANTINED"),
+      400: json(StaffSubmitReviewMalformedJsonResponseSchema, "Request body is not valid JSON"),
+      401: json(StaffSubmitReviewUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffSubmitReviewCsrfOrForbiddenResponseSchema, "CSRF validation failed or current principal lacks permission"),
+      404: json(StaffSubmitReviewNotFoundResponseSchema, "Version is missing or malformed"),
+      409: json(StaffSubmitReviewConflictResponseSchema, "Idempotency key, workflow revision, or concurrent state conflicts"),
+      413: json(StaffSubmitReviewPayloadTooLargeResponseSchema, "Request body exceeds the 1 MiB limit"),
+      422: json(StaffSubmitReviewValidationResponseSchema, "Request or Bank constraints reject the command"),
       503: json(StaffSubmitReviewTemporarilyUnavailableResponseSchema, "The Bank command cannot currently complete"),
     },
   },

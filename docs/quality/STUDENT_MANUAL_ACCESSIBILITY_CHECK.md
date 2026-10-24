@@ -99,3 +99,11 @@ uncertain/retry/conflict states and the distinction between receipt acknowledgem
 and freshly observed current state/unavailable status. Check native zoom and mobile
 content/controls. No qualified human outcomes are recorded yet; Chrome/Firefox
 engineering checks do not fill these cells. Do not approve real content or rights.
+
+## Separate B4 negative confirmations — MANUAL_CHECK_PENDING
+
+In the disposable staff demo, verify six explicitly chosen rubric findings, reason,
+warning association, scrolling confirmation, focus restoration and Cancel/Escape
+cleanup. Check REJECT receipt versus unavailable current state, manager quarantine
+impact disclosure and same-key uncertain retry with keyboard/qualified AT/native
+zoom. Automated Chrome375/Firefox actual500 evidence is not formal acceptance.

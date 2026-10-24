@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
+  StaffQuarantineRequestSchema,
+  StaffQuarantineResponseSchema,
+  StaffRejectReviewRequestSchema,
+  StaffRejectReviewResponseSchema,
   StaffSubmitReviewRequestSchema,
   StaffSubmitReviewResponseSchema,
 } from "../dist/staff.js";
@@ -43,3 +47,39 @@ assert.equal(StaffSubmitReviewResponseSchema.safeParse({
 }).success, false, "the emitted command receipt cannot claim a later review decision");
 
 console.log("Compiled private staff submit-review DTO smoke test passed.");
+
+const rejectRequest = {
+  expectedRevision: 1,
+  contentHash: `sha256:${"a".repeat(64)}`,
+  decision: "REJECT",
+  rubric: {
+    correctness: true,
+    unambiguous: false,
+    relevant: true,
+    language: false,
+    explanation: true,
+    rights: false,
+  },
+  reason: "Explicit reason without a UI-specific prefix",
+};
+assert.equal(StaffRejectReviewRequestSchema.safeParse(rejectRequest).success, true);
+assert.equal(StaffRejectReviewRequestSchema.safeParse({ ...rejectRequest, decision: "APPROVE" }).success, false);
+assert.equal(StaffRejectReviewRequestSchema.safeParse({ ...rejectRequest, reason: "  " }).success, false);
+assert.equal(StaffRejectReviewResponseSchema.safeParse({
+  reviewId: "01234567-89ab-4cde-8fab-0123456789ab",
+  state: "REJECTED",
+  revision: 2,
+}).success, true);
+assert.equal(StaffRejectReviewResponseSchema.safeParse({
+  reviewId: "01234567-89ab-4cde-8fab-0123456789ab",
+  state: "APPROVED",
+  revision: 2,
+}).success, false);
+
+const quarantineRequest = { expectedRevision: 2, reason: "Explicit reason" };
+assert.equal(StaffQuarantineRequestSchema.safeParse(quarantineRequest).success, true);
+assert.equal(StaffQuarantineRequestSchema.safeParse({ ...quarantineRequest, reason: "x".repeat(4_097) }).success, false);
+assert.equal(StaffQuarantineResponseSchema.safeParse({ state: "QUARANTINED", revision: 3 }).success, true);
+assert.equal(StaffQuarantineResponseSchema.safeParse({ state: "REJECTED", revision: 3 }).success, false);
+
+console.log("Compiled private staff rejection/quarantine DTO smoke test passed.");

@@ -239,6 +239,57 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`Boolean(${query('handoff-open')})`),false,'reviewer receives no author mutation control');
   report.checks.push('B3 Firefox native confirmation/Escape/focus and one actual author POST; acknowledged receipt plus fresh current state, then independent reviewer queue/evidence');
 
+  // B4 negative actions stay synthetic and never expose an approval control.
+  const rejectInspect=await wd('POST','/element',{using:'css selector',value:b3InspectSelector});
+  await wd('POST',`/element/${rejectInspect['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`Boolean(${query('disposition-reject-open')})`,'independent reviewer rejection control');
+  await evaluate(`(()=>{const original=window.fetch;window.__ffDispositions=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if((init.method??'GET').toUpperCase()==='POST'&&(url.pathname.endsWith('/reviews')||url.pathname.endsWith('/quarantine')))window.__ffDispositions.push({path:url.pathname,status:response.status,body:JSON.parse(init.body)});return response;};})()`);
+  await click('disposition-reject-open');
+  await waitFor(`${query('disposition-dialog')}?.open===true`,'Firefox negative disposition native dialog');
+  assert.equal(await evaluate(`Array.from(${query('disposition-dialog')}.querySelectorAll('select')).length`),6);
+  assert.equal(await evaluate(`Array.from(${query('disposition-dialog')}.querySelectorAll('select')).every(select=>select.value==='')`),true,'rubric never defaults to an assessed finding');
+  assert.equal(await evaluate(`${query('disposition-form')}.checkValidity()`),false);
+  await evaluate(`(()=>{for(const key of ['correctness','unambiguous','relevant','language','explanation','rights']){const select=document.querySelector('[data-testid="disposition-rubric-'+key+'"]');select.value=key==='correctness'?'FAIL':'PASS';select.dispatchEvent(new Event('change',{bubbles:true}));}const reason=${query('disposition-form-reason')};reason.value='Synthetic Firefox cancellation private sentinel';reason.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await wd('POST','/actions',{actions:[{type:'key',id:'negative-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  await waitFor(`!${query('disposition-dialog')}?.open`,'Firefox negative dialog Escape');
+  assert.equal(await evaluate(`document.body.textContent.includes('Synthetic Firefox cancellation private sentinel')`),false,'Escape clears copied reason/rubric summary');
+  assert.equal(await evaluate('window.__ffDispositions.length'),0);
+  await click('disposition-reject-open');
+  await evaluate(`(()=>{for(const key of ['correctness','unambiguous','relevant','language','explanation','rights']){const select=document.querySelector('[data-testid="disposition-rubric-'+key+'"]');select.value=key==='correctness'?'FAIL':'PASS';select.dispatchEvent(new Event('change',{bubbles:true}));}const reason=${query('disposition-form-reason')};reason.value='Kiểm thử từ chối tổng hợp trên Firefox, không phải rà soát đủ điều kiện.';reason.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await setViewport(narrowMeasured.innerWidth,812,'negative disposition narrow actual viewport');
+  await capture(`staff-reject-confirm-narrow-${narrowMeasured.innerWidth}`);
+  await setViewport(1280,900,'negative disposition desktop');
+  await click('disposition-confirm');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='acknowledged'&&${query('disposition-status')}?.dataset.currentState==='unobserved'`,'rejection receipt with no current queued private read');
+  assert.equal(await evaluate(`${query('disposition-status')}.dataset.receiptState`),'REJECTED');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false);
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager login after rejection');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-state-filter')})`,'manager metadata filters');
+  await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'manager all-state metadata list');
+  const quarantineVersion=staffFixture.questions[1];
+  const quarantineSelector=`[data-testid="staff-review-inspect"][data-version-id="${quarantineVersion.versionId}"]`;
+  const quarantineInspect=await wd('POST','/element',{using:'css selector',value:quarantineSelector});
+  await wd('POST',`/element/${quarantineInspect['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`Boolean(${query('disposition-quarantine-open')})`,'manager quarantine control');
+  assert.equal(await evaluate(`Boolean(${query('disposition-reject-open')})`),false);
+  await click('disposition-quarantine-open');
+  assert.equal(await evaluate(`${query('disposition-warning')}.textContent.includes('lượt thi')&&${query('disposition-warning')}.textContent.includes('kết quả')`),true);
+  await evaluate(`(()=>{const reason=${query('disposition-form-reason')};reason.value='Kiểm thử cách ly tổng hợp rõ ràng trên Firefox.';reason.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await setViewport(narrowMeasured.innerWidth,812,'quarantine narrow actual viewport');
+  await capture(`staff-quarantine-confirm-narrow-${narrowMeasured.innerWidth}`);
+  await setViewport(1280,900,'quarantine desktop');
+  await click('disposition-confirm');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='acknowledged'&&${query('disposition-status')}?.dataset.currentState==='QUARANTINED'`,'manager quarantine receipt plus current held metadata');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false,'held current view contains no question/key/explanation');
+  assert.equal(await evaluate(`${query('staff-review-context')}.textContent.includes('QUARANTINED')`),true);
+  const dispositionPosts=await evaluate('window.__ffDispositions');
+  assert.equal(dispositionPosts.length,2);assert.equal(dispositionPosts[0].status,201);assert.equal(dispositionPosts[0].body.decision,'REJECT');
+  assert.equal(dispositionPosts[1].status,200);
+  assert.equal(dispositionPosts.every(post=>post.body.reason.startsWith('Local synthetic disposition: ')),true);
+  report.checks.push('B4 Firefox explicit rubric/reason, native Escape privacy, actual synthetic rejection with private access loss, and manager quarantine with disclosed impact/current held metadata');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

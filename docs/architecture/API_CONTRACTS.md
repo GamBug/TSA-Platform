@@ -72,6 +72,17 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Delegated B4.1 negative-disposition addendum — 2026-10-24
+
+[Recorded authority](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24)
+selects the unchanged reviewed B4 proposal. Strict private StaffRejectReview and
+StaffQuarantine request/receipt types describe existing POST reviews (REJECT only)
+and quarantine. B3 command CSRF/idempotency headers/error unions are reused.
+No root/student/released DTO changes. Receipt is historical; private read loss
+after rejection leaves current state unobserved. Quarantine can return503 after
+commit/drain failure; retry uses the same key/body. No APPROVE/rights/publication
+UI or human qualification inferred. [Runtime evidence](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+
 ### Approved B3.1 author handoff addendum — 2026-10-24
 
 Owner whole-B3.1 approval: [exact frozen scope](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md),

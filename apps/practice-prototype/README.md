@@ -95,7 +95,9 @@ Open the printed root URL and choose the staff workspace/synthetic AUTHOR for
 preview. Sign out and choose synthetic BANK_MANAGER for the separately approved
 B2 recorded-evidence action. Approved B3 permits explicit AUTHOR_OWN DRAFT handoff
 with confirmation/idempotent recovery, followed by independent REVIEWER queue
-inspection. Text/URLs remain inert; no legal attestation or content approval.
+inspection. B4 adds explicit synthetic rejection and manager quarantine, with
+impact confirmation and same-intent recovery. Text/URLs stay inert; no legal
+attestation, qualified content approval or publication control.
 Ctrl+C deletes only this disposable fixture. This is not qualified content review or
 publication. [Complete walkthrough and mode limits](../../docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
 

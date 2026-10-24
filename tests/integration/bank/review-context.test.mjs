@@ -11,7 +11,11 @@ import { createDatabasePool, withTransaction } from '../../../src/modules/databa
 import { inspectionImportPackage } from './review-import-fixture.mjs';
 import { createFactoryImportService } from '../../../src/modules/bank/factory-import.mjs';
 import { createReviewEvidenceService } from '../../../src/modules/bank/review-evidence.mjs';
-import { StaffSubmitReviewResponseSchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { createPublicationService } from '../../../src/modules/bank/publication.mjs';
+import { createEquivalenceService } from '../../../src/modules/bank/equivalence.mjs';
+import { jsonDigest } from '../../../src/modules/bank/common.mjs';
+import { createSharedReadingFixture } from '../student-runtime/shared-reading-fixture.mjs';
+import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 
 let f, pool, author, reviewer, manager, candidate, examManager;
 const evidencePath = (id) => `/api/v1/question-versions/${id}/review-evidence`;
@@ -594,4 +598,171 @@ test('B3 UNKNOWN-rights author draft can enter queue without approving rights or
   const evidence=await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)));
   assert.equal(evidence.sources[0].currentDecision.status,'UNKNOWN');
   assert.equal(evidence.sources[0].currentDecision.recordedEvidence.text,'Unverified synthetic B3 administrative claim.');
+});
+
+
+test('B4 direct reviewer commands deny the original operator of a receipt-less imported ancestor and preserve independent access', async (t) => {
+  const capability=Object.freeze({});
+  const importer=await createFactoryImportService({bankPool:f.fixture.bankPool,identityService:f.identity,internalCapability:capability});
+  const operatorId=f.fixture.principals.author.userId,creatorId=f.fixture.principals.studentB.userId;
+  const pkg=await inspectionImportPackage(pool,creatorId);
+  await importer.importFactoryPackageV2(await principal(author),pkg,capability);
+  const parentId=pkg.candidates[0].question.parentVersionId,candidateId=pkg.candidates[0].question.id;
+  const parent=(await pool.query('SELECT content_hash FROM tsa.question_versions WHERE id=$1',[parentId])).rows[0];
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM tsa_private.factory_import_receipts WHERE question_version_id=$1',[parentId])).rows[0].count,0);
+  // Isolate independence from submission/normalization: trusted fixture setup
+  // queues the genuine imported ancestor, without creating any human review.
+  await pool.query("UPDATE tsa.question_workflow SET state='IN_REVIEW',revision=revision+1 WHERE question_version_id=$1",[parentId]);
+  await pool.query("INSERT INTO tsa.user_roles(user_id,role) VALUES($1,'REVIEWER')",[operatorId]);
+  t.after(()=>pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='REVIEWER'",[operatorId]));
+  const input={expectedRevision:2,contentHash:parent.content_hash,decision:'REJECT',
+    rubric:{correctness:false,unambiguous:false,relevant:false,language:false,explanation:false,rights:false},
+    reason:'Local synthetic disposition: independent access regression fixture.'};
+  const before=await databaseSnapshot();
+  const denied=await bankRequest(f,author,`/api/v1/question-versions/${parentId}/reviews`,{method:'POST',key:randomUUID(),body:input});
+  assert.equal(denied.status,403,'original import operator must not gain reviewer authority from missing candidate receipt');
+  assert.equal((await denied.json()).error.code,'FORBIDDEN');
+  await success(await bankRequest(f,author,pathFor(parentId)),404);
+  await success(await bankRequest(f,author,evidencePath(parentId)),404);
+  await assert.rejects(f.fixture.workflow.confirmSingleton(await principal(author),parentId,randomUUID(),{
+    expectedRevision:2,contentHash:parent.content_hash,reason:'Local synthetic singleton independence probe.'}),{status:403,code:'FORBIDDEN'});
+  await success(await bankRequest(f,author,`/api/v1/question-versions/${candidateId}/reviews`,{method:'POST',key:randomUUID(),body:{...input,expectedRevision:1,contentHash:pkg.candidates[0].question.contentHash}}),403);
+  assert.deepEqual(await databaseSnapshot(),before,'denied operator probes write no application state');
+  const accepted=await bankRequest(f,reviewer,`/api/v1/question-versions/${parentId}/reviews`,{method:'POST',key:randomUUID(),body:input});
+  assert.equal(accepted.status,201,'genuine independent reviewer remains permitted');
+  const receipt=await accepted.json();assert.equal(receipt.state,'REJECTED');
+  const replayKey='synthetic-legacy-operator-'+randomUUID();
+  // A deliberately forged legacy receipt fixture is not authorization evidence.
+  // A direct operator command must be rejected before consulting this cache.
+  await pool.query(`INSERT INTO tsa.idempotency_records(id,actor_id,route_scope,idempotency_key,request_hash,response_status,safe_response,resource_id)
+    VALUES($1,$2,$3,$4,$5,201,$6,$7)`,[randomUUID(),operatorId,`POST /api/v1/question-versions/${parentId}/reviews`,replayKey,jsonDigest(input),JSON.stringify(receipt),receipt.reviewId]);
+  const beforeReplay=await databaseSnapshot();
+  await success(await bankRequest(f,author,`/api/v1/question-versions/${parentId}/reviews`,{method:'POST',key:replayKey,body:input}),403);
+  assert.deepEqual(await databaseSnapshot(),beforeReplay);
+  await pool.query("INSERT INTO tsa.user_roles(user_id,role) VALUES($1,'AUTHOR')",[creatorId]);
+  t.after(()=>pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='AUTHOR'",[creatorId]));
+  const creator=await loginActor(f,'studentB');
+  const otherResponse=await bankRequest(f,creator,'/api/v1/questions',{method:'POST',key:randomUUID(),body:{...f.template,content:[{type:'text',text:'Bản nháp tổng hợp để kiểm tra độc lập của cặp phiên bản.'}]}});
+  assert.equal(otherResponse.status,201);const other=await otherResponse.json();
+  const equivalence=await createEquivalenceService({bankPool:f.fixture.bankPool,identityService:f.identity});
+  const bankRevision=(await pool.query('SELECT eligibility_revision::text AS revision FROM tsa.bank_state WHERE id=1')).rows[0].revision;
+  await assert.rejects(equivalence.adjudicate(await principal(author),randomUUID(),{
+    left:{versionId:parentId,contentHash:parent.content_hash,expectedRevision:3},
+    right:{versionId:other.versionId,contentHash:other.contentHash,expectedRevision:1},
+    kind:'NEAR_DUPLICATE',decision:'DISMISSED',expectedBankRevision:bankRevision,reason:'Synthetic original operator pair-independence probe.',
+  }),{status:403,code:'FORBIDDEN'});
+});
+
+
+const negativeReason='Local synthetic disposition: explicit technical demonstration only.';
+const negativeRubric={correctness:false,unambiguous:false,relevant:false,language:false,explanation:false,rights:false};
+async function negativeCommand(browser,id,kind,body,{key=randomUUID(),status=kind==='reject'?201:200}={}) {
+  const response=await bankRequest(f,browser,`/api/v1/question-versions/${id}/${kind==='reject'?'reviews':'quarantine'}`,{method:'POST',key,body});
+  if(status!==200&&status!==201) return success(response,status);
+  assert.equal(response.status,status);assert.equal(response.headers.get('cache-control'),'no-store');
+  assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+  return (kind==='reject'?StaffRejectReviewResponseSchema:StaffQuarantineResponseSchema).parse(await response.json());
+}
+
+test('B4 rejection appends exactly the allowed rows, replays without writes and removes queued private access', async () => {
+  const draft=await createDraft();await handoff(author,draft.versionId);
+  const body={expectedRevision:2,contentHash:draft.contentHash,decision:'REJECT',rubric:negativeRubric,reason:negativeReason};
+  for(const browser of [author,candidate,manager,examManager])await negativeCommand(browser,draft.versionId,'reject',body,{status:403});
+  await negativeCommand(reviewer,draft.versionId,'reject',{...body,contentHash:'sha256:'+'0'.repeat(64)},{status:409});
+  const before=await databaseSnapshot(),key=randomUUID();
+  const [first,second]=await Promise.all([negativeCommand(reviewer,draft.versionId,'reject',body,{key}),negativeCommand(reviewer,draft.versionId,'reject',body,{key})]);
+  assert.deepEqual(second,first);assert.equal(first.state,'REJECTED');assert.equal(first.revision,3);
+  const after=await databaseSnapshot();
+  assert.deepEqual(Object.keys(before).filter(table=>before[table].hash!==after[table].hash).sort(),
+    ['tsa.audit_events','tsa.idempotency_records','tsa.question_workflow','tsa.reviews'].sort());
+  for(const table of ['tsa.audit_events','tsa.idempotency_records','tsa.reviews'])assert.equal(after[table].count,before[table].count+1);
+  await success(await bankRequest(f,reviewer,pathFor(draft.versionId)),404);
+  await success(await bankRequest(f,reviewer,evidencePath(draft.versionId)),404);
+  assert.deepEqual(await negativeCommand(reviewer,draft.versionId,'reject',body,{key}),first);
+  await negativeCommand(reviewer,draft.versionId,'reject',{...body,reason:negativeReason+' changed'},{key,status:409});
+  assert.deepEqual(await databaseSnapshot(),after);
+});
+
+test('B4 negative command inputs/CSRF/current roles and validation failures never create a disposition', async () => {
+  const draft=await createDraft();await handoff(author,draft.versionId);
+  const body={expectedRevision:2,contentHash:draft.contentHash,decision:'REJECT',rubric:negativeRubric,reason:negativeReason};
+  const before=await databaseSnapshot();
+  for(const bad of [{...body,reason:'   '},{...body,reason:'x'.repeat(4097)},{...body,rubric:{}},{...body,reviewerId:randomUUID()}])
+    await negativeCommand(reviewer,draft.versionId,'reject',bad,{status:422});
+  const url=f.origin+`/api/v1/question-versions/${draft.versionId}/reviews`;
+  await success(await fetch(url,{method:'POST',headers:{origin:f.origin,cookie:reviewer.cookies.join('; '),'content-type':'application/json','idempotency-key':randomUUID()},body:JSON.stringify(body)}),403);
+  const reviewerId=f.fixture.principals.reviewer.userId;
+  const assignedAt=(await pool.query("SELECT assigned_at::text AS assigned_at FROM tsa.user_roles WHERE user_id=$1 AND role='REVIEWER'",[reviewerId])).rows[0].assigned_at;
+  await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='REVIEWER'",[reviewerId]);
+  try {await negativeCommand(reviewer,draft.versionId,'reject',body,{status:403});}
+  finally {await pool.query("INSERT INTO tsa.user_roles(user_id,role,assigned_at) VALUES($1,'REVIEWER',$2)",[reviewerId,assignedAt]);}
+  // Compare after restoring the role fixture; rejected operations append nothing.
+  assert.deepEqual(await databaseSnapshot(),before);
+  for(const browser of [author,reviewer,candidate,examManager])await negativeCommand(browser,draft.versionId,'quarantine',{expectedRevision:2,reason:negativeReason},{status:403});
+  await negativeCommand(manager,draft.versionId,'quarantine',{expectedRevision:1,reason:negativeReason},{status:409});
+  assert.deepEqual(await databaseSnapshot(),before);
+});
+
+test('B4 quarantine postcommit drain failure is an uncertain503; same-key retry reuses receipt and drains without reapplying workflow', async () => {
+  const draft=await createDraft(),key=randomUUID(),body={expectedRevision:1,reason:negativeReason};
+  let failDrain=true,drainCalls=0;
+  const bankPool={query:(...args)=>f.fixture.bankPool.query(...args),async connect(){
+    const client=await f.fixture.bankPool.connect();return {release:(...args)=>client.release(...args),async query(sql,params){
+      if(sql.includes('SELECT tsa.bank_drain_delivery_holds()')){drainCalls++;if(failDrain){failDrain=false;throw new Error('Controlled synthetic postcommit drain failure');}}
+      return client.query(sql,params);
+    }};
+  }};
+  const handler=await createBankHandler({bankPool,identityService:f.identity,trustedOrigin:f.origin});
+  const request=()=>new Request(f.origin+`/api/v1/question-versions/${draft.versionId}/quarantine`,{
+    method:'POST',headers:{origin:f.origin,cookie:manager.cookies.join('; '),'x-csrf-token':manager.csrf,'idempotency-key':key,'content-type':'application/json'},body:JSON.stringify(body),
+  });
+  const before=await databaseSnapshot();
+  const failed=await success(await handler(request()),503);
+  assert.equal(failed.error.code,'TEMPORARILY_UNAVAILABLE');
+  assert.doesNotMatch(JSON.stringify(failed),/drain|SELECT|sourceVersionId|answerKey/);
+  const committed=await databaseSnapshot();
+  assert.equal(committed['tsa.idempotency_records'].count,before['tsa.idempotency_records'].count+1);
+  const current=await success(await bankRequest(f,manager,pathFor(draft.versionId)));
+  assert.deepEqual(current.workflow,{state:'QUARANTINED',revision:2});
+  assert.deepEqual(current.preview,{status:'BLOCKED',reason:'WORKFLOW_HELD'});
+  const retried=await handler(request());assert.equal(retried.status,200);
+  assert.deepEqual(StaffQuarantineResponseSchema.parse(await retried.json()),{state:'QUARANTINED',revision:2});
+  assert.equal(drainCalls,2);assert.deepEqual(await databaseSnapshot(),committed);
+  for(const table of ['tsa.question_versions','tsa_private.question_secrets','tsa.source_rights','tsa.rights_decisions','tsa.student_question_history']) {
+    assert.deepEqual(committed[table],before[table],table);
+  }
+});
+
+test('B4 missing original attribution fails closed for review but does not prevent manager quarantine', async () => {
+  const capability=Object.freeze({});
+  const importer=await createFactoryImportService({bankPool:f.fixture.bankPool,identityService:f.identity,internalCapability:capability});
+  const pkg=await inspectionImportPackage(pool,f.fixture.principals.studentB.userId);
+  await importer.importFactoryPackageV2(await principal(author),pkg,capability);
+  const id=pkg.candidates[0].question.parentVersionId;
+  await pool.query("UPDATE tsa.question_workflow SET state='IN_REVIEW',revision=2 WHERE question_version_id=$1",[id]);
+  const hash=(await pool.query('SELECT content_hash FROM tsa.question_versions WHERE id=$1',[id])).rows[0].content_hash;
+  const bankPool={query:(...args)=>f.fixture.bankPool.query(...args),async connect(){
+    const client=await f.fixture.bankPool.connect();return {release:(...args)=>client.release(...args),async query(sql,params){
+      if(sql.includes('FROM tsa_private.factory_import_manifests WHERE'))return {rows:[],rowCount:0};
+      return client.query(sql,params);
+    }};
+  }};
+  const service=await createPublicationService({bankPool,identityService:f.identity});
+  await assert.rejects(service.review(await principal(reviewer),id,randomUUID(),{expectedRevision:2,contentHash:hash,decision:'REJECT',rubric:negativeRubric,reason:negativeReason}),{status:503,code:'TEMPORARILY_UNAVAILABLE'});
+  const held=await service.quarantine(await principal(manager),id,randomUUID(),{expectedRevision:2,reason:negativeReason});
+  assert.deepEqual(held.body,{state:'QUARANTINED',revision:3});
+});
+
+test('B4 attribution extraction preserves valid manual shared-stimulus B1/B2 projections', async () => {
+  const bundleFixture=await createSharedReadingFixture({bundleCount:1});
+  try {
+    const draft=bundleFixture.questions[0];
+    const context=await createReviewContextService({bankPool:bundleFixture.bankPool,identityService:bundleFixture.harness.identity});
+    const value=await context.read(bundleFixture.principals.author,draft.versionId);
+    assert.equal(value.preview.status,'AVAILABLE');
+    assert.equal(value.preview.question.stimulus.versionId,bundleFixture.bundles[0].stimulusVersionId);
+    assert.deepEqual(value.preview.question.stimulus.content,bundleFixture.bundles[0].content);
+    const evidence=await createReviewEvidenceService({bankPool:bundleFixture.bankPool,identityService:bundleFixture.harness.identity});
+    assert.equal((await evidence.read(bundleFixture.principals.bankManager,draft.versionId)).sources.length,2);
+  } finally {await bundleFixture.close();}
 });

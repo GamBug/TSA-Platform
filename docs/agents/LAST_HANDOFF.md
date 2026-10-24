@@ -1,58 +1,54 @@
-# Handoff — approved B3.1 author draft handoff verified/reviewed
+# Handoff — WEB-002 B4.1 negative dispositions and attribution repair
 
-2026-10-24 Asia/Bangkok, `feat/track-b-data-auth`, base5c1bded. Root accountable.
-Human owner explicitly approved whole B3.1; [exact authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24).
-Frozen B1/B2/B3 unchanged; owner AGENTS.md/untracked research untouched/excluded.
-Actual native configured Luna/XHigh contract and UI/CSS delegates completed and
-released ownership. Root owns integration/HTTPDB/browser/Firefox/launcher/docs.
+2026-10-24 Asia/Bangkok, `feat/track-b-data-auth`, base743a197. Root accountable.
+Owner delegated next Track B engineering choices; root selected reviewed B4.1.
+[Authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24).
+Owner AGENTS.md/untracked research untouched/excluded; frozen B1–B4 preserved.
+Actual configured Luna/XHigh private-contract and UI writers completed/released.
+Root owns backend/tests/browser/launcher/shared documentation. No paid model API.
 
 ## Implemented
 
-Strict additive private POST request/receipt/headers/body artifact and explicit
-fresh AUTHOR_OWN DRAFT handoff. Native confirmation exact version/hash/revision,
-Cancel/Escape focus restoration, one captured in-memory intent/body/key, uncertain
-same-key retry, known error authoritative read, historical receipt versus fresh
-current-state/unavailable status. Reload never POSTs; target/logout/navigation/
-identity fences discard old UI completions, not accepted server commands. No
-backend/HTTP/service policy, SQL/grant/migration/dependency or public/student/released
-contract changes. No qualified human review, rights edit, rejection/hold/publication
-UI. UNKNOWN remains UNKNOWN. [Complete supervisor walkthrough](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+Strict private negative-only requests/receipts, explicit fresh authorized native
+REJECT/quarantine confirmations, six required findings/reason, disclosed hold
+consequences, same-key uncertain retry, historical receipt versus inaccessible
+current state, cancellation/private-summary cleanup and identity fencing.
+Shared immutable manifest original-operator attribution fixes receipt-less ancestor
+review/singleton/equivalence independence. Manual shared-stimulus reads preserved;
+manager hold authority unchanged. No new grants/migrations, APPROVE/rights-edit/
+publication action or qualified-human claim. Updated supervisor walkthrough and
+safe disposable launcher require no manual SQL/API commands.
 
-## Actual verification/review
+## Verified and reviewed
 
-[Commands, observed failures/repairs, exact review and limits](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md).
-Root focused27/Bank121/local15/B032/contracts125/consumer11/type/build/built/drift/
-import PASS. Actual Chrome28checks/12screenshots including375/375/scale1 confirmation,
-Firefox156 student+B1/B2/B3 PASS1280/actual500 (requested375/450 clamped); student
-domains78 PASS. CLI2 after expansion verifies real author command/reviewer queue/
-evidence and terminal-group SIGINT exit0/listener gone.
+[Exact commands, observed failures/repairs, independent scope and limits](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+Root focused33/Bank127/local15/B032/contracts128/consumer11/type/build/built/drift/
+import PASS; actual Chrome32checks/14screenshots375/document375/scale1, Firefox9/
+17screenshots1280/actual500, domains78, expanded CLI2 PASS. Attribution defect
+actually reproduced201 before repair/403 after in controlled synthetic fixture.
+Controlled postcommit drain failure actually returns503 then same-key replay.
 
-Separate `/root/lifecycle_review`, native configured Sol6.1/Medium, final no
-unresolved findings; P3 missing dialog ID fixed. Independently focused27, scoped
-contract21, type/drift/public-app boundary, Chrome28/12screenshots, syntax/whitespace
-PASS. Firefox code/syntax inspection only. Latest CLI expansion is root evidence.
-No files changed by reviewer. No paid API/Astra/live student inference/push/merge/
-deployment. Logs/artifacts now under ignored `.local/verification-b3`; the domain
-artifact-variable typo left captures at the script's default `/tmp` location,
-while its command log is retained locally. Do not commit DBs/tokens/evidence.
+Separate read-only `/root/lifecycle_review`, configured Sol6.1/Medium: two P2 and
+one P3 repaired; final prior pass no findings, independent focused33/scoped8/type/
+boundary/syntax/whitespace/Chrome31 PASS. Supplemental final compact-layout/copy/
+extra browser/CLI review has no unresolved findings; independent CLI2/Chrome32
+(14 captures)/four syntax/scoped whitespace PASS. Firefox source/syntax only independently; root
+actually ran Firefox. No self-review labelled independent. Logs/captures under
+ignored `.local/verification-b4`; do not commit private evidence/DBs/tokens/profiles.
 
-## Next and remaining
+## Continuation
 
-Implementation checkpoint bd45327 reproduced in a fresh no-hardlink owned clone:
-locked install/build/focused27/Chrome28/Firefox/built/drift/docs PASS, no patches/
-manual SQL/API setup, final clone Git status empty. Exact commands in evidence. No task-owned app server intentionally left live.
+Implementation is ready for the local review/doc checkpoint. Next run clean
+no-hardlink reproduction of that commit using locked install/build/focused/browser/
+built/drift/docs; append only observed outcomes. Then complete compact author form
+interaction coverage over existing authorized create route, without new roles or
+contract changes. Owner explicitly asked no repeated routine approval prompts.
+Recommended root Codex Sol6.1/High integration, available native Luna/XHigh bounded
+UI (direct Sol fallback), separate Sol6.1/Medium read-only review: existing
+subscriptions only. Full WEB-002/Technical MVP remains incomplete.
 
-Next [B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
-is documentation only/HUMAN_APPROVAL_REQUIRED. [Separate design review](../reviews/WEB_002_B4_CONTRACT_DESIGN_REVIEW.md)
-resolved P2 by explicitly adding the bounded receipt-less-import-operator server
-repair to the next approval request; final no design blockers. Synthetic rejection
-and consequential manager quarantine scope, no B4 UI/DTO/server repair implemented. No APPROVE/rights/publication authority.
-New privileged workflow actions need explicit disposition, not an inference from
-backend capability or B3 handoff approval. Qualified
-lawful12/6/12 stock, named rights attestor/independent human reviewer, manual AT/
-native zoom, real identity/load/operations and production remain separate. Full
-WEB-002/Technical MVP is not complete. Earlier records retained in Git.
-
-Recommended next Codex Sol6.1/High integration/authorization, available Luna/XHigh
-bounded UI (Sol fallback), separate Sol6.1/Medium read-only review, existing
-subscriptions only. No research corpus/Track A generation work added.
+Qualified lawful12/6/12 inventory, named rights attestor/qualified independent
+reviewer, manual AT/native zoom, real identity/load/operations/production remain
+separate dependencies. Do not fabricate approvals or grant synthetic APPROVE.
+No push/merge/deploy/Astra/paid API/live student inference. No task-owned app server
+intentionally left running. Earlier evidence and handoffs remain in Git.

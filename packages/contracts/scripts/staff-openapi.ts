@@ -45,6 +45,12 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     StaffSubmitReviewConstraintConflictResponse: routes.StaffSubmitReviewConstraintConflictResponseSchema,
     StaffSubmitReviewValidationResponse: routes.StaffSubmitReviewValidationResponseSchema,
     StaffSubmitReviewTemporarilyUnavailableResponse: routes.StaffSubmitReviewTemporarilyUnavailableResponseSchema,
+    StaffRejectReviewRequest: contracts.StaffRejectReviewRequestSchema,
+    StaffRejectReviewResponse: contracts.StaffRejectReviewResponseSchema,
+    StaffRejectReviewPathParams: routes.StaffRejectReviewPathParamsSchema,
+    StaffQuarantineRequest: contracts.StaffQuarantineRequestSchema,
+    StaffQuarantineResponse: contracts.StaffQuarantineResponseSchema,
+    StaffQuarantinePathParams: routes.StaffQuarantinePathParamsSchema,
   };
   const refs = new Map<z.ZodType, z.ZodType>();
   for (const [name, schema] of Object.entries(components)) refs.set(schema, registry.register(name, schema));
@@ -91,7 +97,7 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     info: {
       title: "TSA Platform private staff API contracts",
       version: "staff-contracts/1",
-      description: "Private staff inspection, evidence, and author handoff operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+      description: "Private staff inspection, evidence, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     },
   }) as unknown as Record<string, unknown>;
 }

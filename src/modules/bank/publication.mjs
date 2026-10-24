@@ -1,4 +1,5 @@
 import { drainDeliveryHolds } from './delivery-holds.mjs';
+import { resolveOriginalImportAttribution } from './import-attribution.mjs';
 import { randomUUID } from 'node:crypto';
 import {
   HASH_PATTERN,
@@ -73,7 +74,7 @@ async function authorizeIndependentReviewer(bankPool, identityService, principal
   return withTransaction(bankPool, async (client) => {
     const target = await loadWorkflowTarget(client, versionId);
     if (!target) reject(404, 'NOT_FOUND');
-    assertIndependentReviewer(identityService, principal, target);
+    assertIndependentReviewer(identityService, principal, await resolveOriginalImportAttribution(client, target));
     return target;
   }, { role: 'tsa_bank' });
 }
@@ -146,7 +147,7 @@ async function review(bankPool, identityService, fixtureScopeId, principal, vers
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
       if (!target) reject(404, 'NOT_FOUND');
-      assertIndependentReviewer(identityService, principal, target);
+      assertIndependentReviewer(identityService, principal, await resolveOriginalImportAttribution(client, target));
       assertCurrentRevision(target, input.expectedRevision);
       assertState(target, 'IN_REVIEW');
       if (target.content_hash !== input.contentHash) reject(409, 'CONTENT_HASH_MISMATCH');
@@ -252,7 +253,7 @@ async function confirmSingleton(bankPool, identityService, principal, versionId,
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
       if (!target) reject(404, 'NOT_FOUND');
-      assertIndependentReviewer(identityService, principal, target);
+      assertIndependentReviewer(identityService, principal, await resolveOriginalImportAttribution(client, target));
       assertCurrentRevision(target, input.expectedRevision);
       assertState(target, 'IN_REVIEW');
       if (target.content_hash !== input.contentHash) reject(409, 'CONTENT_HASH_MISMATCH');

@@ -1001,3 +1001,39 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-handoff-dialog-actions { flex-direction: column-reverse; }
   .staff-handoff-dialog-actions .button { width: 100%; }
 }
+
+/* Explicit negative dispositions stay scoped to the private staff workspace. */
+.staff-disposition-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; padding: 14px 16px; border: 1px solid #cfd7f2; border-radius: 10px; background: #f8f9ff; }
+.staff-disposition-panel.is-error { border-color: #e5b7b7; background: #fff8f8; }
+.staff-disposition-panel .staff-disposition-message, .staff-disposition-panel .notice-panel { flex: 1 1 340px; margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
+.staff-disposition-panel [data-testid="disposition-status"]:focus { outline: 3px solid #f0a64f; outline-offset: 3px; }
+.staff-disposition-panel .button { flex: 0 0 auto; }
+.staff-disposition-dialog { width: min(720px, calc(100% - 32px)); max-height: min(92vh, 820px); overflow-y: auto; padding: 26px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow); }
+.staff-disposition-dialog::backdrop { background: rgba(16, 24, 40, .62); }
+.staff-disposition-dialog h2 { margin-bottom: 12px; font-size: clamp(1.25rem, 4vw, 1.7rem); line-height: 1.2; }
+.staff-disposition-dialog-description { margin-bottom: 14px; color: #765824; line-height: 1.6; }
+.staff-disposition-dialog-metadata, .staff-disposition-summary-list { display: grid; min-width: 0; grid-template-columns: minmax(0, 180px) minmax(0, 1fr); gap: 7px 14px; margin: 14px 0; line-height: 1.5; }
+.staff-disposition-dialog-metadata dt, .staff-disposition-summary-list dt { color: var(--muted); font-weight: 700; }
+.staff-disposition-dialog-metadata dd, .staff-disposition-summary-list dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.staff-disposition-dialog-metadata dd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+.staff-disposition-warning { margin: 16px 0; padding: 12px 14px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; }
+.staff-disposition-summary { margin: 16px 0; padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); }
+.staff-disposition-summary-list { margin: 0; }
+.staff-disposition-form { display: grid; gap: 4px; }
+.staff-disposition-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.staff-disposition-fields .staff-field { margin: 0; }
+.staff-disposition-fields label { font-weight: 650; }
+.staff-disposition-fields textarea { min-height: 92px; resize: vertical; }
+.staff-disposition-reason-hint { margin: 4px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+.staff-disposition-rubric-field { min-width: 0; }
+.staff-disposition-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+@media (max-width: 680px) {
+  .staff-disposition-panel { align-items: stretch; padding: 12px; }
+  .staff-disposition-panel .button { width: 100%; }
+  .staff-disposition-dialog { padding: 20px; }
+  .staff-disposition-dialog-metadata, .staff-disposition-summary-list { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .staff-disposition-dialog-metadata dd, .staff-disposition-summary-list dd:not(:last-child) { margin-bottom: 8px; }
+  .staff-disposition-fields { grid-template-columns: minmax(0, 1fr); }
+  .staff-disposition-dialog-actions { flex-direction: column-reverse; }
+  .staff-disposition-dialog-actions .button { width: 100%; }
+}

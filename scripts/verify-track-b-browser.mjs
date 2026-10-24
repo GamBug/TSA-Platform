@@ -10,6 +10,8 @@ import path from 'node:path';
 import { createPrototypeServer } from '../apps/practice-prototype/server.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
 import { createReviewBrowserFixture } from '../tests/integration/bank/review-browser-fixture.mjs';
+import { inspectionImportPackage } from '../tests/integration/bank/review-import-fixture.mjs';
+import { createFactoryImportService } from '../src/modules/bank/factory-import.mjs';
 
 const artifacts = path.resolve(process.env.TRACK_B_ARTIFACT_DIR ?? path.join(tmpdir(), 'tsa-track-b-browser-evidence'));
 const browserExecutable = process.env.TRACK_B_BROWSER ?? '/snap/bin/chromium';
@@ -1065,6 +1067,152 @@ try {
   assert.equal(queueCalls.every(({method,hasPostData})=>method==='GET'&&!hasPostData),true,'queue shortcut is metadata-only GET');
   assert.equal(await evaluate(`Boolean(${query('draft-create')})`),false);
   report.checks.push('keyboard review-queue shortcut uses the existing IN_REVIEW metadata GET, clears private evidence and enables server-authorized independent queued-reviewer evidence on mobile');
+
+  // Negative-only B4 actions use real commands; responses are intercepted only
+  // to model loss/uncertainty after commit, never to invent an accepted write.
+  await evaluate(`(()=>{const original=window.fetch;window.__b4={posts:[],loseReject:true,failQuarantine:true,holdQuarantine:true,held:false,release:null};window.fetch=async(input,init={})=>{
+    const url=new URL(typeof input==='string'?input:input.url,location.href),method=(init.method??'GET').toUpperCase();
+    const response=await original(input,init);
+    if(method==='POST'&&(url.pathname.endsWith('/reviews')||url.pathname.endsWith('/quarantine'))){
+      window.__b4.posts.push({path:url.pathname,body:JSON.parse(init.body),key:new Headers(init.headers).get('idempotency-key'),status:response.status});
+      if(url.pathname.endsWith('/reviews')&&response.status===201&&window.__b4.loseReject){window.__b4.loseReject=false;throw new TypeError('Synthetic lost rejection acknowledgement');}
+      if(url.pathname.endsWith('/quarantine')&&response.status===200){
+        if(window.__b4.failQuarantine){window.__b4.failQuarantine=false;return new Response(JSON.stringify({error:{code:'TEMPORARILY_UNAVAILABLE'}}),{status:503,headers:{'content-type':'application/json'}});}
+        if(window.__b4.holdQuarantine){window.__b4.holdQuarantine=false;window.__b4.held=true;await new Promise(resolve=>window.__b4.release=resolve);}
+      }
+    }
+    return response;
+  };})()`);
+  async function inspectDisposition(version,kind) {
+    await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'complete metadata filter before disposition');
+    const selector=`[data-testid="staff-review-inspect"][data-version-id="${version.versionId}"]`;
+    await waitFor(`Boolean(document.querySelector(${JSON.stringify(selector)}))`,'exact disposition target row');
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
+    await pressKey('Enter','Enter',13,String.fromCharCode(13));
+    await waitFor(`Boolean(${query('disposition-'+kind+'-open')})`,'fresh eligible private inspection before disposition');
+  }
+  const rubricKeys=['correctness','unambiguous','relevant','language','explanation','rights'];
+  async function fillDisposition(reason,withRubric=false) {
+    if(withRubric) await evaluate(`(()=>{for(const key of ${JSON.stringify(rubricKeys)}){const select=document.querySelector('[data-testid="disposition-rubric-'+key+'"]');select.value=key==='correctness'?'FAIL':'PASS';select.dispatchEvent(new Event('change',{bubbles:true}));}})()`);
+    await evaluate(`(()=>{const input=${query('disposition-form-reason')};input.value=${JSON.stringify(reason)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  }
+  await inspectDisposition(queuedVersion,'reject');
+  assert.equal(await evaluate(`Boolean(${query('disposition-quarantine-open')})`),false,'reviewer has no quarantine override');
+  await click('disposition-reject-open');
+  await waitFor(`${query('disposition-dialog')}?.open===true`,'explicit rejection dialog');
+  assert.equal(await evaluate(`document.activeElement===${query('disposition-cancel')}`),true);
+  assert.equal(await evaluate(`(()=>{const dialog=${query('disposition-dialog')};return dialog.getAttribute('aria-describedby').split(' ').filter(Boolean).every(id=>Boolean(document.getElementById(id)));})()`),true,'all dialog description references exist');
+  assert.equal(await evaluate(`Array.from(${query('disposition-dialog')}.querySelectorAll('select')).every(select=>select.value===''&&select.required)`),true,'all six rubric findings start unset');
+  await click('disposition-confirm');
+  assert.equal((await evaluate('window.__b4.posts')).length,0,'incomplete form cannot fabricate a rubric or send rejection');
+  const privateSentinel='Synthetic private cancellation reason '+randomUUID();
+  await fillDisposition(privateSentinel,true);
+  assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(privateSentinel)+')'),true,'typed summary exists while confirmation is open');
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});
+  await noHorizontalOverflow();
+  await evaluate(`${query('disposition-dialog')}.scrollTop=0`);
+  await screenshot('staff-reject-confirm-mobile');
+  await evaluate(`${query('disposition-form-reason')}.scrollIntoView({block:'center'})`);
+  await screenshot('staff-reject-confirm-fields-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await click('disposition-cancel');
+  await waitFor(`!${query('disposition-dialog')}?.open`,'rejection cancel closes native dialog');
+  assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(privateSentinel)+')'),false,'Cancel clears copied private reason/rubric from hidden DOM');
+  assert.equal(await evaluate(`${query('disposition-form-reason')}.value`),'');
+  assert.equal(await evaluate(`document.activeElement===${query('disposition-reject-open')}`),true);
+  await click('disposition-reject-open');
+  await fillDisposition(privateSentinel,true);
+  await pressKey('Escape','Escape',27,String.fromCharCode(27));
+  await waitFor(`!${query('disposition-dialog')}?.open`,'rejection Escape cancellation');
+  assert.equal(await evaluate('document.body.textContent.includes('+JSON.stringify(privateSentinel)+')'),false,'Escape clears hidden private summary');
+  assert.equal((await evaluate('window.__b4.posts')).length,0,'cancel paths send no mutation');
+  await click('disposition-reject-open');
+  await fillDisposition('Kiểm thử từ chối tổng hợp rõ ràng; không phải đánh giá người đủ điều kiện.',true);
+  await click('disposition-confirm');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='uncertain'`,'lost actual rejection response is uncertain');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false,'pending/uncertain command clears old private preview');
+  await click('disposition-retry');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='acknowledged' && ${query('disposition-status')}?.dataset.currentState==='unobserved'`,'rejection receipt is separate from lost queued private access');
+  const rejectionPosts=await evaluate('window.__b4.posts.filter(post=>post.path.endsWith("/reviews"))');
+  assert.equal(rejectionPosts.length,2);assert.equal(rejectionPosts[0].key,rejectionPosts[1].key);
+  assert.deepEqual(rejectionPosts[0].body,rejectionPosts[1].body);
+  assert.equal(rejectionPosts[0].body.decision,'REJECT');assert.equal(rejectionPosts[0].body.contentHash,queuedVersion.contentHash);
+  assert.equal(rejectionPosts[0].body.reason.startsWith('Local synthetic disposition: '),true);
+  assert.equal(rejectionPosts.every(post=>post.status===201),true);
+  assert.equal(await evaluate(`${query('disposition-status')}.dataset.receiptState`),'REJECTED');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-context')}?.querySelector('.staff-review-preview'))`),false);
+  assert.equal(await evaluate(`Boolean(${query('disposition-retry')})`),false,'acknowledged rejection does not issue another intent');
+  report.checks.push('B4 six explicit rubric choices/reason and native cancel/Escape privacy; lost real rejection receipt retries same key/body, and after queued private access disappears current state stays unobserved');
+
+  await inspectDisposition(staleVersion,'reject');
+  await click('disposition-reject-open');
+  await fillDisposition('Kiểm thử xung đột tổng hợp, không tự thay revision.',true);
+  await reviewFixture.fixture.workflow.quarantine(reviewFixture.fixture.principals.bankManager,
+    staleVersion.versionId,randomUUID(),{expectedRevision:2,reason:'Synthetic external hold before stale UI rejection.'});
+  await click('disposition-confirm');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='rejected'`,'real stale rejection conflict');
+  assert.equal(await evaluate(`Boolean(${query('disposition-retry')})`),false);
+  await click('disposition-reload');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='reload-failed'`,'reviewer authoritative reload unavailable after hold');
+  assert.equal(await evaluate(`${query('disposition-status')}.dataset.currentState`),'unobserved');
+  report.checks.push('B4 actual rejection conflict offers reads without replacing the captured revision; loss of reviewer private access is truthful');
+
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager login for hold');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-state-filter')})`,'manager metadata');
+  await inspectDisposition(reviewFixture.questions[2],'quarantine');
+  assert.equal(await evaluate(`Boolean(${query('disposition-reject-open')})`),false,'manager basis has no rejection form');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),true);
+  await click('disposition-quarantine-open');
+  await waitFor(`${query('disposition-dialog')}?.open===true`,'quarantine explicit confirmation');
+  assert.equal(await evaluate(`${query('disposition-warning')}.textContent.includes('lượt thi')&&${query('disposition-warning')}.textContent.includes('kết quả')`),true,'hold confirmation discloses related student impact');
+  await fillDisposition('Kiểm thử cách ly tổng hợp và phản hồi sau commit.');
+  await click('disposition-confirm');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='uncertain'`,'503 after real committed quarantine is uncertain');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false,'uncertain hold never retains stale question/key/explanation');
+  await click('disposition-retry');
+  await waitFor('window.__b4.held===true','real quarantine replay held before logout');
+  const holdPosts=await evaluate('window.__b4.posts.filter(post=>post.path.endsWith("/quarantine"))');
+  assert.equal(holdPosts.length,2);assert.equal(holdPosts[0].key,holdPosts[1].key);assert.deepEqual(holdPosts[0].body,holdPosts[1].body);
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'logout while hold replay pending');
+  await evaluate(`${query('actor-select')}.value='studentA'`);await click('staff-login');
+  await waitFor('Boolean(document.querySelector(".staff-denied"))','candidate after manager mutation');
+  await evaluate('window.__b4.release()');await new Promise(resolve=>setTimeout(resolve,100));
+  assert.equal(await evaluate(`Boolean(${query('disposition-status')})`),false,'late manager completion cannot restore private disposition status under candidate');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager authoritative inspection after hold');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-state-filter')})`,'manager metadata after hold');
+  await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'held version metadata');
+  const heldSelector=`[data-testid="staff-review-inspect"][data-version-id="${reviewFixture.questions[2].versionId}"]`;
+  await evaluate(`document.querySelector(${JSON.stringify(heldSelector)}).focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  await waitFor(`${query('staff-review-context')}?.textContent.includes('QUARANTINED')`,'current manager hold metadata');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false);
+  assert.equal(await evaluate(`Boolean(${query('disposition-quarantine-open')})`),false,'already-held version cannot create another hold intent');
+  report.checks.push('B4 manager quarantine discloses related impact, treats post-commit error as uncertain and retries same intent; logout fences late receipt and fresh held view contains no private question');
+
+  await inspectDisposition(reviewFixture.questions[3],'quarantine');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false,'unsupported preview still permits an explicit metadata-based manager hold');
+
+  const importCapability=Object.freeze({});
+  const importService=await createFactoryImportService({bankPool:reviewFixture.fixture.bankPool,identityService:reviewFixture.identity,internalCapability:importCapability});
+  const imported=await inspectionImportPackage(reviewFixture.fixture.pool,reviewFixture.fixture.principals.studentB.userId);
+  await importService.importFactoryPackageV2(reviewFixture.fixture.principals.author,imported,importCapability);
+  const importedAncestor=imported.candidates[0].question.parentVersionId;
+  await reviewFixture.fixture.pool.query("UPDATE tsa.question_workflow SET state='IN_REVIEW',revision=2 WHERE question_version_id=$1",[importedAncestor]);
+  await reviewFixture.fixture.pool.query("INSERT INTO tsa.user_roles(user_id,role) VALUES($1,'REVIEWER')",[reviewFixture.fixture.principals.author.userId]);
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'original importer login for queue independence');
+  await evaluate(`${query('actor-select')}.value='author'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-review-queue')})`,'combined author/reviewer synthetic role');
+  await click('staff-review-queue');
+  const ancestorSelector=`[data-testid="staff-review-inspect"][data-version-id="${importedAncestor}"]`;
+  await waitFor(`Boolean(document.querySelector(${JSON.stringify(ancestorSelector)}))`,'receipt-less imported ancestor safe metadata');
+  await evaluate(`document.querySelector(${JSON.stringify(ancestorSelector)}).focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));
+  await waitFor(`${query('staff-review-context')}?.textContent.includes('không còn sẵn có')`,'original import operator denied exact private ancestor inspection');
+  assert.equal(await evaluate(`Boolean(${query('disposition-reject-open')})`),false,'original import operator never receives a rejection form');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false);
+  report.checks.push('B4 genuine imported ancestor without candidate receipt remains unavailable to its original operator even with current REVIEWER role; UI exposes no review mutation');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });

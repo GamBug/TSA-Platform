@@ -1,5 +1,12 @@
 # Implementation roadmap
 
+Current B4.1, 2026-10-24: selected under owner engineering-choice delegation,
+negative dispositions/receipt recovery and original-import-operator repair
+implemented with actual PostgreSQL/Chrome/Firefox evidence and independent review.
+[Exact outcomes and limits](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+Clean reproduction follows checkpoint. Next existing-contract author form
+completeness; no APPROVE/rights-edit/publication or fabricated human evidence.
+
 Current B3.1 author handoff, 2026-10-24: explicit whole-proposal owner approval;
 implementation and actual PG/Chromium/Firefox/recovery verification complete,
 independent review final no findings after P3 repair. [Evidence](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md)
@@ -8,8 +15,8 @@ No backend policy/grant/migration/student contract changes. Clean no-hardlink
 bd45327 install/build/focused27/Chrome28/Firefox/built/drift/docs PASS, no patches/
 manual SQL/API setup, final clone Git status empty.
 Next [B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
-is documentation only/HUMAN_APPROVAL_REQUIRED; no B4 implementation. Review decisions/rights/holds/publication UI and qualified
-human input remain outside this increment.
+was subsequently selected under delegated authority and implemented above.
+Rights/publication and qualified human input remain separate.
 
 Current read-only staff queue UX, 2026-10-24: existing IN_REVIEW metadata shortcut
 verified Chrome24/B032 and separately reviewed (source/syntax/whitespace only).

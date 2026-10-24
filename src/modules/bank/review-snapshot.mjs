@@ -1,5 +1,6 @@
 import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema } from '../../../packages/contracts/dist/internal.js';
 import { reject, resolveReferenceGraph, referenceKey, jsonDigest, UUID_PATTERN } from './common.mjs';
+import { resolveOriginalImportAttribution } from './import-attribution.mjs';
 
 const fail = () => reject(503, 'TEMPORARILY_UNAVAILABLE');
 const exact = (left, right) => Buffer.from(canonicalize(left)).equals(Buffer.from(canonicalize(right)));
@@ -7,16 +8,7 @@ const need = (condition) => { if (!condition) fail(); };
 
 async function importContext(client, row) {
   if (!row.reference_namespace?.startsWith('factory/2/')) return row;
-  // Ancestors have no candidate receipt. Bind their stored namespace to the
-  // original immutable manifest, not the current child or a claimed creator.
-  const manifests = await client.query(`SELECT producer_namespace,batch_key,received_by
-    FROM tsa_private.factory_import_manifests WHERE
-      manifest->'references' @> $1::jsonb OR manifest->'candidates' @> $2::jsonb`,
-  [JSON.stringify([{ kind: 'question', id: row.id }]), JSON.stringify([{ question: { id: row.id } }])]);
-  const matching = manifests.rows.filter((manifest) =>
-    `factory/2/${jsonDigest([manifest.producer_namespace, manifest.batch_key])}` === row.reference_namespace);
-  need(matching.length === 1);
-  row = { ...row, producer_namespace: matching[0].producer_namespace, operator_id: matching[0].received_by };
+  row = await resolveOriginalImportAttribution(client, row);
   if (row.stimulus_version_id) {
     const mapping = await client.query(`SELECT external_id FROM tsa_private.factory_external_mappings
       WHERE producer_namespace=$1 AND external_kind='stimulus' AND local_id=$2`, [row.producer_namespace, row.stimulus_version_id]);

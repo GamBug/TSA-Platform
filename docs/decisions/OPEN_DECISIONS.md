@@ -17,7 +17,42 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - This is engineering execution authority, not qualified accessibility/content
   acceptance, production readiness or approval of new staff routes/privileges.
 
-## WEB-002 B4.1 — proposed negative dispositions, 2026-10-24
+## Track B engineering-choice delegation — 2026-10-24
+
+- Delegating identity: human repository owner. Exact latest instruction:
+  “next. now any choice is yours! no need to ask me anymore.”
+- Disposition: root may select and execute the next bounded Track B engineering
+  increments without repeated routine approval questions, including documented
+  technical contract choices within the product-completion mission. Record each
+  material choice, impact and verification; preserve frozen historical baselines.
+- This is not a human content/rights/accessibility attestation, authorization to
+  invent reviewer qualifications, paid model APIs/Astra/live student inference,
+  push/remote merge/production deployment or unrelated destructive operations.
+  These existing prohibitions are retained. Do not label AI decisions human review.
+
+## WEB-002 B4.1 — engineering scope selected under owner delegation, 2026-10-24
+
+- Status **IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED (scoped)**. Selection actor:
+  Codex root using the owner delegation above, not a fabricated whole-B4 quote.
+- Selected reviewed [exact B4.1](WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md) at743a197,
+  SHA-256 `65b81b18c6d700e0858d0c214d8cc1944e48876e0beb289d7b0a6edf14eb9e21`.
+  Historical approval-pending footer is superseded by this scoped disposition;
+  preserve specification bytes. Separate design review found/resolved P2;
+  [runtime evidence and limits](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md) record actual execution.
+- Implement local synthetic REJECT-only/manager quarantine DTO/UI/recovery and
+  original import-operator attribution repair for fresh/replayed reviewer and
+  singleton independence. Preserve manager hold authority and publication guards.
+- Implementation choice under delegation: apply the same original-attribution
+  helper to existing equivalence-pair reviewer guards as well as review/singleton
+  guards, because they call the same independence policy. No new equivalence UI,
+  route or policy; preserve manager hold authority.
+- No APPROVE/publication/rights-edit UI, new grants/migration, human qualification
+  or historical review/audit rewrite. Quarantine consequences/current-access loss
+  and post-commit failure recovery remain exactly as disclosed in the specification.
+
+## WEB-002 B4.1 — historical proposed negative dispositions, 2026-10-24
+
+Superseded by the selected/implemented disposition above; retained as history.
 
 - Status **PROPOSED / HUMAN_APPROVAL_REQUIRED**; approval identity/date: none.
 - [Exact revised B4.1](WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md), SHA-256

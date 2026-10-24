@@ -27,6 +27,10 @@ Executed B3 author handoff (2026-10-24):
 Independent runtime review and actual Chrome/Firefox are recorded separately.
 This is no qualified content/rights/manual accessibility acceptance.
 
+Executed B4 negative dispositions (2026-10-24):
+[actual role/attribution, immutable write, uncertain receipt and browser checks](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+Qualified manual accessibility/content/rights acceptance remains distinct.
+
 ## Layers and release policy
 
 Unit tests cover pure scoring, response normalization, blueprint validators and policy transitions. Property tests are useful for answer-set permutations, randomized state sequences and assembly invariants; a large random sample is evidence, not mathematical proof. Integration tests use real PostgreSQL and exercise transaction ordering, uniqueness, triggers, queue leases and rollback. SQLite/mocked repositories cannot establish these properties.

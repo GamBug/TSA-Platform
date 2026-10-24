@@ -88,7 +88,8 @@ NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run d
 ```
 
 Approved B3 adds explicit owned-DRAFT handoff, confirmation and same-request retry,
-then independent reviewer queue access; it does not approve or publish content.
+then independent reviewer queue access. B4 adds explicit simulated rejection and
+manager quarantine with truthful recovery; it does not approve or publish content.
 Use the [staff walkthrough](docs/guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
 Inspection grants no qualified review, rights attestation or publication capability.
 

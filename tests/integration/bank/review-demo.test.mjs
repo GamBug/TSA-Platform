@@ -142,6 +142,22 @@ test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue
   const reviewerEvidence=await bankRequest(harness,reviewer,`/api/v1/question-versions/${queued.versionId}/review-evidence`);
   assert.equal(reviewerEvidence.status,200);assert.equal((await reviewerEvidence.json()).accessBasis,'REVIEW_QUEUE');
 
+  const rejection=await bankRequest(harness,reviewer,`/api/v1/question-versions/${queued.versionId}/reviews`,{
+    method:'POST',key:'synthetic-cli-rejection',body:{expectedRevision:2,contentHash:queued.contentHash,decision:'REJECT',
+      rubric:{correctness:false,unambiguous:false,relevant:false,language:false,explanation:false,rights:false},
+      reason:'Local synthetic disposition: explicit CLI technical test, not qualified review.'},
+  });
+  assert.equal(rejection.status,201);assert.equal((await rejection.json()).state,'REJECTED');
+  assert.equal((await bankRequest(harness,reviewer,`/api/v1/question-versions/${queued.versionId}/review-context`)).status,404);
+  const holdManager=await loginActor(harness,'bankManager');
+  const heldVersion=available[1].context.version;
+  const hold=await bankRequest(harness,holdManager,`/api/v1/question-versions/${heldVersion.versionId}/quarantine`,{
+    method:'POST',key:'synthetic-cli-hold',body:{expectedRevision:1,reason:'Local synthetic disposition: explicit CLI hold test.'},
+  });
+  assert.equal(hold.status,200);assert.equal((await hold.json()).state,'QUARANTINED');
+  const heldContext=await bankRequest(harness,holdManager,`/api/v1/question-versions/${heldVersion.versionId}/review-context`);
+  assert.equal(heldContext.status,200);assert.deepEqual((await heldContext.json()).preview,{status:'BLOCKED',reason:'WORKFLOW_HELD'});
+
   const evidencePath = `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-evidence`;
   assert.equal((await bankRequest(harness,author,evidencePath)).status,403);
   const manager=await loginActor(harness,'bankManager');

@@ -750,6 +750,25 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-24 **B4.1 IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED (scoped)**,
+base743a197. Root selected exact reviewed scope under owner engineering-choice
+delegation; [authority](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24).
+Negative-only explicit synthetic rejection and manager quarantine, six required
+findings/reason, native confirmation, same-intent uncertainty recovery, receipt
+versus inaccessible current state, private cleanup/identity fences implemented.
+Original receipt-less import operator repair shared with singleton/equivalence;
+manual-stimulus read preserved. No grants/migration/APPROVE/rights/publication.
+Root focused33/Bank127/local15/B032/contracts128/consumer11/static/build/built/drift/
+import/Chrome32(14 captures)/Firefox9(17 captures)/domains78/CLI2 PASS. Separate
+Sol6.1/Medium review found two P2/one P3, repaired; independent focused33/scoped8/
+Chrome31 and static checks PASS; final supplemental source/CLI2/Chrome32 PASS, no unresolved findings.
+[Exact evidence/limitations](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+Actual disjoint configured Luna/XHigh contract/UI writers released; root integration
+and shared records. Owner AGENTS/research and frozen B1–B4 preserved. Clean
+reproduction follows checkpoint. Next existing-contract author-form completeness;
+full staff/qualified humans/manual accessibility/production remain separate.
+
+Historical proposal below is superseded by the delegated selection above.
 2026-10-24 next proposal [B4.1 negative dispositions](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
 is **PROPOSED / HUMAN_APPROVAL_REQUIRED**. Root documentation only, no B4 UI/DTO/
 permission implemented. Explicit synthetic rejection plus consequential manager

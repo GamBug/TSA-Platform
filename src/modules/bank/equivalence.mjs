@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { resolveOriginalImportAttribution } from './import-attribution.mjs';
 import {
   HASH_PATTERN,
   UUID_PATTERN,
@@ -74,7 +75,7 @@ function sortPins(pins) {
 async function loadTargets(client, input) {
   const targets = new Map();
   for (const pin of sortPins([input.left, input.right])) {
-    targets.set(pin.versionId, await loadWorkflowTarget(client, pin.versionId));
+    targets.set(pin.versionId, await resolveOriginalImportAttribution(client, await loadWorkflowTarget(client, pin.versionId)));
   }
   const left = targets.get(input.left.versionId);
   const right = targets.get(input.right.versionId);

@@ -63,6 +63,7 @@ async function runWorker() {
     process.stdout.write(`Open: ${url}\n`);
     process.stdout.write('Open “Không gian bản nháp cục bộ” and select synthetic AUTHOR “Tác giả tổng hợp”. Inspect each version explicitly.\n');
     process.stdout.write('After inspecting an owned safe DRAFT, confirm its handoff to the review queue. Sign out and choose synthetic REVIEWER to open “Hàng chờ rà soát”. This does not approve content or rights.\n');
+    process.stdout.write('An independent synthetic REVIEWER may explicitly reject a previewable queued version after six rubric choices and a reason. BANK_MANAGER may quarantine with the disclosed related-access impact. No content approval or publication control is provided.\n');
     process.stdout.write('For recorded evidence, sign out and choose synthetic BANK_MANAGER “Quản lý ngân hàng câu hỏi tổng hợp”; open evidence explicitly.\n');
     process.stdout.write('The synthetic reviewer is not a qualified reviewer. This demo makes no real rights, content-approval, or publication claim.\n');
     process.stdout.write('Keep this terminal running. Ctrl+C stops the app and deletes its disposable database.\n\n');

@@ -37,14 +37,16 @@ type StaffDocument = {
 };
 
 describe("dedicated private staff artifacts", () => {
-  it("describes exact B1/B2 GETs and the B3.1 POST while leaving the student registry separate", async () => {
+  it("describes exact private B1/B2/B3/B4 routes while leaving the student registry separate", async () => {
     const artifact = staffStableJson(generateStaffContractsOpenApi());
     assert.equal(artifact, staffStableJson(generateStaffContractsOpenApi()));
     const document = JSON.parse(artifact) as StaffDocument;
     assert.equal(document.openapi, "3.1.0");
     assert.deepEqual(Object.keys(document.paths ?? {}), [
+      "/api/v1/question-versions/{versionId}/quarantine",
       "/api/v1/question-versions/{versionId}/review-context",
       "/api/v1/question-versions/{versionId}/review-evidence",
+      "/api/v1/question-versions/{versionId}/reviews",
       "/api/v1/question-versions/{versionId}/submit-review",
     ]);
     const path = document.paths?.["/api/v1/question-versions/{versionId}/review-context"];
@@ -118,6 +120,41 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(responseRevision?.minimum, 1);
     assert.equal(responseRevision?.maximum, Number.MAX_SAFE_INTEGER);
 
+    const rejectPath = document.paths?.["/api/v1/question-versions/{versionId}/reviews"];
+    assert.deepEqual(Object.keys(rejectPath ?? {}), ["post"]);
+    const reject = rejectPath?.post;
+    assert.equal(reject?.operationId, "staffRejectReview");
+    assert.match(reject?.description ?? "", /same-origin staff session/);
+    assert.match(reject?.description ?? "", /independence/);
+    assert.deepEqual(reject?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "versionId", in: "path", required: true },
+      { name: "x-csrf-token", in: "header", required: true },
+      { name: "idempotency-key", in: "header", required: true },
+    ]);
+    assert.equal(reject?.requestBody?.required, true);
+    assert.deepEqual(Object.keys(reject?.responses ?? {}), ["201", "400", "401", "403", "404", "409", "413", "422", "503"]);
+    assert.ok(reject?.requestBody?.content?.["application/json"]?.schema);
+    assert.ok(reject?.responses?.["201"]?.content?.["application/json"]?.schema);
+    assert.ok(document.components?.schemas?.StaffRejectReviewRequest);
+    assert.ok(document.components?.schemas?.StaffRejectReviewResponse);
+
+    const quarantinePath = document.paths?.["/api/v1/question-versions/{versionId}/quarantine"];
+    assert.deepEqual(Object.keys(quarantinePath ?? {}), ["post"]);
+    const quarantine = quarantinePath?.post;
+    assert.equal(quarantine?.operationId, "staffQuarantine");
+    assert.match(quarantine?.description ?? "", /delivery-hold drain completion/);
+    assert.deepEqual(quarantine?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "versionId", in: "path", required: true },
+      { name: "x-csrf-token", in: "header", required: true },
+      { name: "idempotency-key", in: "header", required: true },
+    ]);
+    assert.equal(quarantine?.requestBody?.required, true);
+    assert.deepEqual(Object.keys(quarantine?.responses ?? {}), ["200", "400", "401", "403", "404", "409", "413", "422", "503"]);
+    assert.ok(quarantine?.requestBody?.content?.["application/json"]?.schema);
+    assert.ok(quarantine?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.ok(document.components?.schemas?.StaffQuarantineRequest);
+    assert.ok(document.components?.schemas?.StaffQuarantineResponse);
+
     const student = JSON.parse(JSON.stringify(generateStudentContractsOpenApi())) as StaffDocument;
     const studentOperationCount = Object.values(student.paths ?? {}).reduce(
       (count, path) => count + Object.keys(path).length,
@@ -130,6 +167,10 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(student.components?.schemas?.StaffReviewEvidence, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/submit-review"], undefined);
     assert.equal(student.components?.schemas?.StaffSubmitReviewRequest, undefined);
+    assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/reviews"], undefined);
+    assert.equal(student.components?.schemas?.StaffRejectReviewRequest, undefined);
+    assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/quarantine"], undefined);
+    assert.equal(student.components?.schemas?.StaffQuarantineRequest, undefined);
   });
 
   it("matches the committed private OpenAPI and operation-map artifacts and detects drift without rewriting", async () => {

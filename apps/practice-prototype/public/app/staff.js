@@ -40,6 +40,16 @@ const QUESTION_SECTIONS = Object.freeze([
 
 const STATE_LABELS = Object.freeze(Object.fromEntries(QUESTION_STATES.filter(([value]) => value)));
 const ACTIVE_WORKSPACE_GENERATIONS = new WeakMap();
+const DISPOSITION_REASON_PREFIX = 'Local synthetic disposition: ';
+const DISPOSITION_REASON_MAX_LENGTH = 4096 - DISPOSITION_REASON_PREFIX.length;
+const DISPOSITION_RUBRIC = Object.freeze([
+  ['correctness', 'Độ chính xác'],
+  ['unambiguous', 'Rõ nghĩa'],
+  ['relevant', 'Phù hợp'],
+  ['language', 'Ngôn ngữ'],
+  ['explanation', 'Lời giải'],
+  ['rights', 'Quyền sử dụng'],
+]);
 
 function node(tag, className, text) {
   const element = document.createElement(tag);
@@ -401,6 +411,10 @@ export async function openStaffWorkspace(container, onBack) {
     handoffStatus: null,
     handoffConfirmation: null,
     handoffDialog: null,
+    dispositionRequestId: 0,
+    dispositionStatus: null,
+    dispositionConfirmation: null,
+    dispositionDialog: null,
   };
   const returnToPractice = () => {
     if (!isWorkspaceActive()) return;
@@ -535,7 +549,19 @@ export async function openStaffWorkspace(container, onBack) {
     if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
   }
 
-  function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false } = {}) {
+  function closeDispositionDialog({ restoreFocus = false, reset = true } = {}) {
+    const confirmation = state.dispositionConfirmation;
+    state.dispositionConfirmation = null;
+    if (state.dispositionDialog?.open) state.dispositionDialog.close();
+    if (reset) {
+      state.dispositionDialog?.querySelector('form')?.reset();
+      state.dispositionDialog?.querySelector('[data-testid="disposition-confirmation-summary"]')?.replaceChildren();
+    }
+    confirmation?.triggerElement?.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
+  }
+
+  function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false } = {}) {
     const previousViews = [state.evidenceView, state.reviewView];
     const previous = previousViews.find(Boolean);
     state.reviewRequestId += 1;
@@ -547,6 +573,11 @@ export async function openStaffWorkspace(container, onBack) {
       state.handoffStatus = null;
       closeHandoffDialog();
     }
+    if (!preserveDisposition) {
+      state.dispositionRequestId += 1;
+      state.dispositionStatus = null;
+      closeDispositionDialog();
+    }
     for (const view of previousViews) view?.triggerElement?.setAttribute('aria-expanded', 'false');
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (host) {
@@ -554,7 +585,264 @@ export async function openStaffWorkspace(container, onBack) {
       host.hidden = true;
     }
     renderHandoffPanel();
+    renderDispositionPanel();
     if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
+  }
+
+  function dispositionEligible(kind, view = state.reviewView) {
+    const context = view?.context;
+    const version = context?.version;
+    const workflow = context?.workflow;
+    const status = state.dispositionStatus;
+    const exactCurrentView = isWorkspaceActive()
+      && view?.kind === 'context'
+      && view.status === 'loaded'
+      && typeof view.versionId === 'string'
+      && version?.versionId === view.versionId
+      && typeof version.contentHash === 'string'
+      && Number.isSafeInteger(workflow?.revision)
+      && workflow.revision > 0
+      && (!status || (status.stage === 'reloaded' && status.targetVersionId === view.versionId && status.kind === kind));
+    if (!exactCurrentView) return false;
+    if (kind === 'reject') {
+      return state.principal?.roles?.includes('REVIEWER')
+        && context.accessBasis === 'REVIEW_QUEUE'
+        && workflow.state === 'IN_REVIEW'
+        && reviewContextSupportsPreview(context);
+    }
+    if (kind === 'quarantine') {
+      return state.principal?.roles?.includes('BANK_MANAGER')
+        && context.accessBasis === 'BANK_MANAGER'
+        && ['DRAFT', 'IN_REVIEW', 'APPROVED'].includes(workflow.state);
+    }
+    return false;
+  }
+
+  function renderDispositionSummary() {
+    const dialog = state.dispositionDialog;
+    const confirmation = state.dispositionConfirmation;
+    const summary = dialog?.querySelector('[data-testid="disposition-confirmation-summary"]');
+    if (!summary || !confirmation) return;
+    summary.replaceChildren();
+    const list = node('dl', 'staff-disposition-summary-list');
+    if (confirmation.kind === 'reject') {
+      const findings = DISPOSITION_RUBRIC.map(([key, label]) => {
+        const value = dialog.querySelector(`[data-testid="disposition-rubric-${key}"]`)?.value;
+        return `${label}: ${value === 'PASS' ? 'Đạt' : value === 'FAIL' ? 'Chưa đạt' : 'Chưa chọn'}`;
+      });
+      summary.append(node('p', 'staff-disposition-findings', findings.join(' · ')));
+    }
+    const reason = dialog.querySelector('[data-testid="disposition-form-reason"]')?.value?.trim() ?? '';
+    appendMetadataPair(list, 'Lý do được lưu trong bản ghi', reason
+      ? `${DISPOSITION_REASON_PREFIX}${reason}`
+      : 'Chưa nhập');
+    summary.append(list);
+  }
+
+  function renderDispositionPanel() {
+    const host = container.querySelector('[data-testid="disposition-host"]');
+    if (!host) return;
+    host.replaceChildren();
+    const status = state.dispositionStatus;
+    if (!status) return;
+
+    const isError = status.stage === 'rejected' || status.stage === 'reload-failed';
+    const panel = node('section', `staff-disposition-panel${isError ? ' is-error' : ''}`);
+    const message = node('p', isError ? 'notice-panel' : 'staff-disposition-message');
+    message.dataset.testid = 'disposition-status';
+    message.dataset.stage = status.stage;
+    message.dataset.kind = status.kind;
+    message.dataset.currentState = status.currentState ?? 'unobserved';
+    if (status.receipt?.state) message.dataset.receiptState = status.receipt.state;
+    if (status.receipt?.reviewId) message.dataset.receiptReviewId = status.receipt.reviewId;
+    message.setAttribute('role', isError ? 'alert' : 'status');
+    message.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+    message.tabIndex = -1;
+
+    const kindLabel = status.kind === 'reject' ? 'từ chối' : 'cách ly';
+    if (status.stage === 'pending') {
+      message.textContent = `Đang gửi lệnh ${kindLabel} cho phiên bản ${status.intent.versionId}, revision ${status.intent.expectedRevision}. Chưa có kết luận nào khác được đưa ra.`;
+    } else if (status.stage === 'uncertain') {
+      message.textContent = `Chưa xác định được kết quả lệnh ${kindLabel}. Lệnh có thể đã được ghi nhận; thử lại sẽ gửi đúng đường dẫn, nội dung và khóa idempotency đã chụp.`;
+    } else if (status.stage === 'rejected') {
+      message.textContent = `Lệnh ${kindLabel} chưa được chấp nhận (${status.code ?? 'request failed'}): ${status.message} Hãy tải lại metadata và kiểm tra phiên bản trước khi xác nhận yêu cầu mới.`;
+    } else if (status.stage === 'reloading') {
+      message.textContent = status.receipt
+        ? `Máy chủ đã xác nhận biên nhận ${status.receipt.state}, revision ${status.receipt.revision}. Đang tải lại metadata và kiểm tra trạng thái hiện tại.`
+        : 'Đang tải lại metadata và kiểm tra phiên bản hiện tại. Không gửi lệnh mới.';
+    } else if (status.stage === 'reload-failed') {
+      message.textContent = status.receipt?.state === 'REJECTED'
+        ? `Biên nhận xác nhận REJECTED, revision ${status.receipt.revision}; trạng thái riêng hiện tại chưa được quan sát vì lần đọc mới thất bại. Việc phiên bản không còn trong hàng chờ không chứng minh trạng thái chính xác.`
+        : status.receipt
+          ? `Biên nhận xác nhận QUARANTINED, revision ${status.receipt.revision}; trạng thái hiện tại chưa khả dụng vì lần đọc mới thất bại.`
+          : `Lệnh ${kindLabel} chưa được chấp nhận (${status.code ?? 'request failed'}). Lần đọc lại dữ liệu cũng thất bại: ${status.message}`;
+    } else if (status.stage === 'reloaded') {
+      message.textContent = `Lệnh trước đó chưa được chấp nhận (${status.code ?? 'request failed'}). B1 mới ghi nhận trạng thái ${status.currentState ?? 'không xác định'}${status.currentRevision ? `, revision ${status.currentRevision}` : ''}. Chỉ mở lại xác nhận từ dữ liệu mới.`;
+    } else if (status.stage === 'acknowledged') {
+      const receiptText = `Máy chủ đã xác nhận biên nhận ${status.receipt.state}${status.receipt.reviewId ? ` (${status.receipt.reviewId})` : ''}, revision ${status.receipt.revision}.`;
+      const fanoutNote = status.kind === 'quarantine' ? ' Biên nhận không xác nhận đã hoàn tất toàn bộ delivery-hold fan-out.' : '';
+      if (status.currentState) {
+        message.textContent = `${receiptText} B1 mới ghi nhận trạng thái hiện tại ${status.currentState}${status.currentRevision ? `, revision ${status.currentRevision}` : ''}. Biên nhận và trạng thái hiện tại là hai thông tin riêng biệt.${fanoutNote}`;
+      } else if (status.currentReadPending) {
+        message.textContent = `${receiptText} Đang đọc trạng thái hiện tại bằng B1.${fanoutNote}`;
+      } else if (status.receipt.state === 'REJECTED') {
+        message.textContent = `${receiptText} Trạng thái riêng chính xác hiện tại chưa được quan sát. Việc không còn trong hàng chờ không chứng minh trạng thái chính xác.${fanoutNote}`;
+      } else {
+        message.textContent = `${receiptText} Trạng thái hiện tại chưa khả dụng vì lần đọc mới thất bại.${fanoutNote}`;
+      }
+    }
+    panel.append(message);
+
+    if (status.stage === 'uncertain') {
+      panel.append(button('Thử lại cùng yêu cầu', 'disposition-retry', async () => {
+        if (state.dispositionStatus?.stage !== 'uncertain') return;
+        await sendDisposition(status.intent, state.dispositionRequestId);
+      }));
+    }
+    if (['rejected', 'reload-failed', 'acknowledged'].includes(status.stage)) {
+      panel.append(button('Tải lại metadata và trạng thái', 'disposition-reload', async () => {
+        await reloadDispositionTarget(status.targetVersionId, state.dispositionRequestId);
+      }, 'button secondary'));
+    }
+    host.append(panel);
+  }
+
+  function createDispositionDialog() {
+    const dialog = node('dialog', 'staff-disposition-dialog');
+    dialog.id = 'disposition-dialog';
+    dialog.dataset.testid = 'disposition-dialog';
+    dialog.setAttribute('aria-labelledby', 'disposition-dialog-title');
+    dialog.setAttribute('aria-describedby', 'disposition-dialog-description disposition-warning');
+    const title = node('h2', '', 'Xác nhận lệnh nhân viên');
+    title.id = 'disposition-dialog-title';
+    const description = node('p', 'staff-disposition-dialog-description');
+    description.id = 'disposition-dialog-description';
+    const metadata = node('dl', 'staff-disposition-dialog-metadata');
+    for (const [labelText, testId] of [
+      ['Phiên bản', 'disposition-dialog-version'],
+      ['Hash nội dung', 'disposition-dialog-hash'],
+      ['Revision', 'disposition-dialog-revision'],
+    ]) {
+      metadata.append(node('dt', '', labelText));
+      const value = node('dd');
+      value.dataset.testid = testId;
+      metadata.append(value);
+    }
+    const warning = node('p', 'staff-disposition-warning');
+    warning.id = 'disposition-warning';
+    warning.dataset.testid = 'disposition-warning';
+    const summary = node('section', 'staff-disposition-summary');
+    summary.dataset.testid = 'disposition-confirmation-summary';
+    summary.setAttribute('aria-label', 'Nội dung xác nhận');
+    summary.setAttribute('aria-live', 'polite');
+    const form = node('form', 'staff-disposition-form');
+    form.dataset.testid = 'disposition-form';
+    const fields = node('div', 'staff-disposition-fields');
+    fields.dataset.testid = 'disposition-fields';
+    form.append(fields);
+    const actions = node('div', 'staff-disposition-dialog-actions');
+    const confirm = node('button', 'button', 'Xác nhận');
+    confirm.type = 'submit';
+    confirm.dataset.testid = 'disposition-confirm';
+    actions.append(confirm, button('Hủy', 'disposition-cancel', () => closeDispositionDialog(), 'button secondary'));
+    form.append(summary, actions);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await confirmDisposition();
+    });
+    dialog.append(title, description, metadata, warning, form);
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeDispositionDialog();
+    });
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) closeDispositionDialog();
+    });
+    state.dispositionDialog = dialog;
+    return dialog;
+  }
+
+  function openDispositionDialog(kind, triggerElement) {
+    const view = state.reviewView;
+    if (!dispositionEligible(kind, view) || state.dispositionConfirmation) return;
+    const context = view.context;
+    const workflow = context.workflow;
+    const dialog = state.dispositionDialog;
+    if (!dialog || dialog.open) return;
+    const confirmation = {
+      kind,
+      versionId: view.versionId,
+      contentHash: context.version.contentHash,
+      expectedRevision: workflow.revision,
+      context,
+      identityEpoch: state.identityEpoch,
+      principal: principalKey(state.principal),
+      requestId: state.dispositionRequestId,
+      triggerElement,
+    };
+    state.dispositionConfirmation = confirmation;
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    dialog.querySelector('#disposition-dialog-title').textContent = kind === 'reject'
+      ? 'Xác nhận từ chối phiên bản'
+      : 'Xác nhận cách ly phiên bản';
+    dialog.querySelector('#disposition-dialog-description').textContent = kind === 'reject'
+      ? 'Đây là thao tác tổng hợp, không phải đánh giá của người rà soát đủ điều kiện hoặc quyết định phê duyệt.'
+      : 'Lệnh cách ly có thể ảnh hưởng phiên bản con đã xuất bản, biểu mẫu liên quan, lượt thi và kết quả hiện có; quyền truy cập lượt thi liên quan có thể bị vô hiệu hóa hoặc lượt thi bị hủy. Lệnh này không hoàn tác việc phơi lộ hay khôi phục quyền truy cập.';
+    dialog.querySelector('[data-testid="disposition-dialog-version"]').textContent = confirmation.versionId;
+    dialog.querySelector('[data-testid="disposition-dialog-hash"]').textContent = confirmation.contentHash;
+    dialog.querySelector('[data-testid="disposition-dialog-revision"]').textContent = String(confirmation.expectedRevision);
+    dialog.querySelector('[data-testid="disposition-warning"]').textContent = kind === 'reject'
+      ? 'Sáu lựa chọn Pass/Fail phải được chọn rõ ràng. Nội dung, quyền sử dụng và tính đủ điều kiện xuất bản không được phê duyệt bởi thao tác này.'
+      : 'Có thể ảnh hưởng phiên bản con đã xuất bản, biểu mẫu liên quan, lượt thi và kết quả; quyền truy cập có thể bị vô hiệu hóa hoặc lượt thi liên quan bị hủy. Lệnh có thể đã được ghi nhận dù phản hồi cuối cùng báo lỗi; không thử lại bằng khóa mới.';
+
+    const fields = dialog.querySelector('[data-testid="disposition-fields"]');
+    fields.replaceChildren();
+    if (kind === 'reject') {
+      for (const [key, labelText] of DISPOSITION_RUBRIC) {
+        const field = node('div', 'staff-field staff-disposition-rubric-field');
+        const label = node('label', '', labelText);
+        const select = node('select', 'staff-input');
+        select.id = `disposition-rubric-${key}`;
+        select.dataset.testid = `disposition-rubric-${key}`;
+        select.required = true;
+        select.name = key;
+        for (const [value, optionText] of [['', 'Chọn Pass/Fail'], ['PASS', 'Pass'], ['FAIL', 'Fail']]) {
+          const option = node('option', '', optionText);
+          option.value = value;
+          select.append(option);
+        }
+        label.htmlFor = select.id;
+        select.addEventListener('change', renderDispositionSummary);
+        field.append(label, select);
+        fields.append(field);
+      }
+    }
+    const reasonField = node('div', 'staff-field');
+    const reasonLabel = node('label', '', 'Lý do');
+    const reason = node('textarea', 'staff-input');
+    reason.id = 'disposition-form-reason';
+    reason.dataset.testid = 'disposition-form-reason';
+    reason.name = 'reason';
+    reason.required = true;
+    reason.maxLength = DISPOSITION_REASON_MAX_LENGTH;
+    reason.rows = 3;
+    reason.autocomplete = 'off';
+    reason.setAttribute('aria-describedby', 'disposition-form-reason-hint');
+    reasonLabel.htmlFor = reason.id;
+    reason.addEventListener('input', () => {
+      reason.setCustomValidity('');
+      renderDispositionSummary();
+    });
+    const reasonHint = node('p', 'staff-disposition-reason-hint', `Nhập lý do rõ ràng; bản ghi sẽ lưu với tiền tố “${DISPOSITION_REASON_PREFIX}”.`);
+    reasonHint.id = 'disposition-form-reason-hint';
+    reasonField.append(reasonLabel, reason, reasonHint);
+    fields.append(reasonField);
+    dialog.querySelector('[data-testid="disposition-confirm"]').textContent = kind === 'reject'
+      ? 'Xác nhận từ chối'
+      : 'Xác nhận cách ly';
+    renderDispositionSummary();
+    dialog.showModal();
+    dialog.querySelector('[data-testid="disposition-cancel"]').focus();
   }
 
   function handoffEligible(view = state.reviewView) {
@@ -753,6 +1041,10 @@ export async function openStaffWorkspace(container, onBack) {
       actions.append(button(isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
         isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
           if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
+          else if (state.dispositionStatus?.stage === 'acknowledged'
+            && state.dispositionStatus.targetVersionId === view.versionId) {
+            await reloadDispositionTarget(view.versionId, state.dispositionRequestId);
+          }
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
@@ -763,6 +1055,22 @@ export async function openStaffWorkspace(container, onBack) {
       handoff.dataset.versionId = view.versionId;
       handoff.setAttribute('aria-controls', 'handoff-dialog');
       actions.append(handoff);
+    }
+    if (!isEvidence && dispositionEligible('reject', view)) {
+      const reject = button('Từ chối phiên bản đang chờ rà soát', 'disposition-reject-open', async () => {
+        openDispositionDialog('reject', reject);
+      }, 'button secondary');
+      reject.dataset.versionId = view.versionId;
+      reject.setAttribute('aria-controls', 'disposition-dialog');
+      actions.append(reject);
+    }
+    if (!isEvidence && dispositionEligible('quarantine', view)) {
+      const quarantine = button('Cách ly phiên bản', 'disposition-quarantine-open', async () => {
+        openDispositionDialog('quarantine', quarantine);
+      }, 'button secondary');
+      quarantine.dataset.versionId = view.versionId;
+      quarantine.setAttribute('aria-controls', 'disposition-dialog');
+      actions.append(quarantine);
     }
     actions.append(button(isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
       isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
@@ -785,6 +1093,7 @@ export async function openStaffWorkspace(container, onBack) {
     }
     host.append(panel);
     renderHandoffPanel();
+    renderDispositionPanel();
     if (focusTitle) heading.focus();
     else if (focusHandoffStatus) container.querySelector('[data-testid="handoff-status"]')?.focus();
   }
@@ -807,6 +1116,15 @@ export async function openStaffWorkspace(container, onBack) {
     content.append(metadata);
 
     const preview = context?.preview;
+    if (workflow.state === 'QUARANTINED') {
+      const held = node('section', 'staff-private-notice');
+      held.append(
+        node('h3', '', 'Phiên bản đang cách ly'),
+        node('p', '', 'Chỉ hiển thị metadata hiện tại. Không hiển thị câu hỏi, đáp án hoặc lời giải.'),
+      );
+      content.append(held, renderRightsMetadata(context.sources));
+      return content;
+    }
     if (preview?.status === 'BLOCKED') {
       const messages = {
         RIGHTS_BLOCKED: 'Máy chủ không cho phép hiển thị nội dung theo quyền hiện tại của toàn bộ nguồn.',
@@ -834,9 +1152,9 @@ export async function openStaffWorkspace(container, onBack) {
     return content;
   }
 
-  async function loadReviewContext(versionId, triggerElement, { preserveHandoff = false } = {}) {
+  async function loadReviewContext(versionId, triggerElement, { preserveHandoff = false, preserveDisposition = false } = {}) {
     if (!isWorkspaceActive() || !state.canReadList || typeof versionId !== 'string') return;
-    clearPrivateReviewView({ preserveHandoff });
+    clearPrivateReviewView({ preserveHandoff, preserveDisposition });
     const requestId = ++state.reviewRequestId;
     const identityEpoch = state.identityEpoch;
     const requestPrincipal = principalKey(state.principal);
@@ -856,8 +1174,219 @@ export async function openStaffWorkspace(container, onBack) {
       renderReviewPanel({ focusTitle: true });
     } catch (error) {
       if (!isCurrent()) return;
-      state.reviewView = { kind: 'context', versionId, status: 'error', triggerElement, error: error.message };
+      state.reviewView = {
+        kind: 'context', versionId, status: 'error', triggerElement,
+        error: error.message, errorStatus: error.status, errorCode: error.code,
+      };
       renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  function dispositionAttemptIsCurrent(versionId, requestId, identityEpoch, requestPrincipal) {
+    return isWorkspaceActive()
+      && requestId === state.dispositionRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.dispositionStatus?.targetVersionId === versionId;
+  }
+
+  async function confirmDisposition() {
+    const confirmation = state.dispositionConfirmation;
+    const view = state.reviewView;
+    const dialog = state.dispositionDialog;
+    const form = dialog?.querySelector('form');
+    const reasonField = dialog?.querySelector('[data-testid="disposition-form-reason"]');
+    if (!confirmation || !form || !reasonField || !dispositionEligible(confirmation.kind, view)
+      || confirmation.requestId !== state.dispositionRequestId
+      || confirmation.identityEpoch !== state.identityEpoch
+      || confirmation.principal !== principalKey(state.principal)
+      || confirmation.versionId !== view.versionId
+      || confirmation.context !== view.context
+      || confirmation.expectedRevision !== view.context.workflow.revision
+      || confirmation.contentHash !== view.context.version.contentHash) {
+      closeDispositionDialog();
+      return;
+    }
+
+    const typedReason = reasonField.value.trim();
+    if (!typedReason) {
+      reasonField.setCustomValidity('Nhập lý do rõ ràng trước khi xác nhận.');
+      form.reportValidity();
+      return;
+    }
+    reasonField.setCustomValidity('');
+    const reason = `${DISPOSITION_REASON_PREFIX}${typedReason}`;
+    if (reason.length > 4096) {
+      reasonField.setCustomValidity('Lý do vượt quá giới hạn 4096 ký tự.');
+      form.reportValidity();
+      return;
+    }
+
+    let body;
+    if (confirmation.kind === 'reject') {
+      const rubric = {};
+      for (const [key] of DISPOSITION_RUBRIC) {
+        const choice = dialog.querySelector(`[data-testid="disposition-rubric-${key}"]`)?.value;
+        if (!['PASS', 'FAIL'].includes(choice)) {
+          dialog.querySelector(`[data-testid="disposition-rubric-${key}"]`)?.reportValidity();
+          return;
+        }
+        rubric[key] = choice === 'PASS';
+      }
+      body = Object.freeze({
+        expectedRevision: confirmation.expectedRevision,
+        contentHash: confirmation.contentHash,
+        decision: 'REJECT',
+        rubric: Object.freeze(rubric),
+        reason,
+      });
+    } else {
+      body = Object.freeze({ expectedRevision: confirmation.expectedRevision, reason });
+    }
+
+    const path = `/api/v1/question-versions/${encodeURIComponent(confirmation.versionId)}/${confirmation.kind === 'reject' ? 'reviews' : 'quarantine'}`;
+    const intent = Object.freeze({
+      kind: confirmation.kind,
+      versionId: confirmation.versionId,
+      path,
+      expectedRevision: confirmation.expectedRevision,
+      contentHash: confirmation.contentHash,
+      body,
+      key: crypto.randomUUID(),
+      identityEpoch: confirmation.identityEpoch,
+      principal: confirmation.principal,
+    });
+    const requestId = ++state.dispositionRequestId;
+    state.dispositionStatus = {
+      stage: 'pending', kind: intent.kind, targetVersionId: intent.versionId,
+      intent, identityEpoch: intent.identityEpoch, principal: intent.principal,
+    };
+    closeDispositionDialog({ restoreFocus: false });
+    clearPrivateReviewView({ preserveDisposition: true });
+    renderDispositionPanel();
+    container.querySelector('[data-testid="disposition-status"]')?.focus();
+    await sendDisposition(intent, requestId);
+  }
+
+  async function sendDisposition(intent, requestId) {
+    if (!dispositionAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
+      || state.dispositionStatus?.intent !== intent
+      || !['pending', 'uncertain'].includes(state.dispositionStatus.stage)) return;
+
+    if (state.dispositionStatus.stage === 'uncertain') {
+      state.dispositionStatus = { ...state.dispositionStatus, stage: 'pending' };
+      renderDispositionPanel();
+      container.querySelector('[data-testid="disposition-status"]')?.focus();
+    }
+    try {
+      const response = await request(intent.path, {
+        method: 'POST', body: intent.body, csrf: true, idempotencyKey: intent.key,
+      });
+      if (!dispositionAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
+        || state.dispositionStatus?.intent !== intent) return;
+
+      const expectedReceiptRevision = intent.expectedRevision + 1;
+      const validRevision = Number.isSafeInteger(response?.revision)
+        && response.revision === expectedReceiptRevision;
+      const validReceipt = intent.kind === 'reject'
+        ? typeof response?.reviewId === 'string'
+          && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(response.reviewId)
+          && response.state === 'REJECTED'
+          && validRevision
+        : response?.state === 'QUARANTINED' && validRevision;
+      if (!validReceipt) {
+        const error = new Error('Không thể đối chiếu biên nhận với lệnh đã gửi.');
+        error.uncertain = true;
+        throw error;
+      }
+
+      const receipt = intent.kind === 'reject'
+        ? { reviewId: response.reviewId, state: response.state, revision: response.revision }
+        : { state: response.state, revision: response.revision };
+      state.dispositionStatus = {
+        stage: 'acknowledged', kind: intent.kind, targetVersionId: intent.versionId,
+        intent, identityEpoch: intent.identityEpoch, principal: intent.principal,
+        receipt, currentState: null, currentRevision: null, currentReadPending: true,
+      };
+      renderDispositionPanel();
+      container.querySelector('[data-testid="disposition-status"]')?.focus();
+      await reloadDispositionTarget(intent.versionId, requestId);
+    } catch (error) {
+      if (!dispositionAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
+        || state.dispositionStatus?.intent !== intent) return;
+      const uncertain = error?.uncertain === true || (Number.isInteger(error?.status) && error.status >= 500);
+      state.dispositionStatus = uncertain
+        ? { ...state.dispositionStatus, stage: 'uncertain', message: error.message }
+        : {
+          stage: 'rejected', kind: intent.kind, targetVersionId: intent.versionId,
+          identityEpoch: intent.identityEpoch, principal: intent.principal,
+          code: error?.code, message: error?.message ?? 'Lệnh chưa được chấp nhận.',
+        };
+      renderDispositionPanel();
+      container.querySelector('[data-testid="disposition-status"]')?.focus();
+    }
+  }
+
+  async function reloadDispositionTarget(versionId, requestId) {
+    const previous = state.dispositionStatus;
+    if (!previous || previous.targetVersionId !== versionId || requestId !== state.dispositionRequestId
+      || !['rejected', 'reload-failed', 'acknowledged'].includes(previous.stage)) return;
+    const hasReceipt = Boolean(previous.receipt);
+    const status = {
+      ...previous,
+      stage: 'reloading',
+      ...(hasReceipt ? { currentState: null, currentRevision: null, currentReadPending: true } : {}),
+    };
+    state.dispositionStatus = status;
+    renderDispositionPanel();
+
+    const identityEpoch = previous.identityEpoch ?? state.identityEpoch;
+    const requestPrincipal = previous.principal ?? principalKey(state.principal);
+    const isCurrent = () => dispositionAttemptIsCurrent(versionId, requestId, identityEpoch, requestPrincipal);
+    try {
+      await loadQuestionList({ reset: true, preserveDisposition: true });
+      if (!isCurrent()) return;
+      const triggerElement = [...container.querySelectorAll('[data-testid="staff-review-inspect"]')]
+        .find((element) => element.dataset.versionId === versionId) ?? null;
+      await loadReviewContext(versionId, triggerElement, { preserveDisposition: true });
+      if (!isCurrent()) return;
+
+      const view = state.reviewView;
+      const fresh = view?.kind === 'context' && view.status === 'loaded'
+        && view.context?.version?.versionId === versionId;
+      if (!fresh) {
+        state.dispositionStatus = hasReceipt
+          ? {
+            ...status, stage: 'acknowledged', currentState: null, currentRevision: null,
+            currentReadPending: false, currentReadFailed: true,
+            currentReadStatus: view?.errorStatus, currentReadCode: view?.errorCode,
+          }
+          : { ...status, stage: 'reload-failed', message: view?.error ?? 'Lần kiểm tra B1 mới không khả dụng.' };
+      } else if (hasReceipt) {
+        state.dispositionStatus = {
+          ...status, stage: 'acknowledged',
+          currentState: view.context.workflow?.state ?? null,
+          currentRevision: view.context.workflow?.revision ?? null,
+          currentReadPending: false, currentReadFailed: false,
+        };
+      } else {
+        state.dispositionStatus = {
+          ...status, stage: 'reloaded',
+          currentState: view.context.workflow?.state ?? null,
+          currentRevision: view.context.workflow?.revision ?? null,
+        };
+      }
+      renderReviewPanel();
+      renderDispositionPanel();
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.dispositionStatus = hasReceipt
+        ? {
+          ...status, stage: 'acknowledged', currentState: null, currentRevision: null,
+          currentReadPending: false, currentReadFailed: true,
+        }
+        : { ...status, stage: 'reload-failed', message: error.message };
+      renderDispositionPanel();
     }
   }
 
@@ -1041,13 +1570,14 @@ export async function openStaffWorkspace(container, onBack) {
     }
     renderReviewPanel();
     renderHandoffPanel();
+    renderDispositionPanel();
   }
 
-  async function loadQuestionList({ reset = true, preserveHandoff = false } = {}) {
+  async function loadQuestionList({ reset = true, preserveHandoff = false, preserveDisposition = false } = {}) {
     if (!isWorkspaceActive()) return;
     if (!state.canReadList) throw new Error('Vai trò này không được cấp quyền xem danh sách bản nháp.');
     if (!reset && (state.listLoading || !state.nextCursor)) return;
-    clearPrivateReviewView({ preserveHandoff });
+    clearPrivateReviewView({ preserveHandoff, preserveDisposition });
 
     const requestId = ++state.listRequestId;
     const identityEpoch = state.identityEpoch;
@@ -1180,13 +1710,13 @@ export async function openStaffWorkspace(container, onBack) {
     }, 'button secondary small'));
     heading.append(headingText, actions);
     shell.append(heading);
-    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng chỉ được yêu cầu khi bạn chọn đúng phiên bản. Không có thao tác rà soát, duyệt, thay đổi quyền, cách ly, xuất bản hoặc chẩn đoán. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
+    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng chỉ được yêu cầu khi bạn chọn đúng phiên bản. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền, xuất bản hoặc chẩn đoán. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 
     if (!state.principal.roles.includes('AUTHOR')) {
       const denied = node('section', 'staff-card staff-denied');
       if (state.canReadList) {
-        denied.append(node('h2', '', 'Kiểm tra phiên bản theo quyền hiện tại.'), node('p', '', 'Vai trò này không tạo bản nháp hoặc mở mẫu tác giả. Máy chủ kiểm tra quyền và trạng thái quy trình trước khi cung cấp nội dung riêng. Không có thao tác quản lý quyền, rà soát hoặc xuất bản ở đây.'));
+        denied.append(node('h2', '', 'Kiểm tra phiên bản theo quyền hiện tại.'), node('p', '', 'Vai trò này không tạo bản nháp hoặc mở mẫu tác giả. Máy chủ kiểm tra quyền và trạng thái quy trình trước khi cung cấp nội dung riêng. Thao tác từ chối hoặc cách ly chỉ xuất hiện sau khi mở phiên bản đủ điều kiện. Không có thao tác phê duyệt, quản lý quyền hoặc xuất bản ở đây.'));
         denied.append(button('Tải danh sách', 'staff-refresh-denied', async () => {
           if (!isWorkspaceActive()) return;
           try {
@@ -1323,9 +1853,13 @@ export async function openStaffWorkspace(container, onBack) {
       reviewHost.hidden = true;
       const handoffHost = node('div');
       handoffHost.dataset.testid = 'handoff-host';
+      const dispositionHost = node('div');
+      dispositionHost.dataset.testid = 'disposition-host';
       listCard.append(handoffHost);
+      listCard.append(dispositionHost);
       listCard.append(reviewHost);
       listCard.append(createHandoffDialog());
+      listCard.append(createDispositionDialog());
       shell.append(listCard);
     }
     shell.append(button('Quay lại khu luyện tập', 'staff-return', returnToPractice, 'button secondary'), footer());
