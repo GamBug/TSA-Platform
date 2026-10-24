@@ -34,7 +34,9 @@ No private tokens/DBs/profiles/evidence committed.
 
 ## Continuation
 
-Editor implementation ready for local checkpoint and clean reproduction. B4
+Editor implementation b0091c5 clean no-hardlink reproduction PASS: locked install/
+build/Chrome33/Firefox10/import/docs, no patches/manual SQL/API setup; clone Git
+status empty. B4
 f8aaf12 was already reproduced in a fresh no-hardlink clone: locked install/build/
 focused33/Chrome32/Firefox9/built/drift/docs PASS, no patches/manual SQL/API setup;
 clone Git status empty. [B4 exact evidence](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).

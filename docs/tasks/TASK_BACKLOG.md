@@ -760,7 +760,9 @@ whitespace PASS. Separate Sol6.1/Medium source+actual Chrome33/syntax/whitespace
 PASS, no findings; Firefox independently source/syntax only. [Exact evidence](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
 Configured Luna/XHigh writer released staff.js/scoped CSS; root integration/docs.
 Default SC/retry/explicit handoff preserved; new MC/TF persist after reload.
-No broad Bank/contract rerun for UI-only scope. B4 clean reproduction recorded above.
+No broad Bank/contract rerun for UI-only scope. Fresh no-hardlink b0091c5 locked
+install/build/Chrome33/Firefox10/import/docs PASS without patches/manual SQL/API
+setup, final clone Git status empty.
 
 2026-10-24 **B4.1 IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED (scoped)**,
 base743a197. Root selected exact reviewed scope under owner engineering-choice

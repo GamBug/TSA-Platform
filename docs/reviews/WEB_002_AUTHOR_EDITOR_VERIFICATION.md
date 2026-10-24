@@ -72,3 +72,14 @@ Broad Bank/contract suites were not rerun for this UI-only increment; B4 evidenc
 retains those exact results. AUTOMATED_PASS/INDEPENDENTLY_REVIEWED are bounded
 engineering outcomes, not full WEB-002/Technical MVP, real accepted12/6/12 stock,
 qualified human content/rights/accessibility, load or production acceptance.
+
+## Clean-checkout reproduction — b0091c5
+
+Root `git clone --no-hardlinks --quiet` into owned ignored
+`.local/verification-author-editor/clean-b0091c5`; actual locked `npm ci --ignore-scripts`,
+`npm run build`, Chrome33/16captures, Firefox10/19captures,
+`npm run contracts:consumer-check`, `npm run docs:check` all exit0. Browser artifact
+environment variables match the root commands above, pointing to sibling
+`clean-chrome`/`clean-firefox`. No patches/manual SQL/API setup; fixtures own and
+clean their data. Final `git status --porcelain` empty. Logs in parent `clean-*.log`.
+No content/qualified accessibility/production acceptance follows.
