@@ -2,8 +2,8 @@
 
 2026-10-25, feat/track-b-data-auth. Runtime SEC checkpoint3cd49be, prior B8b886737/
 records694df4d. Owner AGENTS.md/untracked research preserved/excluded. Root owns all
-shared records. Native Luna/XHigh owns ONLY tests/integration/results/delivery.test.mjs
-for one missing corrected-publication-while-active regression, currently implementing.
+shared records. Native Luna/XHigh owns ONLY tests/integration/assembly/allocation.test.mjs
+for the H.1 different-domain barrier extension; G writer ownership released.
 No other write reservation. Existing read-only scout finished source mapping;
 separate Sol6.1/Medium SEC reviewer final no findings, no files written.
 
@@ -21,27 +21,28 @@ Chrome46/Firefox16/emitted/boundaries/docs/audit0 PASS; clone Git empty, automat
 fixture teardown. B8 clean b886737 proof also recorded, including its old-pin audit
 warning; SEC subsequent repair is distinct. No production/accessibility/human claim.
 
-## Active ready work
+## Current acceptance work
 
-TEST-002 G: read-only scout checked assembly/Bank and additional attempt/grading/
-result/runtime tests. No existing test publishes a corrected same-question version
-while IN_PROGRESS then proves original sealed-key grading/released review. Narrow
-writer adds ONE test to results/delivery.test.mjs, reusing real existing fixtures/
-services. It must change content/key, advance current eligible pointer, preserve
-form/slot public+private snapshots/hashes and grading input digest, then grade/review
-against original. Synthetic approval is test machinery, not qualified human review.
-Root verifies/obtains separate read-only review/checkpoints after handoff. No new
-harness/runtime/schema/privilege change authorized by this test assignment.
+[TEST-002 G](../reviews/TEST_002_PUBLICATION_DURING_ATTEMPT_VERIFICATION.md) implemented
+in results/delivery.test.mjs only. Writer target1/file2, root results7/grading23/
+finalfile2 PASS, separate reviewer fullfile2/syntax/whitespace PASS, no findings.
+Final source hash c61b72ea16afd4d6cf845b695f4675a77ca341b042919e79587e4eec81eef06c.
+Full form/slot/private-secret/history JSONB and microsecond clock oracle repaired
+before review; actual Bankkeya correction while IN_PROGRESS retains sealedb/4of4
+release and follow-up NEW_ONLY exclusion. No runtime/schema/role change. Root next
+commits verified G scope and clean reproduces targeted/full results.
 
-Remaining scenario matrix: C/D/F scoped automatic evidence exists; E explicit safe
-shortage/bounded unknown present but shorter/review alternatives unimplemented;
-H same-user/same-profile real barriers and separate same-key replay present, full
-cross-profile/cross-mode race not covered. A/B/I/J remain TrackA/out-of-scope
-NOT_EXECUTED. Full TEST-002/Technical MVP remain incomplete; qualified content12/6/12,
-lawful provenance/independent humans/manual AT/native zoom remain external inputs.
+Native Luna/XHigh now owns ONLY tests/integration/assembly/allocation.test.mjs for
+H.1: same-user distinct-key concurrent MATH vsREADING blueprints, real barrier,
+both commit-winner orders, one active owned attempt and no loser history/receipt.
+Existing harness/helpers only; no unsupported fixed/review mode or new runtime.
+Do not stage that file until writer releases it and checks/review complete.
 
-Next: finish G regression, inspect targeted/full results output, repair observed
-failures, independent read-only review, durable evidence and coherent local commit.
-Then reconcile current local acceptance navigation without rebranding synthetic
-success as full MVP. Private `.local/sec001-*`/browser/DB evidence never staged.
-No paid API/Astra/push/remote merge/deploy or unauthorized real content.
+Scenario C/D/F scoped automated evidence exists; E explicit safe shortage/bounded
+unknown present but shorter/review alternatives unimplemented. H same-profile real
+barriers/same-key replay already present; H.1 in progress, full cross-mode remains
+unsupported/unexecuted. A/B/I/J TrackA/out-of-scope NOT_EXECUTED. Full TEST-002/MVP
+remain incomplete; qualified content12/6/12/provenance/independent humans/manual
+AT/native zoom remain external inputs. Next review H.1 after handoff, consolidate
+current local acceptance navigation, preserve private ignored artifacts and owner
+changes. No paid API/Astra/push/merge/deploy or unauthorized real content.

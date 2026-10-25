@@ -1728,7 +1728,7 @@ Luna is usage-limited, separate Sol6.1/Medium review when available.
 
 ## TEST-002 — Independent critical-invariant and security regression harness
 
-2026-10-25 **SCENARIO G — IN_PROGRESS**, starting3cd49be. Root accountable;
+2026-10-25 **SCENARIO G — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, starting3cd49be. Root accountable;
 read-only existing scout mapped C–H and checked other attempt/grading/result/runtime
 files, found no corrected-version publication during an active attempt followed by
 sealed-original grading/released review. Narrow native Luna/XHigh writer owns only
@@ -1736,7 +1736,12 @@ sealed-original grading/released review. Narrow native Luna/XHigh writer owns on
 PG regression, no new harness/runtime/schema/privilege changes. Root integrates,
 separate Sol6.1/Medium read-only review after implementation. This closes a named
 acceptance gap, not full TEST-002 or all A–J. Synthetic approval is fixture machinery,
-not qualified human evidence. Runtime verification pending.
+not qualified human evidence. Writer target1/file2, root results7/grading23/finalfile2,
+separate reviewer finalfile2/syntax/whitespace PASS, no findings. Full-row/microsecond
+oracle repaired before final review. [Exact evidence](../reviews/TEST_002_PUBLICATION_DURING_ATTEMPT_VERIFICATION.md).
+Clean reproduction pending. H.1 different-domain same-user barrier is the next
+explicit gap, root accountable/native LunaXHigh owns only allocation.test.mjs; no
+new runtime/mode/contract. Full H cross-mode remains unexecuted.
 
 
 2026-10-23 final HTTP review **INDEPENDENTLY_REVIEWED**: separate native
