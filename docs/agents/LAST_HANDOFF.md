@@ -1,48 +1,51 @@
-# Handoff — TEST-002 scenarioG after completed validator repair
+# Handoff — Track B current local acceptance, H.1 clean reproduction next
 
-2026-10-25, feat/track-b-data-auth. Runtime SEC checkpoint3cd49be, prior B8b886737/
-records694df4d. Owner AGENTS.md/untracked research preserved/excluded. Root owns all
-shared records. Native Luna/XHigh owns ONLY tests/integration/assembly/allocation.test.mjs
-for the H.1 different-domain barrier extension; G writer ownership released.
-No other write reservation. Existing read-only scout finished source mapping;
-separate Sol6.1/Medium SEC reviewer final no findings, no files written.
+2026-10-25, feat/track-b-data-auth, HEAD4dd3fca; verified H.1/audit changes uncommitted.
+Root accountable/integrator/shared-record writer; native Luna/XHigh test writer
+released all files. Separate actual Sol6.1/Medium read-only H.1 final code review
+no findings; current documentation review complete, no findings. No other write reservations.
+Owner AGENTS.md/untracked research preserved/excluded; no paidAPI/Astra/push/merge/
+deploy/unauthorized content. Current [local acceptance map](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
 
-## Completed checkpoint evidence
+## Completed milestones
 
-[SEC scope/evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md): root exact
-Zod4.6.7 package+lock only and real student invalid-collection regression,20,002→1
-issues. Frozen schemas/artifacts/fixtures/all other pins unchanged. Root156contracts/
-Bank149/assembly50/critical9/student34/domains78/Chrome46/Firefox16/audit0 PASS.
-Independent regression1/reference31/question-identity26/consumer12/type/drift/import/
-offlinegraph/cachedtarball and installed-file integrity PASS. Independent live audit
-NOT_EXECUTED due reviewer role prohibition; root audit0 attributed separately.
-Clean no-hardlink3cd49be locked install/build/contracts156/focused12/domains78/
-Chrome46/Firefox16/emitted/boundaries/docs/audit0 PASS; clone Git empty, automatic
-fixture teardown. B8 clean b886737 proof also recorded, including its old-pin audit
-warning; SEC subsequent repair is distinct. No production/accessibility/human claim.
+B8b886737 separate eligible-Bank rehearsal/EXAM receipt/BANK replay UI verified and
+clean no-hardlink reproduced focused12/Chrome46/Firefox16/built/drift/boundaries/docs.
+No forms/attempts/sealing/current-eligibility/human qualification claim.
+SEC3cd49be exact Zod4.6.7 fixes observed high advisory, controlled20,002→1issue;
+frozen sources/artifacts/otherpins unchanged. Root contracts156/Bank149/assembly50/
+critical9/student34/domains78/Chrome46/Firefox16/audit0 PASS, independent targeted
+compatibility/integrity review no findings. Clean locked install/build/contracts156/
+focused12/domains78/Chrome46/Firefox16/emitted/boundaries/docs/audit0 PASS, Git empty.
+G4dd3fca corrected question/key publication while IN_PROGRESS preserves full sealed
+form/slot/secret/history rows, microsecond clocks and grading digest; originalb/4of4
+release and later NEW_ONLY exclusion. Root results7/grading23/finalfile2 and separate
+reviewer finalfile2 PASS/no findings. Clean no-hardlink install/build/results7 PASS,
+final clone Git empty. All evidence/precise independent attribution in linked records.
 
-## Current acceptance work
+## H.1 verified, not yet clean checkpointed
 
-[TEST-002 G](../reviews/TEST_002_PUBLICATION_DURING_ATTEMPT_VERIFICATION.md) implemented
-in results/delivery.test.mjs only. Writer target1/file2, root results7/grading23/
-finalfile2 PASS, separate reviewer fullfile2/syntax/whitespace PASS, no findings.
-Final source hash c61b72ea16afd4d6cf845b695f4675a77ca341b042919e79587e4eec81eef06c.
-Full form/slot/private-secret/history JSONB and microsecond clock oracle repaired
-before review; actual Bankkeya correction while IN_PROGRESS retains sealedb/4of4
-release and follow-up NEW_ONLY exclusion. No runtime/schema/role change. Root next
-commits verified G scope and clean reproduces targeted/full results.
+Only allocation.test.mjs changes in application/test tree: current MATH/READING
+same-user distinct-key barriers, both winner orders, exact owned409target, one
+attempt/form/all-outcome-run/receipt/history, domain/pin/clock/reuse oracles.
+Root finalallocation18/target3/fullassembly53 PASS. Independent target3/abortprobe2/
+syntax/whitespace PASS, no unresolved findings. Two test P2s repaired: abortable
+bounded barriers/SQL wait and total run oracle. Intermediate SELECTset_config
+setup prevented isolation with25001; utilitySET repaired and real PG confirmed.
+Final reviewed source617fa384449d57e93f68427ccb4028953ce4193241334a5abdd54ce72e4ff5a3.
+[H.1 exact evidence](../reviews/TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md).
 
-Native Luna/XHigh now owns ONLY tests/integration/assembly/allocation.test.mjs for
-H.1: same-user distinct-key concurrent MATH vsREADING blueprints, real barrier,
-both commit-winner orders, one active owned attempt and no loser history/receipt.
-Existing harness/helpers only; no unsupported fixed/review mode or new runtime.
-Do not stage that file until writer releases it and checks/review complete.
+Next: commit only H.1/acceptance docs, then clean
+no-hardlink install/build/full allocation/assembly and docs from exact checkpoint.
+Record clean evidence and final local checkpoint, keep owner changes unstaged.
+No browser rerun needed for test/docs-only changes; actual patched-runtime browser
+proof already exists. No task-owned app listener intended to remain running.
 
-Scenario C/D/F scoped automated evidence exists; E explicit safe shortage/bounded
-unknown present but shorter/review alternatives unimplemented. H same-profile real
-barriers/same-key replay already present; H.1 in progress, full cross-mode remains
-unsupported/unexecuted. A/B/I/J TrackA/out-of-scope NOT_EXECUTED. Full TEST-002/MVP
-remain incomplete; qualified content12/6/12/provenance/independent humans/manual
-AT/native zoom remain external inputs. Next review H.1 after handoff, consolidate
-current local acceptance navigation, preserve private ignored artifacts and owner
-changes. No paid API/Astra/push/merge/deploy or unauthorized real content.
+Full TEST-002/WEB-004/Technical MVP remain incomplete. Current independently timed
+student demonstration and authorized B1–B8 staff subset are coherent and documented.
+E shorter/review alternatives and full H fixed/review cross-mode path are not
+implemented or silently enabled. A/B/I/J TrackA integration remains outside scope.
+Lawful12/6/12 inventory/provenance/independent qualified humans and manual native
+zoom/screen reader acceptance are still external inputs, not routine engineering
+permission. Performance/real identity/production remain unexecuted/outside demo.
+Private ignored `.local` logs/DBs/tokens/browser profiles/screenshots never staged.

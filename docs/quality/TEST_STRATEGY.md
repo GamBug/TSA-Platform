@@ -2,6 +2,11 @@
 
 Status: verification requirements with executed task evidence recorded below and in task-specific review records. Passing bounded checks do not imply full release or accessibility acceptance. [Backlog](../tasks/TASK_BACKLOG.md) defines completion criteria; [latest handoff](../agents/LAST_HANDOFF.md) records actual checks. Use synthetic or explicitly authorized data, never protected exam dumps or production PII.
 
+Current2026-10-25 local product/scenario reconciliation:
+[Track B acceptance navigation](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
+This maps actual student/staff/validator evidence and bounded C–H coverage without
+claiming full A–J, qualified accessibility, real content or production acceptance.
+
 Current executed student integration evidence (2026-10-22):
 [WEB-004 verification](../reviews/WEB_004_PERSISTENT_STUDENT_VERIFICATION.md)
 records actual Chromium/PostgreSQL and separate engineering review. It supplements
@@ -201,9 +206,11 @@ console.log(JSON.stringify({required:required.length,markdown:files.filter(p=>p.
 if(errors.length) process.exitCode=1;
 ```
 
-## Phase 02.75 scenario acceptance — NOT RUN
+## Phase 02.75 scenario acceptance — original planning requirements
 
-These are future runtime tests, not evidence from documentation checks. [Factory](../specifications/QUESTION_FACTORY_SPEC.md) and [reuse](../specifications/QUESTION_REUSE_POLICY.md) define the policies.
+This original matrix defines the required experiments. Bounded C–H execution is
+now mapped in the dated local acceptance record above; A/B/I/J remain NOT_EXECUTED
+in this Track B scope. The matrix alone is not execution evidence. [Factory](../specifications/QUESTION_FACTORY_SPEC.md) and [reuse](../specifications/QUESTION_REUSE_POLICY.md) define the policies.
 
 | Owner scenario | Required experiment and invariant | Tasks |
 |---|---|---|

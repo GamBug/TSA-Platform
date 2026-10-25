@@ -1,5 +1,7 @@
 # Track B supervisor demonstration
 
+Current engineering acceptance and remaining human inputs: [dated acceptance map](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
+
 This guide demonstrates an unofficial TSA practice website using real local
 PostgreSQL services and original synthetic engineering questions. It does not
 establish university affiliation, official scoring equivalence, qualified content

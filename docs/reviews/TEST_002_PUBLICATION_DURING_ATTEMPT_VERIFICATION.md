@@ -47,7 +47,10 @@ Node24.18/npm11.16/PostgreSQL18.6, Zod4.6.7:
 
 Final reviewed file SHA256:
 `c61b72ea16afd4d6cf845b695f4675a77ca341b042919e79587e4eec81eef06c`.
-Ignored logs `.local/test002-g-*`. Clean reproduction of this test checkpoint pending.
+Ignored logs `.local/test002-g-*`. Clean no-hardlink reproduction of4dd3fca PASS: fresh `npm ci --ignore-scripts`,
+`npm run build`, `npm run test:results` PASS7; final clone Git status empty.
+No file patches/manual SQL/API setup, inherited DB or browser profile. Root clone
+`/tmp/tsa-test002-g-clean.NiXmCp`, logs `.local/test002-g-clean-*`; automatic teardown.
 
 No product defect was observed. This closes G's controlled synthetic publication/
 immutability/grade/released-review evidence gap. Full A–J, real content, qualified

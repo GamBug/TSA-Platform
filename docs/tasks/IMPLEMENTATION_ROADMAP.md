@@ -6,8 +6,10 @@ assembly50/critical9/student34/domains78/Chrome46/Firefox16/audit0 PASS; separat
 reviewer targeted compatibility/integrity checks no findings. Clean no-hardlink
 3cd49be install/build/contracts156/focused12/domains78/Chrome46/Firefox16/emitted/
 boundaries/docs/audit0 PASS, final clone Git empty. [Evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
-Next named acceptance gap: corrected publication during active attempt followed by
-grading of immutable original snapshots (TEST-002 G), using existing harness only.
+TEST-002 G now verified/reviewed and clean4dd3fca install/build/results7 PASS.
+H.1 current-domain barrier extension target3/allocation18 and independent target3/
+abortprobe2 and final root fullassembly53 PASS; clean H.1 reproduction pending. No runtime/mode/contract expansion.
+[Current scoped acceptance/remaining inputs](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
 
 Current B8.1, 2026-10-25: actual eligible Bank rehearsal implemented with separate
 immutable021 storage, current EXAM command, audited BANK replay and role-scoped UI.

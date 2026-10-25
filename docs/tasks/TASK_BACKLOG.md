@@ -1731,17 +1731,23 @@ Luna is usage-limited, separate Sol6.1/Medium review when available.
 2026-10-25 **SCENARIO G — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, starting3cd49be. Root accountable;
 read-only existing scout mapped C–H and checked other attempt/grading/result/runtime
 files, found no corrected-version publication during an active attempt followed by
-sealed-original grading/released review. Narrow native Luna/XHigh writer owns only
-`tests/integration/results/delivery.test.mjs`; existing fixture/services, one real
+sealed-original grading/released review. Narrow native Luna/XHigh writer implemented only
+`tests/integration/results/delivery.test.mjs` and released ownership; existing fixture/services, one real
 PG regression, no new harness/runtime/schema/privilege changes. Root integrates,
 separate Sol6.1/Medium read-only review after implementation. This closes a named
 acceptance gap, not full TEST-002 or all A–J. Synthetic approval is fixture machinery,
 not qualified human evidence. Writer target1/file2, root results7/grading23/finalfile2,
 separate reviewer finalfile2/syntax/whitespace PASS, no findings. Full-row/microsecond
 oracle repaired before final review. [Exact evidence](../reviews/TEST_002_PUBLICATION_DURING_ATTEMPT_VERIFICATION.md).
-Clean reproduction pending. H.1 different-domain same-user barrier is the next
-explicit gap, root accountable/native LunaXHigh owns only allocation.test.mjs; no
-new runtime/mode/contract. Full H cross-mode remains unexecuted.
+Clean no-hardlink4dd3fca install/build/results7 PASS, final clone Git empty.
+
+2026-10-25 **H.1 — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, different-domain same-user barriers:
+root/writer finalallocation18/target3, separate reviewer target3/abortprobe2 PASS;
+final fullassembly53 PASS after repairs; clean reproduction pending. Two concrete
+harness P2s repaired, no product failure. [H.1 evidence](../reviews/TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md).
+No runtime/mode/contract changes. Full H cross-mode remains unexecuted.
+Current [local product/scenario acceptance map](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md)
+keeps unsupported E alternatives, TrackA and external human criteria explicit.
 
 
 2026-10-23 final HTTP review **INDEPENDENTLY_REVIEWED**: separate native

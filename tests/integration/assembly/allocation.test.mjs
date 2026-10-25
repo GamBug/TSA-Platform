@@ -6,6 +6,7 @@ import { withTransaction } from '../../../src/modules/database/pool.mjs';
 import { createAllocationService } from '../../../src/modules/assembly/allocation.mjs';
 import { createEquivalenceService } from '../../../src/modules/bank/equivalence.mjs';
 import { bankRequest } from '../bank/harness.mjs';
+import { createBundleFixture } from './bundle-fixtures.mjs';
 import { createAllocationFixture } from './fixtures.mjs';
 
 function requestFor(blueprintVersionId) {
@@ -35,8 +36,12 @@ function interceptPool(pool, queryHook) {
   };
 }
 
-function lockedCommitPool(pool, winningKey = null) {
+function lockedCommitPool(pool, winningKey = null, { statementTimeoutMs = null } = {}) {
+  if (statementTimeoutMs !== null && (!Number.isSafeInteger(statementTimeoutMs) || statementTimeoutMs <= 0)) {
+    throw new TypeError('A positive integer SQL timeout is required');
+  }
   let arrivals = 0;
+  let abortReason = null;
   let announceReady;
   let announceWinnerQuery;
   let releaseWinner;
@@ -44,21 +49,39 @@ function lockedCommitPool(pool, winningKey = null) {
   const winnerQuery = new Promise((resolve) => { announceWinnerQuery = resolve; });
   const winnerGate = new Promise((resolve) => { releaseWinner = resolve; });
   const wrapped = interceptPool(pool, async (query, text, values) => {
+    if (text === 'BEGIN' && statementTimeoutMs !== null) {
+      const result = await query(text, values);
+      // SET is a utility statement: SELECT set_config would prevent later isolation setup.
+      await query(`SET LOCAL statement_timeout = ${statementTimeoutMs}`);
+      return result;
+    }
     if (typeof text !== 'string' || !text.includes('tsa.assembly_commit_personal')) return query(text, values);
     arrivals += 1;
     const arrival = arrivals;
     if (arrivals === 2) announceReady();
     await bothReady;
+    if (abortReason) throw abortReason;
     if (winningKey === null ? arrival === 1 : values[0] === winningKey) {
       const result = await query(text, values);
       announceWinnerQuery();
       await winnerGate;
+      if (abortReason) throw abortReason;
       return result;
     }
     await winnerQuery;
+    if (abortReason) throw abortReason;
     return query(text, values);
   });
-  return { pool: wrapped, winnerQuery, releaseWinner };
+  return {
+    pool: wrapped, winnerQuery, releaseWinner,
+    abort(error) {
+      abortReason ??= error;
+      announceReady();
+      announceWinnerQuery();
+      releaseWinner();
+    },
+    get failure() { return abortReason; },
+  };
 }
 
 function simultaneousCommitPool(pool, expected) {
@@ -584,6 +607,187 @@ test('different candidates can hold two successful allocation commits concurrent
   assert.deepEqual(await questionIds(left.body.formId), await questionIds(right.body.formId));
   assert.equal((await fixture.pool.query('SELECT count(*)::int AS n FROM tsa.student_question_history')).rows[0].n, 8);
   assert.equal((await fixture.pool.query('SELECT count(*)::int AS n FROM tsa.attempts')).rows[0].n, 2);
+});
+
+test('same-user MATH and READING creation races serialize across distinct blueprint pins in both winner orders', { timeout: 60_000 }, async (t) => {
+  const fixture = await createBundleFixture({ section: 'READING', bundleCount: 1 });
+  t.after(() => fixture.close());
+
+  const mathQuestions = await Promise.all(Array.from({ length: 4 }, (_, index) =>
+    fixture.createQuestion(fixture.source, `cross-domain-race-math-${index + 1}-${randomUUID()}`)));
+  const mathBlueprint = await fixture.createBlueprint({ count: 4, section: 'MATH' });
+  const readingBlueprint = fixture.blueprint;
+  assert.notEqual(mathBlueprint.versionId, readingBlueprint.versionId);
+
+  const mathPins = new Set(mathQuestions.map((question) => `${question.questionId}:${question.versionId}`));
+  const readingPins = new Set(fixture.bundles[0].questions.map((question) => `${question.questionId}:${question.versionId}`));
+  assert.equal(mathPins.size, 4);
+  assert.equal(readingPins.size, 2);
+
+  const scenarios = [
+    {
+      name: 'MATH wins while READING waits',
+      principal: fixture.principals.studentA,
+      winnerDomain: 'MATH',
+      winnerKey: `math-wins-${randomUUID()}`,
+      loserKey: `reading-loses-${randomUUID()}`,
+      winnerBlueprint: mathBlueprint,
+      loserBlueprint: readingBlueprint,
+      expectedQuestionPins: mathPins,
+      expectedCount: 4,
+    },
+    {
+      name: 'READING wins while MATH waits',
+      principal: fixture.principals.studentB,
+      winnerDomain: 'READING',
+      winnerKey: `reading-wins-${randomUUID()}`,
+      loserKey: `math-loses-${randomUUID()}`,
+      winnerBlueprint: readingBlueprint,
+      loserBlueprint: mathBlueprint,
+      expectedQuestionPins: readingPins,
+      expectedCount: 2,
+    },
+  ];
+
+  for (const scenario of scenarios) await t.test(scenario.name, async () => {
+    const userId = scenario.principal.userId;
+    assert.deepEqual(await allocationCounts(fixture.pool, userId), {
+      runs: 0, forms: 0, attempts: 0, history: 0, receipts: 0,
+    });
+
+    const barrier = lockedCommitPool(fixture.examPool, scenario.winnerKey, { statementTimeoutMs: 10_000 });
+    const service = createAllocationService({ examPool: barrier.pool, identityService: fixture.identityService });
+    const requests = {
+      MATH: service.create(scenario.principal, scenario.winnerDomain === 'MATH' ? scenario.winnerKey : scenario.loserKey,
+        requestFor(mathBlueprint.versionId)),
+      READING: service.create(scenario.principal, scenario.winnerDomain === 'READING' ? scenario.winnerKey : scenario.loserKey,
+        requestFor(readingBlueprint.versionId)),
+    };
+    const pending = Promise.allSettled([requests.MATH, requests.READING]);
+    let barrierTimer;
+    try {
+      await Promise.race([barrier.winnerQuery, new Promise((_, reject) => {
+        barrierTimer = setTimeout(() => {
+          const error = new Error('Cross-domain allocation did not reach its winner barrier');
+          reject(error);
+          barrier.abort(error);
+        }, 7_500);
+      })]);
+      if (barrier.failure) throw barrier.failure;
+      await waitForAllocationLock(fixture.pool);
+    } catch (error) {
+      barrier.abort(error);
+      const settled = await pending;
+      const outcomes = settled.map((item) => item.status === 'fulfilled' ? 'fulfilled'
+        : `rejected:${item.reason?.status ?? 'unknown'}:${item.reason?.code ?? 'unknown'}`);
+      error.message += `; request outcomes: ${outcomes.join(', ')}`;
+      throw error;
+    } finally {
+      clearTimeout(barrierTimer);
+      barrier.releaseWinner();
+      // Abort releases every JS gate; the SQL timeout also bounds database waits.
+      await pending;
+    }
+
+    const [mathResult, readingResult] = await pending;
+    const winnerResult = scenario.winnerDomain === 'MATH' ? mathResult : readingResult;
+    const loserResult = scenario.winnerDomain === 'MATH' ? readingResult : mathResult;
+    assert.equal(winnerResult.status, 'fulfilled');
+    assert.equal(winnerResult.value.status, 201);
+    assert.equal(winnerResult.value.replayed, false);
+    assert.equal(loserResult.status, 'rejected');
+    assert.equal(loserResult.reason.status, 409);
+    assert.equal(loserResult.reason.code, 'CONCURRENT_ATTEMPT_EXISTS');
+    assert.deepEqual(loserResult.reason.details, { existingAttemptId: winnerResult.value.body.attemptId });
+
+    const receipt = winnerResult.value.body;
+    assert.equal(receipt.state, 'CREATED');
+    assert.equal(receipt.domain, scenario.winnerDomain);
+    assert.equal(receipt.formMode, 'PERSONALIZED_PRACTICE');
+    assert.equal(receipt.reuseMode, 'NEW_ONLY');
+    assert.equal(receipt.reusePolicyVersion, 'reuse/1');
+    assert.equal(JSON.stringify(receipt).includes('questionVersionId'), false);
+    assert.deepEqual(await allocationCounts(fixture.pool, userId), {
+      runs: 1, forms: 1, attempts: 1, history: scenario.expectedCount, receipts: 1,
+    });
+
+    assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.assembly_runs WHERE user_id=$1', [userId])).rows[0].n, 1,
+      'the losing request creates no run, including a failed diagnostic run');
+    const owned = await fixture.pool.query(`SELECT a.id AS attempt_id,a.user_id,a.form_id,a.state::text AS state,
+        a.form_mode::text AS attempt_mode,a.reuse_mode::text AS attempt_reuse,a.start_before_at,
+        to_char(a.start_before_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS exact_start_before,
+        a.started_at,a.deadline_at,f.blueprint_version_id AS form_blueprint,f.mode::text AS form_mode,
+        f.owner_user_id,f.content_hash,r.id AS run_id,r.user_id AS run_user_id,
+        r.blueprint_version_id AS run_blueprint,r.form_mode::text AS run_mode,
+        r.reuse_mode::text AS run_reuse,r.outcome,r.manifest,r.manifest_hash
+      FROM tsa.attempts a JOIN tsa.forms f ON f.id=a.form_id
+      JOIN tsa.assembly_runs r ON r.id=f.assembly_run_id WHERE a.user_id=$1`, [userId]);
+    assert.equal(owned.rowCount, 1);
+    const row = owned.rows[0];
+    assert.equal(row.attempt_id, receipt.attemptId);
+    assert.equal(row.form_id, receipt.formId);
+    assert.equal(row.state, 'CREATED');
+    assert.equal(row.user_id, userId);
+    assert.equal(row.owner_user_id, userId);
+    assert.equal(row.attempt_mode, 'PERSONALIZED_PRACTICE');
+    assert.equal(row.form_mode, 'PERSONALIZED_PRACTICE');
+    assert.equal(row.run_mode, 'PERSONALIZED_PRACTICE');
+    assert.equal(row.attempt_reuse, 'NEW_ONLY');
+    assert.equal(row.run_reuse, 'NEW_ONLY');
+    assert.equal(row.started_at, null);
+    assert.equal(row.deadline_at, null);
+    assert.equal(receipt.startBefore, row.exact_start_before);
+    assert.equal(row.form_blueprint, scenario.winnerBlueprint.versionId);
+    assert.equal(row.run_blueprint, scenario.winnerBlueprint.versionId);
+    assert.equal(row.run_user_id, userId);
+    assert.equal(row.outcome, 'SUCCESS');
+    assert.equal(row.manifest.blueprintVersionId, scenario.winnerBlueprint.versionId);
+    assert.equal(row.manifest.blueprintHash, scenario.winnerBlueprint.contentHash);
+    assert.equal(row.manifest.reuseMode, 'NEW_ONLY');
+    assert.equal(row.manifest.blueprint.sections[0].section, scenario.winnerDomain);
+    assert.equal(row.manifest_hash,
+      `sha256:${createHash('sha256').update(canonicalize(row.manifest)).digest('hex')}`);
+
+    const sectionResult = await fixture.pool.query(`SELECT section::text AS section,question_count,duration_seconds
+      FROM tsa.form_sections WHERE form_id=$1`, [receipt.formId]);
+    assert.deepEqual(sectionResult.rows, [{
+      section: scenario.winnerDomain,
+      question_count: scenario.expectedCount,
+      duration_seconds: scenario.winnerBlueprint.config.sections[0].durationSeconds,
+    }]);
+
+    const slots = await fixture.pool.query(`SELECT fs.question_id,fs.question_version_id,fs.ordinal,
+        section.section::text AS section,fs.snapshot_hash,secret.secret_hash
+      FROM tsa.form_slots fs JOIN tsa.form_sections section ON section.form_id=fs.form_id
+      JOIN tsa_private.form_slot_secrets secret ON secret.form_id=fs.form_id AND secret.slot_id=fs.slot_id
+      WHERE fs.form_id=$1 ORDER BY fs.ordinal`, [receipt.formId]);
+    assert.equal(slots.rowCount, scenario.expectedCount);
+    assert.ok(slots.rows.every((slot) => slot.section === scenario.winnerDomain));
+    assert.deepEqual(new Set(slots.rows.map((slot) => `${slot.question_id}:${slot.question_version_id}`)),
+      scenario.expectedQuestionPins);
+    assert.ok(slots.rows.every((slot) => /^sha256:[0-9a-f]{64}$/.test(slot.snapshot_hash)
+      && /^sha256:[0-9a-f]{64}$/.test(slot.secret_hash)));
+
+    const receipts = await fixture.pool.query(`SELECT idempotency_key,response_status,resource_id,
+        related_attempt_id,safe_response
+      FROM tsa.idempotency_records WHERE actor_id=$1 AND route_scope='POST /api/v1/attempts'
+      ORDER BY idempotency_key`, [userId]);
+    assert.equal(receipts.rowCount, 1, 'the losing key created no receipt');
+    assert.deepEqual(receipts.rows[0], {
+      idempotency_key: scenario.winnerKey,
+      response_status: 201,
+      resource_id: receipt.attemptId,
+      related_attempt_id: receipt.attemptId,
+      safe_response: receipt,
+    });
+
+    const history = await fixture.pool.query(`SELECT question_id,first_attempt_id
+      FROM tsa.student_question_history WHERE user_id=$1 ORDER BY question_id`, [userId]);
+    assert.equal(history.rowCount, scenario.expectedCount);
+    assert.ok(history.rows.every((item) => item.first_attempt_id === receipt.attemptId));
+    assert.deepEqual(new Set(history.rows.map((item) => item.question_id)),
+      new Set(slots.rows.map((slot) => slot.question_id)));
+  });
 });
 
 async function serviceErrorFrom(promise) {
