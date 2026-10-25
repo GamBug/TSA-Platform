@@ -50,9 +50,11 @@ profiles/screenshots. No task-owned app server intentionally left running.
 
 ## Continue safely
 
-Implementation ready for local checkpoint then fresh no-hardlink locked install/
-build/focused47/Chrome44/Firefox13/built/drift/import/docs reproduction. Append only
-actual outcomes. B7.1 pure reference7ba60a5 already clean reproduced reference31/
+Implementation e9cd346 clean no-hardlink reproduction PASS: locked install/build/
+focused47/Chrome44/Firefox13/built/drift/import/docs, no patches/manual SQL/API setup;
+final clone Git status empty. Subsequent copy-only Vietnamese polish separately
+root Chrome44/Firefox13 PASS and independent source/forcedESM/whitespace no findings.
+Clean proof is e9cd346, latest copy has separate actual browser evidence. B7.1 pure reference7ba60a5 already clean reproduced reference31/
 consumer12/assembly50/type/drift/import/docs with empty final Git status; baseline
 measurement clone is separate. [Reference evidence](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
 

@@ -773,7 +773,10 @@ Chrome43(22captures)/static plus GETframing1/CLI2 PASS, no unresolved findings.
 [Exact evidence/limits](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
 Default module syntax check missed a parenthesis; forced ESM/browser now pass.
 Three explicit latest-upgrade expected arrays extended020 after observed failures;
-old pinned rehearsals stay bounded. Clean reproduction follows checkpoint.
+old pinned rehearsals stay bounded. Clean no-hardlink e9cd346 locked install/
+build/focused47/Chrome44/Firefox13/built/drift/import/docs PASS with no patches/
+manual SQL/API setup; final clone Git status empty. Final copy-only polish separately
+root Chrome44/Firefox13 PASS and independent source/forcedESM/whitespace no findings.
 
 2026-10-24 **B7.1 FIXED REFERENCE — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base7571a36.
 Root selects additive pure fixed reference prerequisite under delegated authority;

@@ -749,7 +749,7 @@ function renderFixedRunList(list, openRun) {
   table.append(node('caption', '', 'Tối đa 20 lần chạy tham chiếu cố định mới nhất'));
   const head = node('thead');
   const headerRow = node('tr');
-  for (const label of ['Mã lần chạy', 'Phiên bản blueprint', 'Kết quả được ghi nhận', 'Thời điểm tạo', 'Thao tác']) {
+  for (const label of ['Mã lần chạy', 'Phiên bản cấu hình', 'Kết quả được ghi nhận', 'Thời điểm tạo', 'Thao tác']) {
     const header = node('th', '', label);
     header.scope = 'col';
     headerRow.append(header);
@@ -785,15 +785,15 @@ function renderFixedRunList(list, openRun) {
 
 function fixedRunOutcomeMessage(diagnostic) {
   if (diagnostic.outcome === 'SUCCESS') {
-    return 'Bản phát lại đã tìm được nghiệm đáp ứng các số lượng trong manifest cố định đã chụp. Kết quả này không xác nhận ứng viên thuộc ngân hàng đủ điều kiện, quyền sử dụng, rà soát của con người hay khả năng giao một đề thi.';
+    return 'Tìm được tổ hợp đáp ứng các điều kiện đã ghi nhận. Kết quả này chưa xác nhận câu hỏi đủ điều kiện sử dụng, quyền nội dung hoặc rà soát của con người, và không tạo đề thi cho học viên.';
   }
   if (diagnostic.failureCode === 'CONSTRAINT_CONFLICT') {
-    return 'Bản phát lại ghi nhận xung đột trong các ràng buộc của manifest cố định. Kết quả này không mô tả kho câu hỏi hiện tại.';
+    return 'Các yêu cầu trong bài toán đã ghi nhận mâu thuẫn với nhau. Kết quả này không mô tả kho câu hỏi hiện tại.';
   }
   if (diagnostic.failureCode === 'INSUFFICIENT_ELIGIBLE_INVENTORY') {
-    return 'Bản phát lại đã xác định không có nghiệm thỏa các ràng buộc trong snapshot này. Đây không phải kết luận về số lượng hoặc tình trạng kho câu hỏi hiện tại.';
+    return 'Không có tổ hợp đáp ứng các điều kiện đã ghi nhận. Đây không phải kết luận về số lượng hoặc tình trạng hiện tại của kho câu hỏi.';
   }
-  return 'Ngân sách tìm kiếm đã hết trước khi xác định tính khả thi; khả năng lắp đề trong snapshot này chưa rõ.';
+  return 'Đã đạt giới hạn tìm kiếm; tính khả thi của bài toán đã ghi nhận vẫn chưa rõ.';
 }
 
 function renderFixedRunDiagnostic(diagnostic) {
@@ -803,20 +803,20 @@ function renderFixedRunDiagnostic(diagnostic) {
   appendMetadataPair(metadata, 'Cơ sở truy cập', diagnostic.accessBasis);
   appendMetadataPair(metadata, 'Phạm vi', diagnostic.scope);
   appendMetadataPair(metadata, 'Mã lần chạy', diagnostic.run.assemblyRunId);
-  appendMetadataPair(metadata, 'Phiên bản blueprint', diagnostic.run.blueprintVersionId);
+  appendMetadataPair(metadata, 'Phiên bản cấu hình', diagnostic.run.blueprintVersionId);
   appendMetadataPair(metadata, 'Thời điểm tạo lần chạy', diagnostic.run.createdAt);
   appendMetadataPair(metadata, 'Quan sát mới từ máy chủ', diagnostic.observedAt);
   appendMetadataPair(metadata, 'Kết quả được ghi nhận', `${diagnostic.outcome === 'SUCCESS' ? 'Thành công' : 'Thất bại'} (${diagnostic.outcome})`);
   appendMetadataPair(metadata, 'Mã kết quả thất bại', diagnostic.failureCode ?? 'Không có');
   appendMetadataPair(metadata, 'Thuật toán', diagnostic.algorithmVersion);
   appendMetadataPair(metadata, 'Phát lại đã xác minh', diagnostic.replayVerified ? 'Có' : 'Không');
-  appendMetadataPair(metadata, 'Có tạo biểu mẫu', diagnostic.createsForm ? 'Có' : 'Không');
+  appendMetadataPair(metadata, 'Có tạo đề thi', diagnostic.createsForm ? 'Có' : 'Không');
   appendMetadataPair(metadata, 'Xác nhận đủ tư cách', diagnostic.qualification);
   appendMetadataPair(metadata, 'Đánh giá khả năng xuất bản', diagnostic.publicationEligibility);
   content.append(metadata);
 
   content.append(node('p', 'staff-fixed-reference-result', fixedRunOutcomeMessage(diagnostic)));
-  content.append(node('p', 'staff-fixed-reference-warning', 'Đây là dữ liệu tham chiếu tổng hợp. Các mã ứng viên trong snapshot không phải bản ghi đã được chụp điều kiện đủ tư cách từ ngân hàng; thao tác phát lại chỉ kiểm tra kết quả đã lưu và không tạo biểu mẫu, lịch sử học viên hay kết quả thi. Không suy ra quyền sử dụng hoặc đánh giá của người có thẩm quyền.'));
+  content.append(node('p', 'staff-fixed-reference-warning', 'Đây là bài toán tham chiếu tổng hợp, chưa lấy ứng viên từ kho câu hỏi đủ điều kiện. Kiểm tra lại kết quả đã lưu không tạo đề thi, lượt thi hay lịch sử làm bài; không xác nhận quyền sử dụng hoặc rà soát của con người.'));
 
   const countRows = [
     ['Đơn vị ứng viên đã chụp', diagnostic.capturedUnitCount],
@@ -832,7 +832,7 @@ function renderFixedRunDiagnostic(diagnostic) {
     String(section.requiredCount),
     String(section.selectedCount),
   ]);
-  content.append(preflightTable('Số lượng theo miền trong snapshot', ['Miền', 'Yêu cầu', 'Được chọn'], sectionRows));
+  content.append(preflightTable('Số lượng theo miền trong dữ liệu đã ghi nhận', ['Miền', 'Yêu cầu', 'Được chọn'], sectionRows));
   return content;
 }
 

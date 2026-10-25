@@ -60,6 +60,7 @@ Qualified keyboard/assistive-technology/native-zoom checks follow the
 [manual accessibility packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md).
 Automated browser evidence is not formal accessibility acceptance. Real identity,
 operational/load targets and production deployment are separate from this local
-presentation. Fixed-run diagnostics needs the separate
-[manifest/replay design reconciliation](../decisions/WEB_002_FIXED_DIAGNOSTICS_DEPENDENCIES.md).
+presentation. Stored synthetic fixed-reference diagnostics is now implemented;
+it does not provide eligible Bank capture or fixed student delivery. See the
+[scope and dependency record](../decisions/WEB_002_FIXED_DIAGNOSTICS_DEPENDENCIES.md).
 No owner content/rights/accessibility approval is inferred from engineering delegation.

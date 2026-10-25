@@ -5,7 +5,9 @@ with audited narrow020 function and genuine synthetic solver fixtures implemente
 [Actual PG/browser/regression/independent evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
 Personal runs/table SELECT remain denied; list metadata is distinct from replay
 verification; no Bank eligibility capture/sealed forms/fixed delivery/publication.
-Clean reproduction next.
+Clean no-hardlink e9cd346 locked install/build/focused47/Chrome44/Firefox13/built/
+drift/import/docs PASS without patches/manual SQL/API setup, final clone Git status
+empty. Final copy-only root Chrome44/Firefox13 and independent source checks PASS.
 
 Current B7.1, 2026-10-25: additive internal fixed reference/replay implemented
 without widening personal manifest modes. Old byte/result/node-count compatibility,

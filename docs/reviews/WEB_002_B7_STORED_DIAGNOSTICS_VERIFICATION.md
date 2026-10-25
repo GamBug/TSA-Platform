@@ -124,3 +124,37 @@ placeholders are not valid reference runs. No push/merge/deploy/Astra/paid API/l
 student inference. Clean committed reproduction follows and is appended only when
 executed. B7.1 pure reference compatibility and original personal golden tests remain
 unchanged; no reuse fallback or AI generation added.
+
+## Clean committed reproduction —e9cd346
+
+Root `git clone --no-hardlinks --quiet` into owned ignored
+`.local/verification-b7-stored/clean-e9cd346`; actual commands in order:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:staff:review
+TRACK_B_ARTIFACT_DIR=../clean-chrome npm run test:track-b:browser
+STUDENT_FIREFOX_ARTIFACT_DIR=../clean-firefox npm run test:staff:firefox
+npm run test:built
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain
+```
+
+All exit0: focused47, Chrome44/23captures, Firefox13/25captures, built/private
+drift/import/docs PASS. Final clone Git status empty. No patches/manual SQL/API
+setup or paid services; fixtures own/tear down isolated synthetic data. Logs in
+parent clean-*.log; no private artifacts committed. No human/production acceptance.
+
+Subsequent copy-only polish replaces awkward snapshot/manifest terminology in the
+fixed outcome/warning/table labels with plain Vietnamese; scope and unknown
+feasibility stay explicit. Root actually reran final Chrome44/23 and Firefox13/25
+PASS using chrome-final/firefox-final artifact directories/logs. Separate actual
+Sol6.1/Medium copy source/forced ESM/whitespace supplement found no issues, no
+browser rerun by reviewer for this copy-only supplement. Final staff.js SHA256:
+`dbc3f8ca93a8f221016ba7f58426c4c4faaf2c4544d49b4fcf5ddc80366a9eb8`.
+The clean proof is explicitly e9cd346; final copy has separate working-tree browser
+evidence, with no dependency/schema/behavior/DB change. Content-handoff footer now
+recognizes implemented reference diagnostics without claiming fixed delivery.
