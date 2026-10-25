@@ -72,6 +72,17 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Delegated B7.2 captured fixed-reference diagnostics — 2026-10-25
+
+[Exact selected policy/DTO/migration/impact](../decisions/WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md)
+adds opt-in current-manager GET `/assembly-runs` and
+`/assembly-runs/{assemblyRunId}/diagnostics`. Narrow fixed-only audited DB function,
+no assembly table SELECT or personal runs; strict private list/aggregate replay
+DTOs, not the broader proposed candidate-pool AssemblyDiagnostic below. Metadata
+list is not replay verification; explicit detail must match stored canonical inputs/
+result. No fixed creation/publication/student delivery or eligibility promise.
+[Executed evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+
 ### Additive internal fixed reference — 2026-10-25
 
 [B7.1 selected contract/impact](../decisions/WEB_002_B7_FIXED_REFERENCE_DECISION.md)

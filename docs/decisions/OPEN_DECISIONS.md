@@ -30,6 +30,17 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 B7.2 — stored fixed reference diagnostics selected 2026-10-25
+
+- Root-selected under owner engineering-choice delegation, AUTHORIZED_IN_SCOPE /
+  IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED. [Exact scope/privilege/migration/DTO/UI/acceptance](WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md).
+- Narrow fixed-only audited function/EXECUTE grant, no table SELECT or personal
+  runs; explicit manager list/detail aggregate UI and genuine stored synthetic
+  solver reference fixtures. No forms/student fixed delivery/publication authority.
+- Root SQL/backend/integration/records; disjoint native Luna/XHigh private DTO/UI
+  writers; separate Sol6.1/Medium read-only review.
+  [Actual evidence/limits](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+
 ## WEB-002 B7.1 — additive fixed reference selected 2026-10-24
 
 - Root selected under owner delegated engineering choices; AUTHORIZED_IN_SCOPE /

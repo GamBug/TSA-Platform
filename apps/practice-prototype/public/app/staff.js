@@ -61,6 +61,18 @@ const REVIEW_HISTORY_RUBRIC = Object.freeze([
 ]);
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/i;
+const FIXED_RUN_LIST_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'scope', 'limit', 'truncated', 'runs',
+]);
+const FIXED_RUN_DIAGNOSTIC_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'scope', 'run', 'algorithmVersion',
+  'replayVerified', 'createsForm', 'qualification', 'publicationEligibility', 'outcome', 'failureCode',
+  'visitedNodes', 'nodeLimit', 'capturedUnitCount', 'unitLimit', 'capturedCandidateCount', 'selectedCount', 'sections',
+]);
+const FIXED_RUN_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
+const FIXED_RUN_FAILURE_CODES = Object.freeze([
+  'CONSTRAINT_CONFLICT', 'INSUFFICIENT_ELIGIBLE_INVENTORY', 'SEARCH_EXHAUSTED',
+]);
 const REVIEW_HISTORY_KEYS = Object.freeze([
   'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'version',
   'workflowState', 'qualification', 'publicationEligibility', 'limit', 'truncated', 'reviews',
@@ -106,6 +118,111 @@ function utcInstantMicros(value) {
     || date.getUTCDate() !== day || date.getUTCHours() !== hour
     || date.getUTCMinutes() !== minute || date.getUTCSeconds() !== second) return null;
   return BigInt(milliseconds) * 1000n + BigInt((match[2] ?? '').padEnd(6, '0'));
+}
+
+function utcInstantMicros6(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value)
+    ? utcInstantMicros(value) : null;
+}
+
+function boundedJsonResponse(value, maxBytes = 1024 * 1024) {
+  try {
+    const serialized = JSON.stringify(value);
+    return typeof serialized === 'string' && new TextEncoder().encode(serialized).byteLength <= maxBytes;
+  } catch {
+    return false;
+  }
+}
+
+function fixedRunMetadataSupports(value) {
+  return hasExactKeys(value, ['assemblyRunId', 'blueprintVersionId', 'outcome', 'createdAt'])
+    && typeof value.assemblyRunId === 'string' && UUID_PATTERN.test(value.assemblyRunId)
+    && typeof value.blueprintVersionId === 'string' && UUID_PATTERN.test(value.blueprintVersionId)
+    && ['SUCCESS', 'FAILURE'].includes(value.outcome)
+    && utcInstantMicros6(value.createdAt) !== null;
+}
+
+function fixedRunListSupportsResponse(list) {
+  if (!hasExactKeys(list, FIXED_RUN_LIST_KEYS)
+    || list.schemaVersion !== 'staff-fixed-assembly-runs/1'
+    || list.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || list.accessBasis !== 'BANK_MANAGER'
+    || utcInstantMicros6(list.observedAt) === null
+    || list.scope !== 'CAPTURED_FIXED_REFERENCE_RUNS_ONLY'
+    || list.limit !== 20 || typeof list.truncated !== 'boolean'
+    || !Array.isArray(list.runs) || list.runs.length > 20
+    || (list.truncated && list.runs.length !== 20)
+    || !boundedJsonResponse(list)) return false;
+  const runIds = new Set();
+  const observedAt = utcInstantMicros6(list.observedAt);
+  let previousTimestamp = null;
+  let previousId = '';
+  return list.runs.every((run) => {
+    const normalizedId = typeof run?.assemblyRunId === 'string' ? run.assemblyRunId.toLowerCase() : '';
+    if (!fixedRunMetadataSupports(run) || runIds.has(normalizedId)) return false;
+    const timestamp = utcInstantMicros6(run.createdAt);
+    if (timestamp > observedAt || (previousTimestamp !== null
+      && (previousTimestamp < timestamp || (previousTimestamp === timestamp && previousId < normalizedId)))) return false;
+    runIds.add(normalizedId);
+    previousTimestamp = timestamp;
+    previousId = normalizedId;
+    return true;
+  });
+}
+
+function fixedRunDiagnosticSupportsResponse(diagnostic, expectedRun) {
+  if (!hasExactKeys(diagnostic, FIXED_RUN_DIAGNOSTIC_KEYS)
+    || diagnostic.schemaVersion !== 'staff-fixed-assembly-diagnostic/1'
+    || diagnostic.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || diagnostic.accessBasis !== 'BANK_MANAGER'
+    || utcInstantMicros6(diagnostic.observedAt) === null
+    || diagnostic.scope !== 'CAPTURED_FIXED_REFERENCE_RUN_ONLY'
+    || !fixedRunMetadataSupports(diagnostic.run)
+    || !expectedRun || !fixedRunMetadataSupports(expectedRun)
+    || diagnostic.run.assemblyRunId !== expectedRun.assemblyRunId
+    || diagnostic.run.blueprintVersionId !== expectedRun.blueprintVersionId
+    || diagnostic.run.outcome !== expectedRun.outcome
+    || diagnostic.run.createdAt !== expectedRun.createdAt
+    || utcInstantMicros6(diagnostic.observedAt) < utcInstantMicros6(diagnostic.run.createdAt)
+    || diagnostic.algorithmVersion !== 'assembly/1'
+    || diagnostic.replayVerified !== true || diagnostic.createsForm !== false
+    || diagnostic.qualification !== 'NOT_ATTESTED_BY_PLATFORM'
+    || diagnostic.publicationEligibility !== 'NOT_EVALUATED'
+    || diagnostic.outcome !== diagnostic.run.outcome
+    || !(diagnostic.failureCode === null || FIXED_RUN_FAILURE_CODES.includes(diagnostic.failureCode))
+    || !Number.isSafeInteger(diagnostic.visitedNodes) || diagnostic.visitedNodes < 0 || diagnostic.visitedNodes > 50_000
+    || !Number.isSafeInteger(diagnostic.nodeLimit) || diagnostic.nodeLimit < 0 || diagnostic.nodeLimit > 50_000
+    || diagnostic.visitedNodes > diagnostic.nodeLimit
+    || !Number.isSafeInteger(diagnostic.capturedUnitCount) || diagnostic.capturedUnitCount < 0 || diagnostic.capturedUnitCount > 10_000
+    || !Number.isSafeInteger(diagnostic.unitLimit) || diagnostic.unitLimit < 0 || diagnostic.unitLimit > 2_000
+    || !Number.isSafeInteger(diagnostic.capturedCandidateCount) || diagnostic.capturedCandidateCount < 0 || diagnostic.capturedCandidateCount > 2_000_000
+    || !Number.isSafeInteger(diagnostic.selectedCount) || diagnostic.selectedCount < 0 || diagnostic.selectedCount > 200
+    || !Array.isArray(diagnostic.sections) || diagnostic.sections.length < 1 || diagnostic.sections.length > 3
+    || !boundedJsonResponse(diagnostic)) return false;
+
+  const seenSections = new Set();
+  let previousSectionIndex = -1;
+  let requiredTotal = 0;
+  let selectedTotal = 0;
+  for (const section of diagnostic.sections) {
+    if (!hasExactKeys(section, ['section', 'requiredCount', 'selectedCount'])
+      || !FIXED_RUN_SECTIONS.includes(section.section)
+      || seenSections.has(section.section)
+      || FIXED_RUN_SECTIONS.indexOf(section.section) <= previousSectionIndex
+      || !Number.isSafeInteger(section.requiredCount) || section.requiredCount < 1 || section.requiredCount > 200
+      || !Number.isSafeInteger(section.selectedCount) || section.selectedCount < 0 || section.selectedCount > 200
+      || section.selectedCount > section.requiredCount) return false;
+    seenSections.add(section.section);
+    previousSectionIndex = FIXED_RUN_SECTIONS.indexOf(section.section);
+    requiredTotal += section.requiredCount;
+    selectedTotal += section.selectedCount;
+  }
+  if (requiredTotal > 200 || selectedTotal !== diagnostic.selectedCount) return false;
+  if (diagnostic.outcome === 'SUCCESS') {
+    return diagnostic.failureCode === null && diagnostic.selectedCount === requiredTotal;
+  }
+  return diagnostic.failureCode !== null && diagnostic.selectedCount === 0
+    && diagnostic.sections.every((section) => section.selectedCount === 0);
 }
 
 function reviewHistorySupportsResponse(history, versionId, contentHash) {
@@ -612,6 +729,113 @@ function renderDatasetPreflight(report) {
   return content;
 }
 
+function renderFixedRunList(list, openRun) {
+  const content = node('div', 'staff-fixed-reference-content');
+  content.append(node('p', 'staff-fixed-reference-warning', 'Đây là các lần chạy tham chiếu cố định đã được lưu; việc phát lại để xác minh chỉ diễn ra khi bạn mở chi tiết. Chúng không phải bản đề đã niêm phong, không phải kết quả chụp điều kiện đủ tư cách của ngân hàng câu hỏi, không xác nhận quyền sử dụng và không tạo biểu mẫu cho học viên.'));
+  content.append(node('p', 'staff-fixed-reference-observation', `Máy chủ ghi nhận danh sách lúc ${list.observedAt}.`));
+  if (list.truncated) {
+    content.append(node('p', 'staff-fixed-reference-note', 'Danh sách hiển thị 20 lần chạy mới nhất; còn các lần chạy cũ hơn.'));
+  }
+  if (list.runs.length === 0) {
+    content.append(node('p', 'staff-empty staff-fixed-reference-empty', 'Chưa có lần chạy tham chiếu cố định nào được lưu.'));
+    return content;
+  }
+
+  const region = node('div', 'staff-fixed-reference-table-wrap');
+  region.tabIndex = 0;
+  region.setAttribute('role', 'region');
+  region.setAttribute('aria-label', 'Các lần chạy tham chiếu cố định đã lưu');
+  const table = node('table', 'staff-fixed-reference-table');
+  table.append(node('caption', '', 'Tối đa 20 lần chạy tham chiếu cố định mới nhất'));
+  const head = node('thead');
+  const headerRow = node('tr');
+  for (const label of ['Mã lần chạy', 'Phiên bản blueprint', 'Kết quả được ghi nhận', 'Thời điểm tạo', 'Thao tác']) {
+    const header = node('th', '', label);
+    header.scope = 'col';
+    headerRow.append(header);
+  }
+  head.append(headerRow);
+  table.append(head);
+  const body = node('tbody');
+  for (const run of list.runs) {
+    const row = node('tr');
+    row.dataset.runId = run.assemblyRunId;
+    row.append(node('td', '', run.assemblyRunId));
+    row.append(node('td', '', run.blueprintVersionId));
+    row.append(node('td', '', `${run.outcome === 'SUCCESS' ? 'Thành công' : 'Thất bại'} (${run.outcome})`));
+    row.append(node('td', '', run.createdAt));
+    const actionCell = node('td');
+    const trigger = button('Phát lại và xem chẩn đoán', 'staff-fixed-run-open', async () => {
+      await openRun(run, trigger);
+    }, 'button secondary small');
+    trigger.dataset.runId = run.assemblyRunId;
+    trigger.setAttribute('aria-controls', 'staff-review-host');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', `Xem chẩn đoán đã phát lại cho lần chạy ${run.assemblyRunId}`);
+    actionCell.append(trigger);
+    row.append(actionCell);
+    body.append(row);
+  }
+  table.append(body);
+  region.append(table);
+  content.append(node('p', 'staff-form-help', 'Trên màn hình hẹp, cuộn ngang vùng bảng để xem đủ thông tin. Dùng phím Tab để mở chi tiết một lần chạy.'));
+  content.append(region);
+  return content;
+}
+
+function fixedRunOutcomeMessage(diagnostic) {
+  if (diagnostic.outcome === 'SUCCESS') {
+    return 'Bản phát lại đã tìm được nghiệm đáp ứng các số lượng trong manifest cố định đã chụp. Kết quả này không xác nhận ứng viên thuộc ngân hàng đủ điều kiện, quyền sử dụng, rà soát của con người hay khả năng giao một đề thi.';
+  }
+  if (diagnostic.failureCode === 'CONSTRAINT_CONFLICT') {
+    return 'Bản phát lại ghi nhận xung đột trong các ràng buộc của manifest cố định. Kết quả này không mô tả kho câu hỏi hiện tại.';
+  }
+  if (diagnostic.failureCode === 'INSUFFICIENT_ELIGIBLE_INVENTORY') {
+    return 'Bản phát lại đã xác định không có nghiệm thỏa các ràng buộc trong snapshot này. Đây không phải kết luận về số lượng hoặc tình trạng kho câu hỏi hiện tại.';
+  }
+  return 'Ngân sách tìm kiếm đã hết trước khi xác định tính khả thi; khả năng lắp đề trong snapshot này chưa rõ.';
+}
+
+function renderFixedRunDiagnostic(diagnostic) {
+  const content = node('div', 'staff-fixed-reference-content');
+  const metadata = node('dl', 'staff-review-metadata');
+  appendMetadataPair(metadata, 'Môi trường', diagnostic.environment);
+  appendMetadataPair(metadata, 'Cơ sở truy cập', diagnostic.accessBasis);
+  appendMetadataPair(metadata, 'Phạm vi', diagnostic.scope);
+  appendMetadataPair(metadata, 'Mã lần chạy', diagnostic.run.assemblyRunId);
+  appendMetadataPair(metadata, 'Phiên bản blueprint', diagnostic.run.blueprintVersionId);
+  appendMetadataPair(metadata, 'Thời điểm tạo lần chạy', diagnostic.run.createdAt);
+  appendMetadataPair(metadata, 'Quan sát mới từ máy chủ', diagnostic.observedAt);
+  appendMetadataPair(metadata, 'Kết quả được ghi nhận', `${diagnostic.outcome === 'SUCCESS' ? 'Thành công' : 'Thất bại'} (${diagnostic.outcome})`);
+  appendMetadataPair(metadata, 'Mã kết quả thất bại', diagnostic.failureCode ?? 'Không có');
+  appendMetadataPair(metadata, 'Thuật toán', diagnostic.algorithmVersion);
+  appendMetadataPair(metadata, 'Phát lại đã xác minh', diagnostic.replayVerified ? 'Có' : 'Không');
+  appendMetadataPair(metadata, 'Có tạo biểu mẫu', diagnostic.createsForm ? 'Có' : 'Không');
+  appendMetadataPair(metadata, 'Xác nhận đủ tư cách', diagnostic.qualification);
+  appendMetadataPair(metadata, 'Đánh giá khả năng xuất bản', diagnostic.publicationEligibility);
+  content.append(metadata);
+
+  content.append(node('p', 'staff-fixed-reference-result', fixedRunOutcomeMessage(diagnostic)));
+  content.append(node('p', 'staff-fixed-reference-warning', 'Đây là dữ liệu tham chiếu tổng hợp. Các mã ứng viên trong snapshot không phải bản ghi đã được chụp điều kiện đủ tư cách từ ngân hàng; thao tác phát lại chỉ kiểm tra kết quả đã lưu và không tạo biểu mẫu, lịch sử học viên hay kết quả thi. Không suy ra quyền sử dụng hoặc đánh giá của người có thẩm quyền.'));
+
+  const countRows = [
+    ['Đơn vị ứng viên đã chụp', diagnostic.capturedUnitCount],
+    ['Giới hạn đơn vị', diagnostic.unitLimit],
+    ['Ứng viên thành viên đã chụp', diagnostic.capturedCandidateCount],
+    ['Số mục được chọn', diagnostic.selectedCount],
+    ['Nút đã thăm', diagnostic.visitedNodes],
+    ['Giới hạn nút tìm kiếm', diagnostic.nodeLimit],
+  ].map(([label, value]) => [label, String(value)]);
+  content.append(preflightTable('Số lượng và giới hạn trong lần chạy', ['Chỉ số', 'Giá trị'], countRows));
+  const sectionRows = diagnostic.sections.map((section) => [
+    section.section,
+    String(section.requiredCount),
+    String(section.selectedCount),
+  ]);
+  content.append(preflightTable('Số lượng theo miền trong snapshot', ['Miền', 'Yêu cầu', 'Được chọn'], sectionRows));
+  return content;
+}
+
 function preflightTable(captionText, headings, rows) {
   const region = node('div', 'staff-dataset-preflight-table-wrap');
   region.tabIndex = 0;
@@ -742,6 +966,8 @@ export async function openStaffWorkspace(container, onBack) {
     listError: null,
     listRequestId: 0,
     identityEpoch: 0,
+    fixedRunRequestId: 0,
+    fixedRunView: null,
     reviewHistoryRequestId: 0,
     reviewHistoryView: null,
     reviewRequestId: 0,
@@ -1038,11 +1264,14 @@ export async function openStaffWorkspace(container, onBack) {
 
   function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false, preservePreflight = false } = {}) {
     const previousViews = [
+      state.fixedRunView,
       ...(preservePreflight ? [] : [state.datasetPreflightView]),
       state.reviewHistoryView, state.evidenceView, state.reviewView,
     ];
     const previous = previousViews.find(Boolean);
     if (!preservePreflight) clearDatasetPreflight();
+    state.fixedRunRequestId += 1;
+    state.fixedRunView = null;
     state.reviewHistoryRequestId += 1;
     state.reviewHistoryView = null;
     state.reviewRequestId += 1;
@@ -1059,7 +1288,10 @@ export async function openStaffWorkspace(container, onBack) {
       state.dispositionStatus = null;
       closeDispositionDialog();
     }
-    for (const view of previousViews) view?.triggerElement?.setAttribute('aria-expanded', 'false');
+    for (const view of previousViews) {
+      view?.triggerElement?.setAttribute('aria-expanded', 'false');
+      view?.rowTriggerElement?.setAttribute('aria-expanded', 'false');
+    }
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (host) {
       host.replaceChildren();
@@ -1073,6 +1305,112 @@ export async function openStaffWorkspace(container, onBack) {
     } else if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
   }
   ACTIVE_PRIVATE_VIEW_CLEARERS.set(container, () => clearPrivateReviewView());
+
+  async function loadFixedRunList(triggerElement = state.fixedRunView?.triggerElement) {
+    if (!isWorkspaceActive() || !state.canReadList || !state.principal?.roles?.includes('BANK_MANAGER')) return;
+    if (state.fixedRunView?.kind === 'fixed-runs' && state.fixedRunView.status === 'loading') return;
+    clearPrivateReviewView();
+    const requestId = ++state.fixedRunRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.fixedRunView = {
+      kind: 'fixed-runs', status: 'loading', triggerElement, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.fixedRunRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.canReadList
+      && state.principal?.roles?.includes('BANK_MANAGER')
+      && state.fixedRunView?.kind === 'fixed-runs'
+      && state.fixedRunView?.status === 'loading';
+    try {
+      const result = await request('/api/v1/assembly-runs');
+      if (!isCurrent()) return;
+      if (!fixedRunListSupportsResponse(result)) {
+        throw new Error('Máy chủ không trả về danh sách lần chạy tham chiếu cố định hợp lệ.');
+      }
+      state.fixedRunView = {
+        ...state.fixedRunView, status: 'loaded', list: result,
+      };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.fixedRunView = {
+        ...state.fixedRunView, status: 'error',
+        error: error.message ?? 'Không thể tải danh sách lần chạy tham chiếu cố định.',
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  async function loadFixedRunDetail(run, rowTriggerElement, listSnapshot = state.fixedRunView) {
+    if (!isWorkspaceActive() || !state.canReadList || !state.principal?.roles?.includes('BANK_MANAGER')
+      || !fixedRunMetadataSupports(run) || !listSnapshot || listSnapshot.kind !== 'fixed-runs'
+      || listSnapshot.status !== 'loaded' || !listSnapshot.list?.runs?.some((candidate) =>
+        candidate.assemblyRunId === run.assemblyRunId && candidate.blueprintVersionId === run.blueprintVersionId
+          && candidate.outcome === run.outcome && candidate.createdAt === run.createdAt)) return;
+
+    const retainedList = listSnapshot;
+    const triggerElement = retainedList.triggerElement;
+    clearPrivateReviewView();
+    const requestId = ++state.fixedRunRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.fixedRunView = {
+      kind: 'fixed-detail', status: 'loading', run, triggerElement, rowTriggerElement,
+      listSnapshot: retainedList, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    rowTriggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.fixedRunRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.canReadList
+      && state.principal?.roles?.includes('BANK_MANAGER')
+      && state.fixedRunView?.kind === 'fixed-detail'
+      && state.fixedRunView?.run?.assemblyRunId === run.assemblyRunId;
+    try {
+      const result = await request(`/api/v1/assembly-runs/${encodeURIComponent(run.assemblyRunId)}/diagnostics`);
+      if (!isCurrent()) return;
+      if (!fixedRunDiagnosticSupportsResponse(result, run)) {
+        throw new Error('Máy chủ không trả về chẩn đoán hợp lệ cho lần chạy đã chọn.');
+      }
+      state.fixedRunView = {
+        ...state.fixedRunView, status: 'loaded', diagnostic: result,
+      };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.fixedRunView = {
+        ...state.fixedRunView, status: 'error',
+        error: error.message ?? 'Không thể tải chẩn đoán cho lần chạy đã chọn.',
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  function returnToFixedRunList(view = state.fixedRunView) {
+    if (!isWorkspaceActive() || state.fixedRunView !== view || view?.kind !== 'fixed-detail'
+      || view.listSnapshot?.kind !== 'fixed-runs' || view.listSnapshot.status !== 'loaded') return;
+    state.fixedRunRequestId += 1;
+    state.fixedRunView = view.listSnapshot;
+    view.triggerElement?.setAttribute('aria-expanded', 'true');
+    view.rowTriggerElement?.setAttribute('aria-expanded', 'false');
+    renderReviewPanel();
+    const rowTrigger = [...container.querySelectorAll('[data-testid="staff-fixed-run-open"]')]
+      .find((element) => element.dataset.runId === view.run.assemblyRunId);
+    rowTrigger?.focus();
+  }
+
+  function retryFixedRunView(view = state.fixedRunView) {
+    if (view?.kind === 'fixed-runs') return loadFixedRunList(view.triggerElement);
+    if (view?.kind === 'fixed-detail') return loadFixedRunDetail(view.run, view.rowTriggerElement, view.listSnapshot);
+  }
 
   function dispositionEligible(kind, view = state.reviewView) {
     const context = view?.context;
@@ -1497,7 +1835,7 @@ export async function openStaffWorkspace(container, onBack) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
-    const view = state.datasetPreflightView ?? state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
+    const view = state.datasetPreflightView ?? state.fixedRunView ?? state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
     host.replaceChildren();
     host.hidden = !view;
     if (!view) return;
@@ -1505,8 +1843,11 @@ export async function openStaffWorkspace(container, onBack) {
     const isPreflight = view.kind === 'preflight';
     const isHistory = view.kind === 'history';
     const isEvidence = view.kind === 'evidence';
-    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}`);
-    panel.dataset.testid = isPreflight ? 'staff-preflight-report' : isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
+    const isFixedRunList = view.kind === 'fixed-runs';
+    const isFixedRunDetail = view.kind === 'fixed-detail';
+    const isFixedRun = isFixedRunList || isFixedRunDetail;
+    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}${isFixedRun ? ' staff-fixed-reference-panel' : ''}`);
+    panel.dataset.testid = isFixedRunDetail ? 'staff-fixed-detail' : isFixedRunList ? 'staff-fixed-list' : isPreflight ? 'staff-preflight-report' : isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
     if (isPreflight) {
       panel.dataset.scope = view.report.scope;
       panel.dataset.versionCount = String(view.report.versions.length);
@@ -1525,7 +1866,25 @@ export async function openStaffWorkspace(container, onBack) {
         panel.dataset.truncated = String(view.history.truncated);
       }
     }
-    const titleId = isPreflight ? 'staff-preflight-title' : isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
+    if (isFixedRunList && view.list) {
+      panel.dataset.observedAt = view.list.observedAt;
+      panel.dataset.runCount = String(view.list.runs.length);
+      panel.dataset.truncated = String(view.list.truncated);
+    }
+    if (isFixedRunDetail) {
+      const diagnostic = view.diagnostic;
+      panel.dataset.runId = diagnostic?.run?.assemblyRunId ?? view.run.assemblyRunId;
+      if (diagnostic) {
+        panel.dataset.blueprintVersionId = diagnostic.run.blueprintVersionId;
+        panel.dataset.createdAt = diagnostic.run.createdAt;
+        panel.dataset.outcome = diagnostic.outcome;
+        panel.dataset.failureCode = diagnostic.failureCode ?? 'null';
+        panel.dataset.observedAt = diagnostic.observedAt;
+        panel.dataset.replayVerified = String(diagnostic.replayVerified);
+        panel.dataset.selectedCount = String(diagnostic.selectedCount);
+      }
+    }
+    const titleId = isFixedRunDetail ? 'staff-fixed-detail-title' : isFixedRunList ? 'staff-fixed-list-title' : isPreflight ? 'staff-preflight-title' : isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
     panel.setAttribute('aria-labelledby', titleId);
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
@@ -1534,18 +1893,19 @@ export async function openStaffWorkspace(container, onBack) {
       }
     });
     const titleText = view.status === 'loading'
-      ? (isPreflight ? 'Đang tạo báo cáo tập phiên bản…' : isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
+      ? (isFixedRunList ? 'Đang tải kết quả lắp đề cố định…' : isFixedRunDetail ? 'Đang phát lại chẩn đoán lần chạy…' : isPreflight ? 'Đang tạo báo cáo tập phiên bản…' : isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
       : view.status === 'error'
-        ? (isPreflight ? 'Không thể tạo báo cáo tập phiên bản' : isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
-        : (isPreflight ? 'Báo cáo kiểm tra đồ thị chuẩn tắc' : isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
+        ? (isFixedRunList ? 'Không thể tải kết quả lắp đề cố định' : isFixedRunDetail ? 'Không thể tải chẩn đoán lần chạy' : isPreflight ? 'Không thể tạo báo cáo tập phiên bản' : isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
+        : (isFixedRunList ? 'Kết quả lắp đề cố định đã lưu' : isFixedRunDetail ? 'Chẩn đoán lần chạy cố định đã phát lại' : isPreflight ? 'Báo cáo kiểm tra đồ thị chuẩn tắc' : isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
     const heading = node('h2', '', titleText);
     heading.id = titleId;
     heading.tabIndex = -1;
     const actions = node('div', 'staff-header-actions');
     if (view.status === 'error') {
-      actions.append(button(isPreflight ? 'Chạy kiểm tra mới' : isHistory ? 'Tải lại lịch sử rà soát' : isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
-        isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
-          if (isPreflight) await runDatasetPreflight(state.datasetPreflightControls?.run);
+      actions.append(button(isFixedRun ? 'Tải lại kết quả' : isPreflight ? 'Chạy kiểm tra mới' : isHistory ? 'Tải lại lịch sử rà soát' : isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
+        isFixedRun ? 'staff-fixed-retry' : isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
+          if (isFixedRun) await retryFixedRunView(view);
+          else if (isPreflight) await runDatasetPreflight(state.datasetPreflightControls?.run);
           else if (isHistory) await loadReviewHistory(view.versionId, view.contentHash, view.triggerElement);
           else if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
           else if (state.dispositionStatus?.stage === 'acknowledged'
@@ -1555,7 +1915,12 @@ export async function openStaffWorkspace(container, onBack) {
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
-    if (!isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
+    if (isFixedRunDetail) {
+      actions.append(button('Quay lại danh sách kết quả', 'staff-fixed-back', () => {
+        returnToFixedRunList(view);
+      }, 'button secondary'));
+    }
+    if (!isFixedRun && !isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
       const handoff = button('Chuyển bản nháp vào hàng chờ rà soát', 'handoff-open', async () => {
         openHandoffConfirmation(handoff);
       }, 'button secondary');
@@ -1563,7 +1928,7 @@ export async function openStaffWorkspace(container, onBack) {
       handoff.setAttribute('aria-controls', 'handoff-dialog');
       actions.append(handoff);
     }
-    if (!isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
+    if (!isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
       const reject = button('Từ chối phiên bản đang chờ rà soát', 'disposition-reject-open', async () => {
         openDispositionDialog('reject', reject);
       }, 'button secondary');
@@ -1571,7 +1936,7 @@ export async function openStaffWorkspace(container, onBack) {
       reject.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(reject);
     }
-    if (!isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
+    if (!isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
       const quarantine = button('Cách ly phiên bản', 'disposition-quarantine-open', async () => {
         openDispositionDialog('quarantine', quarantine);
       }, 'button secondary');
@@ -1579,15 +1944,21 @@ export async function openStaffWorkspace(container, onBack) {
       quarantine.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(quarantine);
     }
-    actions.append(button(isPreflight ? 'Đóng báo cáo' : isHistory ? 'Đóng lịch sử rà soát' : isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
-      isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+    actions.append(button(isFixedRun ? 'Đóng kết quả' : isPreflight ? 'Đóng báo cáo' : isHistory ? 'Đóng lịch sử rà soát' : isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
+      isFixedRun ? 'staff-fixed-close' : isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
         clearPrivateReviewView({ restoreFocus: true });
       }, 'button secondary'));
     panel.append(heading, actions);
 
     if (view.status === 'loading') {
-      const status = node('p', 'notice-panel', isHistory ? 'Đang yêu cầu lịch sử cho đúng phiên bản đã chọn từ máy chủ…' : 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
-      if (isHistory) {
+      const status = node('p', 'notice-panel', isFixedRunList
+        ? 'Đang yêu cầu danh sách lần chạy tham chiếu cố định từ máy chủ…'
+        : isFixedRunDetail ? 'Đang yêu cầu chẩn đoán đã phát lại cho đúng lần chạy đã chọn…'
+          : isHistory ? 'Đang yêu cầu lịch sử cho đúng phiên bản đã chọn từ máy chủ…' : 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
+      if (isFixedRun) {
+        status.dataset.testid = 'staff-fixed-status';
+        status.dataset.stage = isFixedRunList ? 'loading-list' : 'loading-detail';
+      } else if (isHistory) {
         status.dataset.testid = 'staff-review-history-status';
         status.dataset.stage = 'loading';
       }
@@ -1596,7 +1967,10 @@ export async function openStaffWorkspace(container, onBack) {
       panel.append(status);
     } else if (view.status === 'error') {
       const status = node('p', 'notice-panel', view.error);
-      if (isHistory) {
+      if (isFixedRun) {
+        status.dataset.testid = 'staff-fixed-status';
+        status.dataset.stage = isFixedRunList ? 'list-error' : 'detail-error';
+      } else if (isHistory) {
         status.dataset.testid = 'staff-review-history-status';
         status.dataset.stage = 'error';
       }
@@ -1604,8 +1978,27 @@ export async function openStaffWorkspace(container, onBack) {
       status.setAttribute('aria-live', 'assertive');
       panel.append(status);
     } else {
-      panel.append(isPreflight ? renderDatasetPreflight(view.report) : isHistory ? renderReviewHistory(view.history)
-        : isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
+      if (isFixedRunList) {
+        const empty = view.list.runs.length === 0;
+        const status = node('p', 'notice-panel', empty
+          ? 'Chưa có kết quả lắp đề cố định đã lưu.'
+          : `Đã tải ${view.list.runs.length} kết quả lắp đề cố định đã ghi nhận.`);
+        status.dataset.testid = 'staff-fixed-status';
+        status.dataset.stage = empty ? 'list-empty' : 'list-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.append(status, renderFixedRunList(view.list, (run, trigger) => loadFixedRunDetail(run, trigger, view)));
+      } else if (isFixedRunDetail) {
+        const status = node('p', 'notice-panel', 'Máy chủ đã xác nhận bản phát lại cho đúng lần chạy đã chọn. Thời điểm quan sát mới được hiển thị bên dưới.');
+        status.dataset.testid = 'staff-fixed-status';
+        status.dataset.stage = 'detail-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.append(status, renderFixedRunDiagnostic(view.diagnostic));
+      } else {
+        panel.append(isPreflight ? renderDatasetPreflight(view.report) : isHistory ? renderReviewHistory(view.history)
+          : isEvidence ? renderReviewEvidence(view.evidence) : renderReviewContext(view.context));
+      }
     }
     host.append(panel);
     renderHandoffPanel();
@@ -2305,6 +2698,15 @@ export async function openStaffWorkspace(container, onBack) {
     headingText.append(node('h1', '', state.principal.roles.includes('AUTHOR') ? 'Soạn câu hỏi thử nghiệm.' : 'Theo dõi câu hỏi thử nghiệm.'));
     headingText.append(node('p', '', `Vai trò hiện tại: ${state.principal.roles.join(', ')}. Phiên tổng hợp ${state.principal.actorKey} được kiểm tra ở máy chủ.`));
     const actions = node('div', 'staff-header-actions');
+    if (state.principal.roles.includes('BANK_MANAGER')) {
+      let fixedRuns;
+      fixedRuns = button('Kết quả lắp đề cố định', 'staff-fixed-open', async () => {
+        await loadFixedRunList(fixedRuns);
+      }, 'button secondary');
+      fixedRuns.setAttribute('aria-controls', 'staff-review-host');
+      fixedRuns.setAttribute('aria-expanded', 'false');
+      actions.append(fixedRuns);
+    }
     if (state.canReadList) {
       actions.append(button('Hàng chờ rà soát', 'staff-review-queue', async () => {
         if (!isWorkspaceActive()) return;

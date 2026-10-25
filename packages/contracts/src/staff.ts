@@ -500,6 +500,169 @@ export const StaffReviewHistorySchema = z
 
 export type StaffReviewHistory = z.infer<typeof StaffReviewHistorySchema>;
 
+const FixedAssemblyOutcomeSchema = z.enum(["SUCCESS", "FAILURE"]);
+const FixedAssemblySectionSchema = z.enum(["MATH", "READING", "SCIENCE"]);
+
+const StaffFixedAssemblyRunSchema = z
+  .object({
+    assemblyRunId: UUID,
+    blueprintVersionId: UUID,
+    outcome: FixedAssemblyOutcomeSchema,
+    createdAt: UTCDateTime,
+  })
+  .strict();
+
+/** Strict private projection of captured fixed-reference run metadata only. */
+export const StaffFixedAssemblyRunListSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-assembly-runs/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("BANK_MANAGER"),
+    observedAt: UTCDateTime,
+    scope: z.literal("CAPTURED_FIXED_REFERENCE_RUNS_ONLY"),
+    limit: z.literal(20),
+    truncated: z.boolean(),
+    runs: z.array(StaffFixedAssemblyRunSchema).max(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seenRunIds = new Set<string>();
+    value.runs.forEach((run, index) => {
+      if (seenRunIds.has(run.assemblyRunId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["runs", index, "assemblyRunId"],
+          message: "Assembly run IDs must be unique",
+        });
+      }
+      seenRunIds.add(run.assemblyRunId);
+
+      if (index === 0) return;
+      const previous = value.runs[index - 1]!;
+      if (previous.createdAt < run.createdAt ||
+          previous.createdAt === run.createdAt && previous.assemblyRunId <= run.assemblyRunId) {
+        context.addIssue({
+          code: "custom",
+          path: ["runs", index],
+          message: "Runs must be ordered newest first by timestamp and run ID",
+        });
+      }
+    });
+
+    if (value.truncated && value.runs.length !== 20) {
+      context.addIssue({ code: "custom", path: ["runs"], message: "Truncated results must contain the full twenty-row limit" });
+    }
+
+    const serialized = JSON.stringify(value);
+    if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > MAX_RESPONSE_BYTES) {
+      context.addIssue({ code: "custom", message: "Fixed assembly run list must not exceed 1 MiB serialized" });
+    }
+  });
+
+export type StaffFixedAssemblyRunList = z.infer<typeof StaffFixedAssemblyRunListSchema>;
+
+const StaffFixedAssemblyDiagnosticSectionSchema = z
+  .object({
+    section: FixedAssemblySectionSchema,
+    requiredCount: z.number().int().min(1).max(200),
+    selectedCount: z.number().int().min(0).max(200),
+  })
+  .strict();
+
+/** Strict private aggregate-only diagnostic; no candidate or manifest data is exposed. */
+export const StaffFixedAssemblyDiagnosticSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-assembly-diagnostic/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("BANK_MANAGER"),
+    observedAt: UTCDateTime,
+    scope: z.literal("CAPTURED_FIXED_REFERENCE_RUN_ONLY"),
+    run: StaffFixedAssemblyRunSchema,
+    algorithmVersion: z.literal("assembly/1"),
+    replayVerified: z.literal(true),
+    createsForm: z.literal(false),
+    qualification: z.literal("NOT_ATTESTED_BY_PLATFORM"),
+    publicationEligibility: z.literal("NOT_EVALUATED"),
+    outcome: FixedAssemblyOutcomeSchema,
+    failureCode: z.enum(["CONSTRAINT_CONFLICT", "INSUFFICIENT_ELIGIBLE_INVENTORY", "SEARCH_EXHAUSTED"]).nullable(),
+    visitedNodes: z.number().int().min(0).max(50_000),
+    nodeLimit: z.number().int().min(0).max(50_000),
+    capturedUnitCount: z.number().int().min(0).max(10_000),
+    unitLimit: z.number().int().min(0).max(2_000),
+    capturedCandidateCount: z.number().int().min(0).max(2_000_000),
+    selectedCount: z.number().int().min(0).max(200),
+    sections: z.array(StaffFixedAssemblyDiagnosticSectionSchema).min(1).max(3),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.run.outcome !== value.outcome) {
+      context.addIssue({ code: "custom", path: ["run", "outcome"], message: "Run outcome must match the aggregate outcome" });
+    }
+    if (value.visitedNodes > value.nodeLimit) {
+      context.addIssue({ code: "custom", path: ["visitedNodes"], message: "Visited nodes cannot exceed the captured node limit" });
+    }
+
+    let requiredTotal = 0;
+    let selectedTotal = 0;
+    let previousSection = -1;
+    const sectionOrder = new Map([["MATH", 0], ["READING", 1], ["SCIENCE", 2]]);
+    value.sections.forEach((section, index) => {
+      const order = sectionOrder.get(section.section)!;
+      if (order <= previousSection) {
+        context.addIssue({
+          code: "custom",
+          path: ["sections", index, "section"],
+          message: "Sections must be unique and follow the MATH, READING, SCIENCE order",
+        });
+      }
+      previousSection = order;
+      requiredTotal += section.requiredCount;
+      selectedTotal += section.selectedCount;
+    });
+
+    if (requiredTotal > 200) {
+      context.addIssue({ code: "custom", path: ["sections"], message: "Required count total cannot exceed 200" });
+    }
+    if (selectedTotal !== value.selectedCount) {
+      context.addIssue({ code: "custom", path: ["selectedCount"], message: "Selected count must equal the section total" });
+    }
+
+    if (value.outcome === "SUCCESS") {
+      if (value.failureCode !== null) {
+        context.addIssue({ code: "custom", path: ["failureCode"], message: "Successful runs must not have a failure code" });
+      }
+      value.sections.forEach((section, index) => {
+        if (section.selectedCount !== section.requiredCount) {
+          context.addIssue({
+            code: "custom",
+            path: ["sections", index, "selectedCount"],
+            message: "Successful runs must select every required item in each section",
+          });
+        }
+      });
+    } else {
+      if (value.failureCode === null) {
+        context.addIssue({ code: "custom", path: ["failureCode"], message: "Failed runs require a captured failure code" });
+      }
+      value.sections.forEach((section, index) => {
+        if (section.selectedCount !== 0) {
+          context.addIssue({
+            code: "custom",
+            path: ["sections", index, "selectedCount"],
+            message: "Failed runs must not expose partial selections",
+          });
+        }
+      });
+    }
+
+    const serialized = JSON.stringify(value);
+    if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > MAX_RESPONSE_BYTES) {
+      context.addIssue({ code: "custom", message: "Fixed assembly diagnostic must not exceed 1 MiB serialized" });
+    }
+  });
+
+export type StaffFixedAssemblyDiagnostic = z.infer<typeof StaffFixedAssemblyDiagnosticSchema>;
+
 const DatasetPreflightCount = z.number().int().min(0).max(100);
 const DatasetPreflightBlockerSchema = z.enum([
   "CURRENT_RIGHTS_UNVERIFIED",

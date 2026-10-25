@@ -19,11 +19,14 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     StaffReviewContext: contracts.StaffReviewContextSchema,
     StaffReviewEvidence: contracts.StaffReviewEvidenceSchema,
     StaffReviewHistory: contracts.StaffReviewHistorySchema,
+    StaffFixedAssemblyRunList: contracts.StaffFixedAssemblyRunListSchema,
+    StaffFixedAssemblyDiagnostic: contracts.StaffFixedAssemblyDiagnosticSchema,
     StaffDatasetPreflightRequest: contracts.StaffDatasetPreflightRequestSchema,
     StaffDatasetPreflight: contracts.StaffDatasetPreflightSchema,
     StaffReviewContextPathParams: routes.StaffReviewContextPathParamsSchema,
     StaffReviewEvidencePathParams: routes.StaffReviewEvidencePathParamsSchema,
     StaffReviewHistoryPathParams: routes.StaffReviewHistoryPathParamsSchema,
+    StaffFixedAssemblyDiagnosticPathParams: routes.StaffFixedAssemblyDiagnosticPathParamsSchema,
     StaffDatasetPreflightRequestHeaders: routes.StaffDatasetPreflightRequestHeadersSchema,
     StaffUnauthenticatedResponse: routes.StaffUnauthenticatedResponseSchema,
     StaffForbiddenResponse: routes.StaffForbiddenResponseSchema,
@@ -102,7 +105,7 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     info: {
       title: "TSA Platform private staff API contracts",
       version: "staff-contracts/1",
-      description: "Private staff inspection, evidence, recorded review history, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+      description: "Private staff inspection, evidence, recorded review history, fixed-reference diagnostics, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     },
   }) as unknown as Record<string, unknown>;
 }

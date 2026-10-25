@@ -37,12 +37,14 @@ type StaffDocument = {
 };
 
 describe("dedicated private staff artifacts", () => {
-  it("describes exact private B1/B2/B3/B4/B5/B6 routes while leaving the student registry separate", async () => {
+  it("describes exact private staff routes while leaving the student registry separate", async () => {
     const artifact = staffStableJson(generateStaffContractsOpenApi());
     assert.equal(artifact, staffStableJson(generateStaffContractsOpenApi()));
     const document = JSON.parse(artifact) as StaffDocument;
     assert.equal(document.openapi, "3.1.0");
     assert.deepEqual(Object.keys(document.paths ?? {}), [
+      "/api/v1/assembly-runs",
+      "/api/v1/assembly-runs/{assemblyRunId}/diagnostics",
       "/api/v1/datasets/preflight",
       "/api/v1/question-versions/{versionId}/quarantine",
       "/api/v1/question-versions/{versionId}/review-context",
@@ -51,6 +53,44 @@ describe("dedicated private staff artifacts", () => {
       "/api/v1/question-versions/{versionId}/reviews",
       "/api/v1/question-versions/{versionId}/submit-review",
     ]);
+    const fixedRunsPath = document.paths?.["/api/v1/assembly-runs"];
+    assert.deepEqual(Object.keys(fixedRunsPath ?? {}), ["get"]);
+    const fixedRuns = fixedRunsPath?.get;
+    assert.equal(fixedRuns?.operationId, "staffFixedAssemblyRuns");
+    assert.match(fixedRuns?.description ?? "", /BANK_MANAGER/);
+    assert.match(fixedRuns?.description ?? "", /bank\.diagnostics\.read/);
+    assert.equal(fixedRuns?.requestBody, undefined);
+    assert.deepEqual(fixedRuns?.parameters ?? [], []);
+    assert.deepEqual(Object.keys(fixedRuns?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.ok(fixedRuns?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(fixedRuns?.responses?.["200"]?.headers ?? {}).sort(), [
+      "Cache-Control",
+      "Vary",
+      "X-Content-Type-Options",
+      "X-Request-Id",
+    ]);
+    assert.ok(document.components?.schemas?.StaffFixedAssemblyRunList);
+
+    const fixedDiagnosticPath = document.paths?.["/api/v1/assembly-runs/{assemblyRunId}/diagnostics"];
+    assert.deepEqual(Object.keys(fixedDiagnosticPath ?? {}), ["get"]);
+    const fixedDiagnostic = fixedDiagnosticPath?.get;
+    assert.equal(fixedDiagnostic?.operationId, "staffFixedAssemblyDiagnostic");
+    assert.match(fixedDiagnostic?.description ?? "", /does not establish current feasibility/);
+    assert.equal(fixedDiagnostic?.requestBody, undefined);
+    assert.deepEqual(fixedDiagnostic?.parameters?.map(({ name, in: location }) => ({ name, in: location })), [
+      { name: "assemblyRunId", in: "path" },
+    ]);
+    assert.deepEqual(Object.keys(fixedDiagnostic?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.ok(fixedDiagnostic?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.deepEqual(Object.keys(fixedDiagnostic?.responses?.["200"]?.headers ?? {}).sort(), [
+      "Cache-Control",
+      "Vary",
+      "X-Content-Type-Options",
+      "X-Request-Id",
+    ]);
+    assert.ok(document.components?.schemas?.StaffFixedAssemblyDiagnostic);
+    assert.ok(document.components?.schemas?.StaffFixedAssemblyDiagnosticPathParams);
+
     const path = document.paths?.["/api/v1/question-versions/{versionId}/review-context"];
     assert.deepEqual(Object.keys(path ?? {}), ["get"]);
     const operation = path?.get;
@@ -233,6 +273,10 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(student.components?.schemas?.StaffRejectReviewRequest, undefined);
     assert.equal(student.paths?.["/api/v1/question-versions/{versionId}/quarantine"], undefined);
     assert.equal(student.components?.schemas?.StaffQuarantineRequest, undefined);
+    assert.equal(student.paths?.["/api/v1/assembly-runs"], undefined);
+    assert.equal(student.paths?.["/api/v1/assembly-runs/{assemblyRunId}/diagnostics"], undefined);
+    assert.equal(student.components?.schemas?.StaffFixedAssemblyRunList, undefined);
+    assert.equal(student.components?.schemas?.StaffFixedAssemblyDiagnostic, undefined);
   });
 
   it("matches the committed private OpenAPI and operation-map artifacts and detects drift without rewriting", async () => {

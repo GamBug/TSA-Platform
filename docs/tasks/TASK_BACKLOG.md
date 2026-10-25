@@ -759,6 +759,22 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-25 **B7.2 STORED FIXED DIAGNOSTICS — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base7ba60a5.
+Root selects exact additive audited projection/discovery/UI and migration020;
+[scope/impact/acceptance](../decisions/WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md).
+Root SQL/backend/HTTP-PG/fixture/browser/Firefox/records; native Luna/XHigh DTO and
+UI writers with disjoint ownership, separate Sol6.1/Medium read-only reviewer.
+No table SELECT grant/personal runs/frozen personal change/forms/student fixed
+creation/publication. Owner AGENTS/research preserved. Root focused47/Bank141/
+foundation37/assembly50/student34/local15/B032/type/drift/import/Chrome44(23captures)/
+Firefox13(25captures)/domains78/CLI2 PASS; actual DTO writer151/build/built/consumer12
+PASS. Separate Sol6.1/Medium two P2 repairs verified, PG5/migration2/contracts7/
+Chrome43(22captures)/static plus GETframing1/CLI2 PASS, no unresolved findings.
+[Exact evidence/limits](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+Default module syntax check missed a parenthesis; forced ESM/browser now pass.
+Three explicit latest-upgrade expected arrays extended020 after observed failures;
+old pinned rehearsals stay bounded. Clean reproduction follows checkpoint.
+
 2026-10-24 **B7.1 FIXED REFERENCE — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base7571a36.
 Root selects additive pure fixed reference prerequisite under delegated authority;
 [exact scope/impact/acceptance](../decisions/WEB_002_B7_FIXED_REFERENCE_DECISION.md).
@@ -773,7 +789,9 @@ observed stale019-boundary failures; original contract test/fixture bytes unchan
 Separate Sol6.1/Medium reference31/actual10-case committed-baseline byte/result
 comparison/type/consumer12/drift/boundary/whitespace PASS, no findings; historical
 repair independently focusedPG1 PASS. [Exact evidence/limits](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
-Next stored fixed-only audited diagnostics + useful staff UI, not backend probes.
+Clean no-hardlink7ba60a5 install/build/reference31/consumer12/assembly50/type/drift/
+import/docs PASS, final clone Git status empty. Stored diagnostics/UI delivered
+in B7.2 above; no fixed student delivery/publication claim.
 
 2026-10-24 **B6.1 CANONICAL PREFLIGHT — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base3251362.
 Root selects existing-service manager report under delegated engineering authority;

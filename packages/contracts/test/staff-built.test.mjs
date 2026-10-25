@@ -3,6 +3,8 @@ import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
   StaffReviewHistorySchema,
+  StaffFixedAssemblyRunListSchema,
+  StaffFixedAssemblyDiagnosticSchema,
   StaffDatasetPreflightRequestSchema,
   StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
@@ -58,6 +60,52 @@ assert.equal(StaffReviewHistorySchema.safeParse({ ...history, accessBasis: "REVI
 assert.equal(StaffReviewHistorySchema.safeParse({ ...history, truncated: true }).success, false);
 
 console.log("Compiled private staff review-history DTO smoke test passed.");
+
+const fixedRun = {
+  assemblyRunId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  blueprintVersionId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  outcome: "SUCCESS",
+  createdAt: "2026-10-25T12:34:56.123456Z",
+};
+assert.equal(StaffFixedAssemblyRunListSchema.safeParse({
+  schemaVersion: "staff-fixed-assembly-runs/1",
+  environment: "LOCAL_SYNTHETIC_ONLY",
+  accessBasis: "BANK_MANAGER",
+  observedAt: "2026-10-25T12:34:56.123456Z",
+  scope: "CAPTURED_FIXED_REFERENCE_RUNS_ONLY",
+  limit: 20,
+  truncated: false,
+  runs: [fixedRun],
+}).success, true);
+const fixedDiagnostic = {
+  schemaVersion: "staff-fixed-assembly-diagnostic/1",
+  environment: "LOCAL_SYNTHETIC_ONLY",
+  accessBasis: "BANK_MANAGER",
+  observedAt: "2026-10-25T12:34:56.123456Z",
+  scope: "CAPTURED_FIXED_REFERENCE_RUN_ONLY",
+  run: fixedRun,
+  algorithmVersion: "assembly/1",
+  replayVerified: true,
+  createsForm: false,
+  qualification: "NOT_ATTESTED_BY_PLATFORM",
+  publicationEligibility: "NOT_EVALUATED",
+  outcome: "SUCCESS",
+  failureCode: null,
+  visitedNodes: 1,
+  nodeLimit: 50000,
+  capturedUnitCount: 1,
+  unitLimit: 2000,
+  capturedCandidateCount: 1,
+  selectedCount: 1,
+  sections: [{ section: "MATH", requiredCount: 1, selectedCount: 1 }],
+};
+assert.equal(StaffFixedAssemblyDiagnosticSchema.safeParse(fixedDiagnostic).success, true);
+assert.equal(StaffFixedAssemblyDiagnosticSchema.safeParse({
+  ...fixedDiagnostic,
+  candidateId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+}).success, false, "the emitted diagnostic schema rejects raw candidate identifiers");
+
+console.log("Compiled private fixed-assembly DTO smoke test passed.");
 
 const datasetPreflightRequest = {
   versions: [{ versionId: submitVersionId, contentHash: `sha256:${"a".repeat(64)}` }],

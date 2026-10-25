@@ -1093,3 +1093,26 @@ body.review-active { overflow: hidden; background: #fff; }
 }
 
 .staff-dataset-preflight-count:focus-visible { outline: 3px solid #f0a64f; outline-offset: 4px; border-radius: 4px; }
+
+/* Fixed-reference diagnostics remain private to an explicit manager read. */
+.staff-fixed-reference-panel, .staff-fixed-reference-content { min-width: 0; max-width: 100%; }
+.staff-fixed-reference-panel [data-testid="staff-fixed-status"] { margin: 12px 0 16px; overflow-wrap: anywhere; }
+.staff-fixed-reference-warning, .staff-fixed-reference-result { margin: 16px 0; padding: 14px 16px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; }
+.staff-fixed-reference-result { border-left-color: #344bb5; color: var(--ink); background: #f2f5ff; }
+.staff-fixed-reference-observation, .staff-fixed-reference-note { margin: 12px 0; line-height: 1.55; }
+.staff-fixed-reference-empty { margin: 16px 0; }
+.staff-fixed-reference-table-wrap { max-width: 100%; margin: 14px 0; overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
+.staff-fixed-reference-table-wrap:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+.staff-fixed-reference-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; }
+.staff-fixed-reference-table caption { padding: .7em .9em; font-weight: 700; color: #334155; background: #f8fafc; text-align: left; }
+.staff-fixed-reference-table th, .staff-fixed-reference-table td { min-width: 5em; padding: .6em .8em; border-top: 1px solid #cbd5e1; overflow-wrap: anywhere; vertical-align: top; }
+.staff-fixed-reference-table th { color: #1e293b; background: #eef2f7; }
+.staff-fixed-reference-table tbody tr:nth-child(even) { background: #f8fafc; }
+.staff-fixed-reference-table .button { max-width: 100%; }
+.staff-fixed-reference-panel .staff-dataset-preflight-table-wrap { margin-top: 14px; }
+.staff-fixed-reference-panel .staff-dataset-preflight-table { min-width: 390px; }
+@media (max-width: 680px) {
+  .staff-fixed-reference-warning, .staff-fixed-reference-result { padding: 11px 12px; }
+  .staff-fixed-reference-table { min-width: 700px; }
+  .staff-fixed-reference-panel .staff-dataset-preflight-table { min-width: 390px; }
+}

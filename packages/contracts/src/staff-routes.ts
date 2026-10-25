@@ -5,6 +5,8 @@ import {
   StaffReviewContextSchema,
   StaffReviewEvidenceSchema,
   StaffReviewHistorySchema,
+  StaffFixedAssemblyRunListSchema,
+  StaffFixedAssemblyDiagnosticSchema,
   StaffDatasetPreflightRequestSchema,
   StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
@@ -39,6 +41,10 @@ export const StaffQuarantinePathParamsSchema = z
 
 export const StaffReviewHistoryPathParamsSchema = z
   .object({ versionId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffFixedAssemblyDiagnosticPathParamsSchema = z
+  .object({ assemblyRunId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
   .strict();
 
 const IdempotencyKeySchema = z.string().regex(/^[\x21-\x7e]{1,128}$/, "Expected 1–128 visible ASCII characters");
@@ -176,6 +182,35 @@ const json = (schema: z.ZodType, description: string) => ({
 
 /** Private local staff registry; it is intentionally separate from the student and released registries. */
 export const staffRouteRegistry = {
+  staffFixedAssemblyRuns: {
+    method: "GET",
+    path: "/api/v1/assembly-runs",
+    summary: "List captured fixed-reference assembly runs",
+    description: "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers and returns at most twenty captured fixed-reference runs; personal and unsupported runs are outside this scope.",
+    responses: {
+      200: json(StaffFixedAssemblyRunListSchema, "Newest-first bounded metadata for captured fixed-reference runs"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks the BANK_MANAGER fixed-reference diagnostic basis"),
+      404: json(StaffNotFoundResponseSchema, "No supported stored fixed-reference projection is visible"),
+      422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored fixed-reference run metadata is unavailable"),
+    },
+  },
+  staffFixedAssemblyDiagnostic: {
+    method: "GET",
+    path: "/api/v1/assembly-runs/{assemblyRunId}/diagnostics",
+    summary: "Read replay-verified fixed-reference aggregate diagnostics",
+    description: "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers. The strict response contains replay-verified captured aggregates only; it does not establish current feasibility, eligibility, qualified review, rights, or publication.",
+    params: StaffFixedAssemblyDiagnosticPathParamsSchema,
+    responses: {
+      200: json(StaffFixedAssemblyDiagnosticSchema, "Replay-verified aggregate diagnostics for one captured fixed-reference run"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks the BANK_MANAGER fixed-reference diagnostic basis"),
+      404: json(StaffNotFoundResponseSchema, "Run is missing, malformed, personal, or outside the fixed-reference scope"),
+      422: json(StaffValidationErrorResponseSchema, "Malformed path or unexpected query/body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored fixed-reference diagnostics or replay verification is unavailable"),
+    },
+  },
   staffReviewContext: {
     method: "GET",
     path: "/api/v1/question-versions/{versionId}/review-context",

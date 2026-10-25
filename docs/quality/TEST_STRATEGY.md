@@ -43,6 +43,11 @@ Executed B6 canonical dataset preflight (2026-10-24):
 Executed B7.1 fixed reference (2026-10-25):
 [fixed goldens/oracle, committed personal replay compatibility, actual assembly/student regressions](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
 
+Executed B7.2 stored reference diagnostics (2026-10-25):
+[fixed-only audited SQL, actual personal exclusion/replay/privacy and cross-browser staff flow](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+Browser ESM syntax checks must force module mode; default file-mode syntax success
+did not detect the observed bootstrap failure.
+
 ## Layers and release policy
 
 Unit tests cover pure scoring, response normalization, blueprint validators and policy transitions. Property tests are useful for answer-set permutations, randomized state sequences and assembly invariants; a large random sample is evidence, not mathematical proof. Integration tests use real PostgreSQL and exercise transaction ordering, uniqueness, triggers, queue leases and rollback. SQLite/mocked repositories cannot establish these properties.

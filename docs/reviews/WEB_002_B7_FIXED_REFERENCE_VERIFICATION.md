@@ -81,3 +81,12 @@ actual three-domain Chromium ran. Next: narrowly audited stored fixed-run diagno
 projection, explicit discovery and useful staff UI with genuine synthetic reference
 fixtures. Do not disclose personal manifests or call dataset preflight assembly
 feasibility. Clean reproduction follows commit and is appended only when executed.
+
+## Clean committed reproduction —7ba60a5
+
+Root no-hardlink clone `.local/verification-b7/clean-7ba60a5`: locked npm ci
+--ignore-scripts, build, reference31, consumer12, actualPGassembly50, typecheck,
+drift/import/docs PASS. Final clone Git status empty. No source patches/manual
+SQL/API setup; this reproduction clone is separate from the earlier baseline
+measurement clone. Logs under parent clean-*.log. Runner completion handle expired
+after completion; all stage logs and final clone status were subsequently inspected.

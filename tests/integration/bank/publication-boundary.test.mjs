@@ -132,7 +132,7 @@ test('production process cannot be overridden by a fixtureScopeId', async () => 
   }
 });
 
-test('migration005 to009 preserves populated source records and installs empty private gates', async () => {
+test('migration005 to latest preserves populated source records and installs empty private gates', async () => {
   const database = await startDisposablePostgres();
   const directory = await mkdtemp(path.join(os.tmpdir(), 'tsa-review-upgrade-'));
   try {
@@ -145,7 +145,7 @@ test('migration005 to009 preserves populated source records and installs empty p
     await database.pool.query("INSERT INTO tsa.sources (id,title,origin) VALUES ($1,'Preserved synthetic upgrade fixture','OWNED')", [id]);
     const previous = (await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows;
     const upgraded = await migrate(database.pool);
-    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql', '008_bank_delivery_safety.sql', '009_assembly_stock.sql','010_atomic_allocation.sql','011_attempt_delivery.sql','012_answer_saves.sql','013_attempt_submission.sql','014_exam_grading.sql','015_released_results.sql','016_exam_expiry_sweep.sql','017_student_directory.sql','018_bundle_allocation.sql','019_staff_review_context.sql']);
+    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql', '008_bank_delivery_safety.sql', '009_assembly_stock.sql','010_atomic_allocation.sql','011_attempt_delivery.sql','012_answer_saves.sql','013_attempt_submission.sql','014_exam_grading.sql','015_released_results.sql','016_exam_expiry_sweep.sql','017_student_directory.sql','018_bundle_allocation.sql','019_staff_review_context.sql','020_fixed_reference_diagnostics.sql']);
     assert.deepEqual((await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows, previous);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.bank_workflow_fixture_scope')).rowCount, 0);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.question_delivery_checks')).rowCount, 0);

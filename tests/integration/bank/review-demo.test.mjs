@@ -172,6 +172,18 @@ test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue
   assert.equal(canonical.publicationEligibility,'NOT_EVALUATED');assert.ok(canonical.blockerCodes.includes('LAWFUL_INVENTORY_UNVERIFIED'));
   for(const browser of [author,reviewer])assert.equal((await bankRequest(harness,browser,'/api/v1/datasets/preflight',{method:'POST',body:{versions:[]}})).status,403);
 
+  const fixedListResponse=await bankRequest(harness,holdManager,'/api/v1/assembly-runs');assert.equal(fixedListResponse.status,200);
+  const fixedList=await fixedListResponse.json();assert.equal(fixedList.runs.length,3);
+  const outcomes=new Set();
+  for(const run of fixedList.runs){
+    const response=await bankRequest(harness,holdManager,`/api/v1/assembly-runs/${run.assemblyRunId}/diagnostics`);assert.equal(response.status,200);
+    const diagnostic=await response.json();assert.equal(diagnostic.replayVerified,true);assert.equal(diagnostic.createsForm,false);
+    outcomes.add(diagnostic.failureCode??diagnostic.outcome);
+    assert.equal(processHandle.output.includes(run.assemblyRunId),false,'launcher never prints private fixed run references');
+  }
+  assert.deepEqual(outcomes,new Set(['SUCCESS','INSUFFICIENT_ELIGIBLE_INVENTORY','SEARCH_EXHAUSTED']));
+  assert.equal((await bankRequest(harness,reviewer,'/api/v1/assembly-runs')).status,403);
+
   const evidencePath = `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-evidence`;
   assert.equal((await bankRequest(harness,author,evidencePath)).status,403);
   const manager=await loginActor(harness,'bankManager');
@@ -184,6 +196,7 @@ test('staff review demo serves real AUTHOR inspection/handoff and REVIEWER queue
   assert.match(processHandle.output,/synthetic BANK_MANAGER/);
   const candidate = await loginActor(harness, 'studentA');
   assert.equal((await bankRequest(harness,candidate,historyPath)).status,403);
+  assert.equal((await bankRequest(harness,candidate,'/api/v1/assembly-runs')).status,403);
   assert.equal((await bankRequest(harness,candidate,evidencePath)).status,403);
   const candidateResponse = await bankRequest(harness, candidate,
     `/api/v1/question-versions/${encodeURIComponent(list.items[0].versionId)}/review-context`);

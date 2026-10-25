@@ -1,5 +1,12 @@
 # Implementation roadmap
 
+Current B7.2, 2026-10-25: manager stored fixed reference discovery/replay diagnostics
+with audited narrow020 function and genuine synthetic solver fixtures implemented.
+[Actual PG/browser/regression/independent evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+Personal runs/table SELECT remain denied; list metadata is distinct from replay
+verification; no Bank eligibility capture/sealed forms/fixed delivery/publication.
+Clean reproduction next.
+
 Current B7.1, 2026-10-25: additive internal fixed reference/replay implemented
 without widening personal manifest modes. Old byte/result/node-count compatibility,
 fixed oracle/goldens, actual PostgreSQL assembly/student and three-domain browser

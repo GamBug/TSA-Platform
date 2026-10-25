@@ -532,6 +532,12 @@ try {
   assert.equal(await evaluate(`document.body.innerText.includes('chỉ được yêu cầu khi bạn chọn đúng phiên bản')`), true, 'staff notice explains that private context is fetched only after explicit selection');
   report.checks.push('synthetic REVIEWER sees safe metadata and explicit per-version access, without author actions or qualified-human claims');
 
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'retained manager fixed diagnostics login');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-fixed-open')})`,'retained fixed diagnostic action');
+  await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-empty'`,'truthful retained fixed list empty');
+  await pressKey('Escape','Escape',27,String.fromCharCode(27));assert.equal(await evaluate(`document.activeElement===${query('staff-fixed-open')}`),true);
+  report.checks.push('B7 retained mode has an explicit manager fixed-reference action and truthful empty state, with Escape focus restoration and no invented run');
+
   reviewFixture = await createReviewBrowserFixture();
   await command('Page.navigate', { url: reviewFixture.origin });
   await waitFor(`document.readyState==='complete'&&document.documentElement.lang==='vi'`, 'disposable AVAILABLE review fixture');
@@ -1457,6 +1463,67 @@ try {
   const candidatePreflight=await evaluate(`fetch('/api/v1/datasets/preflight',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({versions:${JSON.stringify([pinForBrowser(preflightA)])}})}).then(async response=>({status:response.status,body:await response.json()}))`);
   assert.equal(candidatePreflight.status,403);assert.equal(candidatePreflight.body.error.code,'FORBIDDEN');
   report.checks.push('B6 return/reopen and logout/identity fences discard pending canonical reports; candidate/reviewer have no selection controls and direct POST403; no student contract/clock/policy change');
+
+  assert.equal(await evaluate(`Boolean(${query('staff-fixed-open')})`),false,'candidate has no fixed-reference action');
+  const deniedFixed=await evaluate(`fetch('/api/v1/assembly-runs').then(async response=>({status:response.status,body:await response.json()}))`);
+  assert.equal(deniedFixed.status,403);assert.equal(deniedFixed.body.error.code,'FORBIDDEN');
+  assert.equal(networkOperations.filter(op=>op.url.startsWith(reviewFixture.origin)&&new URL(op.url).pathname.startsWith('/api/v1/assembly-runs')).length,1,'no fixed list/detail prefetch in prior journeys');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager stored fixed reference login');await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-fixed-open')})`,'fixed manager control');
+  await evaluate(`(()=>{const original=window.fetch;window.__fixed={calls:[],mode:'normal',held:false,release:null};window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.pathname.startsWith('/api/v1/assembly-runs')){
+    const body=await response.clone().json();window.__fixed.calls.push({path:url.pathname,status:response.status,body});const mode=window.__fixed.mode;window.__fixed.mode='normal';
+    if(mode==='hold'){window.__fixed.held=true;await new Promise(resolve=>window.__fixed.release=resolve);}
+    if(mode==='wrong'&&response.status===200&&body.run){body.run.assemblyRunId=crypto.randomUUID();return new Response(JSON.stringify(body),{status:200,headers:response.headers});}}
+    return response;};})()`);
+  await evaluate(`${query('staff-fixed-open')}.focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'actual fixed reference metadata list');
+  assert.equal(await evaluate('window.__fixed.calls.length'),1);assert.equal(await evaluate('document.querySelectorAll("[data-testid=staff-fixed-run-open]").length'),3);
+  async function openFixed(run){const control=`[data-testid="staff-fixed-run-open"][data-run-id="${run.assemblyRunId}"]`;await waitFor(`Boolean(document.querySelector(${JSON.stringify(control)}))`,'exact fixed run control');await evaluate(`document.querySelector(${JSON.stringify(control)}).focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));}
+  for(const [key,run] of Object.entries(reviewFixture.fixedRuns)){
+    await openFixed(run);await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='detail-loaded'`,'replay-verified stored fixed diagnostic');
+    assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.runId`),run.assemblyRunId);
+    assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.outcome`),run.result.status);
+    assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.selectedCount`),String(key==='success'?4:0));
+    assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.failureCode`),run.result.status==='FAILURE'?run.result.code:'null');
+    const text=await evaluate(`${query('staff-fixed-detail')}.textContent`);assert.equal(text.includes('NOT_ATTESTED_BY_PLATFORM')&&text.includes('NOT_EVALUATED'),true);
+    for(const member of run.manifest.units.flatMap(unit=>unit.members))assert.equal(text.includes(member.versionId)||text.includes(member.questionId)||text.includes(member.groupId),false,'no fixed candidate identifiers in private aggregate view');
+    if(key==='success'){await evaluate(`${query('staff-fixed-detail')}.scrollIntoView({block:'start'})`);await screenshot('staff-fixed-success-desktop');}
+    if(key==='exhausted'){
+      assert.equal(text.includes('chưa rõ'),true,'exhaustion explicitly keeps feasibility unknown');
+      await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});await noHorizontalOverflow();await evaluate(`document.querySelector('.staff-fixed-reference-result').scrollIntoView({block:'center'})`);await screenshot('staff-fixed-exhausted-mobile');
+      await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+    }
+    const beforeBack=await evaluate('window.__fixed.calls.length');await click('staff-fixed-back');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'cached fixed list on back');
+    assert.equal(await evaluate('window.__fixed.calls.length'),beforeBack,'back does not refetch or pretend list is a fresh observation');
+  }
+  report.checks.push('B7 manager explicitly reads real stored fixed SUCCESS/infeasible/exhausted reference reports, no raw candidate IDs or created-form/rights claims; exhaustion feasibility stays unknown, back uses captured list');
+
+  await evaluate("window.__fixed.mode='wrong'");await openFixed(reviewFixture.fixedRuns.success);await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='detail-error'`,'wrong fixed run identity rejected');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-fixed-reference-result'))`),false);await click('staff-fixed-retry');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='detail-loaded'`,'explicit matching fixed read recovery');
+  await click('staff-fixed-close');assert.equal(await evaluate(`document.activeElement===${query('staff-fixed-open')}`),true);
+  await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'fixed list before held target');
+  await evaluate("window.__fixed.mode='hold';window.__fixed.held=false");await openFixed(reviewFixture.fixedRuns.success);await waitFor('window.__fixed.held','held real fixed diagnostic');
+  await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'new list replaces pending fixed detail');await evaluate('window.__fixed.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');assert.equal(await evaluate(`Boolean(${query('staff-fixed-detail')})`),false);
+  await evaluate("window.__fixed.mode='hold';window.__fixed.held=false");await openFixed(reviewFixture.fixedRuns.success);await waitFor('window.__fixed.held','fixed held before return');
+  await click('staff-return');await waitFor(`Boolean(${query('staff-open')})`,'fixed private state cleared on return');await click('staff-open');await waitFor(`Boolean(${query('staff-fixed-open')})`,'fixed new workspace');await evaluate('window.__fixed.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');assert.equal(await evaluate(`Boolean(${query('staff-fixed-detail')})||Boolean(${query('staff-fixed-list')})`),false);
+  await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'fixed list before logout');await evaluate("window.__fixed.mode='hold';window.__fixed.held=false");await openFixed(reviewFixture.fixedRuns.success);await waitFor('window.__fixed.held','fixed held before identity change');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'fixed logout');await evaluate(`${query('actor-select')}.value='reviewer'`);await click('staff-login');await waitFor(`Boolean(${query('staff-question-list')})`,'reviewer fixed denial');await evaluate('window.__fixed.release()');await evaluate('new Promise(resolve=>setTimeout(resolve,100))');
+  assert.equal(await evaluate(`Boolean(${query('staff-fixed-open')})||Boolean(${query('staff-fixed-detail')})||Boolean(${query('staff-fixed-list')})`),false);
+  const reviewerFixed=await evaluate(`fetch(${JSON.stringify('/api/v1/assembly-runs/'+reviewFixture.fixedRuns.success.assemblyRunId+'/diagnostics')}).then(async response=>({status:response.status,body:await response.json()}))`);assert.equal(reviewerFixed.status,403);assert.equal(reviewerFixed.body.error.code,'FORBIDDEN');
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname.startsWith('/api/v1/assembly-runs')).every(op=>op.method==='GET'&&!op.hasPostData),true);
+  report.checks.push('B7 wrong-run response clears output and explicit retry recovers; target/return-reopen/logout identity fences discard held fixed reads, close restores focus and candidate/reviewer direct reads403; GET only');
+
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager fixed truncation login');await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-fixed-open')})`,'manager bounded fixed discovery');
+  // Repeated owned reference problems exercise the real latest20 UI; no form,
+  // Bank eligible content or qualified review is created by this display setup.
+  await reviewFixture.fixture.pool.query(`INSERT INTO tsa.assembly_runs(id,blueprint_version_id,user_id,form_mode,reuse_mode,history_revision,bank_revision,request_hash,seed,algorithm_version,limits,manifest,manifest_hash,outcome,diagnostics,created_at)
+    SELECT gen_random_uuid(),ar.blueprint_version_id,NULL,ar.form_mode,ar.reuse_mode,NULL,ar.bank_revision,ar.request_hash,ar.seed,ar.algorithm_version,ar.limits,ar.manifest,ar.manifest_hash,ar.outcome,ar.diagnostics,'2001-01-01T00:00:00Z'
+    FROM tsa.assembly_runs ar CROSS JOIN generate_series(1,21) WHERE ar.id=$1`,[reviewFixture.fixedRuns.success.assemblyRunId]);
+  await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'actual bounded fixed discovery list');
+  assert.equal(await evaluate('document.querySelectorAll("[data-testid=staff-fixed-run-open]").length'),20);
+  assert.equal(await evaluate('window.__fixed.calls.at(-1).body.truncated'),true);
+  assert.equal(await evaluate(`${query('staff-fixed-list')}.textContent.includes('còn các lần chạy cũ hơn')`),true);
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});await noHorizontalOverflow();await evaluate(`${query('staff-fixed-list')}.scrollIntoView({block:'start'})`);await screenshot('staff-fixed-truncated-list-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await click('staff-fixed-close');
+  report.checks.push('B7 actual supported fixed list caps at20 and visibly reports older omitted records on mobile; synthetic display rows do not create forms or qualified content');
 
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });

@@ -17,8 +17,10 @@ import { createReviewEvidenceService } from '../../../src/modules/bank/review-ev
 import { createPublicationService } from '../../../src/modules/bank/publication.mjs';
 import { createEquivalenceService } from '../../../src/modules/bank/equivalence.mjs';
 import { jsonDigest } from '../../../src/modules/bank/common.mjs';
+import { createAllocationFixture } from '../assembly/fixtures.mjs';
+import { createAllocationService } from '../../../src/modules/assembly/allocation.mjs';
 import { createSharedReadingFixture } from '../student-runtime/shared-reading-fixture.mjs';
-import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffDatasetPreflightSchema, StaffReviewHistorySchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { StaffRejectReviewResponseSchema, StaffQuarantineResponseSchema, StaffSubmitReviewResponseSchema, StaffFixedAssemblyRunListSchema, StaffFixedAssemblyDiagnosticSchema, StaffDatasetPreflightSchema, StaffReviewHistorySchema, StaffReviewEvidenceSchema, StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 
 let f, pool, author, reviewer, manager, candidate, examManager;
 const historyPath = (id) => `/api/v1/question-versions/${id}/review-history`;
@@ -30,7 +32,7 @@ async function success(response, status = 200) {
   const payload = await response.json();
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-  if (status === 200) return (payload.schemaVersion === 'staff-dataset-preflight/1' ? StaffDatasetPreflightSchema : payload.schemaVersion === 'staff-review-history/1' ? StaffReviewHistorySchema : payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
+  if (status === 200) return (payload.schemaVersion === 'staff-fixed-assembly-runs/1' ? StaffFixedAssemblyRunListSchema : payload.schemaVersion === 'staff-fixed-assembly-diagnostic/1' ? StaffFixedAssemblyDiagnosticSchema : payload.schemaVersion === 'staff-dataset-preflight/1' ? StaffDatasetPreflightSchema : payload.schemaVersion === 'staff-review-history/1' ? StaffReviewHistorySchema : payload.schemaVersion === 'staff-review-evidence/1' ? StaffReviewEvidenceSchema : StaffReviewContextSchema).parse(payload);
   assert.deepEqual(Object.keys(payload), ['error']);
   assert.deepEqual(Object.keys(payload.error).sort(), ['code','details','message','requestId']);
   assert.deepEqual(payload.error.details, {});
@@ -925,4 +927,122 @@ test('B6 unexpected canonical read failure is private503 and a later explicit ch
   assert.doesNotMatch(JSON.stringify(failed),/sentinel|SQL|secret|eligibility_revision/);
   assert.equal((await success(await handler(request()))).counts.total,1);
   assert.deepEqual(await databaseSnapshot(),before);
+});
+
+
+const fixedPath=(id)=>`/api/v1/assembly-runs/${id}/diagnostics`;
+async function assertAuditOnly(before,count=1){
+  const after=await databaseSnapshot();
+  assert.equal(after['tsa.audit_events'].count,before['tsa.audit_events'].count+count);
+  delete after['tsa.audit_events'];const expected={...before};delete expected['tsa.audit_events'];assert.deepEqual(after,expected);
+}
+
+test('B7 stored fixed list/details replay genuine reference problems, expose only aggregates and append only success audits', async()=>{
+  let before=await databaseSnapshot();const list=await success(await bankRequest(f,manager,'/api/v1/assembly-runs'));
+  assert.equal(list.runs.length,3);assert.equal(list.truncated,false);await assertAuditOnly(before);
+  assert.deepEqual(new Set(list.runs.map(run=>run.assemblyRunId)),new Set(Object.values(f.fixedRuns).map(run=>run.assemblyRunId)));
+  for(const [key,fixed] of Object.entries(f.fixedRuns)){
+    before=await databaseSnapshot();const value=await success(await bankRequest(f,manager,fixedPath(fixed.assemblyRunId)));
+    assert.equal(value.outcome,fixed.result.status);assert.equal(value.failureCode,fixed.result.status==='FAILURE'?fixed.result.code:null);
+    assert.equal(value.selectedCount,key==='success'?4:0);assert.equal(value.replayVerified,true);assert.equal(value.createsForm,false);
+    assert.equal(value.qualification,'NOT_ATTESTED_BY_PLATFORM');assert.equal(value.publicationEligibility,'NOT_EVALUATED');
+    assert.doesNotMatch(JSON.stringify(value),/manifestHash|slotsHash|candidateVersionId|historyQuestionId|sourceId|answerKey|explanation|seed":/);
+    for(const member of fixed.manifest.units.flatMap(u=>u.members))for(const hidden of [member.questionId,member.versionId,member.groupId,...member.sourceIds])assert.equal(JSON.stringify(value).includes(hidden),false);
+    await assertAuditOnly(before);
+  }
+  const actor=(await principal(manager)).userId;
+  const events=(await pool.query("SELECT actor_id,action,entity_type,entity_id,reason FROM tsa.audit_events WHERE action LIKE 'BANK_FIXED_REFERENCE%' ORDER BY created_at")).rows;
+  assert.equal(events.length,4);assert.equal(events.every(event=>event.actor_id===actor&&event.reason===null),true);
+});
+
+test('B7 fixed HTTP opt-in, current roles, framing and SQL grants deny unauthorized or personal-shaped rows without success audit',async()=>{
+  const id=f.fixedRuns.success.assemblyRunId,before=await databaseSnapshot();
+  assert.equal((await success(await fetch(f.origin+fixedPath(id)),401)).error.code,'UNAUTHENTICATED');
+  for(const browser of [author,reviewer,candidate,examManager])for(const path of ['/api/v1/assembly-runs',fixedPath(id),fixedPath(randomUUID())])
+    assert.equal((await success(await bankRequest(f,browser,path),403)).error.code,'FORBIDDEN');
+  for(const target of [randomUUID(),'bad'])assert.equal((await success(await bankRequest(f,manager,fixedPath(target)),404)).error.code,'NOT_FOUND');
+  assert.equal((await success(await bankRequest(f,manager,'/api/v1/assembly-runs?limit=1'),422)).error.code,'VALIDATION_ERROR');
+  assert.equal((await success(await bankRequest(f,manager,fixedPath(id),{method:'POST',body:{},key:randomUUID()}),404)).error.code,'NOT_FOUND');
+  const foreign=await fetch(f.origin+fixedPath(id),{headers:{origin:'https://invalid.example',cookie:manager.cookies.join('; ')}});
+  assert.equal((await success(foreign,403)).error.code,'FORBIDDEN');
+  const framed=await new Promise((resolve,reject)=>{const req=httpRequest(f.origin+fixedPath(id),{method:'GET',headers:{cookie:manager.cookies.join('; '),'content-length':'2'}},res=>{
+    let text='';res.setEncoding('utf8');res.on('data',chunk=>{text+=chunk;});res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(text),headers:res.headers}));
+  });req.on('error',reject);req.end('{}');});assert.equal(framed.status,422);assert.equal(framed.body.error.code,'VALIDATION_ERROR');assert.equal(framed.headers['x-request-id'],framed.body.error.requestId);
+  const disabled=await createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin});
+  assert.equal((await success(await disabled(new Request(f.origin+fixedPath(id),{headers:{cookie:manager.cookies.join('; ')}})),404)).error.code,'NOT_FOUND');
+  await assert.rejects(createBankHandler({bankPool:f.fixture.bankPool,identityService:f.identity,trustedOrigin:f.origin,enableFixedDiagnostics:'true'}),TypeError);
+  await assert.rejects(withTransaction(f.fixture.bankPool,client=>client.query('SELECT * FROM tsa.assembly_runs LIMIT 0'),{role:'tsa_bank'}),{code:'42501'});
+  await assert.rejects(withTransaction(f.fixture.bankPool,async(client)=>client.query('SELECT tsa.bank_fixed_reference_snapshot($1,NULL)',[(await principal(candidate)).userId]),{role:'tsa_bank'}),{code:'42501'});
+  assert.deepEqual(await databaseSnapshot(),before);
+  const managerId=(await principal(manager)).userId;
+  const assigned=(await pool.query("SELECT assigned_at::text AS at FROM tsa.user_roles WHERE user_id=$1 AND role='BANK_MANAGER'",[managerId])).rows[0].at;
+  await pool.query("DELETE FROM tsa.user_roles WHERE user_id=$1 AND role='BANK_MANAGER'",[managerId]);
+  try{
+    assert.equal((await success(await bankRequest(f,manager,fixedPath(id)),403)).error.code,'FORBIDDEN');
+    await assert.rejects(withTransaction(f.fixture.bankPool,client=>client.query('SELECT tsa.bank_fixed_reference_snapshot($1,NULL)',[managerId]),{role:'tsa_bank'}),{code:'42501'});
+  }finally{await pool.query("INSERT INTO tsa.user_roles(user_id,role,assigned_at) VALUES($1,'BANK_MANAGER',$2)",[managerId,assigned]);}
+  assert.deepEqual(await databaseSnapshot(),before);
+  await pool.query("UPDATE tsa.users SET disabled_at=clock_timestamp() WHERE id=$1",[managerId]);
+  try{
+    await assert.rejects(withTransaction(f.fixture.bankPool,client=>client.query('SELECT tsa.bank_fixed_reference_snapshot($1,NULL)',[managerId]),{role:'tsa_bank'}),{code:'42501'});
+    assert.equal((await success(await bankRequest(f,manager,fixedPath(id)),401)).error.code,'UNAUTHENTICATED');
+  }finally{await pool.query('UPDATE tsa.users SET disabled_at=NULL WHERE id=$1',[managerId]);}
+  assert.deepEqual(await databaseSnapshot(),before);
+  // Trusted fixtures deliberately masquerade a fixed manifest under a personal
+  // header, and a legacy placeholder under a fixed header; neither is readable.
+  const personal=randomUUID(),legacy=randomUUID();
+  for(const [target,userId,mode,reuse,manifest] of [[personal,(await principal(candidate)).userId,'PERSONALIZED_PRACTICE','NEW_ONLY',f.fixedRuns.success.manifest],[legacy,null,'PUBLISHED_FIXED','FIXED_AS_PUBLISHED',{schemaVersion:'assembly-manifest/0'}]]){
+    await pool.query(`INSERT INTO tsa.assembly_runs(id,blueprint_version_id,user_id,form_mode,reuse_mode,history_revision,bank_revision,request_hash,seed,algorithm_version,limits,manifest,manifest_hash,outcome,diagnostics)
+      SELECT $1,blueprint_version_id,$2,$3::tsa.form_mode,$4::tsa.reuse_mode,NULL,bank_revision,request_hash,seed,algorithm_version,limits,$5::jsonb,manifest_hash,outcome,diagnostics FROM tsa.assembly_runs WHERE id=$6`,
+      [target,userId,mode,reuse,JSON.stringify(manifest),id]);
+  }
+  const seeded=await databaseSnapshot();for(const target of [personal,legacy])assert.equal((await success(await bankRequest(f,manager,fixedPath(target)),404)).error.code,'NOT_FOUND');
+  assert.deepEqual(await databaseSnapshot(),seeded);
+  const list=await success(await bankRequest(f,manager,'/api/v1/assembly-runs'));assert.equal(list.runs.some(run=>[personal,legacy].includes(run.assemblyRunId)),false);
+});
+
+test('B7 fixed corrupt stored replay rolls back success audit and safe503 never fabricates a report',async()=>{
+  const original=f.fixedRuns.success.assemblyRunId;
+  for(const field of ['manifest_hash','seed','diagnostics']){
+    const id=randomUUID();
+    const manifestHash=field==='manifest_hash'?'sha256:'+'0'.repeat(64):null;
+    await pool.query(`INSERT INTO tsa.assembly_runs(id,blueprint_version_id,user_id,form_mode,reuse_mode,history_revision,bank_revision,request_hash,seed,algorithm_version,limits,manifest,manifest_hash,outcome,diagnostics)
+      SELECT $1,blueprint_version_id,NULL,form_mode,reuse_mode,NULL,bank_revision,request_hash,seed+CASE WHEN $2='seed' THEN 1 ELSE 0 END,algorithm_version,limits,manifest,
+      COALESCE($3,manifest_hash),outcome,CASE WHEN $2='diagnostics' THEN '{}'::jsonb ELSE diagnostics END FROM tsa.assembly_runs WHERE id=$4`,[id,field,manifestHash,original]);
+    const before=await databaseSnapshot();const value=await success(await bankRequest(f,manager,fixedPath(id)),503);
+    assert.equal(value.error.code,'TEMPORARILY_UNAVAILABLE');assert.doesNotMatch(JSON.stringify(value),/manifest|seed|diagnostics|SELECT|slots/);
+    assert.deepEqual(await databaseSnapshot(),before,'failed projection rolls back its audit');
+  }
+});
+
+test('B7 fixed list is bounded, newest first and truthfully truncated with only one audit',async()=>{
+  for(let i=0;i<22;i++)await pool.query(`INSERT INTO tsa.assembly_runs(id,blueprint_version_id,user_id,form_mode,reuse_mode,history_revision,bank_revision,request_hash,seed,algorithm_version,limits,manifest,manifest_hash,outcome,diagnostics,created_at)
+    SELECT $1,blueprint_version_id,NULL,form_mode,reuse_mode,NULL,bank_revision,request_hash,seed,algorithm_version,limits,manifest,manifest_hash,outcome,diagnostics,'2001-01-01T00:00:00Z' FROM tsa.assembly_runs WHERE id=$2`,[randomUUID(),f.fixedRuns.success.assemblyRunId]);
+  const before=await databaseSnapshot(),value=await success(await bankRequest(f,manager,'/api/v1/assembly-runs'));
+  assert.equal(value.runs.length,20);assert.equal(value.truncated,true);assert.equal(new Set(value.runs.map(run=>run.assemblyRunId)).size,20);
+  for(let i=1;i<value.runs.length;i++){const a=value.runs[i-1],b=value.runs[i];assert.equal(a.createdAt>b.createdAt||a.createdAt===b.createdAt&&a.assemblyRunId>b.assemblyRunId,true);}
+  await assertAuditOnly(before);
+});
+
+
+test('B7 a genuinely allocated personal run remains undiscoverable and unreadable without changing sealed snapshots/history',async()=>{
+  const fixture=await createAllocationFixture({questionCount:4});
+  try{
+    const service=createAllocationService({examPool:fixture.examPool,identityService:fixture.identityService});
+    const receipt=await service.create(fixture.principals.studentA,randomUUID(),{blueprintVersionId:fixture.blueprint.versionId});
+    assert.equal(receipt.status,201);
+    const id=(await fixture.pool.query('SELECT assembly_run_id FROM tsa.forms WHERE id=$1',[receipt.body.formId])).rows[0].assembly_run_id;
+    const protectedState=async()=>{
+      const values=[];for(const table of ['tsa.assembly_runs','tsa.forms','tsa.form_slots','tsa_private.form_slot_secrets','tsa.student_question_history']){
+        const rows=(await fixture.pool.query(`SELECT COALESCE(jsonb_agg(value ORDER BY value::text),'[]'::jsonb) AS data FROM(SELECT to_jsonb(t) AS value FROM ${table} t)s`)).rows[0].data;
+        values.push(jsonDigest(rows));
+      }return values;
+    };
+    const before=await protectedState();
+    const handler=await createBankHandler({bankPool:fixture.bankPool,identityService:fixture.identityService,trustedOrigin:fixture.harness.origin,enableFixedDiagnostics:true});
+    const headers={cookie:fixture.browsers.bankManager.cookies.join('; ')};
+    assert.equal((await success(await handler(new Request(fixture.harness.origin+fixedPath(id),{headers})),404)).error.code,'NOT_FOUND');
+    const list=await success(await handler(new Request(fixture.harness.origin+'/api/v1/assembly-runs',{headers})));
+    assert.deepEqual(list.runs,[]);assert.deepEqual(await protectedState(),before);
+  }finally{await fixture.close();}
 });

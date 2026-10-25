@@ -306,6 +306,307 @@
         ],
         "type": "object"
       },
+      "StaffFixedAssemblyDiagnostic": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER"
+            ],
+            "type": "string"
+          },
+          "algorithmVersion": {
+            "enum": [
+              "assembly/1"
+            ],
+            "type": "string"
+          },
+          "capturedCandidateCount": {
+            "maximum": 2000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "capturedUnitCount": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "createsForm": {
+            "enum": [
+              false
+            ],
+            "type": "boolean"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "failureCode": {
+            "enum": [
+              "CONSTRAINT_CONFLICT",
+              "INSUFFICIENT_ELIGIBLE_INVENTORY",
+              "SEARCH_EXHAUSTED",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nodeLimit": {
+            "maximum": 50000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "observedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "SUCCESS",
+              "FAILURE"
+            ],
+            "type": "string"
+          },
+          "publicationEligibility": {
+            "enum": [
+              "NOT_EVALUATED"
+            ],
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "NOT_ATTESTED_BY_PLATFORM"
+            ],
+            "type": "string"
+          },
+          "replayVerified": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "run": {
+            "additionalProperties": false,
+            "properties": {
+              "assemblyRunId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "blueprintVersionId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "createdAt": {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                "type": "string"
+              },
+              "outcome": {
+                "enum": [
+                  "SUCCESS",
+                  "FAILURE"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "assemblyRunId",
+              "blueprintVersionId",
+              "outcome",
+              "createdAt"
+            ],
+            "type": "object"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-fixed-assembly-diagnostic/1"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "CAPTURED_FIXED_REFERENCE_RUN_ONLY"
+            ],
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "requiredCount": {
+                  "maximum": 200,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "section": {
+                  "enum": [
+                    "MATH",
+                    "READING",
+                    "SCIENCE"
+                  ],
+                  "type": "string"
+                },
+                "selectedCount": {
+                  "maximum": 200,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "section",
+                "requiredCount",
+                "selectedCount"
+              ],
+              "type": "object"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "type": "array"
+          },
+          "selectedCount": {
+            "maximum": 200,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unitLimit": {
+            "maximum": 2000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "visitedNodes": {
+            "maximum": 50000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "observedAt",
+          "scope",
+          "run",
+          "algorithmVersion",
+          "replayVerified",
+          "createsForm",
+          "qualification",
+          "publicationEligibility",
+          "outcome",
+          "failureCode",
+          "visitedNodes",
+          "nodeLimit",
+          "capturedUnitCount",
+          "unitLimit",
+          "capturedCandidateCount",
+          "selectedCount",
+          "sections"
+        ],
+        "type": "object"
+      },
+      "StaffFixedAssemblyDiagnosticPathParams": {
+        "additionalProperties": false,
+        "properties": {
+          "assemblyRunId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assemblyRunId"
+        ],
+        "type": "object"
+      },
+      "StaffFixedAssemblyRunList": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER"
+            ],
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "enum": [
+              20
+            ],
+            "type": "number"
+          },
+          "observedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "runs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "assemblyRunId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "blueprintVersionId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                  "type": "string"
+                },
+                "outcome": {
+                  "enum": [
+                    "SUCCESS",
+                    "FAILURE"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "assemblyRunId",
+                "blueprintVersionId",
+                "outcome",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-fixed-assembly-runs/1"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "CAPTURED_FIXED_REFERENCE_RUNS_ONLY"
+            ],
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "observedAt",
+          "scope",
+          "limit",
+          "truncated",
+          "runs"
+        ],
+        "type": "object"
+      },
       "StaffForbiddenResponse": {
         "additionalProperties": false,
         "properties": {
@@ -3323,12 +3624,605 @@
     }
   },
   "info": {
-    "description": "Private staff inspection, evidence, recorded review history, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+    "description": "Private staff inspection, evidence, recorded review history, fixed-reference diagnostics, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     "title": "TSA Platform private staff API contracts",
     "version": "staff-contracts/1"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assembly-runs": {
+      "get": {
+        "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers and returns at most twenty captured fixed-reference runs; personal and unsupported runs are outside this scope.",
+        "operationId": "staffFixedAssemblyRuns",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFixedAssemblyRunList"
+                }
+              }
+            },
+            "description": "Newest-first bounded metadata for captured fixed-reference runs",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks the BANK_MANAGER fixed-reference diagnostic basis",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "No supported stored fixed-reference projection is visible",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected query or request body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored fixed-reference run metadata is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List captured fixed-reference assembly runs"
+      }
+    },
+    "/api/v1/assembly-runs/{assemblyRunId}/diagnostics": {
+      "get": {
+        "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers. The strict response contains replay-verified captured aggregates only; it does not establish current feasibility, eligibility, qualified review, rights, or publication.",
+        "operationId": "staffFixedAssemblyDiagnostic",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assemblyRunId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFixedAssemblyDiagnostic"
+                }
+              }
+            },
+            "description": "Replay-verified aggregate diagnostics for one captured fixed-reference run",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks the BANK_MANAGER fixed-reference diagnostic basis",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "Run is missing, malformed, personal, or outside the fixed-reference scope",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Malformed path or unexpected query/body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored fixed-reference diagnostics or replay verification is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read replay-verified fixed-reference aggregate diagnostics"
+      }
+    },
     "/api/v1/datasets/preflight": {
       "post": {
         "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission and a valid CSRF token. This read-only report validates only the explicitly pinned canonical graphs; it does not establish accepted inventory, rights, qualified human review, assembly feasibility, or publication eligibility. The strict JSON body is limited to 1 MiB and requires no idempotency key.",

@@ -316,3 +316,9 @@ BANK_MANAGER can explicitly select current metadata versions for a read-only
 canonical dataset preflight. Counts/12-6-12 shortfalls and mandatory human/rights
 blockers are not accepted inventory, current eligibility or assembly feasibility.
 [Executed scope/limits](../../docs/reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+
+BANK_MANAGER can explicitly browse stored fixed reference problems and replay
+aggregate diagnostics. The disposable staff demo seeds actual synthetic success,
+infeasible and exhausted runs; retained mode can show empty. No sealed forms,
+Bank eligibility capture or fixed student delivery is implemented by this feature.
+[Executed scope/limits](../../docs/reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).

@@ -198,8 +198,29 @@ An unavailable/lost report is an error, never a saved success. A new check is
 explicit and read-only. Some existing Factory opaque-ID graphs are unsupported by
 the unchanged canonical service and return a safe validation error; no partial
 success or alternate graph substitution. [Executed preflight scope/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
-This is not fixed-run assembly diagnostics: frozen fixed-manifest/replay semantics
-need separate reconciliation, and personal manifests/history stay private.
+Canonical dataset preflight remains distinct from the stored fixed reference
+diagnostics below. The additive fixed replay contract is now implemented; personal
+manifests/history remain private and fixed student delivery remains unavailable.
+
+To inspect stored fixed reference problems, remain BANK_MANAGER and choose
+**Kết quả lắp đề cố định**. The disposable demo automatically stores three genuine
+solver reference runs: success, proven-infeasible captured constraints and exhausted
+search budget. Select a row to **Phát lại và xem chẩn đoán**. The server verifies
+stored canonical inputs/result before displaying only aggregate counts, limits,
+exact run identity and observation time. The list itself is recorded metadata;
+replay verification happens only on explicit detail. Back uses that captured list
+without claiming a new observation; close/Escape restores focus.
+
+SEARCH_EXHAUSTED means feasibility remains unknown, not a proved shortage. Even
+proven infeasibility concerns that captured constraint problem, not today's stock
+or simply the number of items. These are synthetic reference problems, not Bank
+eligibility capture, sealed forms or fixed student delivery; no student attempt,
+assignment history, result, rights or publication is created. Candidate/source/
+history identifiers and raw manifests never cross this manager aggregate API.
+Retained mode truthfully shows empty until supported fixed reference rows exist;
+legacy placeholders and personal runs remain unreadable. Discovery is capped at20
+with explicit older-record notice. Every successful list/detail read is audited.
+[Fixed reference diagnostics evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
 
 For quarantine, sign out and choose BANK_MANAGER. Select a different DRAFT or
 IN_REVIEW version (use the state filter if necessary), inspect it and choose
@@ -256,6 +277,6 @@ The staff metadata workspace is separate from this disposable student launcher;
 see [staff capabilities and proposed next contract](../decisions/WEB_002_STAFF_READ_PROPOSAL.md).
 
 Real-content acceptance inputs are listed in the separate [content handoff](TRACK_B_CONTENT_HANDOFF.md).
-The demonstration does not supply those human/rights attestations. Remaining fixed
-assembly diagnostics has a [specific contract/service dependency record](../decisions/WEB_002_FIXED_DIAGNOSTICS_DEPENDENCIES.md);
+The demonstration does not supply those human/rights attestations. Fixed
+assembly scope has a [specific contract/service dependency record](../decisions/WEB_002_FIXED_DIAGNOSTICS_DEPENDENCIES.md);
 canonical dataset preflight does not replace it.

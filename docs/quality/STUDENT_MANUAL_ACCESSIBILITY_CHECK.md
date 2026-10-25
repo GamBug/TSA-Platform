@@ -123,3 +123,11 @@ canonical count/shortfall/blocker warnings and versions. Focusable horizontal-sc
 pin tables need keyboard/AT/native zoom checks. Close/Escape clears selection/report
 and focuses the stable selection summary because Run becomes disabled. Automated
 Chrome375/Firefox actual500 checks are not formal accessibility acceptance.
+
+## Separate B7 fixed reference diagnostics — MANUAL_CHECK_PENDING
+
+Verify explicit manager list/detail, empty/latest20 notice, success/proven
+infeasibility versus unknown feasibility, no-form/no-qualification warnings,
+focusable narrow tables, cached back, Escape/close focus and logout privacy with
+qualified AT/native zoom. Automated Chrome375/Firefox actual500 is not formal
+accessibility acceptance.

@@ -397,6 +397,28 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`document.activeElement===${query('staff-preflight-selected-count')}`),true,'Firefox Escape has a logical focus destination');
   report.checks.push('B6 Firefox explicit manager keyboard selection/CSRF-only read POST produces exact canonical counts/pins/shortfalls/blockers, no publishing claim; desktop/narrow captures and Escape selection/report cleanup with logical focus');
 
+  await evaluate(`(()=>{const original=window.fetch;window.__ffFixed=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.pathname.startsWith('/api/v1/assembly-runs'))window.__ffFixed.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
+  assert.equal(await evaluate('window.__ffFixed.length'),0);await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'Firefox stored fixed reference list');
+  assert.equal(await evaluate('window.__ffFixed.length'),1);assert.equal(await evaluate('document.querySelectorAll("[data-testid=staff-fixed-run-open]").length'),3);
+  for(const [key,run] of Object.entries(staffFixture.fixedRuns)){
+    const selector=`[data-testid="staff-fixed-run-open"][data-run-id="${run.assemblyRunId}"]`;
+    const element=await wd('POST','/element',{using:'css selector',value:selector});await wd('POST',`/element/${element['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+    await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='detail-loaded'`,'Firefox replay-verified fixed detail');
+    assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.runId`),run.assemblyRunId);assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.selectedCount`),String(key==='success'?4:0));
+    assert.equal(await evaluate(`${query('staff-fixed-detail')}.dataset.failureCode`),run.result.status==='FAILURE'?run.result.code:'null');
+    if(key==='success'){await setViewport(1280,900,'fixed desktop');await evaluate(`(()=>{${query('staff-fixed-detail')}.scrollIntoView({block:'start'});return true})()`);await capture('staff-fixed-success-desktop');}
+    if(key==='exhausted'){
+      assert.equal(await evaluate(`${query('staff-fixed-detail')}.textContent.includes('chưa rõ')`),true);
+      await setViewport(narrowMeasured.innerWidth,812,'fixed narrow actual');await evaluate(`(()=>{document.querySelector('.staff-fixed-reference-result').scrollIntoView({block:'center'});return true})()`);await capture(`staff-fixed-exhausted-narrow-${narrowMeasured.innerWidth}`);
+    }
+    const beforeBack=await evaluate('window.__ffFixed.length');await click('staff-fixed-back');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'Firefox cached fixed list');assert.equal(await evaluate('window.__ffFixed.length'),beforeBack);
+  }
+  await wd('POST','/actions',{actions:[{type:'key',id:'fixed-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  assert.equal(await evaluate(`Boolean(${query('staff-fixed-list')})||Boolean(${query('staff-fixed-detail')})`),false);assert.equal(await evaluate(`document.activeElement===${query('staff-fixed-open')}`),true);
+  await click('staff-fixed-open');await waitFor(`${query('staff-fixed-status')}?.dataset.stage==='list-loaded'`,'fixed list before Firefox logout');await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox fixed private logout');
+  assert.equal(await evaluate(`Boolean(${query('staff-fixed-list')})||Boolean(${query('staff-fixed-detail')})`),false);
+  report.checks.push('B7 Firefox explicit manager stored fixed list and three real replay outcomes keep exhaustion feasibility unknown; desktop/narrow captures, cached back without GET, Escape focus and logout cleanup');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

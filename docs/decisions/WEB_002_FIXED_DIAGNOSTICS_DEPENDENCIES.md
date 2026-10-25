@@ -4,7 +4,10 @@
 Updated2026-10-25: the additive fixed manifest/reference/replay prerequisite is
 implemented and independently reviewed in [B7.1](WEB_002_B7_FIXED_REFERENCE_DECISION.md),
 [actual evidence](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md). Personal
-schema stays frozen; stored fixed projection/discovery/UI remain unimplemented.
+schema stays frozen. Stored fixed reference projection/discovery/UI are now
+implemented in [B7.2](WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md),
+[actual evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md); this
+does not implement eligible Bank capture/sealed forms/fixed student delivery.
 The source gap and initial design below are historical discovery, not current
 absence of the new fixed parser. Root accountable; native Luna/XHigh read-only
 worker actually mapped these dependencies. This is a concrete technical handoff,

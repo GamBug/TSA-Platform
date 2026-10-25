@@ -1,4 +1,5 @@
 // Only for disposable browser acceptance; never alters retained source rights.
+import { seedFixedReferenceRuns } from './fixed-reference-fixture.mjs';
 import { randomUUID } from 'node:crypto';
 import { createAllocationFixture } from '../assembly/fixtures.mjs';
 import { bankRequest } from './harness.mjs';
@@ -80,14 +81,15 @@ export async function createReviewBrowserFixture() {
       return null;
     } });
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+    const fixedRuns = await seedFixedReferenceRuns(fixture);
     const origin = `http://127.0.0.1:${server.address().port}`;
     const env = { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_AUTH_TRUSTED_ORIGIN: origin };
     const identity = await createLocalSyntheticIdentityService(fixture.harness.authPool, { env });
     handlers = { identity,
       auth: await createLocalAuthHandler({ pool: fixture.harness.authPool, env }),
-      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true }),
+      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true }),
     };
-    return { origin, questions, close, fixture, identity, template, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
+    return { origin, questions, close, fixture, identity, template, fixedRuns, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Staff browser fixture setup and cleanup failed'); }
     throw error;

@@ -7,6 +7,7 @@ import { createSourceService } from '../modules/sources/service.mjs';
 import { createReviewContextService } from '../modules/bank/review-context.mjs';
 import { createReviewEvidenceService } from '../modules/bank/review-evidence.mjs';
 import { createReviewHistoryService } from '../modules/bank/review-history.mjs';
+import { createFixedDiagnosticsService } from '../modules/bank/fixed-diagnostics.mjs';
 import { createStaffDatasetPreflightService } from '../modules/bank/staff-dataset-preflight.mjs';
 
 const MAX_JSON_BYTES = 1024 * 1024;
@@ -170,7 +171,7 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
@@ -180,6 +181,8 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
   if (typeof enableReviewEvidence !== 'boolean') throw new TypeError('Private evidence opt-in must be boolean');
   if (typeof enableReviewHistory !== 'boolean') throw new TypeError('Private review history opt-in must be boolean');
   if (typeof enableDatasetPreflight !== 'boolean') throw new TypeError('Private dataset preflight opt-in must be boolean');
+  if (typeof enableFixedDiagnostics !== 'boolean') throw new TypeError('Fixed diagnostics opt-in must be boolean');
+  const fixedDiagnostics = enableFixedDiagnostics ? await createFixedDiagnosticsService({ bankPool, identityService }) : null;
   const datasetPreflight = enableDatasetPreflight ? await createStaffDatasetPreflightService({ bankPool, identityService }) : null;
   const reviewHistory = enableReviewHistory ? await createReviewHistoryService({ bankPool, identityService }) : null;
   const reviewEvidence = enableReviewEvidence ? await createReviewEvidenceService({ bankPool, identityService }) : null;
@@ -196,6 +199,19 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
       if (!requestIsTrusted(request, trusted)) return errorResponse(403, 'FORBIDDEN', requestId);
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
+      if (fixedDiagnostics && (url.pathname === '/api/v1/assembly-runs'
+          || /^\/api\/v1\/assembly-runs\/[^/]+\/diagnostics$/.test(url.pathname))) {
+        if (method !== 'GET') return errorResponse(404, 'NOT_FOUND', requestId);
+        const principal = await identityService.authenticate(request);
+        if (!principal) return errorResponse(401, 'UNAUTHENTICATED', requestId);
+        if (!identityService.mayPerform(principal, 'bank.diagnostics.read')
+            || !principal.roles?.includes('BANK_MANAGER')) return errorResponse(403, 'FORBIDDEN', requestId);
+        if (url.search || request.body !== null || request.headers.has('transfer-encoding')
+            || (request.headers.has('content-length') && request.headers.get('content-length') !== '0')) return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        const value = url.pathname === '/api/v1/assembly-runs'
+          ? await fixedDiagnostics.list(principal) : await fixedDiagnostics.read(principal, url.pathname.split('/')[4]);
+        return jsonResponse(200, value, requestId);
+      }
       if (datasetPreflight && url.pathname === '/api/v1/datasets/preflight') {
         if (method !== 'POST') return errorResponse(404, 'NOT_FOUND', requestId);
         const authenticated = await identityService.authenticate(request);
