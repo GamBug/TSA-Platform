@@ -1,10 +1,19 @@
 # Implementation roadmap
 
+Current SEC-001,2026-10-25: exact patched Zod4.6.7 replaces observed vulnerable
+4.1.12; all other pins/frozen sources/artifacts unchanged. Root156contracts/Bank149/
+assembly50/critical9/student34/domains78/Chrome46/Firefox16/audit0 PASS; separate
+reviewer targeted compatibility/integrity checks no findings. Clean no-hardlink
+3cd49be install/build/contracts156/focused12/domains78/Chrome46/Firefox16/emitted/
+boundaries/docs/audit0 PASS, final clone Git empty. [Evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
+Next named acceptance gap: corrected publication during active attempt followed by
+grading of immutable original snapshots (TEST-002 G), using existing harness only.
+
 Current B8.1, 2026-10-25: actual eligible Bank rehearsal implemented with separate
 immutable021 storage, current EXAM command, audited BANK replay and role-scoped UI.
 [Evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md). Root
 PG/upgrade/regressions/Chrome PASS; actual delegate Firefox16 PASS, independent
-PG6/upgrade3/Chrome46/source final no findings. Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Zod advisory remediation next. This captures historical eligibility, creates no form or
+PG6/upgrade3/Chrome46/source final no findings. Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Old-pin Zod advisory subsequently fixed in SEC-001. This captures historical eligibility, creates no form or
 attempt and does not attest rights/human review or current stock. Next explicit
 fixed sealing scope follows completed rehearsal acceptance.
 

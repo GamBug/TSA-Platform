@@ -1,6 +1,6 @@
 # SEC-001 Zod remediation verification
 
-2026-10-25, base694df4d, feat/track-b-data-auth. IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; clean reproduction pending.
+2026-10-25, base694df4d, feat/track-b-data-auth. IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; clean reproduction PASS at3cd49be.
 [Selected dependency scope](../decisions/SEC_001_ZOD_VALIDATION_LIMIT_REMEDIATION.md).
 Root sole writer, separate actual Sol6.1/Medium read-only reviewer. Owner AGENTS.md/
 untracked research preserved/excluded. Existing subscriptions only; no paid API,
@@ -64,5 +64,26 @@ consumer boundaries/whitespace PASS. No files touched. Live npm audit NOT_EXECUT
 by reviewer because its role prohibits external-service calls; the dated audit0
 above was performed by root. No independent PG/browser rerun or security guarantee.
 
-Clean-checkout reproduction remains pending.
+## Clean checkout —3cd49be
+
+Root `git clone --no-hardlinks . /tmp/tsa-sec001-clean.wnRneZ` captured exactly
+3cd49be. `npm ci --ignore-scripts` and `npm run build` exit0, fresh locked4.6.7,
+zero reported advisories. No file patches/manual SQL/API setup/inherited database
+or browser profile. From the clone, actual commands/results:
+
+- `npm test`: PASS156; `npm run test:built`, `npm run typecheck`: exit0.
+- `npm run test:consumers`: PASS12; `npm run contracts:check`,
+  `npm run contracts:consumer-check`, `npm run docs:check`: exit0.
+- B8 focused rehearsal/upgrade/CLI command: PASS12.
+- `npm run test:student:domains`: actual three-domain PASS78.
+- `npm run test:track-b:browser`: actual Chrome46checks/29captures,375/scale1.
+- `npm run test:staff:firefox`: actual Firefox16/35captures,1280/actual500.
+- `npm audit --json`: exit0/current zero advisories.
+- Final `git status --short`: empty; installed Zod4.6.7. Harnesses tear down owned
+  databases/listeners/browser profiles. Private logs/evidence remain ignored.
+
+Exact artifact environment arguments point to `.local/verification-sec001/clean-*`
+under the owner workspace; logs `.local/sec001-clean-*`. No source drift or added
+production dependency beyond the selected patched validator. This closes the
+bounded security-remediation milestone, not all Technical MVP/security acceptance.
 Dated audit output is not a comprehensive supply-chain or production guarantee.

@@ -768,7 +768,7 @@ owner AGENTS/research, frozen personal/B7 protocols. No forms/sealing/student fi
 delivery/publication or qualified-human acceptance. Root finalfocused12/Bank147/assembly50/student34/foundation37/domains78/Chrome46
 PASS; actual writers contracts155/B032/Firefox16 PASS. Separate Sol6.1/Medium
 PG6/upgrade3/Chrome46 and source review final no findings; Firefox source/syntax only.
-Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Zod advisory remediation next. [Evidence](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
+Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Old-pin Zod advisory subsequently fixed in SEC-001. [Evidence](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
 
 2026-10-25 **B7.2 STORED FIXED DIAGNOSTICS — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base7ba60a5.
 Root selects exact additive audited projection/discovery/UI and migration020;
@@ -1728,6 +1728,17 @@ Luna is usage-limited, separate Sol6.1/Medium review when available.
 
 ## TEST-002 — Independent critical-invariant and security regression harness
 
+2026-10-25 **SCENARIO G — IN_PROGRESS**, starting3cd49be. Root accountable;
+read-only existing scout mapped C–H and checked other attempt/grading/result/runtime
+files, found no corrected-version publication during an active attempt followed by
+sealed-original grading/released review. Narrow native Luna/XHigh writer owns only
+`tests/integration/results/delivery.test.mjs`; existing fixture/services, one real
+PG regression, no new harness/runtime/schema/privilege changes. Root integrates,
+separate Sol6.1/Medium read-only review after implementation. This closes a named
+acceptance gap, not full TEST-002 or all A–J. Synthetic approval is fixture machinery,
+not qualified human evidence. Runtime verification pending.
+
+
 2026-10-23 final HTTP review **INDEPENDENTLY_REVIEWED**: separate native
 `/root/lifecycle_review`, Sol6.1/Medium, reviewed exact `db9c51c..b4a8097` hashes;
 no concrete findings. Independently syntax/whitespace/diagnostic1/actual HTTP4
@@ -1816,4 +1827,5 @@ available with Sol fallback, separate Sol6.1/Medium independent engineering revi
   critical9/student34/domains78/Chrome46/Firefox16/docs/audit0 PASS. Separate reviewer
   regression1/reference31/identity-question26/consumer12/type/drift/import/graph/integrity
   PASS, no findings; independent live audit/PG/browser NOT_EXECUTED. Clean reproduction
-  pending. [Exact evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
+  PASS at3cd49be: install/build/contracts156/focused12/domains78/Chrome46/Firefox16/
+  emitted/drift/import/docs/audit0; empty final clone Git. [Exact evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).

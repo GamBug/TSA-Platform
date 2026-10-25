@@ -36,7 +36,8 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   AUTHORIZED_IN_SCOPE / IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED.
   [Exact impact/acceptance](SEC_001_ZOD_VALIDATION_LIMIT_REMEDIATION.md),
   [compatibility/review evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
-  Clean reproduction pending.
+  Clean no-hardlink3cd49be locked install/build/contracts156/focused12/domains78/
+  Chrome46/Firefox16/emitted/boundaries/audit0 PASS; final clone Git empty.
 - Actual fresh B8 npm audit reports high Zod4.1.12 resource-consumption advisory;
   controlled frozen student schema produces20,002 issues for10,000 invalid options.
 - Select exact patched4.6.7, preserve other package pins and all frozen schema/
@@ -49,7 +50,7 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scope.
   [Exact scope/privilege/compatibility/acceptance](WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md),
   [executed evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
-  Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Zod advisory remediation next.
+  Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Old-pin Zod advisory subsequently fixed in SEC-001.
 - EXAM_MANAGER initiates fixed diagnostic stock capture, BANK_MANAGER views aggregate
   history. New immutable private records, no forms/student history/assembly run writes.
   Existing B7 synthetic reference APIs/data remain separate and unchanged.
