@@ -1,3 +1,4 @@
+import { createFixedStockRehearsalService } from '../modules/bank/fixed-stock-rehearsals.mjs';
 import { randomUUID } from 'node:crypto';
 import { isIP } from 'node:net';
 import { BankCommandError } from '../modules/bank/common.mjs';
@@ -171,7 +172,7 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
@@ -182,6 +183,8 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
   if (typeof enableReviewHistory !== 'boolean') throw new TypeError('Private review history opt-in must be boolean');
   if (typeof enableDatasetPreflight !== 'boolean') throw new TypeError('Private dataset preflight opt-in must be boolean');
   if (typeof enableFixedDiagnostics !== 'boolean') throw new TypeError('Fixed diagnostics opt-in must be boolean');
+  if (typeof enableFixedStockRehearsal !== 'boolean') throw new TypeError('Fixed stock opt-in must be boolean');
+  const fixedStock = enableFixedStockRehearsal ? await createFixedStockRehearsalService({ bankPool, identityService }) : null;
   const fixedDiagnostics = enableFixedDiagnostics ? await createFixedDiagnosticsService({ bankPool, identityService }) : null;
   const datasetPreflight = enableDatasetPreflight ? await createStaffDatasetPreflightService({ bankPool, identityService }) : null;
   const reviewHistory = enableReviewHistory ? await createReviewHistoryService({ bankPool, identityService }) : null;
@@ -199,6 +202,28 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
       if (!requestIsTrusted(request, trusted)) return errorResponse(403, 'FORBIDDEN', requestId);
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
+      if (fixedStock && (url.pathname === '/api/v1/fixed-rehearsal-blueprints'
+          || url.pathname === '/api/v1/fixed-rehearsals' || /^\/api\/v1\/fixed-rehearsals\/[^/]+$/.test(url.pathname))) {
+        const command = method === 'POST' && url.pathname === '/api/v1/fixed-rehearsals';
+        if (!command && method !== 'GET') return errorResponse(404, 'NOT_FOUND', requestId);
+        const exam = command || url.pathname === '/api/v1/fixed-rehearsal-blueprints';
+        const principal = await identityService.authenticate(request);
+        if (!principal) return errorResponse(401, 'UNAUTHENTICATED', requestId);
+        if (!principal.roles?.includes(exam ? 'EXAM_MANAGER' : 'BANK_MANAGER')
+            || !identityService.mayPerform(principal, exam ? 'exam.assembly.write' : 'bank.diagnostics.read')) return errorResponse(403, 'FORBIDDEN', requestId);
+        if (url.search) return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        if (command) {
+          const verified = await identityService.validateMutation(request);
+          if (!verified) return errorResponse(403, 'CSRF_FAILED', requestId);
+          const result = await fixedStock.create(verified, await readJson(request), request.headers.get('idempotency-key'));
+          return jsonResponse(result.status, result.body, requestId);
+        }
+        if (request.body !== null || request.headers.has('transfer-encoding')
+            || (request.headers.has('content-length') && request.headers.get('content-length') !== '0')) return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        const value = url.pathname === '/api/v1/fixed-rehearsal-blueprints' ? await fixedStock.blueprints(principal)
+          : url.pathname === '/api/v1/fixed-rehearsals' ? await fixedStock.list(principal) : await fixedStock.read(principal, url.pathname.split('/')[4]);
+        return jsonResponse(200, value, requestId);
+      }
       if (fixedDiagnostics && (url.pathname === '/api/v1/assembly-runs'
           || /^\/api\/v1\/assembly-runs\/[^/]+\/diagnostics$/.test(url.pathname))) {
         if (method !== 'GET') return errorResponse(404, 'NOT_FOUND', requestId);

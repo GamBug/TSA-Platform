@@ -247,6 +247,45 @@ grants the explicit author draft handoff. [B4 engineering disposition](../decisi
 adds only the simulated negative actions above and attribution repair; rights
 edits/approval/publication and qualified human acceptance remain separate.
 
+### Eligible Bank stock rehearsal (B8.1)
+
+The same disposable staff launcher automatically provisions four additional
+technically eligible synthetic MATH questions, separately from the four preview
+drafts and B7 reference-only examples. These use a disposable fixture publication
+capability; they are not lawful accepted stock or qualified human approvals.
+No database patching or manual API calls are needed.
+
+1. Sign out, select **Synthetic exam manager (EXAM_MANAGER)**, and sign in.
+   Choose **Load supported rehearsal blueprints**. This role receives blueprint
+   metadata; it cannot read private questions or Bank diagnostics.
+2. Choose the displayed MATH4 blueprint version and a window of **60** minutes.
+   Choose **Review rehearsal confirmation**, check the exact version/hash/window
+   and no-form disclosure, then confirm. The database sets capture time and checks
+   rights through the proposed window plus the600-second Start TTL and domain
+   duration. The client clock supplies no eligibility timestamp.
+3. Read the historical SUCCESS receipt. No form, attempt, score or assignment
+   history was created. A lost acknowledgement shows uncertainty; **Retry the same
+   rehearsal request** retains its exact body/key. Reload never resubmits a command.
+4. Sign out and choose BANK_MANAGER. Open **Eligible-stock rehearsal history**,
+   then **View diagnostics** for that receipt. The server replays stored inputs and
+   shows aggregate feasibility, counts and `BANK_ELIGIBLE_AT_CAPTURE` provenance.
+   `NOT_REVALIDATED` means current eligibility was not checked by this read.
+5. To show stock loss, close the history, filter question metadata to APPROVED,
+   inspect one of the four synthetic eligible versions, then use the existing
+   explicit quarantine action with a synthetic reason. This is a real local
+   negative disposition, never content approval. Sign in as EXAM_MANAGER and
+   explicitly request another rehearsal. It records FAILURE with a proven one-item
+   MATH shortfall; no reuse-policy fallback occurs.
+6. Return as BANK_MANAGER and reopen the first SUCCESS. It remains an immutable
+   historical result, clearly separate from current inventory and the new failure.
+
+The command receipt reveals only safe pins/times/outcome and bounded proven count
+shortfall. Bank aggregate inspection is a separate role. Successful rehearsal
+neither reserves content nor seals an exam; future fixed sealing/delivery is a
+separate milestone. Current rights/human review/publication and real12/6/12 starter
+inventory remain external acceptance requirements.
+[Executed checks and limitations](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
+
 ## Reproduce verification
 
 From the installed repository root:

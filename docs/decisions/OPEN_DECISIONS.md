@@ -30,6 +30,19 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 B8.1 — eligible Bank stock rehearsal selected 2026-10-25
+
+- Root-selected under owner engineering-choice delegation; AUTHORIZED_IN_SCOPE /
+  IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scope.
+  [Exact scope/privilege/compatibility/acceptance](WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md),
+  [executed evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
+  Clean reproduction pending.
+- EXAM_MANAGER initiates fixed diagnostic stock capture, BANK_MANAGER views aggregate
+  history. New immutable private records, no forms/student history/assembly run writes.
+  Existing B7 synthetic reference APIs/data remain separate and unchanged.
+- Root021 SQL/backend/fixtures/browser/shared records; bounded native Luna/XHigh
+  private DTO/UI writers, separate Sol6.1/Medium read-only review. Runtime pending.
+
 ## WEB-002 B7.2 — stored fixed reference diagnostics selected 2026-10-25
 
 - Root-selected under owner engineering-choice delegation, AUTHORIZED_IN_SCOPE /

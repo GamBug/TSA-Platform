@@ -10,7 +10,7 @@ export async function startStaffReviewFixtureDemo({ env = process.env } = {}) {
     throw new Error('Disposable staff review demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true');
   }
 
-  const fixture = await createReviewBrowserFixture();
+  const fixture = await createReviewBrowserFixture({ includeEligibleFixedStock: true });
   let closing;
   return {
     origin: fixture.origin,
@@ -68,6 +68,8 @@ async function runWorker() {
     process.stdout.write('BANK_MANAGER can explicitly open recorded review history for an exact version; historical decisions and verbatim reasons do not attest qualification, rights or current eligibility.\n');
     process.stdout.write('BANK_MANAGER may explicitly select displayed versions for a canonical dataset preflight. Counts are not accepted inventory, rights, human review, or assembly feasibility; mandatory human/rights blockers remain.\n');
     process.stdout.write('BANK_MANAGER may explicitly open stored fixed reference diagnostics: actual synthetic success, infeasible, and search-exhausted runs. These replay checks create no form and do not establish Bank eligibility, rights or fixed student delivery.\n');
+    process.stdout.write('Synthetic EXAM_MANAGER can load supported rehearsal blueprints, choose the MATH4 version and a minute window, then explicitly confirm one eligible-Bank capture. Four additional synthetic eligible questions are provisioned automatically. No form or attempt is created.\n');
+    process.stdout.write('BANK_MANAGER can open Eligible-stock rehearsal history and replay a captured aggregate report. Current eligibility is NOT_REVALIDATED; after quarantining one approved fixture version, a new EXAM_MANAGER check shows a shortage while the old success remains historical.\n');
     process.stdout.write('The synthetic reviewer is not a qualified reviewer. This demo makes no real rights, content-approval, or publication claim.\n');
     process.stdout.write('Keep this terminal running. Ctrl+C stops the app and deletes its disposable database.\n\n');
   } catch (error) {

@@ -46,6 +46,9 @@ describe("dedicated private staff artifacts", () => {
       "/api/v1/assembly-runs",
       "/api/v1/assembly-runs/{assemblyRunId}/diagnostics",
       "/api/v1/datasets/preflight",
+      "/api/v1/fixed-rehearsal-blueprints",
+      "/api/v1/fixed-rehearsals",
+      "/api/v1/fixed-rehearsals/{rehearsalId}",
       "/api/v1/question-versions/{versionId}/quarantine",
       "/api/v1/question-versions/{versionId}/review-context",
       "/api/v1/question-versions/{versionId}/review-evidence",
@@ -90,6 +93,53 @@ describe("dedicated private staff artifacts", () => {
     ]);
     assert.ok(document.components?.schemas?.StaffFixedAssemblyDiagnostic);
     assert.ok(document.components?.schemas?.StaffFixedAssemblyDiagnosticPathParams);
+
+    const rehearsalBlueprintPath = document.paths?.["/api/v1/fixed-rehearsal-blueprints"];
+    assert.deepEqual(Object.keys(rehearsalBlueprintPath ?? {}), ["get"]);
+    const rehearsalBlueprints = rehearsalBlueprintPath?.get;
+    assert.equal(rehearsalBlueprints?.operationId, "staffFixedRehearsalBlueprints");
+    assert.equal(rehearsalBlueprints?.requestBody, undefined);
+    assert.deepEqual(rehearsalBlueprints?.parameters ?? [], []);
+    assert.deepEqual(Object.keys(rehearsalBlueprints?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.ok(rehearsalBlueprints?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.ok(document.components?.schemas?.StaffFixedRehearsalBlueprintList);
+
+    const rehearsalsPath = document.paths?.["/api/v1/fixed-rehearsals"];
+    assert.deepEqual(Object.keys(rehearsalsPath ?? {}).sort(), ["get", "post"]);
+    const createRehearsal = rehearsalsPath?.post;
+    assert.equal(createRehearsal?.operationId, "staffCreateFixedRehearsal");
+    assert.equal(createRehearsal?.requestBody?.required, true);
+    assert.deepEqual(createRehearsal?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "x-csrf-token", in: "header", required: true },
+      { name: "idempotency-key", in: "header", required: true },
+    ]);
+    assert.deepEqual(Object.keys(createRehearsal?.responses ?? {}), ["201", "400", "401", "403", "404", "409", "413", "422", "503"]);
+    assert.ok(createRehearsal?.requestBody?.content?.["application/json"]?.schema);
+    assert.ok(createRehearsal?.responses?.["201"]?.content?.["application/json"]?.schema);
+    assert.ok(document.components?.schemas?.StaffFixedRehearsalRequest);
+    assert.ok(document.components?.schemas?.StaffFixedRehearsalReceipt);
+    assert.ok(document.components?.schemas?.StaffSubmitReviewRequestHeaders);
+
+    const rehearsalList = rehearsalsPath?.get;
+    assert.equal(rehearsalList?.operationId, "staffFixedRehearsals");
+    assert.equal(rehearsalList?.requestBody, undefined);
+    assert.deepEqual(rehearsalList?.parameters ?? [], []);
+    assert.deepEqual(Object.keys(rehearsalList?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.ok(rehearsalList?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.ok(document.components?.schemas?.StaffFixedRehearsalList);
+
+    const rehearsalDiagnosticPath = document.paths?.["/api/v1/fixed-rehearsals/{rehearsalId}"];
+    assert.deepEqual(Object.keys(rehearsalDiagnosticPath ?? {}), ["get"]);
+    const rehearsalDiagnostic = rehearsalDiagnosticPath?.get;
+    assert.equal(rehearsalDiagnostic?.operationId, "staffFixedRehearsalDiagnostic");
+    assert.equal(rehearsalDiagnostic?.requestBody, undefined);
+    assert.deepEqual(rehearsalDiagnostic?.parameters?.map(({ name, in: location, required }) => ({ name, in: location, required })), [
+      { name: "rehearsalId", in: "path", required: true },
+    ]);
+    assert.deepEqual(Object.keys(rehearsalDiagnostic?.responses ?? {}), ["200", "401", "403", "404", "422", "503"]);
+    assert.ok(rehearsalDiagnostic?.responses?.["200"]?.content?.["application/json"]?.schema);
+    assert.ok(document.components?.schemas?.StaffFixedRehearsalDiagnostic);
+    assert.ok(document.components?.schemas?.StaffFixedRehearsalDiagnosticPathParams);
 
     const path = document.paths?.["/api/v1/question-versions/{versionId}/review-context"];
     assert.deepEqual(Object.keys(path ?? {}), ["get"]);
@@ -277,6 +327,14 @@ describe("dedicated private staff artifacts", () => {
     assert.equal(student.paths?.["/api/v1/assembly-runs/{assemblyRunId}/diagnostics"], undefined);
     assert.equal(student.components?.schemas?.StaffFixedAssemblyRunList, undefined);
     assert.equal(student.components?.schemas?.StaffFixedAssemblyDiagnostic, undefined);
+    assert.equal(student.paths?.["/api/v1/fixed-rehearsal-blueprints"], undefined);
+    assert.equal(student.paths?.["/api/v1/fixed-rehearsals"], undefined);
+    assert.equal(student.paths?.["/api/v1/fixed-rehearsals/{rehearsalId}"], undefined);
+    assert.equal(student.components?.schemas?.StaffFixedRehearsalBlueprintList, undefined);
+    assert.equal(student.components?.schemas?.StaffFixedRehearsalRequest, undefined);
+    assert.equal(student.components?.schemas?.StaffFixedRehearsalReceipt, undefined);
+    assert.equal(student.components?.schemas?.StaffFixedRehearsalList, undefined);
+    assert.equal(student.components?.schemas?.StaffFixedRehearsalDiagnostic, undefined);
   });
 
   it("matches the committed private OpenAPI and operation-map artifacts and detects drift without rewriting", async () => {

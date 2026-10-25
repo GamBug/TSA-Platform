@@ -4,6 +4,7 @@ const ACTORS = Object.freeze([
   { key: 'author', label: 'Tác giả tổng hợp' },
   { key: 'reviewer', label: 'Người rà soát tổng hợp' },
   { key: 'bankManager', label: 'Quản lý ngân hàng câu hỏi tổng hợp' },
+  { key: 'examManager', label: 'Synthetic exam manager (EXAM_MANAGER)' },
   { key: 'studentA', label: 'Học viên tổng hợp A' },
 ]);
 
@@ -73,6 +74,30 @@ const FIXED_RUN_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
 const FIXED_RUN_FAILURE_CODES = Object.freeze([
   'CONSTRAINT_CONFLICT', 'INSUFFICIENT_ELIGIBLE_INVENTORY', 'SEARCH_EXHAUSTED',
 ]);
+const STAFF_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const STAFF_HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const FIXED_REHEARSAL_BLUEPRINT_LIST_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'limit', 'truncated', 'items',
+]);
+const FIXED_REHEARSAL_BLUEPRINT_KEYS = Object.freeze([
+  'blueprintVersionId', 'contentHash', 'name', 'section', 'questionCount', 'durationSeconds',
+]);
+const FIXED_REHEARSAL_RECEIPT_KEYS = Object.freeze([
+  'rehearsalId', 'blueprintVersionId', 'blueprintHash', 'windowMinutes', 'capturedAt', 'availableUntil',
+  'requiredThrough', 'outcome', 'failureCode', 'sectionDeficits', 'createsForm', 'currentEligibility',
+]);
+const FIXED_REHEARSAL_LIST_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'limit', 'truncated', 'items',
+]);
+const FIXED_REHEARSAL_DIAGNOSTIC_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'captureOrigin', 'currentEligibility',
+  'qualification', 'publicationEligibility', 'rehearsal', 'replayVerified', 'createsForm',
+  'capturedUnitCount', 'capturedCandidateCount', 'selectedCount', 'visitedNodes', 'nodeLimit', 'unitLimit', 'section',
+]);
+const FIXED_REHEARSAL_FAILURE_CODES = Object.freeze([
+  'CONSTRAINT_CONFLICT', 'INSUFFICIENT_ELIGIBLE_INVENTORY', 'SEARCH_EXHAUSTED',
+]);
+const FIXED_REHEARSAL_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
 const REVIEW_HISTORY_KEYS = Object.freeze([
   'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'version',
   'workflowState', 'qualification', 'publicationEligibility', 'limit', 'truncated', 'reviews',
@@ -223,6 +248,142 @@ function fixedRunDiagnosticSupportsResponse(diagnostic, expectedRun) {
   }
   return diagnostic.failureCode !== null && diagnostic.selectedCount === 0
     && diagnostic.sections.every((section) => section.selectedCount === 0);
+}
+
+function fixedRehearsalBlueprintListSupportsResponse(list) {
+  if (!hasExactKeys(list, FIXED_REHEARSAL_BLUEPRINT_LIST_KEYS)
+    || list.schemaVersion !== 'staff-fixed-rehearsal-blueprints/1'
+    || list.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || list.accessBasis !== 'EXAM_MANAGER'
+    || utcInstantMicros6(list.observedAt) === null
+    || list.limit !== 20 || typeof list.truncated !== 'boolean'
+    || !Array.isArray(list.items) || list.items.length > 20
+    || (list.truncated && list.items.length !== 20)
+    || !boundedJsonResponse(list)) return false;
+  const versionIds = new Set();
+  return list.items.every((item) => {
+    if (!hasExactKeys(item, FIXED_REHEARSAL_BLUEPRINT_KEYS)
+      || typeof item.blueprintVersionId !== 'string' || !STAFF_UUID_PATTERN.test(item.blueprintVersionId)
+      || versionIds.has(item.blueprintVersionId)
+      || typeof item.contentHash !== 'string' || !STAFF_HASH_PATTERN.test(item.contentHash)
+      || typeof item.name !== 'string' || item.name.length > 4096 || !item.name.trim()
+      || !FIXED_REHEARSAL_SECTIONS.includes(item.section)
+      || !Number.isSafeInteger(item.questionCount)
+      || item.questionCount !== (item.section === 'READING' ? 2 : 4)
+      || !Number.isSafeInteger(item.durationSeconds) || item.durationSeconds < 1 || item.durationSeconds > 21_600) return false;
+    versionIds.add(item.blueprintVersionId);
+    return true;
+  });
+}
+
+function fixedRehearsalReceiptSupportsResponse(receipt, { blueprint = null, listItem = null } = {}) {
+  if (!hasExactKeys(receipt, FIXED_REHEARSAL_RECEIPT_KEYS)
+    || typeof receipt.rehearsalId !== 'string' || !STAFF_UUID_PATTERN.test(receipt.rehearsalId)
+    || typeof receipt.blueprintVersionId !== 'string' || !STAFF_UUID_PATTERN.test(receipt.blueprintVersionId)
+    || typeof receipt.blueprintHash !== 'string' || !STAFF_HASH_PATTERN.test(receipt.blueprintHash)
+    || !Number.isSafeInteger(receipt.windowMinutes) || receipt.windowMinutes < 1 || receipt.windowMinutes > 1440
+    || utcInstantMicros6(receipt.capturedAt) === null
+    || utcInstantMicros6(receipt.availableUntil) === null
+    || utcInstantMicros6(receipt.requiredThrough) === null
+    || !['SUCCESS', 'FAILURE'].includes(receipt.outcome)
+    || !(receipt.failureCode === null || FIXED_REHEARSAL_FAILURE_CODES.includes(receipt.failureCode))
+    || !Array.isArray(receipt.sectionDeficits) || receipt.sectionDeficits.length > 1
+    || receipt.createsForm !== false || receipt.currentEligibility !== 'NOT_REVALIDATED'
+    || !boundedJsonResponse(receipt)) return false;
+
+  const capturedAt = utcInstantMicros6(receipt.capturedAt);
+  const availableUntil = utcInstantMicros6(receipt.availableUntil);
+  const requiredThrough = utcInstantMicros6(receipt.requiredThrough);
+  const expectedAvailableUntil = capturedAt + BigInt(receipt.windowMinutes) * 60_000_000n;
+  const horizon = requiredThrough - availableUntil;
+  if (availableUntil !== expectedAvailableUntil || horizon < 601_000_000n || horizon > 22_200_000_000n) return false;
+  if (blueprint && (receipt.blueprintVersionId !== blueprint.blueprintVersionId
+    || receipt.blueprintHash !== blueprint.contentHash
+    || requiredThrough !== availableUntil + 600_000_000n + BigInt(blueprint.durationSeconds) * 1_000_000n)) return false;
+  if (listItem && (receipt.rehearsalId !== listItem.rehearsalId
+    || receipt.blueprintVersionId !== listItem.blueprintVersionId
+    || receipt.outcome !== listItem.outcome
+    || receipt.capturedAt !== listItem.capturedAt
+    || receipt.windowMinutes !== listItem.windowMinutes)) return false;
+
+  for (const deficit of receipt.sectionDeficits) {
+    if (!hasExactKeys(deficit, ['section', 'missingCount'])
+      || !FIXED_REHEARSAL_SECTIONS.includes(deficit.section)
+      || !Number.isSafeInteger(deficit.missingCount) || deficit.missingCount < 1 || deficit.missingCount > 4
+      || (blueprint && deficit.section !== blueprint.section)
+      || (blueprint && deficit.missingCount > blueprint.questionCount)) return false;
+  }
+  if (receipt.outcome === 'SUCCESS') return receipt.failureCode === null && receipt.sectionDeficits.length === 0;
+  return receipt.failureCode !== null
+    && (receipt.failureCode === 'INSUFFICIENT_ELIGIBLE_INVENTORY' || receipt.sectionDeficits.length === 0);
+}
+
+function fixedRehearsalListSupportsResponse(list) {
+  if (!hasExactKeys(list, FIXED_REHEARSAL_LIST_KEYS)
+    || list.schemaVersion !== 'staff-fixed-rehearsals/1'
+    || list.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || list.accessBasis !== 'BANK_MANAGER'
+    || utcInstantMicros6(list.observedAt) === null
+    || list.limit !== 20 || typeof list.truncated !== 'boolean'
+    || !Array.isArray(list.items) || list.items.length > 20
+    || (list.truncated && list.items.length !== 20)
+    || !boundedJsonResponse(list)) return false;
+  const rehearsalIds = new Set();
+  let previousTimestamp = null;
+  let previousId = '';
+  const observedAt = utcInstantMicros6(list.observedAt);
+  for (const item of list.items) {
+    const rehearsalId = typeof item?.rehearsalId === 'string' ? item.rehearsalId : '';
+    if (!hasExactKeys(item, ['rehearsalId', 'blueprintVersionId', 'outcome', 'capturedAt', 'windowMinutes'])
+      || !STAFF_UUID_PATTERN.test(rehearsalId) || rehearsalIds.has(rehearsalId)
+      || typeof item.blueprintVersionId !== 'string' || !STAFF_UUID_PATTERN.test(item.blueprintVersionId)
+      || !['SUCCESS', 'FAILURE'].includes(item.outcome)
+      || utcInstantMicros6(item.capturedAt) === null
+      || !Number.isSafeInteger(item.windowMinutes) || item.windowMinutes < 1 || item.windowMinutes > 1440) return false;
+    const timestamp = utcInstantMicros6(item.capturedAt);
+    if (timestamp > observedAt || (previousTimestamp !== null
+      && (previousTimestamp < timestamp || (previousTimestamp === timestamp && previousId <= rehearsalId)))) return false;
+    rehearsalIds.add(rehearsalId);
+    previousTimestamp = timestamp;
+    previousId = rehearsalId;
+  }
+  return true;
+}
+
+function fixedRehearsalDiagnosticSupportsResponse(diagnostic, expectedItem) {
+  if (!hasExactKeys(diagnostic, FIXED_REHEARSAL_DIAGNOSTIC_KEYS)
+    || diagnostic.schemaVersion !== 'staff-fixed-rehearsal-diagnostic/1'
+    || diagnostic.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || diagnostic.accessBasis !== 'BANK_MANAGER'
+    || utcInstantMicros6(diagnostic.observedAt) === null
+    || diagnostic.captureOrigin !== 'BANK_ELIGIBLE_AT_CAPTURE'
+    || diagnostic.currentEligibility !== 'NOT_REVALIDATED'
+    || diagnostic.qualification !== 'NOT_ATTESTED_BY_PLATFORM'
+    || diagnostic.publicationEligibility !== 'NOT_EVALUATED'
+    || !fixedRehearsalReceiptSupportsResponse(diagnostic.rehearsal, { listItem: expectedItem })
+    || diagnostic.replayVerified !== true || diagnostic.createsForm !== false
+    || !Number.isSafeInteger(diagnostic.capturedUnitCount) || diagnostic.capturedUnitCount < 0 || diagnostic.capturedUnitCount > 10_000
+    || !Number.isSafeInteger(diagnostic.capturedCandidateCount) || diagnostic.capturedCandidateCount < 0 || diagnostic.capturedCandidateCount > 2_000_000
+    || !Number.isSafeInteger(diagnostic.selectedCount) || diagnostic.selectedCount < 0 || diagnostic.selectedCount > 4
+    || !Number.isSafeInteger(diagnostic.visitedNodes) || diagnostic.visitedNodes < 0 || diagnostic.visitedNodes > 50_000
+    || !Number.isSafeInteger(diagnostic.nodeLimit) || diagnostic.nodeLimit < 0 || diagnostic.nodeLimit > 50_000
+    || diagnostic.visitedNodes > diagnostic.nodeLimit
+    || !Number.isSafeInteger(diagnostic.unitLimit) || diagnostic.unitLimit < 0 || diagnostic.unitLimit > 2_000
+    || !hasExactKeys(diagnostic.section, ['section', 'requiredCount', 'selectedCount'])
+    || !FIXED_REHEARSAL_SECTIONS.includes(diagnostic.section.section)
+    || diagnostic.section.requiredCount !== (diagnostic.section.section === 'READING' ? 2 : 4)
+    || !Number.isSafeInteger(diagnostic.section.selectedCount)
+    || diagnostic.section.selectedCount < 0 || diagnostic.section.selectedCount > diagnostic.section.requiredCount
+    || diagnostic.section.selectedCount !== diagnostic.selectedCount
+    || !boundedJsonResponse(diagnostic)) return false;
+  const observedAt = utcInstantMicros6(diagnostic.observedAt);
+  const capturedAt = utcInstantMicros6(diagnostic.rehearsal.capturedAt);
+  if (observedAt < capturedAt || (diagnostic.rehearsal.sectionDeficits.length > 0
+      && diagnostic.rehearsal.sectionDeficits[0].section !== diagnostic.section.section)) return false;
+  if (diagnostic.rehearsal.outcome === 'SUCCESS') {
+    return diagnostic.selectedCount === diagnostic.section.requiredCount;
+  }
+  return diagnostic.selectedCount === 0;
 }
 
 function reviewHistorySupportsResponse(history, versionId, contentHash) {
@@ -836,6 +997,118 @@ function renderFixedRunDiagnostic(diagnostic) {
   return content;
 }
 
+function renderFixedRehearsalHistoryList(list, openRehearsal) {
+  const content = node('div', 'staff-bank-rehearsal-content');
+  content.append(node('p', 'staff-bank-rehearsal-warning', 'This history records Bank eligibility at capture time. It does not confirm current eligibility, usage rights, qualified human review, publication eligibility, or form creation.'));
+  content.append(node('p', 'staff-bank-rehearsal-observation', `The server recorded this list at ${list.observedAt}.`));
+  if (list.truncated) content.append(node('p', 'staff-bank-rehearsal-note', 'Showing the 20 newest rehearsals; older entries exist.'));
+  if (list.items.length === 0) {
+    content.append(node('p', 'staff-empty staff-bank-rehearsal-empty', 'No eligible-stock rehearsals have been recorded.'));
+    return content;
+  }
+  const region = node('div', 'staff-bank-rehearsal-table-wrap');
+  region.tabIndex = 0;
+  region.setAttribute('role', 'region');
+  region.setAttribute('aria-label', 'Recorded eligible-stock rehearsal history');
+  const table = node('table', 'staff-bank-rehearsal-table');
+  table.append(node('caption', '', 'The 20 newest eligible-stock rehearsals'));
+  const head = node('thead');
+  const headerRow = node('tr');
+  for (const label of ['Rehearsal ID', 'Blueprint version', 'Captured outcome', 'Captured at', 'Window', 'Action']) {
+    const header = node('th', '', label);
+    header.scope = 'col';
+    headerRow.append(header);
+  }
+  head.append(headerRow);
+  table.append(head);
+  const body = node('tbody');
+  for (const item of list.items) {
+    const row = node('tr');
+    row.dataset.rehearsalId = item.rehearsalId;
+    row.append(node('td', '', item.rehearsalId));
+    row.append(node('td', '', item.blueprintVersionId));
+    row.append(node('td', '', item.outcome));
+    row.append(node('td', '', item.capturedAt));
+    row.append(node('td', '', `${item.windowMinutes} minutes`));
+    const actionCell = node('td');
+    const trigger = button('View diagnostics', 'staff-bank-rehearsal-open', async () => {
+      await openRehearsal(item, trigger);
+    }, 'button secondary small');
+    trigger.dataset.rehearsalId = item.rehearsalId;
+    trigger.setAttribute('aria-controls', 'staff-review-host');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', `View rehearsal diagnostics for ${item.rehearsalId}`);
+    actionCell.append(trigger);
+    row.append(actionCell);
+    body.append(row);
+  }
+  table.append(body);
+  region.append(table);
+  content.append(node('p', 'staff-form-help', 'On narrow screens, scroll horizontally to see all columns. Use Tab to reach a detail action.'));
+  content.append(region);
+  return content;
+}
+
+function fixedRehearsalOutcomeMessage(diagnostic) {
+  const receipt = diagnostic.rehearsal;
+  if (receipt.outcome === 'SUCCESS') {
+    return 'Replay verification confirms that the captured selection met the blueprint target using Bank eligibility recorded at capture time. This does not confirm current eligibility or promise an assembled exam for learners.';
+  }
+  if (receipt.failureCode === 'CONSTRAINT_CONFLICT') {
+    return 'Replay verification records a constraint conflict for this rehearsal. This result does not describe current Bank eligibility.';
+  }
+  if (receipt.failureCode === 'INSUFFICIENT_ELIGIBLE_INVENTORY') {
+    return receipt.sectionDeficits.length
+      ? 'At capture time, the system proved a shortfall against the blueprint target. The number below applies only to this historical snapshot and says nothing about current stock.'
+      : 'The captured rehearsal failed, but did not prove a count shortfall. Do not infer a shortfall from the failure code or candidate total.';
+  }
+  return 'The search budget ended before feasibility was determined. Feasibility for this historical snapshot is unknown.';
+}
+
+function renderFixedRehearsalDiagnostic(diagnostic) {
+  const content = node('div', 'staff-bank-rehearsal-content');
+  const metadata = node('dl', 'staff-review-metadata');
+  appendMetadataPair(metadata, 'Environment', diagnostic.environment);
+  appendMetadataPair(metadata, 'Access basis', diagnostic.accessBasis);
+  appendMetadataPair(metadata, 'Capture origin', diagnostic.captureOrigin);
+  appendMetadataPair(metadata, 'Current eligibility', diagnostic.currentEligibility);
+  appendMetadataPair(metadata, 'Qualification', diagnostic.qualification);
+  appendMetadataPair(metadata, 'Publication eligibility', diagnostic.publicationEligibility);
+  appendMetadataPair(metadata, 'Server observation', diagnostic.observedAt);
+  appendMetadataPair(metadata, 'Rehearsal ID', diagnostic.rehearsal.rehearsalId);
+  appendMetadataPair(metadata, 'Blueprint version', diagnostic.rehearsal.blueprintVersionId);
+  appendMetadataPair(metadata, 'Blueprint hash', diagnostic.rehearsal.blueprintHash);
+  appendMetadataPair(metadata, 'Captured at', diagnostic.rehearsal.capturedAt);
+  appendMetadataPair(metadata, 'Proposed availability ends', diagnostic.rehearsal.availableUntil);
+  appendMetadataPair(metadata, 'Rights horizon checked', diagnostic.rehearsal.requiredThrough);
+  appendMetadataPair(metadata, 'Selected window', `${diagnostic.rehearsal.windowMinutes} minutes`);
+  appendMetadataPair(metadata, 'Captured outcome', diagnostic.rehearsal.outcome);
+  appendMetadataPair(metadata, 'Failure code', diagnostic.rehearsal.failureCode ?? 'None');
+  appendMetadataPair(metadata, 'Replay verified', diagnostic.replayVerified ? 'Yes' : 'No');
+  appendMetadataPair(metadata, 'Creates a form', diagnostic.createsForm ? 'Yes' : 'No');
+  content.append(metadata);
+  content.append(node('p', 'staff-bank-rehearsal-result', fixedRehearsalOutcomeMessage(diagnostic)));
+  content.append(node('p', 'staff-bank-rehearsal-warning', 'This detail describes one historical capture and replay. Current eligibility was not rechecked. It does not confirm usage rights, qualified human review, publication eligibility, or exam assembly. No form or attempt was created.'));
+
+  const countRows = [
+    ['Captured snapshot units', diagnostic.capturedUnitCount],
+    ['Captured candidates', diagnostic.capturedCandidateCount],
+    ['Selected items', diagnostic.selectedCount],
+    ['Visited search nodes', diagnostic.visitedNodes],
+    ['Search node limit', diagnostic.nodeLimit],
+    ['Unit limit', diagnostic.unitLimit],
+  ].map(([label, value]) => [label, String(value)]);
+  content.append(preflightTable('Permitted aggregate counts', ['Metric', 'Value'], countRows));
+  content.append(preflightTable('Domain target', ['Domain', 'Required', 'Selected'], [[
+    diagnostic.section.section, String(diagnostic.section.requiredCount), String(diagnostic.section.selectedCount),
+  ]]));
+  if (diagnostic.rehearsal.sectionDeficits.length) {
+    const deficitRows = diagnostic.rehearsal.sectionDeficits.map((deficit) => [deficit.section, String(deficit.missingCount)]);
+    content.append(preflightTable('Count shortfall proven at capture time', ['Domain', 'Items missing'], deficitRows));
+  }
+  return content;
+}
+
 function preflightTable(captionText, headings, rows) {
   const region = node('div', 'staff-dataset-preflight-table-wrap');
   region.tabIndex = 0;
@@ -968,6 +1241,17 @@ export async function openStaffWorkspace(container, onBack) {
     identityEpoch: 0,
     fixedRunRequestId: 0,
     fixedRunView: null,
+    examBlueprintRequestId: 0,
+    examBlueprintView: null,
+    examSelectedBlueprintId: '',
+    examWindowMinutes: '60',
+    examRehearsalRequestId: 0,
+    examRehearsalIntent: null,
+    examRehearsalStatus: null,
+    examRehearsalConfirmation: null,
+    examRehearsalDialog: null,
+    bankRehearsalRequestId: 0,
+    bankRehearsalView: null,
     reviewHistoryRequestId: 0,
     reviewHistoryView: null,
     reviewRequestId: 0,
@@ -1264,6 +1548,8 @@ export async function openStaffWorkspace(container, onBack) {
 
   function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false, preservePreflight = false } = {}) {
     const previousViews = [
+      state.examBlueprintView,
+      state.bankRehearsalView,
       state.fixedRunView,
       ...(preservePreflight ? [] : [state.datasetPreflightView]),
       state.reviewHistoryView, state.evidenceView, state.reviewView,
@@ -1272,6 +1558,16 @@ export async function openStaffWorkspace(container, onBack) {
     if (!preservePreflight) clearDatasetPreflight();
     state.fixedRunRequestId += 1;
     state.fixedRunView = null;
+    state.examBlueprintRequestId += 1;
+    state.examBlueprintView = null;
+    state.examSelectedBlueprintId = '';
+    state.examWindowMinutes = '60';
+    state.examRehearsalRequestId += 1;
+    state.examRehearsalIntent = null;
+    state.examRehearsalStatus = null;
+    closeExamRehearsalConfirmation();
+    state.bankRehearsalRequestId += 1;
+    state.bankRehearsalView = null;
     state.reviewHistoryRequestId += 1;
     state.reviewHistoryView = null;
     state.reviewRequestId += 1;
@@ -1410,6 +1706,533 @@ export async function openStaffWorkspace(container, onBack) {
   function retryFixedRunView(view = state.fixedRunView) {
     if (view?.kind === 'fixed-runs') return loadFixedRunList(view.triggerElement);
     if (view?.kind === 'fixed-detail') return loadFixedRunDetail(view.run, view.rowTriggerElement, view.listSnapshot);
+  }
+
+  function closeExamRehearsalConfirmation({ restoreFocus = false } = {}) {
+    const confirmation = state.examRehearsalConfirmation;
+    state.examRehearsalConfirmation = null;
+    if (state.examRehearsalDialog?.open) state.examRehearsalDialog.close();
+    confirmation?.triggerElement?.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
+  }
+
+  function clearExamRehearsalCommand() {
+    state.examRehearsalRequestId += 1;
+    state.examRehearsalIntent = null;
+    state.examRehearsalStatus = null;
+    closeExamRehearsalConfirmation();
+    updateExamRehearsalCommandStatus();
+  }
+
+  function examRehearsalAttemptIsCurrent(intent, requestId) {
+    return isWorkspaceActive()
+      && requestId === state.examRehearsalRequestId
+      && state.examRehearsalIntent === intent
+      && state.identityEpoch === intent.identityEpoch
+      && principalKey(state.principal) === intent.principal
+      && state.principal?.roles?.includes('EXAM_MANAGER')
+      && state.examBlueprintView?.kind === 'exam-blueprints'
+      && state.examBlueprintView.status === 'loaded'
+      && state.examSelectedBlueprintId === intent.blueprintVersionId
+      && state.examWindowMinutes === String(intent.body.windowMinutes)
+      && state.examBlueprintView.list.items.some((item) => item.blueprintVersionId === intent.blueprintVersionId
+        && item.contentHash === intent.blueprintHash);
+  }
+
+  function fixedRehearsalErrorSummary(error, { command = false } = {}) {
+    if (error?.code === 'RECEIPT_MISMATCH') {
+      return 'The response did not match the captured blueprint and window. The command outcome is uncertain.';
+    }
+    if (error?.uncertain) {
+      return command
+        ? 'The network response was lost. The server may have stored the command.'
+        : 'The network request failed before a response was received.';
+    }
+    if (Number.isInteger(error?.status)) {
+      return `The server returned HTTP ${error.status}${error.code ? ` (${error.code})` : ''}.`;
+    }
+    return error?.message ?? 'The request could not be completed.';
+  }
+
+  async function sendExamRehearsal(intent, requestId) {
+    if (!examRehearsalAttemptIsCurrent(intent, requestId)
+      || state.examRehearsalStatus?.intent !== intent
+      || !['pending', 'uncertain'].includes(state.examRehearsalStatus.stage)) return;
+    state.examRehearsalStatus = { stage: 'pending', intent };
+    updateExamRehearsalCommandStatus({ focus: true });
+    try {
+      const receipt = await request(intent.path, {
+        method: 'POST', body: intent.body, csrf: true, idempotencyKey: intent.key,
+      });
+      if (!examRehearsalAttemptIsCurrent(intent, requestId)) return;
+      if (!fixedRehearsalReceiptSupportsResponse(receipt, {
+        blueprint: intent.blueprint,
+      }) || receipt.windowMinutes !== intent.body.windowMinutes) {
+        const mismatch = new Error('The server did not return a valid receipt for the exact selected blueprint and window.');
+        mismatch.uncertain = true;
+        mismatch.code = 'RECEIPT_MISMATCH';
+        throw mismatch;
+      }
+      state.examRehearsalStatus = { stage: 'acknowledged', intent, receipt };
+      updateExamRehearsalCommandStatus({ focus: true });
+    } catch (error) {
+      if (!examRehearsalAttemptIsCurrent(intent, requestId)) return;
+      const uncertain = error?.uncertain === true || error?.status === 503;
+      state.examRehearsalStatus = uncertain
+        ? { stage: 'uncertain', intent, message: fixedRehearsalErrorSummary(error, { command: true }) }
+        : {
+          stage: 'rejected', intent, code: error?.code ?? 'REQUEST_FAILED',
+          message: fixedRehearsalErrorSummary(error, { command: true }),
+        };
+      updateExamRehearsalCommandStatus({ focus: true });
+    }
+  }
+
+  async function loadExamBlueprints(triggerElement = container.querySelector('[data-testid="staff-fixed-rehearsal-blueprints-open"]')) {
+    if (!isWorkspaceActive() || !state.principal?.roles?.includes('EXAM_MANAGER')) return;
+    if (state.examBlueprintView?.kind === 'exam-blueprints' && state.examBlueprintView.status === 'loading') return;
+    clearPrivateReviewView();
+    state.examSelectedBlueprintId = '';
+    state.examWindowMinutes = '60';
+    const requestId = ++state.examBlueprintRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.examBlueprintView = {
+      kind: 'exam-blueprints', status: 'loading', triggerElement, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.examBlueprintRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.principal?.roles?.includes('EXAM_MANAGER')
+      && state.examBlueprintView?.kind === 'exam-blueprints'
+      && state.examBlueprintView.status === 'loading';
+    try {
+      const list = await request('/api/v1/fixed-rehearsal-blueprints');
+      if (!isCurrent()) return;
+      if (!fixedRehearsalBlueprintListSupportsResponse(list)) {
+        throw new Error('The server returned an invalid supported-blueprint list.');
+      }
+      state.examBlueprintView = { ...state.examBlueprintView, status: 'loaded', list };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.examBlueprintView = {
+        ...state.examBlueprintView, status: 'error',
+        error: fixedRehearsalErrorSummary(error),
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  function openExamRehearsalConfirmation(triggerElement, form) {
+    if (!isWorkspaceActive() || state.examRehearsalStatus || state.examRehearsalConfirmation
+      || !state.principal?.roles?.includes('EXAM_MANAGER')
+      || state.examBlueprintView?.kind !== 'exam-blueprints' || state.examBlueprintView.status !== 'loaded') return;
+    const blueprint = state.examBlueprintView.list.items.find((item) => item.blueprintVersionId === state.examSelectedBlueprintId);
+    const windowInput = form.querySelector('[data-testid="staff-fixed-rehearsal-window-minutes"]');
+    const windowMinutes = Number(state.examWindowMinutes);
+    if (!blueprint || !Number.isSafeInteger(windowMinutes) || windowMinutes < 1 || windowMinutes > 1440) {
+      windowInput?.setCustomValidity('Enter a whole number of minutes from 1 to 1440.');
+      form.reportValidity();
+      return;
+    }
+    windowInput?.setCustomValidity('');
+    state.examWindowMinutes = String(windowMinutes);
+    if (windowInput) windowInput.value = state.examWindowMinutes;
+    const dialog = state.examRehearsalDialog;
+    if (!dialog || dialog.open) return;
+    const confirmation = Object.freeze({
+      blueprint,
+      blueprintVersionId: blueprint.blueprintVersionId,
+      blueprintHash: blueprint.contentHash,
+      windowMinutes,
+      identityEpoch: state.identityEpoch,
+      principal: principalKey(state.principal),
+      triggerElement,
+    });
+    state.examRehearsalConfirmation = confirmation;
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    dialog.querySelector('[data-testid="staff-fixed-rehearsal-dialog-blueprint-id"]').textContent = confirmation.blueprintVersionId;
+    dialog.querySelector('[data-testid="staff-fixed-rehearsal-dialog-blueprint-hash"]').textContent = confirmation.blueprintHash;
+    dialog.querySelector('[data-testid="staff-fixed-rehearsal-dialog-profile"]').textContent = `${blueprint.section} · ${blueprint.questionCount} items · ${blueprint.durationSeconds} seconds`;
+    dialog.querySelector('[data-testid="staff-fixed-rehearsal-dialog-window"]').textContent = `${windowMinutes} minutes`;
+    dialog.showModal();
+    dialog.querySelector('[data-testid="staff-fixed-rehearsal-cancel"]').focus();
+  }
+
+  async function confirmExamRehearsal() {
+    const confirmation = state.examRehearsalConfirmation;
+    const dialog = state.examRehearsalDialog;
+    const currentBlueprint = state.examBlueprintView?.list?.items?.find((item) => item.blueprintVersionId === confirmation?.blueprintVersionId);
+    if (!confirmation || !dialog || !currentBlueprint
+      || state.examBlueprintView?.kind !== 'exam-blueprints' || state.examBlueprintView.status !== 'loaded'
+      || confirmation.identityEpoch !== state.identityEpoch
+      || confirmation.principal !== principalKey(state.principal)
+      || !state.principal?.roles?.includes('EXAM_MANAGER')
+      || currentBlueprint.contentHash !== confirmation.blueprintHash
+      || currentBlueprint !== confirmation.blueprint
+      || state.examSelectedBlueprintId !== confirmation.blueprintVersionId
+      || state.examWindowMinutes !== String(confirmation.windowMinutes)) {
+      closeExamRehearsalConfirmation({ restoreFocus: true });
+      return;
+    }
+    const body = Object.freeze({
+      blueprintVersionId: confirmation.blueprintVersionId,
+      blueprintHash: confirmation.blueprintHash,
+      windowMinutes: confirmation.windowMinutes,
+    });
+    const intent = Object.freeze({
+      path: '/api/v1/fixed-rehearsals', body, key: crypto.randomUUID(),
+      blueprint: confirmation.blueprint, blueprintVersionId: confirmation.blueprintVersionId,
+      blueprintHash: confirmation.blueprintHash, identityEpoch: confirmation.identityEpoch,
+      principal: confirmation.principal,
+    });
+    const requestId = ++state.examRehearsalRequestId;
+    state.examRehearsalIntent = intent;
+    state.examRehearsalStatus = { stage: 'pending', intent };
+    closeExamRehearsalConfirmation();
+    updateExamRehearsalCommandStatus({ focus: true });
+    await sendExamRehearsal(intent, requestId);
+  }
+
+  async function loadBankRehearsalList(triggerElement = container.querySelector('[data-testid="staff-bank-rehearsals-open"]')) {
+    if (!isWorkspaceActive() || !state.canReadList || !state.principal?.roles?.includes('BANK_MANAGER')) return;
+    if (state.bankRehearsalView?.kind === 'bank-rehearsals' && state.bankRehearsalView.status === 'loading') return;
+    clearPrivateReviewView();
+    const requestId = ++state.bankRehearsalRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.bankRehearsalView = {
+      kind: 'bank-rehearsals', status: 'loading', triggerElement, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.bankRehearsalRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.canReadList
+      && state.principal?.roles?.includes('BANK_MANAGER')
+      && state.bankRehearsalView?.kind === 'bank-rehearsals'
+      && state.bankRehearsalView.status === 'loading';
+    try {
+      const list = await request('/api/v1/fixed-rehearsals');
+      if (!isCurrent()) return;
+      if (!fixedRehearsalListSupportsResponse(list)) {
+        throw new Error('The server returned an invalid rehearsal history list.');
+      }
+      state.bankRehearsalView = { ...state.bankRehearsalView, status: 'loaded', list };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.bankRehearsalView = {
+        ...state.bankRehearsalView, status: 'error',
+        error: fixedRehearsalErrorSummary(error),
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  async function loadBankRehearsalDetail(item, rowTriggerElement, listSnapshot = state.bankRehearsalView) {
+    if (!isWorkspaceActive() || !state.canReadList || !state.principal?.roles?.includes('BANK_MANAGER')
+      || !listSnapshot || listSnapshot.kind !== 'bank-rehearsals' || listSnapshot.status !== 'loaded'
+      || !listSnapshot.list?.items?.some((candidate) => candidate.rehearsalId === item?.rehearsalId
+        && candidate.blueprintVersionId === item?.blueprintVersionId && candidate.outcome === item?.outcome
+        && candidate.capturedAt === item?.capturedAt && candidate.windowMinutes === item?.windowMinutes)) return;
+    const retainedList = listSnapshot;
+    const triggerElement = retainedList.triggerElement;
+    clearPrivateReviewView();
+    const requestId = ++state.bankRehearsalRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.bankRehearsalView = {
+      kind: 'bank-rehearsal-detail', status: 'loading', item, triggerElement, rowTriggerElement,
+      listSnapshot: retainedList, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    rowTriggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.bankRehearsalRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.canReadList
+      && state.principal?.roles?.includes('BANK_MANAGER')
+      && state.bankRehearsalView?.kind === 'bank-rehearsal-detail'
+      && state.bankRehearsalView?.item?.rehearsalId === item.rehearsalId;
+    try {
+      const diagnostic = await request(`/api/v1/fixed-rehearsals/${encodeURIComponent(item.rehearsalId)}`);
+      if (!isCurrent()) return;
+      if (!fixedRehearsalDiagnosticSupportsResponse(diagnostic, item)) {
+        throw new Error('The server did not return replay-verified diagnostics for the selected rehearsal.');
+      }
+      state.bankRehearsalView = { ...state.bankRehearsalView, status: 'loaded', diagnostic };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.bankRehearsalView = {
+        ...state.bankRehearsalView, status: 'error',
+        error: fixedRehearsalErrorSummary(error),
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  function returnToBankRehearsalList(view = state.bankRehearsalView) {
+    if (!isWorkspaceActive() || state.bankRehearsalView !== view || view?.kind !== 'bank-rehearsal-detail'
+      || view.listSnapshot?.kind !== 'bank-rehearsals' || view.listSnapshot.status !== 'loaded') return;
+    state.bankRehearsalRequestId += 1;
+    state.bankRehearsalView = view.listSnapshot;
+    view.triggerElement?.setAttribute('aria-expanded', 'true');
+    view.rowTriggerElement?.setAttribute('aria-expanded', 'false');
+    renderReviewPanel();
+    [...container.querySelectorAll('[data-testid="staff-bank-rehearsal-open"]')]
+      .find((element) => element.dataset.rehearsalId === view.item.rehearsalId)?.focus();
+  }
+
+  function retryBankRehearsalView(view = state.bankRehearsalView) {
+    if (view?.kind === 'bank-rehearsals') return loadBankRehearsalList(view.triggerElement);
+    if (view?.kind === 'bank-rehearsal-detail') return loadBankRehearsalDetail(view.item, view.rowTriggerElement, view.listSnapshot);
+  }
+
+  function updateExamRehearsalCommandStatus({ focus = false } = {}) {
+    updateExamRehearsalFormControls();
+    const host = container.querySelector('[data-testid="staff-fixed-rehearsal-command-host"]');
+    if (!host) return;
+    host.replaceChildren(renderExamRehearsalCommandStatus(state.examRehearsalStatus));
+    if (focus) host.querySelector('[data-testid="staff-fixed-rehearsal-status"]')?.focus();
+  }
+
+  function updateExamRehearsalFormControls() {
+    const locked = ['pending', 'uncertain'].includes(state.examRehearsalStatus?.stage);
+    const form = container.querySelector('[data-testid="staff-fixed-rehearsal-form"]');
+    if (!form) return;
+    const blueprintSelect = form.querySelector('[data-testid="staff-fixed-rehearsal-blueprint-select"]');
+    const windowInput = form.querySelector('[data-testid="staff-fixed-rehearsal-window-minutes"]');
+    const submit = form.querySelector('[data-testid="staff-fixed-rehearsal-open"]');
+    if (blueprintSelect) blueprintSelect.disabled = locked;
+    if (windowInput) windowInput.disabled = locked;
+    if (submit) submit.disabled = Boolean(state.examRehearsalStatus) || !blueprintSelect?.value;
+  }
+
+  function renderExamRehearsalCommandStatus(status) {
+    const panel = node('section', `staff-fixed-rehearsal-command${status && ['rejected', 'uncertain'].includes(status.stage) ? ' is-error' : ''}`);
+    panel.setAttribute('aria-label', 'Fixed stock rehearsal status');
+    const message = node('p', status && ['rejected', 'uncertain'].includes(status.stage) ? 'notice-panel' : 'staff-fixed-rehearsal-message');
+    message.dataset.testid = 'staff-fixed-rehearsal-status';
+    message.dataset.stage = status?.stage ?? 'idle';
+    message.setAttribute('role', status && ['rejected', 'uncertain'].includes(status.stage) ? 'alert' : 'status');
+    message.setAttribute('aria-live', status && ['rejected', 'uncertain'].includes(status.stage) ? 'assertive' : 'polite');
+    message.tabIndex = -1;
+
+    if (!status) {
+      message.textContent = 'No rehearsal request has been sent. Select an exact blueprint version and window, then confirm explicitly.';
+    } else if (status.stage === 'pending') {
+      message.textContent = `Sending a rehearsal request for blueprint ${status.intent.blueprintVersionId} with a ${status.intent.body.windowMinutes}-minute window. This records a capture only; it does not create a form.`;
+    } else if (status.stage === 'uncertain') {
+      message.textContent = `It is unknown whether the server stored a receipt for blueprint ${status.intent.blueprintVersionId} and the ${status.intent.body.windowMinutes}-minute window. Retry sends the same body with the same idempotency key. ${status.message}`;
+    } else if (status.stage === 'rejected') {
+      message.textContent = `The server did not confirm the rehearsal request (${status.code}): ${status.message} No automatic retry was sent. Any new rehearsal requires a separate explicit confirmation.`;
+    } else if (status.stage === 'acknowledged') {
+      const receipt = status.receipt;
+      message.textContent = `The server acknowledged historical receipt ${receipt.rehearsalId} with captured outcome ${receipt.outcome}. Current eligibility is ${receipt.currentEligibility}; no form was created.`;
+      message.dataset.rehearsalId = receipt.rehearsalId;
+      message.dataset.outcome = receipt.outcome;
+      message.dataset.currentEligibility = receipt.currentEligibility;
+      message.dataset.createsForm = String(receipt.createsForm);
+    }
+    panel.append(message);
+
+    if (status?.stage === 'acknowledged') {
+      const metadata = node('dl', 'staff-review-metadata');
+      appendMetadataPair(metadata, 'Historical receipt ID', status.receipt.rehearsalId);
+      appendMetadataPair(metadata, 'Captured blueprint version', status.receipt.blueprintVersionId);
+      appendMetadataPair(metadata, 'Blueprint hash', status.receipt.blueprintHash);
+      appendMetadataPair(metadata, 'Selected window', `${status.receipt.windowMinutes} minutes`);
+      appendMetadataPair(metadata, 'Server capture time', status.receipt.capturedAt);
+      appendMetadataPair(metadata, 'Proposed availability ends', status.receipt.availableUntil);
+      appendMetadataPair(metadata, 'Rights horizon checked', status.receipt.requiredThrough);
+      appendMetadataPair(metadata, 'Captured outcome', status.receipt.outcome);
+      appendMetadataPair(metadata, 'Failure code', status.receipt.failureCode ?? 'None');
+      appendMetadataPair(metadata, 'Current eligibility', status.receipt.currentEligibility);
+      appendMetadataPair(metadata, 'Creates a form', status.receipt.createsForm ? 'Yes' : 'No');
+      panel.append(metadata);
+      if (status.receipt.sectionDeficits.length) {
+        panel.append(preflightTable('Count shortfall proven in the snapshot', ['Domain', 'Items missing'],
+          status.receipt.sectionDeficits.map((deficit) => [deficit.section, String(deficit.missingCount)])));
+      }
+    }
+    if (status?.stage === 'uncertain') {
+      panel.append(button('Retry the same rehearsal request', 'staff-fixed-rehearsal-retry', async () => {
+        if (state.examRehearsalStatus?.stage !== 'uncertain' || state.examRehearsalIntent !== status.intent) return;
+        await sendExamRehearsal(status.intent, state.examRehearsalRequestId);
+      }));
+    }
+    if (status && ['acknowledged', 'rejected'].includes(status.stage)) {
+      panel.append(button('Reload blueprint list', 'staff-fixed-rehearsal-reset', async () => {
+        await loadExamBlueprints();
+      }, 'button secondary'));
+    }
+    return panel;
+  }
+
+  function renderExamBlueprintForm(view) {
+    const content = node('div', 'staff-exam-rehearsal-content');
+    content.append(node('p', 'staff-exam-rehearsal-warning', 'This local rehearsal uses synthetic data. It reads only supported blueprint metadata and captures Bank eligibility when the server processes the request. It creates no form, attempt, assignment history, or score. The receipt does not assess current rights or attest qualified human review.'));
+    if (view.list.truncated) content.append(node('p', 'staff-exam-rehearsal-note', 'Showing at most the 20 newest supported blueprints; older versions may exist.'));
+    if (view.list.items.length === 0) {
+      content.append(node('p', 'staff-empty staff-exam-rehearsal-empty', 'No supported one-domain blueprint is available for rehearsal.'));
+      const commandHost = node('div');
+      commandHost.dataset.testid = 'staff-fixed-rehearsal-command-host';
+      content.append(commandHost);
+      return content;
+    }
+
+    const form = node('form', 'staff-exam-rehearsal-form');
+    form.dataset.testid = 'staff-fixed-rehearsal-form';
+    const fieldset = node('fieldset', 'staff-exam-rehearsal-fields');
+    fieldset.append(node('legend', '', 'Select a fixed blueprint and capture window'));
+    const blueprintField = node('div', 'staff-field');
+    const blueprintLabel = node('label', '', 'Supported blueprint version');
+    const blueprintSelect = node('select', 'staff-input');
+    blueprintSelect.id = 'staff-fixed-rehearsal-blueprint-select';
+    blueprintSelect.dataset.testid = 'staff-fixed-rehearsal-blueprint-select';
+    blueprintSelect.required = true;
+    const emptyOption = node('option', '', 'Select one exact version');
+    emptyOption.value = '';
+    blueprintSelect.append(emptyOption);
+    for (const blueprint of view.list.items) {
+      const option = node('option', '', `${blueprint.name} · ${blueprint.section} · ${blueprint.questionCount} items · ${blueprint.durationSeconds} seconds · ${blueprint.blueprintVersionId}`);
+      option.value = blueprint.blueprintVersionId;
+      blueprintSelect.append(option);
+    }
+    blueprintSelect.value = state.examSelectedBlueprintId;
+    blueprintLabel.htmlFor = blueprintSelect.id;
+    blueprintSelect.setAttribute('aria-describedby', 'staff-fixed-rehearsal-blueprint-help');
+    blueprintField.append(blueprintLabel, blueprintSelect);
+    const blueprintHelp = node('p', 'staff-form-help', 'The list contains only name, domain, item count, duration, and version ID. Each request pins the exact version ID and hash shown in the confirmation.');
+    blueprintHelp.id = 'staff-fixed-rehearsal-blueprint-help';
+    blueprintField.append(blueprintHelp);
+    fieldset.append(blueprintField);
+
+    const selectedSummary = node('dl', 'staff-review-metadata staff-exam-rehearsal-selected');
+    selectedSummary.dataset.testid = 'staff-fixed-rehearsal-selected-blueprint';
+    const updateSelectedSummary = () => {
+      selectedSummary.replaceChildren();
+      const selected = view.list.items.find((item) => item.blueprintVersionId === blueprintSelect.value);
+      if (!selected) {
+        appendMetadataPair(selectedSummary, 'Selected version', 'None');
+        return;
+      }
+      appendMetadataPair(selectedSummary, 'Blueprint version ID', selected.blueprintVersionId);
+      appendMetadataPair(selectedSummary, 'Blueprint hash', selected.contentHash);
+      appendMetadataPair(selectedSummary, 'Domain and item count', `${selected.section} · ${selected.questionCount}`);
+      appendMetadataPair(selectedSummary, 'Domain duration', `${selected.durationSeconds} seconds`);
+    };
+    updateSelectedSummary();
+    blueprintSelect.addEventListener('change', () => {
+      if (['pending', 'uncertain'].includes(state.examRehearsalStatus?.stage)) {
+        blueprintSelect.value = state.examSelectedBlueprintId;
+        return;
+      }
+      state.examSelectedBlueprintId = blueprintSelect.value;
+      clearExamRehearsalCommand();
+      updateSelectedSummary();
+    });
+
+    const windowField = node('div', 'staff-field');
+    const windowLabel = node('label', '', 'Proposed window (minutes)');
+    const windowInput = node('input', 'staff-input');
+    windowInput.id = 'staff-fixed-rehearsal-window-minutes';
+    windowInput.dataset.testid = 'staff-fixed-rehearsal-window-minutes';
+    windowInput.type = 'number';
+    windowInput.min = '1';
+    windowInput.max = '1440';
+    windowInput.step = '1';
+    windowInput.required = true;
+    windowInput.value = state.examWindowMinutes;
+    windowInput.autocomplete = 'off';
+    windowInput.setAttribute('aria-describedby', 'staff-fixed-rehearsal-window-help');
+    windowLabel.htmlFor = windowInput.id;
+    const windowHelp = node('p', 'staff-form-help', 'Enter a whole number from 1 to 1440. The server records the capture time and calculates the horizon; the browser clock does not determine eligibility.');
+    windowHelp.id = 'staff-fixed-rehearsal-window-help';
+    windowInput.addEventListener('input', () => {
+      if (['pending', 'uncertain'].includes(state.examRehearsalStatus?.stage)) {
+        windowInput.value = state.examWindowMinutes;
+        return;
+      }
+      if (state.examWindowMinutes === windowInput.value) return;
+      state.examWindowMinutes = windowInput.value;
+      windowInput.setCustomValidity('');
+      clearExamRehearsalCommand();
+    });
+    windowField.append(windowLabel, windowInput, windowHelp);
+    fieldset.append(windowField, selectedSummary);
+    form.append(fieldset);
+    const actions = node('div', 'staff-exam-rehearsal-actions');
+    const submit = node('button', 'button', 'Review rehearsal confirmation');
+    submit.type = 'submit';
+    submit.dataset.testid = 'staff-fixed-rehearsal-open';
+    submit.disabled = !blueprintSelect.value;
+    submit.setAttribute('aria-controls', 'staff-fixed-rehearsal-dialog');
+    submit.setAttribute('aria-expanded', 'false');
+    actions.append(submit);
+    form.append(actions);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (['pending', 'uncertain'].includes(state.examRehearsalStatus?.stage)) return;
+      if (!form.reportValidity()) return;
+      openExamRehearsalConfirmation(submit, form);
+    });
+    content.append(form);
+    const commandHost = node('div');
+    commandHost.dataset.testid = 'staff-fixed-rehearsal-command-host';
+    content.append(commandHost);
+    return content;
+  }
+
+  function createExamRehearsalDialog() {
+    const dialog = node('dialog', 'staff-fixed-rehearsal-dialog');
+    dialog.id = 'staff-fixed-rehearsal-dialog';
+    dialog.dataset.testid = 'staff-fixed-rehearsal-dialog';
+    dialog.setAttribute('aria-labelledby', 'staff-fixed-rehearsal-dialog-title');
+    dialog.setAttribute('aria-describedby', 'staff-fixed-rehearsal-dialog-description staff-fixed-rehearsal-dialog-warning');
+    const title = node('h2', '', 'Confirm the stock rehearsal?');
+    title.id = 'staff-fixed-rehearsal-dialog-title';
+    const description = node('p', 'staff-fixed-rehearsal-dialog-description', 'The server will pin the exact blueprint and window below, capture an eligibility check, and store a historical receipt.');
+    description.id = 'staff-fixed-rehearsal-dialog-description';
+    const metadata = node('dl', 'staff-fixed-rehearsal-dialog-metadata');
+    for (const [label, testId] of [
+      ['Blueprint version ID', 'staff-fixed-rehearsal-dialog-blueprint-id'],
+      ['Blueprint hash', 'staff-fixed-rehearsal-dialog-blueprint-hash'],
+      ['Domain, item count, and duration', 'staff-fixed-rehearsal-dialog-profile'],
+      ['Window', 'staff-fixed-rehearsal-dialog-window'],
+    ]) {
+      metadata.append(node('dt', '', label));
+      const value = node('dd');
+      value.dataset.testid = testId;
+      metadata.append(value);
+    }
+    const warning = node('p', 'staff-fixed-rehearsal-warning', 'This action creates no form, attempt, learner assignment, or score. The receipt is historical and records the server capture time; it does not confirm current rights or qualified human review. The synthetic EXAM_MANAGER is not a qualified reviewer.');
+    warning.id = 'staff-fixed-rehearsal-dialog-warning';
+    const actions = node('div', 'staff-fixed-rehearsal-dialog-actions');
+    actions.append(
+      button('Confirm rehearsal', 'staff-fixed-rehearsal-confirm', async () => { await confirmExamRehearsal(); }),
+      button('Cancel', 'staff-fixed-rehearsal-cancel', () => closeExamRehearsalConfirmation({ restoreFocus: true }), 'button secondary'),
+    );
+    dialog.append(title, description, metadata, warning, actions);
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeExamRehearsalConfirmation({ restoreFocus: true });
+    });
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) closeExamRehearsalConfirmation({ restoreFocus: true });
+    });
+    state.examRehearsalDialog = dialog;
+    return dialog;
   }
 
   function dispositionEligible(kind, view = state.reviewView) {
@@ -1835,7 +2658,8 @@ export async function openStaffWorkspace(container, onBack) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
-    const view = state.datasetPreflightView ?? state.fixedRunView ?? state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
+    const view = state.datasetPreflightView ?? state.examBlueprintView ?? state.bankRehearsalView
+      ?? state.fixedRunView ?? state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
     host.replaceChildren();
     host.hidden = !view;
     if (!view) return;
@@ -1843,11 +2667,18 @@ export async function openStaffWorkspace(container, onBack) {
     const isPreflight = view.kind === 'preflight';
     const isHistory = view.kind === 'history';
     const isEvidence = view.kind === 'evidence';
+    const isExamBlueprints = view.kind === 'exam-blueprints';
+    const isBankRehearsals = view.kind === 'bank-rehearsals';
+    const isBankRehearsalDetail = view.kind === 'bank-rehearsal-detail';
+    const isBankRehearsal = isBankRehearsals || isBankRehearsalDetail;
     const isFixedRunList = view.kind === 'fixed-runs';
     const isFixedRunDetail = view.kind === 'fixed-detail';
     const isFixedRun = isFixedRunList || isFixedRunDetail;
-    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}${isFixedRun ? ' staff-fixed-reference-panel' : ''}`);
-    panel.dataset.testid = isFixedRunDetail ? 'staff-fixed-detail' : isFixedRunList ? 'staff-fixed-list' : isPreflight ? 'staff-preflight-report' : isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
+    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}${isFixedRun ? ' staff-fixed-reference-panel' : ''}${isExamBlueprints ? ' staff-exam-rehearsal-panel' : ''}${isBankRehearsal ? ' staff-bank-rehearsal-panel' : ''}`);
+    panel.dataset.testid = isFixedRunDetail ? 'staff-fixed-detail' : isFixedRunList ? 'staff-fixed-list'
+      : isBankRehearsalDetail ? 'staff-bank-rehearsal-detail' : isBankRehearsals ? 'staff-bank-rehearsals'
+        : isExamBlueprints ? 'staff-fixed-rehearsal-blueprints' : isPreflight ? 'staff-preflight-report'
+          : isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
     if (isPreflight) {
       panel.dataset.scope = view.report.scope;
       panel.dataset.versionCount = String(view.report.versions.length);
@@ -1884,7 +2715,37 @@ export async function openStaffWorkspace(container, onBack) {
         panel.dataset.selectedCount = String(diagnostic.selectedCount);
       }
     }
-    const titleId = isFixedRunDetail ? 'staff-fixed-detail-title' : isFixedRunList ? 'staff-fixed-list-title' : isPreflight ? 'staff-preflight-title' : isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
+    if (isExamBlueprints && view.list) {
+      panel.dataset.observedAt = view.list.observedAt;
+      panel.dataset.blueprintCount = String(view.list.items.length);
+      panel.dataset.truncated = String(view.list.truncated);
+    }
+    if (isBankRehearsals && view.list) {
+      panel.dataset.observedAt = view.list.observedAt;
+      panel.dataset.rehearsalCount = String(view.list.items.length);
+      panel.dataset.truncated = String(view.list.truncated);
+    }
+    if (isBankRehearsalDetail) {
+      const diagnostic = view.diagnostic;
+      const rehearsal = diagnostic?.rehearsal;
+      panel.dataset.rehearsalId = rehearsal?.rehearsalId ?? view.item.rehearsalId;
+      if (diagnostic) {
+        panel.dataset.blueprintVersionId = rehearsal.blueprintVersionId;
+        panel.dataset.outcome = rehearsal.outcome;
+        panel.dataset.capturedAt = rehearsal.capturedAt;
+        panel.dataset.windowMinutes = String(rehearsal.windowMinutes);
+        panel.dataset.observedAt = diagnostic.observedAt;
+        panel.dataset.captureOrigin = diagnostic.captureOrigin;
+        panel.dataset.currentEligibility = diagnostic.currentEligibility;
+        panel.dataset.replayVerified = String(diagnostic.replayVerified);
+        panel.dataset.createsForm = String(diagnostic.createsForm);
+        panel.dataset.selectedCount = String(diagnostic.selectedCount);
+      }
+    }
+    const titleId = isFixedRunDetail ? 'staff-fixed-detail-title' : isFixedRunList ? 'staff-fixed-list-title'
+      : isBankRehearsalDetail ? 'staff-bank-rehearsal-detail-title' : isBankRehearsals ? 'staff-bank-rehearsals-title'
+        : isExamBlueprints ? 'staff-fixed-rehearsal-blueprints-title' : isPreflight ? 'staff-preflight-title'
+          : isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
     panel.setAttribute('aria-labelledby', titleId);
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
@@ -1893,18 +2754,29 @@ export async function openStaffWorkspace(container, onBack) {
       }
     });
     const titleText = view.status === 'loading'
-      ? (isFixedRunList ? 'Đang tải kết quả lắp đề cố định…' : isFixedRunDetail ? 'Đang phát lại chẩn đoán lần chạy…' : isPreflight ? 'Đang tạo báo cáo tập phiên bản…' : isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
+      ? (isExamBlueprints ? 'Loading supported blueprints…' : isBankRehearsals ? 'Loading eligible-stock rehearsal history…'
+        : isBankRehearsalDetail ? 'Loading stock rehearsal diagnostics…' : isFixedRunList ? 'Loading fixed assembly results…'
+          : isFixedRunDetail ? 'Đang phát lại chẩn đoán lần chạy…' : isPreflight ? 'Đang tạo báo cáo tập phiên bản…'
+            : isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
       : view.status === 'error'
-        ? (isFixedRunList ? 'Không thể tải kết quả lắp đề cố định' : isFixedRunDetail ? 'Không thể tải chẩn đoán lần chạy' : isPreflight ? 'Không thể tạo báo cáo tập phiên bản' : isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
-        : (isFixedRunList ? 'Kết quả lắp đề cố định đã lưu' : isFixedRunDetail ? 'Chẩn đoán lần chạy cố định đã phát lại' : isPreflight ? 'Báo cáo kiểm tra đồ thị chuẩn tắc' : isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
+        ? (isExamBlueprints ? 'Could not load the supported blueprint list' : isBankRehearsals ? 'Could not load eligible-stock rehearsal history'
+          : isBankRehearsalDetail ? 'Could not load stock rehearsal diagnostics' : isFixedRunList ? 'Could not load fixed assembly results'
+            : isFixedRunDetail ? 'Không thể tải chẩn đoán lần chạy' : isPreflight ? 'Không thể tạo báo cáo tập phiên bản'
+              : isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
+        : (isExamBlueprints ? 'Supported stock-rehearsal blueprints' : isBankRehearsals ? 'Eligible-stock rehearsal history'
+          : isBankRehearsalDetail ? 'Replay-verified stock rehearsal diagnostics' : isFixedRunList ? 'Recorded fixed assembly results'
+            : isFixedRunDetail ? 'Chẩn đoán lần chạy cố định đã phát lại' : isPreflight ? 'Báo cáo kiểm tra đồ thị chuẩn tắc'
+              : isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
     const heading = node('h2', '', titleText);
     heading.id = titleId;
     heading.tabIndex = -1;
     const actions = node('div', 'staff-header-actions');
     if (view.status === 'error') {
-      actions.append(button(isFixedRun ? 'Tải lại kết quả' : isPreflight ? 'Chạy kiểm tra mới' : isHistory ? 'Tải lại lịch sử rà soát' : isEvidence ? 'Thử tải lại bằng chứng' : 'Thử tải lại phiên bản này',
-        isFixedRun ? 'staff-fixed-retry' : isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
-          if (isFixedRun) await retryFixedRunView(view);
+      actions.append(button(isExamBlueprints ? 'Reload blueprints' : isBankRehearsal ? 'Reload rehearsal history' : isFixedRun ? 'Reload results' : isPreflight ? 'Run a new check' : isHistory ? 'Reload review history' : isEvidence ? 'Retry evidence load' : 'Retry this version',
+        isExamBlueprints ? 'staff-fixed-rehearsal-blueprints-retry' : isBankRehearsal ? 'staff-bank-rehearsals-retry' : isFixedRun ? 'staff-fixed-retry' : isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
+          if (isExamBlueprints) await loadExamBlueprints(view.triggerElement);
+          else if (isBankRehearsal) await retryBankRehearsalView(view);
+          else if (isFixedRun) await retryFixedRunView(view);
           else if (isPreflight) await runDatasetPreflight(state.datasetPreflightControls?.run);
           else if (isHistory) await loadReviewHistory(view.versionId, view.contentHash, view.triggerElement);
           else if (isEvidence) await loadReviewEvidence(view.versionId, view.triggerElement);
@@ -1915,12 +2787,17 @@ export async function openStaffWorkspace(container, onBack) {
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
+    if (isBankRehearsalDetail) {
+      actions.append(button('Back to rehearsal history', 'staff-bank-rehearsal-back', () => {
+        returnToBankRehearsalList(view);
+      }, 'button secondary'));
+    }
     if (isFixedRunDetail) {
       actions.append(button('Quay lại danh sách kết quả', 'staff-fixed-back', () => {
         returnToFixedRunList(view);
       }, 'button secondary'));
     }
-    if (!isFixedRun && !isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
+    if (!isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
       const handoff = button('Chuyển bản nháp vào hàng chờ rà soát', 'handoff-open', async () => {
         openHandoffConfirmation(handoff);
       }, 'button secondary');
@@ -1928,7 +2805,7 @@ export async function openStaffWorkspace(container, onBack) {
       handoff.setAttribute('aria-controls', 'handoff-dialog');
       actions.append(handoff);
     }
-    if (!isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
+    if (!isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
       const reject = button('Từ chối phiên bản đang chờ rà soát', 'disposition-reject-open', async () => {
         openDispositionDialog('reject', reject);
       }, 'button secondary');
@@ -1936,7 +2813,7 @@ export async function openStaffWorkspace(container, onBack) {
       reject.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(reject);
     }
-    if (!isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
+    if (!isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
       const quarantine = button('Cách ly phiên bản', 'disposition-quarantine-open', async () => {
         openDispositionDialog('quarantine', quarantine);
       }, 'button secondary');
@@ -1944,18 +2821,28 @@ export async function openStaffWorkspace(container, onBack) {
       quarantine.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(quarantine);
     }
-    actions.append(button(isFixedRun ? 'Đóng kết quả' : isPreflight ? 'Đóng báo cáo' : isHistory ? 'Đóng lịch sử rà soát' : isEvidence ? 'Đóng bằng chứng quyền' : 'Đóng nội dung riêng',
-      isFixedRun ? 'staff-fixed-close' : isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+    actions.append(button(isExamBlueprints ? 'Close blueprints' : isBankRehearsal ? 'Close rehearsal history' : isFixedRun ? 'Close results' : isPreflight ? 'Close report' : isHistory ? 'Close review history' : isEvidence ? 'Close rights evidence' : 'Close private content',
+      isExamBlueprints ? 'staff-fixed-rehearsal-close' : isBankRehearsal ? 'staff-bank-rehearsals-close' : isFixedRun ? 'staff-fixed-close' : isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
         clearPrivateReviewView({ restoreFocus: true });
       }, 'button secondary'));
     panel.append(heading, actions);
 
     if (view.status === 'loading') {
-      const status = node('p', 'notice-panel', isFixedRunList
+      const status = node('p', 'notice-panel', isExamBlueprints
+        ? 'Requesting supported blueprint metadata from the server…'
+        : isBankRehearsals ? 'Requesting eligible-stock rehearsal history from the server…'
+          : isBankRehearsalDetail ? 'Requesting diagnostics for the selected rehearsal ID…'
+            : isFixedRunList
         ? 'Đang yêu cầu danh sách lần chạy tham chiếu cố định từ máy chủ…'
         : isFixedRunDetail ? 'Đang yêu cầu chẩn đoán đã phát lại cho đúng lần chạy đã chọn…'
           : isHistory ? 'Đang yêu cầu lịch sử cho đúng phiên bản đã chọn từ máy chủ…' : 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
-      if (isFixedRun) {
+      if (isExamBlueprints) {
+        status.dataset.testid = 'staff-fixed-rehearsal-blueprints-status';
+        status.dataset.stage = 'blueprints-loading';
+      } else if (isBankRehearsal) {
+        status.dataset.testid = 'staff-bank-rehearsals-status';
+        status.dataset.stage = isBankRehearsals ? 'loading-list' : 'loading-detail';
+      } else if (isFixedRun) {
         status.dataset.testid = 'staff-fixed-status';
         status.dataset.stage = isFixedRunList ? 'loading-list' : 'loading-detail';
       } else if (isHistory) {
@@ -1967,7 +2854,13 @@ export async function openStaffWorkspace(container, onBack) {
       panel.append(status);
     } else if (view.status === 'error') {
       const status = node('p', 'notice-panel', view.error);
-      if (isFixedRun) {
+      if (isExamBlueprints) {
+        status.dataset.testid = 'staff-fixed-rehearsal-blueprints-status';
+        status.dataset.stage = 'blueprints-error';
+      } else if (isBankRehearsal) {
+        status.dataset.testid = 'staff-bank-rehearsals-status';
+        status.dataset.stage = isBankRehearsals ? 'list-error' : 'detail-error';
+      } else if (isFixedRun) {
         status.dataset.testid = 'staff-fixed-status';
         status.dataset.stage = isFixedRunList ? 'list-error' : 'detail-error';
       } else if (isHistory) {
@@ -1978,7 +2871,34 @@ export async function openStaffWorkspace(container, onBack) {
       status.setAttribute('aria-live', 'assertive');
       panel.append(status);
     } else {
-      if (isFixedRunList) {
+      if (isExamBlueprints) {
+        const empty = view.list.items.length === 0;
+        const status = node('p', 'notice-panel', empty
+          ? 'No supported blueprint is available for rehearsal.'
+          : `Loaded ${view.list.items.length} supported blueprints.`);
+        status.dataset.testid = 'staff-fixed-rehearsal-blueprints-status';
+        status.dataset.stage = empty ? 'blueprints-empty' : 'blueprints-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.append(status, renderExamBlueprintForm(view));
+      } else if (isBankRehearsals) {
+        const empty = view.list.items.length === 0;
+        const status = node('p', 'notice-panel', empty
+          ? 'No eligible-stock rehearsals have been recorded.'
+          : `Loaded ${view.list.items.length} recorded stock-rehearsal receipts.`);
+        status.dataset.testid = 'staff-bank-rehearsals-status';
+        status.dataset.stage = empty ? 'list-empty' : 'list-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.append(status, renderFixedRehearsalHistoryList(view.list, (item, trigger) => loadBankRehearsalDetail(item, trigger, view)));
+      } else if (isBankRehearsalDetail) {
+        const status = node('p', 'notice-panel', 'The server verified a replay for the selected receipt. Current eligibility was not rechecked.');
+        status.dataset.testid = 'staff-bank-rehearsals-status';
+        status.dataset.stage = 'detail-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.append(status, renderFixedRehearsalDiagnostic(view.diagnostic));
+      } else if (isFixedRunList) {
         const empty = view.list.runs.length === 0;
         const status = node('p', 'notice-panel', empty
           ? 'Chưa có kết quả lắp đề cố định đã lưu.'
@@ -2001,6 +2921,7 @@ export async function openStaffWorkspace(container, onBack) {
       }
     }
     host.append(panel);
+    if (isExamBlueprints && view.status === 'loaded') updateExamRehearsalCommandStatus();
     renderHandoffPanel();
     renderDispositionPanel();
     if (focusTitle) heading.focus();
@@ -2695,9 +3616,19 @@ export async function openStaffWorkspace(container, onBack) {
     const heading = node('section', 'staff-heading');
     const headingText = node('div');
     headingText.append(node('p', 'eyebrow', 'BẢN NHÁP TRÊN POSTGRESQL CỤC BỘ'));
-    headingText.append(node('h1', '', state.principal.roles.includes('AUTHOR') ? 'Soạn câu hỏi thử nghiệm.' : 'Theo dõi câu hỏi thử nghiệm.'));
+    headingText.append(node('h1', '', state.principal.roles.includes('AUTHOR') ? 'Soạn câu hỏi thử nghiệm.'
+      : state.principal.roles.includes('EXAM_MANAGER') ? 'Fixed stock rehearsal.' : 'Theo dõi câu hỏi thử nghiệm.'));
     headingText.append(node('p', '', `Vai trò hiện tại: ${state.principal.roles.join(', ')}. Phiên tổng hợp ${state.principal.actorKey} được kiểm tra ở máy chủ.`));
     const actions = node('div', 'staff-header-actions');
+    if (state.principal.roles.includes('EXAM_MANAGER')) {
+      let blueprintLoad;
+      blueprintLoad = button('Load supported rehearsal blueprints', 'staff-fixed-rehearsal-blueprints-open', async () => {
+        await loadExamBlueprints(blueprintLoad);
+      }, 'button secondary');
+      blueprintLoad.setAttribute('aria-controls', 'staff-review-host');
+      blueprintLoad.setAttribute('aria-expanded', 'false');
+      actions.append(blueprintLoad);
+    }
     if (state.principal.roles.includes('BANK_MANAGER')) {
       let fixedRuns;
       fixedRuns = button('Kết quả lắp đề cố định', 'staff-fixed-open', async () => {
@@ -2706,6 +3637,13 @@ export async function openStaffWorkspace(container, onBack) {
       fixedRuns.setAttribute('aria-controls', 'staff-review-host');
       fixedRuns.setAttribute('aria-expanded', 'false');
       actions.append(fixedRuns);
+      let rehearsalHistory;
+      rehearsalHistory = button('Eligible-stock rehearsal history', 'staff-bank-rehearsals-open', async () => {
+        await loadBankRehearsalList(rehearsalHistory);
+      }, 'button secondary');
+      rehearsalHistory.setAttribute('aria-controls', 'staff-review-host');
+      rehearsalHistory.setAttribute('aria-expanded', 'false');
+      actions.append(rehearsalHistory);
     }
     if (state.canReadList) {
       actions.append(button('Hàng chờ rà soát', 'staff-review-queue', async () => {
@@ -2753,12 +3691,22 @@ export async function openStaffWorkspace(container, onBack) {
     }, 'button secondary small'));
     heading.append(headingText, actions);
     shell.append(heading);
-    const note = node('p', 'repeat-alert', 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. BANK_MANAGER có thể chủ động kiểm tra đồ thị chuẩn tắc của các phiên bản được chọn; báo cáo không xác nhận tồn kho đủ điều kiện, quyền hiện tại, rà soát của con người hay khả năng lắp đề. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
+    const note = node('p', 'repeat-alert', state.principal.roles.includes('EXAM_MANAGER')
+      ? 'LOCAL_SYNTHETIC_ONLY uses synthetic data. EXAM_MANAGER can explicitly load supported blueprint metadata and request a stock rehearsal. The receipt is historical; current eligibility is not revalidated. No form, attempt, or score is created. This role cannot view drafts, private questions, rights evidence, or review history. The synthetic account is not a qualified reviewer. No approval or publication action is available.'
+      : 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. BANK_MANAGER có thể chủ động kiểm tra đồ thị chuẩn tắc của các phiên bản được chọn; báo cáo không xác nhận tồn kho đủ điều kiện, quyền hiện tại, rà soát của con người hay khả năng lắp đề. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 
     if (!state.principal.roles.includes('AUTHOR')) {
       const denied = node('section', 'staff-card staff-denied');
-      if (state.canReadList) {
+      if (state.principal.roles.includes('EXAM_MANAGER')) {
+        denied.append(node('h2', '', 'Rehearse fixed stock against a pinned blueprint.'));
+        denied.append(node('p', 'staff-private-notice', 'Supported blueprint metadata loads only after an explicit request. Each rehearsal requires confirmation of the version ID, hash, and window. The receipt does not create an exam or read private question content.'));
+        const reviewHost = node('div');
+        reviewHost.id = 'staff-review-host';
+        reviewHost.dataset.testid = 'staff-review-host';
+        reviewHost.hidden = true;
+        denied.append(reviewHost, createExamRehearsalDialog());
+      } else if (state.canReadList) {
         denied.append(node('h2', '', 'Kiểm tra phiên bản theo quyền hiện tại.'), node('p', '', 'Vai trò này không tạo bản nháp hoặc mở mẫu tác giả. Máy chủ kiểm tra quyền và trạng thái quy trình trước khi cung cấp nội dung riêng. Thao tác từ chối hoặc cách ly chỉ xuất hiện sau khi mở phiên bản đủ điều kiện. Không có thao tác phê duyệt, quản lý quyền hoặc xuất bản ở đây.'));
         denied.append(button('Tải danh sách', 'staff-refresh-denied', async () => {
           if (!isWorkspaceActive()) return;

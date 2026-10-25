@@ -7,6 +7,11 @@ import {
   StaffReviewHistorySchema,
   StaffFixedAssemblyRunListSchema,
   StaffFixedAssemblyDiagnosticSchema,
+  StaffFixedRehearsalBlueprintListSchema,
+  StaffFixedRehearsalRequestSchema,
+  StaffFixedRehearsalReceiptSchema,
+  StaffFixedRehearsalListSchema,
+  StaffFixedRehearsalDiagnosticSchema,
   StaffDatasetPreflightRequestSchema,
   StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
@@ -62,6 +67,79 @@ describe("@tsa/contracts/staff package subpath", () => {
       capturedCandidateCount: 1,
       selectedCount: 1,
       sections: [{ section: "MATH", requiredCount: 1, selectedCount: 1 }],
+    }).success, true);
+    const rehearsalRequest = {
+      blueprintVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      blueprintHash: `sha256:${"a".repeat(64)}`,
+      windowMinutes: 60,
+      seed: 42,
+    };
+    const rehearsalReceipt = {
+      rehearsalId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      blueprintVersionId: rehearsalRequest.blueprintVersionId,
+      blueprintHash: rehearsalRequest.blueprintHash,
+      windowMinutes: rehearsalRequest.windowMinutes,
+      capturedAt: "2026-10-25T12:00:00.123456Z",
+      availableUntil: "2026-10-25T13:00:00.123456Z",
+      requiredThrough: "2026-10-25T13:10:01.123456Z",
+      outcome: "SUCCESS",
+      failureCode: null,
+      sectionDeficits: [],
+      createsForm: false,
+      currentEligibility: "NOT_REVALIDATED",
+    };
+    assert.equal(StaffFixedRehearsalRequestSchema.safeParse(rehearsalRequest).success, true);
+    assert.equal(StaffFixedRehearsalReceiptSchema.safeParse(rehearsalReceipt).success, true);
+    assert.equal(StaffFixedRehearsalBlueprintListSchema.safeParse({
+      schemaVersion: "staff-fixed-rehearsal-blueprints/1",
+      environment: "LOCAL_SYNTHETIC_ONLY",
+      accessBasis: "EXAM_MANAGER",
+      observedAt: "2026-10-25T14:00:00.123456Z",
+      limit: 20,
+      truncated: false,
+      items: [{
+        blueprintVersionId: rehearsalRequest.blueprintVersionId,
+        contentHash: rehearsalRequest.blueprintHash,
+        name: "Synthetic math blueprint",
+        section: "MATH",
+        questionCount: 4,
+        durationSeconds: 3600,
+      }],
+    }).success, true);
+    assert.equal(StaffFixedRehearsalListSchema.safeParse({
+      schemaVersion: "staff-fixed-rehearsals/1",
+      environment: "LOCAL_SYNTHETIC_ONLY",
+      accessBasis: "BANK_MANAGER",
+      observedAt: "2026-10-25T14:00:00.123456Z",
+      limit: 20,
+      truncated: false,
+      items: [{
+        rehearsalId: rehearsalReceipt.rehearsalId,
+        blueprintVersionId: rehearsalRequest.blueprintVersionId,
+        outcome: "SUCCESS",
+        capturedAt: rehearsalReceipt.capturedAt,
+        windowMinutes: 60,
+      }],
+    }).success, true);
+    assert.equal(StaffFixedRehearsalDiagnosticSchema.safeParse({
+      schemaVersion: "staff-fixed-rehearsal-diagnostic/1",
+      environment: "LOCAL_SYNTHETIC_ONLY",
+      accessBasis: "BANK_MANAGER",
+      observedAt: "2026-10-25T14:00:00.123456Z",
+      captureOrigin: "BANK_ELIGIBLE_AT_CAPTURE",
+      currentEligibility: "NOT_REVALIDATED",
+      qualification: "NOT_ATTESTED_BY_PLATFORM",
+      publicationEligibility: "NOT_EVALUATED",
+      rehearsal: rehearsalReceipt,
+      replayVerified: true,
+      createsForm: false,
+      capturedUnitCount: 4,
+      capturedCandidateCount: 4,
+      selectedCount: 4,
+      visitedNodes: 1,
+      nodeLimit: 50000,
+      unitLimit: 2000,
+      section: { section: "MATH", requiredCount: 4, selectedCount: 4 },
     }).success, true);
     assert.equal(StaffReviewHistorySchema.safeParse({
       schemaVersion: "staff-review-history/1",

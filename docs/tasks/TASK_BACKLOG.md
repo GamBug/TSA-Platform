@@ -759,6 +759,17 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-25 **B8.1 ELIGIBLE BANK REHEARSAL — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base70cdd6c.
+Root selects separate actual eligible Bank capture before sealing;
+[exact scope/impact/acceptance](../decisions/WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md).
+Root021 SQL/backend/fixture/HTTP-PG/browser/Firefox/shared records; disjoint native
+Luna/XHigh private DTO/UI writers, separate Sol6.1/Medium read-only reviewer. Preserve
+owner AGENTS/research, frozen personal/B7 protocols. No forms/sealing/student fixed
+delivery/publication or qualified-human acceptance. Root finalfocused12/Bank147/assembly50/student34/foundation37/domains78/Chrome46
+PASS; actual writers contracts155/B032/Firefox16 PASS. Separate Sol6.1/Medium
+PG6/upgrade3/Chrome46 and source review final no findings; Firefox source/syntax only.
+Clean reproduction pending. [Evidence](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
+
 2026-10-25 **B7.2 STORED FIXED DIAGNOSTICS — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base7ba60a5.
 Root selects exact additive audited projection/discovery/UI and migration020;
 [scope/impact/acceptance](../decisions/WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md).

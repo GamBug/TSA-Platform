@@ -419,6 +419,168 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`Boolean(${query('staff-fixed-list')})||Boolean(${query('staff-fixed-detail')})`),false);
   report.checks.push('B7 Firefox explicit manager stored fixed list and three real replay outcomes keep exhaustion feasibility unknown; desktop/narrow captures, cached back without GET, Escape focus and logout cleanup');
 
+  // Seed four genuinely approved synthetic Bank questions late in the existing
+  // fixture so the preceding B1–B7 assertions keep their original inventory.
+  const rehearsalSource=await staffFixture.fixture.registerSource();
+  const rehearsalStock=[];
+  for(let index=0;index<4;index++) rehearsalStock.push(await staffFixture.fixture.createQuestion(rehearsalSource,`firefox-b8-stock-${index+1}`));
+
+  await evaluate(`${query('actor-select')}.value='examManager'`);
+  assert.equal(await evaluate(`${query('actor-select')}.selectedOptions[0].textContent.includes('Synthetic exam manager (EXAM_MANAGER)')`),true);
+  await click('staff-login');await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'Firefox synthetic EXAM_MANAGER workspace');
+  assert.equal(await evaluate(`Boolean(${query('draft-create')})||Boolean(${query('staff-question-list')})||Boolean(${query('staff-review-inspect')})`),false,'EXAM_MANAGER has no draft or private-question controls');
+  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__ffB8Errors=[];window.addEventListener('error',event=>window.__ffB8Errors.push(String(event.message??'error')));window.addEventListener('unhandledrejection',event=>window.__ffB8Errors.push(String(event.reason??'rejection')));window.__ffRehearsal=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.pathname.startsWith('/api/v1/fixed-rehearsal')){let body=null;try{body=await response.clone().json();}catch{}window.__ffRehearsal.push({path:url.pathname,method:(init.method??'GET').toUpperCase(),status:response.status,request:init.body?JSON.parse(init.body):null,body,csrf:Boolean(new Headers(init.headers).get('x-csrf-token')),key:new Headers(init.headers).get('idempotency-key')});}return response;};return true})()`);
+  assert.equal(await evaluate('window.__ffRehearsal.length'),0,'no rehearsal metadata or command is prefetched');
+  await click('staff-fixed-rehearsal-blueprints-open');await waitFor(`${query('staff-fixed-rehearsal-blueprints-status')}?.dataset.stage==='blueprints-loaded'`,'explicit Firefox supported-blueprint read');
+  assert.equal(await evaluate('window.__ffRehearsal.length'),1);
+  const blueprints=await evaluate('window.__ffRehearsal[0]');assert.equal(blueprints.path,'/api/v1/fixed-rehearsal-blueprints');assert.equal(blueprints.method,'GET');assert.equal(blueprints.status,200);assert.equal(blueprints.body.accessBasis,'EXAM_MANAGER');
+  const rehearsalBlueprint=blueprints.body.items.find(item=>item.section==='MATH'&&item.questionCount===4);
+  assert.ok(rehearsalBlueprint,'Firefox supported list contains the MATH4 rehearsal blueprint');
+  await evaluate(`(()=>{const select=${query('staff-fixed-rehearsal-blueprint-select')};select.value=${JSON.stringify(rehearsalBlueprint.blueprintVersionId)};select.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'POST\').length'),0,'blueprint selection does not submit');
+  await evaluate(`(()=>{const input=${query('staff-fixed-rehearsal-window-minutes')};input.value='0';input.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-form')}.checkValidity()`),false,'zero-minute rehearsal input is invalid');
+  await click('staff-fixed-rehearsal-open');await new Promise(resolve=>setTimeout(resolve,100));
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-dialog')}.open`),false,'invalid duration cannot open confirmation');
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'POST\').length'),0,'invalid duration sends zero POSTs');
+  await evaluate(`(()=>{const input=${query('staff-fixed-rehearsal-window-minutes')};input.value='6e1';input.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);
+  await click('staff-fixed-rehearsal-open');await waitFor(`${query('staff-fixed-rehearsal-dialog')}?.open===true`,'Firefox native stock-rehearsal confirmation');
+  const dialogPins=await evaluate(`(()=>({version:${query('staff-fixed-rehearsal-dialog-blueprint-id')}.textContent,hash:${query('staff-fixed-rehearsal-dialog-blueprint-hash')}.textContent,profile:${query('staff-fixed-rehearsal-dialog-profile')}.textContent,window:${query('staff-fixed-rehearsal-dialog-window')}.textContent,warning:document.getElementById('staff-fixed-rehearsal-dialog-warning').textContent}))()`);
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-window-minutes')}.value`),'60','valid numeric exponent normalizes to an integer before confirmation');
+  assert.equal(dialogPins.version,rehearsalBlueprint.blueprintVersionId);assert.equal(dialogPins.hash,rehearsalBlueprint.contentHash);
+  assert.equal(dialogPins.profile,`MATH · 4 items · ${rehearsalBlueprint.durationSeconds} seconds`);assert.equal(dialogPins.window,'60 minutes');
+  assert.equal(dialogPins.warning.toLowerCase().includes('creates no form'),true);
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'POST\').length'),0,'reviewing confirmation does not post');
+  assert.equal(await evaluate(`document.activeElement===${query('staff-fixed-rehearsal-cancel')}`),true,'native dialog initially focuses safe cancel action');
+  await setViewport(narrowMeasured.innerWidth,812,'B8 Firefox confirmation narrow actual viewport');await capture(`staff-b8-exam-confirm-narrow-${narrowMeasured.innerWidth}`);
+  await setViewport(1280,900,'B8 Firefox confirmation desktop');await capture('staff-b8-exam-confirm-desktop');
+  await wd('POST','/actions',{actions:[{type:'key',id:'b8-confirm-escape',actions:[{type:'keyDown',value:escape},{type:'keyUp',value:escape}]}]});
+  await waitFor(`!${query('staff-fixed-rehearsal-dialog')}?.open`,'B8 Firefox Escape cancels before POST');
+  assert.equal(await evaluate(`document.activeElement===${query('staff-fixed-rehearsal-open')}`),true,'cancel restores focus to the exact rehearsal action');
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'POST\').length'),0);
+  await click('staff-fixed-rehearsal-open');await waitFor(`${query('staff-fixed-rehearsal-dialog')}?.open===true`,'reopen the exact pinned B8 confirmation');
+  await click('staff-fixed-rehearsal-confirm');await waitFor(`${query('staff-fixed-rehearsal-status')}?.dataset.stage==='acknowledged'`,'actual Firefox EXAM_MANAGER stock rehearsal receipt');
+  const rehearsalPosts=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'POST\')');assert.equal(rehearsalPosts.length,1);
+  const firstCapture=rehearsalPosts[0];assert.equal(firstCapture.path,'/api/v1/fixed-rehearsals');assert.equal(firstCapture.status,201);assert.equal(firstCapture.csrf,true);assert.match(firstCapture.key,/^[0-9a-f-]{36}$/i);
+  assert.deepEqual(firstCapture.request,{blueprintVersionId:rehearsalBlueprint.blueprintVersionId,blueprintHash:rehearsalBlueprint.contentHash,windowMinutes:60});
+  assert.equal(Object.hasOwn(firstCapture.request,'seed'),false);
+  const successReceipt=firstCapture.body;assert.equal(successReceipt.outcome,'SUCCESS');assert.equal(successReceipt.createsForm,false);assert.equal(successReceipt.currentEligibility,'NOT_REVALIDATED');assert.deepEqual(successReceipt.sectionDeficits,[]);
+  assert.equal(Date.parse(successReceipt.availableUntil)-Date.parse(successReceipt.capturedAt),3_600_000);
+  assert.equal(Date.parse(successReceipt.requiredThrough)-Date.parse(successReceipt.availableUntil),(600+rehearsalBlueprint.durationSeconds)*1000);
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-status')}.dataset.currentEligibility`),'NOT_REVALIDATED');
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-status')}.dataset.createsForm`),'false');
+  assert.equal(await evaluate(`document.activeElement===${query('staff-fixed-rehearsal-status')}`),true,'receipt acknowledgement receives focus');
+  assert.doesNotMatch(JSON.stringify(successReceipt),/"(?:sourceId|questionId|versionId|groupId|answerKey|explanation|seed)"\s*:/);
+  for(const question of rehearsalStock) assert.equal(JSON.stringify(successReceipt).includes(question.versionId),false,'EXAM receipt omits candidate identity');
+  assert.equal(await evaluate(`Boolean(${query('staff-review-context')})||Boolean(${query('staff-review-history')})||Boolean(${query('staff-review-evidence')})`),false,'EXAM_MANAGER sees no B1–B5 private review view');
+  assert.deepEqual(await evaluate('window.__ffB8Errors'),[],'initial B8 capture has no uncaught browser errors');
+  await evaluate(`${query('staff-fixed-rehearsal-status')}.scrollIntoView({block:'center'})`);await capture('staff-b8-exam-success-desktop');
+  report.checks.push('B8 Firefox EXAM_MANAGER explicitly loads supported blueprints; invalid window sends zero POST; native pin confirmation/Escape/focus; one CSRF/idempotent actual SUCCESS receipt with no form, no current eligibility claim, and no candidate identifiers');
+
+  const receiptDocument=await evaluate('performance.timeOrigin');await wd('POST','/refresh',{});
+  await waitFor(`performance.timeOrigin!==${receiptDocument}&&Boolean(${query('staff-open')})`,'fresh Firefox document after the acknowledged B8 receipt');
+  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__ffB8Errors=[];window.addEventListener('error',event=>window.__ffB8Errors.push(String(event.message??'error')));window.addEventListener('unhandledrejection',event=>window.__ffB8Errors.push(String(event.reason??'rejection')));window.__ffRehearsal=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.pathname.startsWith('/api/v1/fixed-rehearsal')){let body=null;try{body=await response.clone().json();}catch{}window.__ffRehearsal.push({path:url.pathname,method:(init.method??'GET').toUpperCase(),status:response.status,request:init.body?JSON.parse(init.body):null,body,csrf:Boolean(new Headers(init.headers).get('x-csrf-token')),key:new Headers(init.headers).get('idempotency-key')});}return response;};return true})()`);
+  await click('staff-open');await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'explicitly re-enter the EXAM_MANAGER workspace after reload');
+  assert.equal(await evaluate('window.__ffRehearsal.length'),0,'re-entering after reload does not prefetch blueprint, history, or command state');
+  assert.equal(await evaluate(`Boolean(${query('staff-fixed-rehearsal-status')})||Boolean(${query('staff-fixed-rehearsal-blueprints')})||document.body.textContent.includes(${JSON.stringify(successReceipt.rehearsalId)})`),false,'acknowledged receipt is not resurrected by reload');
+  report.checks.push('B8 Firefox fresh-document reload requires explicit staff re-entry and does not restore a private acknowledgement or start a new read/POST');
+
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox BANK_MANAGER login after first capture');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-bank-rehearsals-open')})`,'Firefox BANK_MANAGER rehearsal-history action');
+  let historyReads=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsals\').length');
+  let diagnosticReads=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path.startsWith(\'/api/v1/fixed-rehearsals/\')).length');
+  assert.equal(historyReads,0,'BANK_MANAGER login does not prefetch rehearsal history');assert.equal(diagnosticReads,0,'BANK_MANAGER login does not prefetch diagnostics');
+  await click('staff-bank-rehearsals-open');await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='list-loaded'`,'explicit Firefox BANK_MANAGER rehearsal history');
+  historyReads=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsals\').length');assert.equal(historyReads,1);
+  const initialHistory=await evaluate('window.__ffRehearsal.find(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsals\')');assert.equal(initialHistory.status,200);assert.equal(initialHistory.body.accessBasis,'BANK_MANAGER');assert.equal(initialHistory.body.items.length,1);
+  assert.equal(initialHistory.body.items[0].rehearsalId,successReceipt.rehearsalId);assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path.startsWith(\'/api/v1/fixed-rehearsals/\')).length'),0,'history rows do not prefetch detail');
+  await setViewport(1280,900,'B8 Firefox history desktop');await evaluate(`(()=>{${query('staff-bank-rehearsals')}.scrollIntoView({block:'start'});return true})()`);await capture('staff-b8-history-desktop');
+  await setViewport(narrowMeasured.innerWidth,812,'B8 Firefox history narrow actual viewport');await capture(`staff-b8-history-narrow-${narrowMeasured.innerWidth}`);
+  const successRow=`[data-testid="staff-bank-rehearsal-open"][data-rehearsal-id="${successReceipt.rehearsalId}"]`;
+  await waitFor(`Boolean(document.querySelector(${JSON.stringify(successRow)}))`,'exact historical success detail action');
+  const successRowElement=await wd('POST','/element',{using:'css selector',value:successRow});await wd('POST',`/element/${successRowElement['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='detail-loaded'`,'Firefox replay-verified B8 success detail');
+  diagnosticReads=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path.startsWith(\'/api/v1/fixed-rehearsals/\')).length');assert.equal(diagnosticReads,1);
+  const successDiagnosticCall=await evaluate(`window.__ffRehearsal.filter(call=>call.method==='GET'&&call.path.startsWith('/api/v1/fixed-rehearsals/')).at(-1)`);
+  assert.equal(successDiagnosticCall.path,`/api/v1/fixed-rehearsals/${successReceipt.rehearsalId}`);
+  const successDiagnostic=successDiagnosticCall.body;
+  assert.equal(successDiagnosticCall.status,200);assert.equal(successDiagnostic.captureOrigin,'BANK_ELIGIBLE_AT_CAPTURE');assert.equal(successDiagnostic.currentEligibility,'NOT_REVALIDATED');assert.equal(successDiagnostic.qualification,'NOT_ATTESTED_BY_PLATFORM');assert.equal(successDiagnostic.publicationEligibility,'NOT_EVALUATED');assert.equal(successDiagnostic.replayVerified,true);assert.equal(successDiagnostic.createsForm,false);assert.equal(successDiagnostic.capturedCandidateCount,4);assert.equal(successDiagnostic.selectedCount,4);
+  for(const question of rehearsalStock) assert.equal(JSON.stringify(successDiagnostic).includes(question.versionId),false,'BANK diagnostic contains no candidate IDs');
+  assert.doesNotMatch(JSON.stringify(successDiagnostic),/"(?:sourceId|questionId|versionId|groupId|answerKey|explanation|seed)"\s*:/);
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.dataset.currentEligibility`),'NOT_REVALIDATED');
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.dataset.createsForm`),'false');
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.textContent.includes('BANK_ELIGIBLE_AT_CAPTURE')&&${query('staff-bank-rehearsal-detail')}.textContent.includes('NOT_REVALIDATED')&&${query('staff-bank-rehearsal-detail')}.textContent.includes('NOT_ATTESTED_BY_PLATFORM')`),true,'detail clearly marks capture-time eligibility and no current human qualification');
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.querySelectorAll('img,a,script,iframe,object,embed').length`),0,'historical diagnostic is inert text');
+  await setViewport(1280,900,'B8 Firefox success detail desktop');await evaluate(`(()=>{${query('staff-bank-rehearsal-detail')}.scrollIntoView({block:'start'});return true})()`);await capture('staff-b8-success-detail-desktop');
+  await setViewport(narrowMeasured.innerWidth,812,'B8 Firefox success detail narrow actual viewport');await capture(`staff-b8-success-detail-narrow-${narrowMeasured.innerWidth}`);
+  await click('staff-bank-rehearsal-back');await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='list-loaded'`,'Firefox cached B8 history back');
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsals\').length'),1,'back returns to the captured history without another GET');
+  assert.equal(await evaluate(`document.activeElement?.dataset.rehearsalId===${JSON.stringify(successReceipt.rehearsalId)}`),true,'B8 back restores focus to the exact history row');
+  await click('staff-bank-rehearsals-close');
+
+  // Quarantine one of the four actual approved fixture questions through the
+  // staff UI, then make a second explicit capture against the same blueprint.
+  await evaluate(`(()=>{const filter=${query('staff-state-filter')};filter.value='';filter.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+  await waitFor(`${query('staff-list-status')}?.textContent.startsWith('Đang hiển thị')`,'Firefox all-state metadata before B8 quarantine');
+  const removedQuestion=rehearsalStock[0];const removedSelector=`[data-testid="staff-review-inspect"][data-version-id="${removedQuestion.versionId}"]`;
+  await waitFor(`Boolean(document.querySelector(${JSON.stringify(removedSelector)}))`,'exact eligible fixture question in manager metadata');
+  const removedElement=await wd('POST','/element',{using:'css selector',value:removedSelector});await wd('POST',`/element/${removedElement['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+  await waitFor(`Boolean(${query('disposition-quarantine-open')})`,'manager quarantine control for exact B8 stock candidate');
+  await click('disposition-quarantine-open');await waitFor(`${query('disposition-dialog')}?.open===true`,'Firefox B8 stock quarantine confirmation');
+  await evaluate(`(()=>{const reason=${query('disposition-form-reason')};reason.value='Synthetic Firefox quarantine for the B8 stock-shortfall check; not human review.';reason.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);
+  await setViewport(narrowMeasured.innerWidth,812,'B8 Firefox quarantine narrow actual viewport');await capture(`staff-b8-quarantine-narrow-${narrowMeasured.innerWidth}`);
+  await setViewport(1280,900,'B8 Firefox quarantine desktop');await click('disposition-confirm');
+  await waitFor(`${query('disposition-status')}?.dataset.stage==='acknowledged'&&${query('disposition-status')}?.dataset.currentState==='QUARANTINED'`,'actual Firefox quarantine of one captured stock question');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false,'quarantined current view has no private question preview');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox EXAM_MANAGER login for the post-quarantine capture');
+  await evaluate(`${query('actor-select')}.value='examManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'EXAM_MANAGER reopens after the Bank change');
+  await click('staff-fixed-rehearsal-blueprints-open');await waitFor(`${query('staff-fixed-rehearsal-blueprints-status')}?.dataset.stage==='blueprints-loaded'`,'fresh explicit blueprint read after quarantine');
+  const refreshedBlueprints=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsal-blueprints\').at(-1).body');
+  assert.equal(refreshedBlueprints.items.some(item=>item.blueprintVersionId===rehearsalBlueprint.blueprintVersionId&&item.contentHash===rehearsalBlueprint.contentHash),true,'same exact blueprint remains explicitly selectable');
+  await evaluate(`(()=>{const select=${query('staff-fixed-rehearsal-blueprint-select')};select.value=${JSON.stringify(rehearsalBlueprint.blueprintVersionId)};select.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+  await click('staff-fixed-rehearsal-open');await waitFor(`${query('staff-fixed-rehearsal-dialog')}?.open===true`,'second native B8 confirmation after fresh blueprint read');
+  await click('staff-fixed-rehearsal-confirm');await waitFor(`${query('staff-fixed-rehearsal-status')}?.dataset.stage==='acknowledged'`,'actual Firefox post-quarantine stock rehearsal');
+  const subsequentCaptures=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'POST\')');assert.equal(subsequentCaptures.length,1);
+  const allCaptures=[firstCapture,...subsequentCaptures];
+  const shortageReceipt=allCaptures[1].body;assert.equal(allCaptures[1].status,201);assert.deepEqual(allCaptures[1].request,firstCapture.request);
+  assert.notEqual(allCaptures[1].key,firstCapture.key,'a separate explicit new capture gets a new idempotency key');
+  assert.equal(shortageReceipt.outcome,'FAILURE');assert.equal(shortageReceipt.failureCode,'INSUFFICIENT_ELIGIBLE_INVENTORY');assert.deepEqual(shortageReceipt.sectionDeficits,[{section:'MATH',missingCount:1}]);assert.equal(shortageReceipt.currentEligibility,'NOT_REVALIDATED');assert.equal(shortageReceipt.createsForm,false);
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-status')}.dataset.outcome`),'FAILURE');
+  assert.equal(await evaluate(`${query('staff-fixed-rehearsal-status')}.dataset.currentEligibility`),'NOT_REVALIDATED');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox BANK_MANAGER login for historical B8 rows');
+  await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-bank-rehearsals-open')})`,'BANK_MANAGER returns for historical rehearsal rows');
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsals\').length'),1,'BANK_MANAGER re-login does not prefetch history');
+  assert.equal(await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path.startsWith(\'/api/v1/fixed-rehearsals/\')).length'),1,'BANK_MANAGER re-login does not prefetch another detail');
+  await click('staff-bank-rehearsals-open');await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='list-loaded'`,'B8 history after the later shortage capture');
+  const finalHistory=await evaluate('window.__ffRehearsal.filter(call=>call.method===\'GET\'&&call.path===\'/api/v1/fixed-rehearsals\').at(-1).body');
+  assert.equal(finalHistory.items.length,2);assert.equal(finalHistory.items.some(item=>item.rehearsalId===successReceipt.rehearsalId&&item.outcome==='SUCCESS'),true,'the prior success remains in immutable history');assert.equal(finalHistory.items.some(item=>item.rehearsalId===shortageReceipt.rehearsalId&&item.outcome==='FAILURE'),true,'the later shortage is separately recorded');
+  assert.equal(finalHistory.items[0].capturedAt>=finalHistory.items[1].capturedAt,true,'history stays newest-first');
+  async function openFirefoxStockDetail(receipt) {
+    const selector=`[data-testid="staff-bank-rehearsal-open"][data-rehearsal-id="${receipt.rehearsalId}"]`;
+    const element=await wd('POST','/element',{using:'css selector',value:selector});await wd('POST',`/element/${element['element-6066-11e4-a52e-4f735466cecf']}/click`,{});
+    await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='detail-loaded'`,'B8 exact rehearsal diagnostic');
+    return selector;
+  }
+  const successHistoryRow=await openFirefoxStockDetail(successReceipt);
+  const historicalSuccess=await evaluate(`window.__ffRehearsal.filter(call=>call.method==='GET'&&call.path==='/api/v1/fixed-rehearsals/${successReceipt.rehearsalId}').at(-1).body`);
+  assert.equal(historicalSuccess.rehearsal.outcome,'SUCCESS');assert.equal(historicalSuccess.capturedCandidateCount,4);assert.equal(historicalSuccess.currentEligibility,'NOT_REVALIDATED');assert.equal(historicalSuccess.createsForm,false);
+  await setViewport(1280,900,'B8 Firefox historical success desktop');await capture('staff-b8-historical-success-desktop');
+  await click('staff-bank-rehearsal-back');await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='list-loaded'`,'B8 return before shortage details');
+  assert.equal(await evaluate(`document.activeElement?.matches(${JSON.stringify(successHistoryRow)})`),true,'Firefox history back returns focus to the prior success row');
+  const shortageHistoryRow=await openFirefoxStockDetail(shortageReceipt);
+  const shortageDiagnostic=await evaluate(`window.__ffRehearsal.filter(call=>call.method==='GET'&&call.path==='/api/v1/fixed-rehearsals/${shortageReceipt.rehearsalId}').at(-1).body`);
+  assert.equal(shortageDiagnostic.rehearsal.failureCode,'INSUFFICIENT_ELIGIBLE_INVENTORY');assert.equal(shortageDiagnostic.capturedCandidateCount,3);assert.equal(shortageDiagnostic.selectedCount,0);assert.equal(shortageDiagnostic.section.selectedCount,0);assert.equal(shortageDiagnostic.rehearsal.sectionDeficits[0].missingCount,1);assert.equal(shortageDiagnostic.currentEligibility,'NOT_REVALIDATED');
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.dataset.outcome`),'FAILURE');
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.textContent.includes('Count shortfall proven at capture time')`),true);
+  assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.querySelectorAll('img,a,script,iframe,object,embed').length`),0);
+  for(const question of rehearsalStock) assert.equal(JSON.stringify(shortageDiagnostic).includes(question.versionId),false,'shortage detail contains no candidate IDs');
+  await setViewport(narrowMeasured.innerWidth,812,'B8 Firefox shortage detail narrow actual viewport');await capture(`staff-b8-shortage-detail-narrow-${narrowMeasured.innerWidth}`);
+  assert.deepEqual(await evaluate('window.__ffB8Errors'),[],'B8 staff interactions have no uncaught browser errors');
+  assert.equal(await evaluate('performance.getEntriesByType(\'resource\').every(item=>new URL(item.name).origin===location.origin)'),true,'B8 workflow loads no external resources');
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'Firefox B8 manager logout cleanup');
+  assert.equal(await evaluate(`Boolean(${query('staff-bank-rehearsals')})||Boolean(${query('staff-bank-rehearsal-detail')})||document.body.textContent.includes(${JSON.stringify(successReceipt.rehearsalId)})||document.body.textContent.includes(${JSON.stringify(shortageReceipt.rehearsalId)})`),false,'logout clears private rehearsal history and detail DOM');
+  report.checks.push('B8 Firefox BANK_MANAGER explicitly reads history/detail; actual UI quarantine removes one of four approved synthetic Bank questions; a fresh EXAM capture records only the proven MATH shortfall while prior SUCCESS remains historical; aggregates contain no candidate/private identifiers, current eligibility remains NOT_REVALIDATED, viewport/keyboard/logout/privacy checks pass');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

@@ -11,7 +11,7 @@ import { createPrototypeServer } from '../../../apps/practice-prototype/server.m
 
 export const SYNTHETIC_REVIEW_EVIDENCE = 'Synthetic administrative claim only; not qualified legal evidence.\n<img src="https://invalid.example/evidence.png" onerror="alert(1)">\nhttps://invalid.example/recorded-claim /synthetic/path "quoted"';
 
-export async function createReviewBrowserFixture() {
+export async function createReviewBrowserFixture({ includeEligibleFixedStock = false } = {}) {
   let fixture, server;
   const close = async () => {
     const errors = [];
@@ -66,6 +66,11 @@ export async function createReviewBrowserFixture() {
       if (result.status !== 201) throw new Error(`Staff browser fixture draft failed (${result.status})`);
       questions.push(await result.json());
     }
+    const eligibleStock = [];
+    if (includeEligibleFixedStock) {
+      const source = await fixture.registerSource();
+      for (let index=0;index<4;index++) eligibleStock.push(await fixture.createQuestion(source,`fixed-stock-${index+1}`));
+    }
     let handlers;
     server = createPrototypeServer({ port: 0, maxRequestBytes: 1024 * 1024, integratedRequestHandler: async (request) => {
       const pathname = new URL(request.url).pathname;
@@ -87,9 +92,9 @@ export async function createReviewBrowserFixture() {
     const identity = await createLocalSyntheticIdentityService(fixture.harness.authPool, { env });
     handlers = { identity,
       auth: await createLocalAuthHandler({ pool: fixture.harness.authPool, env }),
-      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true }),
+      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true }),
     };
-    return { origin, questions, close, fixture, identity, template, fixedRuns, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
+    return { origin, questions, close, fixture, identity, template, fixedRuns, eligibleStock, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Staff browser fixture setup and cleanup failed'); }
     throw error;

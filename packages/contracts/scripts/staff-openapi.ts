@@ -21,12 +21,18 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     StaffReviewHistory: contracts.StaffReviewHistorySchema,
     StaffFixedAssemblyRunList: contracts.StaffFixedAssemblyRunListSchema,
     StaffFixedAssemblyDiagnostic: contracts.StaffFixedAssemblyDiagnosticSchema,
+    StaffFixedRehearsalBlueprintList: contracts.StaffFixedRehearsalBlueprintListSchema,
+    StaffFixedRehearsalRequest: contracts.StaffFixedRehearsalRequestSchema,
+    StaffFixedRehearsalReceipt: contracts.StaffFixedRehearsalReceiptSchema,
+    StaffFixedRehearsalList: contracts.StaffFixedRehearsalListSchema,
+    StaffFixedRehearsalDiagnostic: contracts.StaffFixedRehearsalDiagnosticSchema,
     StaffDatasetPreflightRequest: contracts.StaffDatasetPreflightRequestSchema,
     StaffDatasetPreflight: contracts.StaffDatasetPreflightSchema,
     StaffReviewContextPathParams: routes.StaffReviewContextPathParamsSchema,
     StaffReviewEvidencePathParams: routes.StaffReviewEvidencePathParamsSchema,
     StaffReviewHistoryPathParams: routes.StaffReviewHistoryPathParamsSchema,
     StaffFixedAssemblyDiagnosticPathParams: routes.StaffFixedAssemblyDiagnosticPathParamsSchema,
+    StaffFixedRehearsalDiagnosticPathParams: routes.StaffFixedRehearsalDiagnosticPathParamsSchema,
     StaffDatasetPreflightRequestHeaders: routes.StaffDatasetPreflightRequestHeadersSchema,
     StaffUnauthenticatedResponse: routes.StaffUnauthenticatedResponseSchema,
     StaffForbiddenResponse: routes.StaffForbiddenResponseSchema,
@@ -105,7 +111,7 @@ function buildStaffDocument(table: RouteTable): Record<string, unknown> {
     info: {
       title: "TSA Platform private staff API contracts",
       version: "staff-contracts/1",
-      description: "Private staff inspection, evidence, recorded review history, fixed-reference diagnostics, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+      description: "Private staff inspection, evidence, recorded review history, fixed-reference diagnostics, eligible-Bank stock rehearsals, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     },
   }) as unknown as Record<string, unknown>;
 }

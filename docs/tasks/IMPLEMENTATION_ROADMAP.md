@@ -1,5 +1,13 @@
 # Implementation roadmap
 
+Current B8.1, 2026-10-25: actual eligible Bank rehearsal implemented with separate
+immutable021 storage, current EXAM command, audited BANK replay and role-scoped UI.
+[Evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md). Root
+PG/upgrade/regressions/Chrome PASS; actual delegate Firefox16 PASS, independent
+PG6/upgrade3/Chrome46/source final no findings. Clean reproduction pending. This captures historical eligibility, creates no form or
+attempt and does not attest rights/human review or current stock. Next explicit
+fixed sealing scope follows completed rehearsal acceptance.
+
 Current B7.2, 2026-10-25: manager stored fixed reference discovery/replay diagnostics
 with audited narrow020 function and genuine synthetic solver fixtures implemented.
 [Actual PG/browser/regression/independent evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).

@@ -7,6 +7,11 @@ import {
   StaffReviewHistorySchema,
   StaffFixedAssemblyRunListSchema,
   StaffFixedAssemblyDiagnosticSchema,
+  StaffFixedRehearsalBlueprintListSchema,
+  StaffFixedRehearsalRequestSchema,
+  StaffFixedRehearsalReceiptSchema,
+  StaffFixedRehearsalListSchema,
+  StaffFixedRehearsalDiagnosticSchema,
   StaffDatasetPreflightRequestSchema,
   StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
@@ -45,6 +50,10 @@ export const StaffReviewHistoryPathParamsSchema = z
 
 export const StaffFixedAssemblyDiagnosticPathParamsSchema = z
   .object({ assemblyRunId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffFixedRehearsalDiagnosticPathParamsSchema = z
+  .object({ rehearsalId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
   .strict();
 
 const IdempotencyKeySchema = z.string().regex(/^[\x21-\x7e]{1,128}$/, "Expected 1–128 visible ASCII characters");
@@ -209,6 +218,68 @@ export const staffRouteRegistry = {
       404: json(StaffNotFoundResponseSchema, "Run is missing, malformed, personal, or outside the fixed-reference scope"),
       422: json(StaffValidationErrorResponseSchema, "Malformed path or unexpected query/body"),
       503: json(StaffTemporarilyUnavailableResponseSchema, "Stored fixed-reference diagnostics or replay verification is unavailable"),
+    },
+  },
+  staffFixedRehearsalBlueprints: {
+    method: "GET",
+    path: "/api/v1/fixed-rehearsal-blueprints",
+    summary: "List supported blueprints for an eligible-Bank stock rehearsal",
+    description: "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission. Returns only bounded pins and summaries for supported independent-practice one-domain blueprints; it reveals no Bank candidate or source data and does not establish that any blueprint is currently feasible.",
+    responses: {
+      200: json(StaffFixedRehearsalBlueprintListSchema, "Latest bounded supported one-domain blueprint summaries"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks EXAM_MANAGER or exam.assembly.write permission"),
+      404: json(StaffNotFoundResponseSchema, "No supported blueprint projection is visible"),
+      422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Supported blueprint metadata is unavailable"),
+    },
+  },
+  staffCreateFixedRehearsal: {
+    method: "POST",
+    path: "/api/v1/fixed-rehearsals",
+    summary: "Capture a fixed eligible-Bank stock rehearsal",
+    description: "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission, the trusted same-origin session, a CSRF token, and an idempotency key. The strict JSON request pins one exact supported blueprint and capture window; omitted seed uses the trusted server default. The body is limited to 1 MiB. A successful receipt is historical and creates no form, attempt, assignment, score, or publication.",
+    headers: StaffSubmitReviewRequestHeadersSchema,
+    body: StaffFixedRehearsalRequestSchema,
+    responses: {
+      201: json(StaffFixedRehearsalReceiptSchema, "Historical receipt for the exact stored stock rehearsal"),
+      400: json(StaffSubmitReviewMalformedJsonResponseSchema, "Request body is not valid JSON"),
+      401: json(StaffSubmitReviewUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffSubmitReviewCsrfOrForbiddenResponseSchema, "CSRF validation failed or current principal lacks EXAM_MANAGER or exam.assembly.write permission"),
+      404: json(StaffSubmitReviewNotFoundResponseSchema, "Pinned blueprint version is missing or not visible"),
+      409: json(StaffSubmitReviewConflictResponseSchema, "Blueprint pin, idempotency key, or concurrent stock snapshot conflicts"),
+      413: json(StaffSubmitReviewPayloadTooLargeResponseSchema, "Request body exceeds the 1 MiB limit"),
+      422: json(StaffSubmitReviewValidationResponseSchema, "Request uses an invalid or unsupported blueprint, pin, window, or seed"),
+      503: json(StaffSubmitReviewTemporarilyUnavailableResponseSchema, "Stock capture or receipt state is unavailable or uncertain"),
+    },
+  },
+  staffFixedRehearsals: {
+    method: "GET",
+    path: "/api/v1/fixed-rehearsals",
+    summary: "List captured eligible-Bank stock rehearsals",
+    description: "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers; this is bounded historical metadata and does not revalidate current eligibility.",
+    responses: {
+      200: json(StaffFixedRehearsalListSchema, "Newest-first metadata for the latest captured eligible-Bank rehearsals"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks BANK_MANAGER rehearsal-read permission"),
+      404: json(StaffNotFoundResponseSchema, "No supported rehearsal projection is visible"),
+      422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored rehearsal metadata is unavailable"),
+    },
+  },
+  staffFixedRehearsalDiagnostic: {
+    method: "GET",
+    path: "/api/v1/fixed-rehearsals/{rehearsalId}",
+    summary: "Read replay-verified eligible-Bank rehearsal aggregates",
+    description: "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers. The immutable diagnostic records eligibility at capture only; current eligibility, human qualification, rights acceptance, and publication are not asserted.",
+    params: StaffFixedRehearsalDiagnosticPathParamsSchema,
+    responses: {
+      200: json(StaffFixedRehearsalDiagnosticSchema, "Replay-verified bounded aggregates for one exact captured rehearsal"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks BANK_MANAGER rehearsal-read permission"),
+      404: json(StaffNotFoundResponseSchema, "Rehearsal is missing or outside the current manager scope"),
+      422: json(StaffValidationErrorResponseSchema, "Malformed path or unexpected query/body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored rehearsal diagnostic or replay verification is unavailable"),
     },
   },
   staffReviewContext: {

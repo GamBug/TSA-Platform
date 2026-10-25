@@ -110,3 +110,48 @@ test('B7 migration019 to020 preserves existing rows and grants only the audited 
     if(errors.length)throw new AggregateError(errors,'Fixed snapshot migration cleanup failed');
   }
 });
+
+test('B8 populated020 to021 preserves personal sealed/history rows and existing privileges; new capture remains fixed and private', {timeout:30000}, async()=>{
+  const root=await mkdtemp(path.join(tmpdir(),'tsa-stock-upgrade-')),old=path.join(root,'old'),target=path.join(root,'target');
+  let f;
+  try{
+    await mkdir(old);await mkdir(target);
+    for(const file of await readdir(migrations))if(/^\d{3}_.*\.sql$/.test(file)&&file<='021_fixed_stock_rehearsals.sql'){
+      await copyFile(path.join(migrations,file),path.join(target,file));
+      if(file!=='021_fixed_stock_rehearsals.sql')await copyFile(path.join(migrations,file),path.join(old,file));
+    }
+    const {createAllocationFixture}=await import('../assembly/fixtures.mjs');
+    const {createAllocationService}=await import('../../../src/modules/assembly/allocation.mjs');
+    const {createFixedStockRehearsalService}=await import('../../../src/modules/bank/fixed-stock-rehearsals.mjs');
+    f=await createAllocationFixture({questionCount:4,migrationDirectory:old});const pool=f.pool;
+    const allocation=createAllocationService({examPool:f.examPool,identityService:f.identityService});
+    assert.equal((await allocation.create(f.principals.studentA,randomUUID(),{blueprintVersionId:f.blueprint.versionId})).status,201);
+    const before=await snapshot(pool);
+    const functions=async()=>Object.fromEntries((await pool.query("SELECT p.oid::regprocedure::text AS id,pg_get_functiondef(p.oid) AS definition,p.proacl::text AS acl FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('tsa','tsa_private') ORDER BY p.oid")).rows.map(r=>[r.id,{definition:r.definition,acl:r.acl}]));
+    const policies=async()=>(await pool.query("SELECT * FROM pg_policies WHERE schemaname IN('tsa','tsa_private') ORDER BY schemaname,tablename,policyname")).rows;
+    const oldFunctions=await functions(),oldPolicies=await policies();
+    assert.deepEqual((await migrate(pool,{directory:target})).applied,['021_fixed_stock_rehearsals.sql']);
+    assert.deepEqual((await migrate(pool,{directory:target})).applied,[]);
+    const after=await snapshot(pool);assert.equal(after['tsa_private.fixed_stock_rehearsals'].count,0);delete after['tsa_private.fixed_stock_rehearsals'];assert.deepEqual(after,before);
+    const nextFunctions=await functions();for(const [id,value] of Object.entries(oldFunctions))assert.deepEqual(nextFunctions[id],value,id);
+    assert.deepEqual((await policies()).filter(p=>p.policyname!=='fixed_stock_receipt_scope'),oldPolicies);
+    const functionsMeta=(await pool.query(`SELECT p.proname,p.prosecdef,p.proconfig,
+      EXISTS(SELECT 1 FROM aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) x WHERE grantee=0 AND privilege_type='EXECUTE') AS public_execute,
+      has_function_privilege('tsa_bank',p.oid,'EXECUTE') AS bank_execute,
+      has_function_privilege('tsa_exam',p.oid,'EXECUTE') AS exam_execute,
+      has_function_privilege('tsa_web',p.oid,'EXECUTE') AS web_execute,
+      has_function_privilege('tsa_factory',p.oid,'EXECUTE') AS factory_execute
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('tsa','tsa_private') AND p.proname LIKE 'fixed_stock_%' ORDER BY p.proname`)).rows;
+    assert.equal(functionsMeta.length,7);
+    for(const row of functionsMeta){assert.equal(row.public_execute,false);assert.equal(row.exam_execute,false);assert.equal(row.web_execute,false);assert.equal(row.factory_execute,false);assert.equal(row.bank_execute,!['fixed_stock_pool','fixed_stock_blueprint_supported'].includes(row.proname));}
+    for(const role of ['tsa_bank','tsa_exam','tsa_web','tsa_factory','tsa_identity'])for(const privilege of ['SELECT','INSERT','UPDATE','DELETE'])assert.equal((await pool.query("SELECT has_table_privilege($1,'tsa_private.fixed_stock_rehearsals',$2) AS allowed",[role,privilege])).rows[0].allowed,false);
+    const api=await createFixedStockRehearsalService({bankPool:f.bankPool,identityService:f.identityService});
+    const capture=await api.create(f.principals.examManager,{blueprintVersionId:f.blueprint.versionId,blueprintHash:f.blueprint.contentHash,windowMinutes:60},randomUUID());
+    assert.equal(capture.body.outcome,'SUCCESS');
+    const report=await api.read(f.principals.bankManager,capture.body.rehearsalId);assert.equal(report.capturedCandidateCount,4);assert.equal(report.selectedCount,4);
+    const final=await snapshot(pool);for(const key of ['tsa.forms','tsa.form_slots','tsa.attempts','tsa.student_question_history','tsa.student_allocation_state','tsa.assembly_runs'])assert.deepEqual(final[key],before[key],key);
+  }finally{
+    const errors=[];for(const stop of [()=>f?.close(),()=>rm(root,{recursive:true,force:true})]){try{await stop();}catch(error){errors.push(error);}}
+    if(errors.length)throw new AggregateError(errors,'Fixed stock upgrade cleanup failed');
+  }
+});

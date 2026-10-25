@@ -607,6 +607,656 @@
         ],
         "type": "object"
       },
+      "StaffFixedRehearsalBlueprintList": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "EXAM_MANAGER"
+            ],
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "blueprintVersionId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "contentHash": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "durationSeconds": {
+                  "maximum": 21600,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "name": {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                "questionCount": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        2
+                      ],
+                      "type": "number"
+                    },
+                    {
+                      "enum": [
+                        4
+                      ],
+                      "type": "number"
+                    }
+                  ]
+                },
+                "section": {
+                  "enum": [
+                    "MATH",
+                    "READING",
+                    "SCIENCE"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "blueprintVersionId",
+                "contentHash",
+                "name",
+                "section",
+                "questionCount",
+                "durationSeconds"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "limit": {
+            "enum": [
+              20
+            ],
+            "type": "number"
+          },
+          "observedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-fixed-rehearsal-blueprints/1"
+            ],
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "observedAt",
+          "limit",
+          "truncated",
+          "items"
+        ],
+        "type": "object"
+      },
+      "StaffFixedRehearsalDiagnostic": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER"
+            ],
+            "type": "string"
+          },
+          "captureOrigin": {
+            "enum": [
+              "BANK_ELIGIBLE_AT_CAPTURE"
+            ],
+            "type": "string"
+          },
+          "capturedCandidateCount": {
+            "maximum": 2000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "capturedUnitCount": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "createsForm": {
+            "enum": [
+              false
+            ],
+            "type": "boolean"
+          },
+          "currentEligibility": {
+            "enum": [
+              "NOT_REVALIDATED"
+            ],
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "nodeLimit": {
+            "maximum": 50000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "observedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "publicationEligibility": {
+            "enum": [
+              "NOT_EVALUATED"
+            ],
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "NOT_ATTESTED_BY_PLATFORM"
+            ],
+            "type": "string"
+          },
+          "rehearsal": {
+            "additionalProperties": false,
+            "properties": {
+              "availableUntil": {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                "type": "string"
+              },
+              "blueprintHash": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "blueprintVersionId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "capturedAt": {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                "type": "string"
+              },
+              "createsForm": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean"
+              },
+              "currentEligibility": {
+                "enum": [
+                  "NOT_REVALIDATED"
+                ],
+                "type": "string"
+              },
+              "failureCode": {
+                "enum": [
+                  "CONSTRAINT_CONFLICT",
+                  "INSUFFICIENT_ELIGIBLE_INVENTORY",
+                  "SEARCH_EXHAUSTED",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "SUCCESS",
+                  "FAILURE"
+                ],
+                "type": "string"
+              },
+              "rehearsalId": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              "requiredThrough": {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                "type": "string"
+              },
+              "sectionDeficits": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "missingCount": {
+                      "maximum": 4,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "section": {
+                      "enum": [
+                        "MATH",
+                        "READING",
+                        "SCIENCE"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "section",
+                    "missingCount"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 1,
+                "type": "array"
+              },
+              "windowMinutes": {
+                "maximum": 1440,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "rehearsalId",
+              "blueprintVersionId",
+              "blueprintHash",
+              "windowMinutes",
+              "capturedAt",
+              "availableUntil",
+              "requiredThrough",
+              "outcome",
+              "failureCode",
+              "sectionDeficits",
+              "createsForm",
+              "currentEligibility"
+            ],
+            "type": "object"
+          },
+          "replayVerified": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-fixed-rehearsal-diagnostic/1"
+            ],
+            "type": "string"
+          },
+          "section": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "requiredCount": {
+                    "enum": [
+                      4
+                    ],
+                    "type": "number"
+                  },
+                  "section": {
+                    "enum": [
+                      "MATH"
+                    ],
+                    "type": "string"
+                  },
+                  "selectedCount": {
+                    "maximum": 4,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "section",
+                  "requiredCount",
+                  "selectedCount"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "requiredCount": {
+                    "enum": [
+                      2
+                    ],
+                    "type": "number"
+                  },
+                  "section": {
+                    "enum": [
+                      "READING"
+                    ],
+                    "type": "string"
+                  },
+                  "selectedCount": {
+                    "maximum": 2,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "section",
+                  "requiredCount",
+                  "selectedCount"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "requiredCount": {
+                    "enum": [
+                      4
+                    ],
+                    "type": "number"
+                  },
+                  "section": {
+                    "enum": [
+                      "SCIENCE"
+                    ],
+                    "type": "string"
+                  },
+                  "selectedCount": {
+                    "maximum": 4,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "section",
+                  "requiredCount",
+                  "selectedCount"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "selectedCount": {
+            "maximum": 4,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unitLimit": {
+            "maximum": 2000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "visitedNodes": {
+            "maximum": 50000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "observedAt",
+          "captureOrigin",
+          "currentEligibility",
+          "qualification",
+          "publicationEligibility",
+          "rehearsal",
+          "replayVerified",
+          "createsForm",
+          "capturedUnitCount",
+          "capturedCandidateCount",
+          "selectedCount",
+          "visitedNodes",
+          "nodeLimit",
+          "unitLimit",
+          "section"
+        ],
+        "type": "object"
+      },
+      "StaffFixedRehearsalDiagnosticPathParams": {
+        "additionalProperties": false,
+        "properties": {
+          "rehearsalId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rehearsalId"
+        ],
+        "type": "object"
+      },
+      "StaffFixedRehearsalList": {
+        "additionalProperties": false,
+        "properties": {
+          "accessBasis": {
+            "enum": [
+              "BANK_MANAGER"
+            ],
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "LOCAL_SYNTHETIC_ONLY"
+            ],
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "blueprintVersionId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "capturedAt": {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                  "type": "string"
+                },
+                "outcome": {
+                  "enum": [
+                    "SUCCESS",
+                    "FAILURE"
+                  ],
+                  "type": "string"
+                },
+                "rehearsalId": {
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                  "type": "string"
+                },
+                "windowMinutes": {
+                  "maximum": 1440,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "rehearsalId",
+                "blueprintVersionId",
+                "outcome",
+                "capturedAt",
+                "windowMinutes"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "limit": {
+            "enum": [
+              20
+            ],
+            "type": "number"
+          },
+          "observedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "enum": [
+              "staff-fixed-rehearsals/1"
+            ],
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "accessBasis",
+          "observedAt",
+          "limit",
+          "truncated",
+          "items"
+        ],
+        "type": "object"
+      },
+      "StaffFixedRehearsalReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "availableUntil": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "blueprintHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "blueprintVersionId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "capturedAt": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "createsForm": {
+            "enum": [
+              false
+            ],
+            "type": "boolean"
+          },
+          "currentEligibility": {
+            "enum": [
+              "NOT_REVALIDATED"
+            ],
+            "type": "string"
+          },
+          "failureCode": {
+            "enum": [
+              "CONSTRAINT_CONFLICT",
+              "INSUFFICIENT_ELIGIBLE_INVENTORY",
+              "SEARCH_EXHAUSTED",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "SUCCESS",
+              "FAILURE"
+            ],
+            "type": "string"
+          },
+          "rehearsalId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "requiredThrough": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+            "type": "string"
+          },
+          "sectionDeficits": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "missingCount": {
+                  "maximum": 4,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "section": {
+                  "enum": [
+                    "MATH",
+                    "READING",
+                    "SCIENCE"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "section",
+                "missingCount"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1,
+            "type": "array"
+          },
+          "windowMinutes": {
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rehearsalId",
+          "blueprintVersionId",
+          "blueprintHash",
+          "windowMinutes",
+          "capturedAt",
+          "availableUntil",
+          "requiredThrough",
+          "outcome",
+          "failureCode",
+          "sectionDeficits",
+          "createsForm",
+          "currentEligibility"
+        ],
+        "type": "object"
+      },
+      "StaffFixedRehearsalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "blueprintHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "blueprintVersionId": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "seed": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "windowMinutes": {
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blueprintVersionId",
+          "blueprintHash",
+          "windowMinutes"
+        ],
+        "type": "object"
+      },
       "StaffForbiddenResponse": {
         "additionalProperties": false,
         "properties": {
@@ -3624,7 +4274,7 @@
     }
   },
   "info": {
-    "description": "Private staff inspection, evidence, recorded review history, fixed-reference diagnostics, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
+    "description": "Private staff inspection, evidence, recorded review history, fixed-reference diagnostics, eligible-Bank stock rehearsals, canonical dataset preflight, author handoff, rejection, and quarantine operations for the local synthetic runtime. Never include this contract in student bundles; authentication and access checks remain runtime-enforced.",
     "title": "TSA Platform private staff API contracts",
     "version": "staff-contracts/1"
   },
@@ -4675,6 +5325,1351 @@
           }
         },
         "summary": "Run an explicit canonical dataset preflight"
+      }
+    },
+    "/api/v1/fixed-rehearsal-blueprints": {
+      "get": {
+        "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission. Returns only bounded pins and summaries for supported independent-practice one-domain blueprints; it reveals no Bank candidate or source data and does not establish that any blueprint is currently feasible.",
+        "operationId": "staffFixedRehearsalBlueprints",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFixedRehearsalBlueprintList"
+                }
+              }
+            },
+            "description": "Latest bounded supported one-domain blueprint summaries",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks EXAM_MANAGER or exam.assembly.write permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "No supported blueprint projection is visible",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected query or request body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Supported blueprint metadata is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List supported blueprints for an eligible-Bank stock rehearsal"
+      }
+    },
+    "/api/v1/fixed-rehearsals": {
+      "get": {
+        "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers; this is bounded historical metadata and does not revalidate current eligibility.",
+        "operationId": "staffFixedRehearsals",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFixedRehearsalList"
+                }
+              }
+            },
+            "description": "Newest-first metadata for the latest captured eligible-Bank rehearsals",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks BANK_MANAGER rehearsal-read permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "No supported rehearsal projection is visible",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected query or request body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored rehearsal metadata is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List captured eligible-Bank stock rehearsals"
+      },
+      "post": {
+        "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission, the trusted same-origin session, a CSRF token, and an idempotency key. The strict JSON request pins one exact supported blueprint and capture window; omitted seed uses the trusted server default. The body is limited to 1 MiB. A successful receipt is historical and creates no form, attempt, assignment, score, or publication.",
+        "operationId": "staffCreateFixedRehearsal",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{43}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "pattern": "^[\\x21-\\x7e]{1,128}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffFixedRehearsalRequest"
+              }
+            }
+          },
+          "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission, the trusted same-origin session, a CSRF token, and an idempotency key. The strict JSON request pins one exact supported blueprint and capture window; omitted seed uses the trusted server default. The body is limited to 1 MiB. A successful receipt is historical and creates no form, attempt, assignment, score, or publication.",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFixedRehearsalReceipt"
+                }
+              }
+            },
+            "description": "Historical receipt for the exact stored stock rehearsal",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewMalformedJsonResponse"
+                }
+              }
+            },
+            "description": "Request body is not valid JSON",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewCsrfOrForbiddenResponse"
+                }
+              }
+            },
+            "description": "CSRF validation failed or current principal lacks EXAM_MANAGER or exam.assembly.write permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewNotFoundResponse"
+                }
+              }
+            },
+            "description": "Pinned blueprint version is missing or not visible",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewConflictResponse"
+                }
+              }
+            },
+            "description": "Blueprint pin, idempotency key, or concurrent stock snapshot conflicts",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewPayloadTooLargeResponse"
+                }
+              }
+            },
+            "description": "Request body exceeds the 1 MiB limit",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewValidationResponse"
+                }
+              }
+            },
+            "description": "Request uses an invalid or unsupported blueprint, pin, window, or seed",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stock capture or receipt state is unavailable or uncertain",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Capture a fixed eligible-Bank stock rehearsal"
+      }
+    },
+    "/api/v1/fixed-rehearsals/{rehearsalId}": {
+      "get": {
+        "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers. The immutable diagnostic records eligibility at capture only; current eligibility, human qualification, rights acceptance, and publication are not asserted.",
+        "operationId": "staffFixedRehearsalDiagnostic",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rehearsalId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFixedRehearsalDiagnostic"
+                }
+              }
+            },
+            "description": "Replay-verified bounded aggregates for one exact captured rehearsal",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks BANK_MANAGER rehearsal-read permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "Rehearsal is missing or outside the current manager scope",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Malformed path or unexpected query/body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored rehearsal diagnostic or replay verification is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read replay-verified eligible-Bank rehearsal aggregates"
       }
     },
     "/api/v1/question-versions/{versionId}/quarantine": {

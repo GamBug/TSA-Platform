@@ -663,6 +663,265 @@ export const StaffFixedAssemblyDiagnosticSchema = z
 
 export type StaffFixedAssemblyDiagnostic = z.infer<typeof StaffFixedAssemblyDiagnosticSchema>;
 
+const RehearsalFailureCodeSchema = z.enum([
+  "CONSTRAINT_CONFLICT",
+  "INSUFFICIENT_ELIGIBLE_INVENTORY",
+  "SEARCH_EXHAUSTED",
+]);
+const RehearsalWindowMinutesSchema = z.number().int().min(1).max(1_440);
+
+function utcMicroseconds(value: string): bigint | null {
+  const match = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.(\d{6})Z$/.exec(value);
+  const epochMilliseconds = Date.parse(value);
+  if (match === null || !Number.isFinite(epochMilliseconds)) return null;
+  return BigInt(epochMilliseconds) * 1_000n + BigInt(match[1]!.slice(3));
+}
+
+function enforceStaffResponseByteLimit(value: unknown, context: z.RefinementCtx, label: string): void {
+  const serialized = JSON.stringify(value);
+  if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > MAX_RESPONSE_BYTES) {
+    context.addIssue({ code: "custom", message: `${label} must not exceed 1 MiB serialized` });
+  }
+}
+
+const StaffFixedRehearsalBlueprintItemSchema = z
+  .object({
+    blueprintVersionId: UUID,
+    contentHash: Hash,
+    name: z.string().max(4_096).refine((value) => value.trim().length > 0, "Expected a nonblank blueprint name"),
+    section: FixedAssemblySectionSchema,
+    questionCount: z.union([z.literal(2), z.literal(4)]),
+    durationSeconds: z.number().int().min(1).max(21_600),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const expectedCount = value.section === "READING" ? 2 : 4;
+    if (value.questionCount !== expectedCount) {
+      context.addIssue({ code: "custom", path: ["questionCount"], message: "Question count must match the selected MVP domain" });
+    }
+  });
+
+/** EXAM_MANAGER-only list of exact supported one-domain blueprint pins. */
+export const StaffFixedRehearsalBlueprintListSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-rehearsal-blueprints/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("EXAM_MANAGER"),
+    observedAt: UTCDateTime,
+    limit: z.literal(20),
+    truncated: z.boolean(),
+    items: z.array(StaffFixedRehearsalBlueprintItemSchema).max(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seenBlueprintIds = new Set<string>();
+    value.items.forEach((item, index) => {
+      if (seenBlueprintIds.has(item.blueprintVersionId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["items", index, "blueprintVersionId"],
+          message: "Blueprint version IDs must be unique",
+        });
+      }
+      seenBlueprintIds.add(item.blueprintVersionId);
+    });
+
+    if (value.truncated && value.items.length !== 20) {
+      context.addIssue({ code: "custom", path: ["items"], message: "Truncated blueprint results must contain the full twenty-row limit" });
+    }
+    enforceStaffResponseByteLimit(value, context, "Fixed rehearsal blueprint list");
+  });
+
+export type StaffFixedRehearsalBlueprintList = z.infer<typeof StaffFixedRehearsalBlueprintListSchema>;
+
+/** EXAM_MANAGER command pins; seed omission leaves the trusted server default in force. */
+export const StaffFixedRehearsalRequestSchema = z
+  .object({
+    blueprintVersionId: UUID,
+    blueprintHash: Hash,
+    windowMinutes: RehearsalWindowMinutesSchema,
+    seed: z.number().int().min(0).max(0xffff_ffff).optional(),
+  })
+  .strict();
+
+export type StaffFixedRehearsalRequest = z.infer<typeof StaffFixedRehearsalRequestSchema>;
+
+const StaffFixedRehearsalSectionDeficitSchema = z
+  .object({
+    section: FixedAssemblySectionSchema,
+    missingCount: z.number().int().min(1).max(4),
+  })
+  .strict();
+
+/** Operation receipt; deliberately contains no eligible-pool counts or candidate identities. */
+export const StaffFixedRehearsalReceiptSchema = z
+  .object({
+    rehearsalId: UUID,
+    blueprintVersionId: UUID,
+    blueprintHash: Hash,
+    windowMinutes: RehearsalWindowMinutesSchema,
+    capturedAt: UTCDateTime,
+    availableUntil: UTCDateTime,
+    requiredThrough: UTCDateTime,
+    outcome: FixedAssemblyOutcomeSchema,
+    failureCode: RehearsalFailureCodeSchema.nullable(),
+    sectionDeficits: z.array(StaffFixedRehearsalSectionDeficitSchema).max(1),
+    createsForm: z.literal(false),
+    currentEligibility: z.literal("NOT_REVALIDATED"),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const capturedAt = utcMicroseconds(value.capturedAt);
+    const availableUntil = utcMicroseconds(value.availableUntil);
+    const requiredThrough = utcMicroseconds(value.requiredThrough);
+
+    if (capturedAt !== null && availableUntil !== null && Number.isInteger(value.windowMinutes)
+        && value.windowMinutes >= 1 && value.windowMinutes <= 1_440) {
+      const expectedAvailableUntil = capturedAt + BigInt(value.windowMinutes) * 60_000_000n;
+      if (availableUntil !== expectedAvailableUntil) {
+        context.addIssue({
+          code: "custom",
+          path: ["availableUntil"],
+          message: "Availability must end exactly windowMinutes after capture",
+        });
+      }
+    }
+
+    if (availableUntil !== null && requiredThrough !== null
+        && requiredThrough < availableUntil + 601_000_000n) {
+      context.addIssue({
+        code: "custom",
+        path: ["requiredThrough"],
+        message: "Required horizon must include the 600-second start TTL and at least one domain-duration second",
+      });
+    }
+
+    if (value.outcome === "SUCCESS") {
+      if (value.failureCode !== null) {
+        context.addIssue({ code: "custom", path: ["failureCode"], message: "Successful rehearsals must not have a failure code" });
+      }
+      if (value.sectionDeficits.length !== 0) {
+        context.addIssue({ code: "custom", path: ["sectionDeficits"], message: "Successful rehearsals must not report stock deficits" });
+      }
+    } else {
+      if (value.failureCode === null) {
+        context.addIssue({ code: "custom", path: ["failureCode"], message: "Failed rehearsals require a captured failure code" });
+      }
+      if (value.failureCode !== "INSUFFICIENT_ELIGIBLE_INVENTORY" && value.sectionDeficits.length !== 0) {
+        context.addIssue({
+          code: "custom",
+          path: ["sectionDeficits"],
+          message: "Section deficits are only reported for proven cardinality under insufficient eligible inventory",
+        });
+      }
+    }
+
+    enforceStaffResponseByteLimit(value, context, "Fixed rehearsal receipt");
+  });
+
+export type StaffFixedRehearsalReceipt = z.infer<typeof StaffFixedRehearsalReceiptSchema>;
+
+const StaffFixedRehearsalListItemSchema = z
+  .object({
+    rehearsalId: UUID,
+    blueprintVersionId: UUID,
+    outcome: FixedAssemblyOutcomeSchema,
+    capturedAt: UTCDateTime,
+    windowMinutes: RehearsalWindowMinutesSchema,
+  })
+  .strict();
+
+/** BANK_MANAGER-only latest captured rehearsal metadata. */
+export const StaffFixedRehearsalListSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-rehearsals/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("BANK_MANAGER"),
+    observedAt: UTCDateTime,
+    limit: z.literal(20),
+    truncated: z.boolean(),
+    items: z.array(StaffFixedRehearsalListItemSchema).max(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seenRehearsalIds = new Set<string>();
+    value.items.forEach((item, index) => {
+      if (seenRehearsalIds.has(item.rehearsalId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["items", index, "rehearsalId"],
+          message: "Rehearsal IDs must be unique",
+        });
+      }
+      seenRehearsalIds.add(item.rehearsalId);
+
+      if (index === 0) return;
+      const previous = value.items[index - 1]!;
+      if (previous.capturedAt < item.capturedAt ||
+          previous.capturedAt === item.capturedAt && previous.rehearsalId <= item.rehearsalId) {
+        context.addIssue({
+          code: "custom",
+          path: ["items", index],
+          message: "Rehearsals must be ordered newest first by timestamp and rehearsal ID",
+        });
+      }
+    });
+
+    if (value.truncated && value.items.length !== 20) {
+      context.addIssue({ code: "custom", path: ["items"], message: "Truncated rehearsal results must contain the full twenty-row limit" });
+    }
+    enforceStaffResponseByteLimit(value, context, "Fixed rehearsal list");
+  });
+
+export type StaffFixedRehearsalList = z.infer<typeof StaffFixedRehearsalListSchema>;
+
+const StaffFixedRehearsalDiagnosticSectionSchema = z.discriminatedUnion("section", [
+  z.object({ section: z.literal("MATH"), requiredCount: z.literal(4), selectedCount: z.number().int().min(0).max(4) }).strict(),
+  z.object({ section: z.literal("READING"), requiredCount: z.literal(2), selectedCount: z.number().int().min(0).max(2) }).strict(),
+  z.object({ section: z.literal("SCIENCE"), requiredCount: z.literal(4), selectedCount: z.number().int().min(0).max(4) }).strict(),
+]);
+
+/** BANK_MANAGER-only replay-verified eligible-at-capture aggregates; no raw stock data. */
+export const StaffFixedRehearsalDiagnosticSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-rehearsal-diagnostic/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("BANK_MANAGER"),
+    observedAt: UTCDateTime,
+    captureOrigin: z.literal("BANK_ELIGIBLE_AT_CAPTURE"),
+    currentEligibility: z.literal("NOT_REVALIDATED"),
+    qualification: z.literal("NOT_ATTESTED_BY_PLATFORM"),
+    publicationEligibility: z.literal("NOT_EVALUATED"),
+    rehearsal: StaffFixedRehearsalReceiptSchema,
+    replayVerified: z.literal(true),
+    createsForm: z.literal(false),
+    capturedUnitCount: z.number().int().min(0).max(10_000),
+    capturedCandidateCount: z.number().int().min(0).max(2_000_000),
+    selectedCount: z.number().int().min(0).max(4),
+    visitedNodes: z.number().int().min(0).max(50_000),
+    nodeLimit: z.number().int().min(0).max(50_000),
+    unitLimit: z.number().int().min(0).max(2_000),
+    section: StaffFixedRehearsalDiagnosticSectionSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.selectedCount !== value.section.selectedCount) {
+      context.addIssue({ code: "custom", path: ["selectedCount"], message: "Selected count must equal the section total" });
+    }
+    if (value.visitedNodes > value.nodeLimit) {
+      context.addIssue({ code: "custom", path: ["visitedNodes"], message: "Visited nodes cannot exceed the captured node limit" });
+    }
+    if (value.rehearsal.outcome === "SUCCESS" && value.selectedCount !== value.section.requiredCount) {
+      context.addIssue({ code: "custom", path: ["selectedCount"], message: "Successful rehearsals must select every required item" });
+    }
+    if (value.rehearsal.outcome === "FAILURE" && value.selectedCount !== 0) {
+      context.addIssue({ code: "custom", path: ["selectedCount"], message: "Failed rehearsals must not expose partial selections" });
+    }
+    enforceStaffResponseByteLimit(value, context, "Fixed rehearsal diagnostic");
+  });
+
+export type StaffFixedRehearsalDiagnostic = z.infer<typeof StaffFixedRehearsalDiagnosticSchema>;
+
 const DatasetPreflightCount = z.number().int().min(0).max(100);
 const DatasetPreflightBlockerSchema = z.enum([
   "CURRENT_RIGHTS_UNVERIFIED",

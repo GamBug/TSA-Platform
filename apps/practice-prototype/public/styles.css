@@ -1116,3 +1116,47 @@ body.review-active { overflow: hidden; background: #fff; }
   .staff-fixed-reference-table { min-width: 700px; }
   .staff-fixed-reference-panel .staff-dataset-preflight-table { min-width: 390px; }
 }
+
+/* Fixed rehearsal capture and history stay in role-scoped private staff panels. */
+.staff-exam-rehearsal-panel, .staff-exam-rehearsal-content, .staff-bank-rehearsal-panel, .staff-bank-rehearsal-content { min-width: 0; max-width: 100%; }
+.staff-exam-rehearsal-warning, .staff-fixed-rehearsal-warning, .staff-bank-rehearsal-warning, .staff-bank-rehearsal-result { margin: 16px 0; padding: 14px 16px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; }
+.staff-exam-rehearsal-note, .staff-bank-rehearsal-note, .staff-bank-rehearsal-observation { margin: 12px 0; line-height: 1.55; }
+.staff-exam-rehearsal-empty, .staff-bank-rehearsal-empty { margin: 16px 0; }
+.staff-exam-rehearsal-fields { min-width: 0; margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 10px; }
+.staff-exam-rehearsal-fields legend { padding: 0 6px; font-weight: 750; }
+.staff-exam-rehearsal-fields .staff-field { margin: 10px 0; }
+.staff-exam-rehearsal-selected { margin: 14px 0; }
+.staff-exam-rehearsal-actions, .staff-fixed-rehearsal-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.staff-fixed-rehearsal-command { margin: 18px 0 0; padding: 14px 16px; border: 1px solid #cfd7f2; border-radius: 10px; background: #f8f9ff; }
+.staff-fixed-rehearsal-command.is-error { border-color: #e5b7b7; background: #fff8f8; }
+.staff-fixed-rehearsal-command > [data-testid="staff-fixed-rehearsal-status"] { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.staff-fixed-rehearsal-command [data-testid="staff-fixed-rehearsal-status"]:focus { outline: 3px solid #f0a64f; outline-offset: 3px; }
+.staff-fixed-rehearsal-command .staff-review-metadata { margin-top: 14px; }
+.staff-bank-rehearsal-result { border-left-color: #344bb5; color: var(--ink); background: #f2f5ff; }
+.staff-bank-rehearsal-table-wrap { max-width: 100%; margin: 14px 0; overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
+.staff-bank-rehearsal-table-wrap:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+.staff-bank-rehearsal-table { width: 100%; min-width: 870px; border-collapse: collapse; text-align: left; }
+.staff-bank-rehearsal-table caption { padding: .7em .9em; font-weight: 700; color: #334155; background: #f8fafc; text-align: left; }
+.staff-bank-rehearsal-table th, .staff-bank-rehearsal-table td { min-width: 5em; padding: .6em .8em; border-top: 1px solid #cbd5e1; overflow-wrap: anywhere; vertical-align: top; }
+.staff-bank-rehearsal-table th { color: #1e293b; background: #eef2f7; }
+.staff-bank-rehearsal-table tbody tr:nth-child(even) { background: #f8fafc; }
+.staff-bank-rehearsal-panel .staff-dataset-preflight-table { min-width: 390px; }
+.staff-fixed-rehearsal-dialog { width: min(640px, calc(100% - 32px)); max-height: min(90vh, 760px); overflow-y: auto; padding: 26px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow); }
+.staff-fixed-rehearsal-dialog::backdrop { background: rgba(16, 24, 40, .62); }
+.staff-fixed-rehearsal-dialog h2 { margin-bottom: 12px; font-size: clamp(1.25rem, 4vw, 1.7rem); line-height: 1.2; }
+.staff-fixed-rehearsal-dialog-description { margin-bottom: 16px; line-height: 1.6; }
+.staff-fixed-rehearsal-dialog-metadata { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 8px 14px; margin: 0; line-height: 1.5; }
+.staff-fixed-rehearsal-dialog-metadata dt { color: var(--muted); font-weight: 700; }
+.staff-fixed-rehearsal-dialog-metadata dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+.staff-fixed-rehearsal-dialog-actions { margin-top: 22px; }
+@media (max-width: 680px) {
+  .staff-exam-rehearsal-warning, .staff-fixed-rehearsal-warning, .staff-bank-rehearsal-warning, .staff-bank-rehearsal-result { padding: 11px 12px; }
+  .staff-exam-rehearsal-fields { padding: 10px; }
+  .staff-exam-rehearsal-actions, .staff-fixed-rehearsal-dialog-actions { flex-direction: column-reverse; }
+  .staff-exam-rehearsal-actions .button, .staff-fixed-rehearsal-dialog-actions .button { width: 100%; }
+  .staff-bank-rehearsal-table { min-width: 820px; }
+  .staff-bank-rehearsal-panel .staff-dataset-preflight-table { min-width: 390px; }
+  .staff-fixed-rehearsal-dialog { padding: 20px; }
+  .staff-fixed-rehearsal-dialog-metadata { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .staff-fixed-rehearsal-dialog-metadata dd:not(:last-child) { margin-bottom: 8px; }
+}

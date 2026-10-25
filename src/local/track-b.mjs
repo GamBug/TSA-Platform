@@ -219,7 +219,7 @@ export async function createTrackBRuntime({
     validateLocalSyntheticConfig(handlerEnv);
     const identityService = await createLocalSyntheticIdentityService(identityPool, { env: handlerEnv });
     const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv });
-    const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true });
+    const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true });
     let sourceSeed = null;
     sourceSeed = await ensureLocalSourceSeed({
       authHandler, bankHandler, origin, existing: sourceSeedState,
