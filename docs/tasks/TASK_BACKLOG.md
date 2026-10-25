@@ -1743,7 +1743,8 @@ Clean no-hardlink4dd3fca install/build/results7 PASS, final clone Git empty.
 
 2026-10-25 **H.1 — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, different-domain same-user barriers:
 root/writer finalallocation18/target3, separate reviewer target3/abortprobe2 PASS;
-final fullassembly53 PASS after repairs; clean reproduction pending. Two concrete
+final fullassembly53 PASS after repairs; clean no-hardlink4e26296 install/build/
+assembly53/results7/docs PASS, final clone Git empty. Two concrete
 harness P2s repaired, no product failure. [H.1 evidence](../reviews/TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md).
 No runtime/mode/contract changes. Full H cross-mode remains unexecuted.
 Current [local product/scenario acceptance map](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md)

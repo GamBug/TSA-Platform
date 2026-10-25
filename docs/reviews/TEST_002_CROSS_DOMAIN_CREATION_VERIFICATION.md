@@ -1,7 +1,7 @@
 # TEST-002 H.1 — same-user creation across current domain profiles
 
 2026-10-25, base4dd3fca, feat/track-b-data-auth. AUTOMATED_PASS /
-INDEPENDENTLY_REVIEWED in this bounded scope, clean reproduction pending. Root
+INDEPENDENTLY_REVIEWED in this bounded scope; clean no-hardlink4e26296 reproduction PASS. Root
 accountable integration/shared records; actual native Luna/XHigh one-file writer;
 actual separate Sol6.1/Medium read-only reviewer. Owner AGENTS.md/untracked research
 preserved/excluded. No runtime/schema/role/API/UI changes, no new test harness,
@@ -75,3 +75,13 @@ Final separate documentation review: no findings in the current acceptance map,
 H.1/G evidence, TEST_STRATEGY navigation and guide pointer. Linked counts/attribution/
 limits checked, scoped whitespace PASS. This was source/evidence review only;
 clean reproductions were not independently repeated.
+
+## Clean checkpoint —4e26296
+
+Root cloned without hardlinks to `/tmp/tsa-test002-h-clean.XXQIBP`, exactly4e26296.
+Fresh `npm ci --ignore-scripts`/`npm run build` exit0, locked Zod4.6.7 and zero
+installation advisories. `npm run test:assembly` PASS53, `npm run test:results`
+PASS7, `npm run docs:check` exit0 (historical preserved-input whitespace warning).
+Final `git status --short` empty. No file patches/manual SQL/API setup; harnesses
+migrate/seed and tear down owned PostgreSQL/listeners. Logs `.local/test002-h1-clean-*`
+ignored. No extra browser claim for unchanged application code.

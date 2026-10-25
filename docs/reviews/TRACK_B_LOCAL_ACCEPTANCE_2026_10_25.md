@@ -76,3 +76,7 @@ criteria; this does not invalidate the coherent local student/staff presentation
 No reviewer identity, rights evidence, content approval or accessibility acceptance
 has been manufactured. Current checkpoint-specific commands/results live in the
 linked records and [latest handoff](../agents/LAST_HANDOFF.md).
+
+Final integration checkpoint4e26296 is clean-reproduced: locked install/build,
+assembly53/results7/docs PASS, final clone Git empty. B8/SEC/G source-specific clean
+proofs remain separately attributed above; no full-MVP percentage is asserted.
