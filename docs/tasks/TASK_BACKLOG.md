@@ -1797,3 +1797,23 @@ available with Sol fallback, separate Sol6.1/Medium independent engineering revi
 3. G2 Track B: DATA-002 preparation and BANK-001 ingestion may proceed after their actual prerequisites. BANK-002 independently supplies the review/publication evidence; verified BANK-001 plus BANK-002 evidence establishes G2. ASSEMBLY-001 → ASSEMBLY-002; then EXAM-001, EXAM-002 and SCORE-001. WEB-003 can start after ASSEMBLY-002; WEB-004 follows attempt/score acceptance.
 4. Track A remains independent: AI-001 → AI-002 and FACTORY-002 → FACTORY-003. It does not block the manually seeded Technical MVP.
 5. G3: INT-002 supplies the narrow import proof, then INT-001 and TEST-002/TEST-001/OPS-001 produce integrated/pilot evidence. No pilot begins without recorded owner scope and critical verification results.
+
+## SEC-001 — Bounded validator dependency remediation
+
+- Status: IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED2026-10-25, base694df4d. Root accountable; owner engineering
+  choice delegation applies. Recommended Codex Sol6.1/High compatibility/integration;
+  separate Sol6.1/Medium read-only review; existing subscriptions only.
+- Evidence/decision: [exact scope](../decisions/SEC_001_ZOD_VALIDATION_LIMIT_REMEDIATION.md).
+- Observed gap: current high Zod advisory; actual oversized invalid student options
+  collect20,002 issues. This is a concrete runtime dependency issue, no observed OOM.
+- Ownership: root packages/contracts/package.json, package-lock.json, one focused
+  schema regression and shared records. Preserve owner AGENTS/research; no other
+  package, schema, artifact, solver, DB, API, role or workflow expansion.
+- Acceptance: exact patched pin/integrity/license/peer graph, bounded issue growth,
+  frozen valid/invalid/schema/replay/artifact compatibility; targeted existing
+  contracts/emitted/PG/browser checks, dated audit, independent review, clean clone.
+- Verification: contracts156/build/built/consumer12/type/drift/import/Bank149/assembly50/
+  critical9/student34/domains78/Chrome46/Firefox16/docs/audit0 PASS. Separate reviewer
+  regression1/reference31/identity-question26/consumer12/type/drift/import/graph/integrity
+  PASS, no findings; independent live audit/PG/browser NOT_EXECUTED. Clean reproduction
+  pending. [Exact evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).

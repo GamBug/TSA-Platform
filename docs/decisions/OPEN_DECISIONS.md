@@ -30,6 +30,19 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## SEC-001 — bounded validator repair selected 2026-10-25
+
+- Root-selected under recorded owner engineering-choice delegation,
+  AUTHORIZED_IN_SCOPE / IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED.
+  [Exact impact/acceptance](SEC_001_ZOD_VALIDATION_LIMIT_REMEDIATION.md),
+  [compatibility/review evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
+  Clean reproduction pending.
+- Actual fresh B8 npm audit reports high Zod4.1.12 resource-consumption advisory;
+  controlled frozen student schema produces20,002 issues for10,000 invalid options.
+- Select exact patched4.6.7, preserve other package pins and all frozen schema/
+  artifact/replay outputs. Root writer, separate Sol6.1/Medium read-only review.
+  No rights/publication/production claim or new paid dependency.
+
 ## WEB-002 B8.1 — eligible Bank stock rehearsal selected 2026-10-25
 
 - Root-selected under owner engineering-choice delegation; AUTHORIZED_IN_SCOPE /

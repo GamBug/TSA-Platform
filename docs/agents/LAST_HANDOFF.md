@@ -1,38 +1,28 @@
-# Handoff — B8.1 eligible Bank stock rehearsal verified and clean reproduced
+# Handoff — SEC-001 validator remediation verified, clean reproduction next
 
-2026-10-25, feat/track-b-data-auth, implementation b886737; B8 runtime is committed.
-Root accountable SQL/backend/tests/shared records; actual native Luna/XHigh DTO/UI
-writers released files; UI/Firefox writer released its files.
-Separate actual Sol6.1/Medium read-only final SQL/UI/Chromium review complete, no findings. Owner AGENTS.md
-and untracked research preserved/excluded. No paid API/push/merge/deployment.
+2026-10-25, feat/track-b-data-auth, HEAD694df4d; B8 implementation b886737 and
+clean reproduction complete. Owner AGENTS.md/untracked research preserved/excluded.
+Root sole dependency/test/docs writer; actual separate Sol6.1/Medium read-only review
+complete, no findings. No paid API/push/merge/deploy; no other writer reservations active.
 
-[Exact decision](../decisions/WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md),
-[executed evidence and repairs](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
-Implemented private021 immutable capture + EXAM pinned blueprint/window command +
-BANK audited replay; no forms/history/personal protocol changes. Exact request roles/
-CSRF/idempotency, DB clock/rights horizon, complete bundles/current stock, narrowRLS,
-DTO privacy, historical/no-human/no-current-eligibility claims. Staff launcher seeds
-optional actual eligible synthetic stock automatically; default old fixture unchanged.
+[Decision](../decisions/SEC_001_ZOD_VALIDATION_LIMIT_REMEDIATION.md),
+[executed evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
+Current working tree: package-lock.json and packages/contracts/package.json exact
+Zod4.1.12→4.6.7 only, one real student collection-bound regression, task docs.
+No schema/artifact/reference/golden/DB/role/API/UI implementation change.
 
-Root finalfocused12/Bank147/assembly50/student34/foundation37/domains78/Chrome46
-PASS, actual DTO writer155/build/built/consumer12/type/drift/import PASS; UI writer
-B032/forcedESM/whitespace and actual Firefox16checks/35captures PASS (1280/actual500).
-Independent PG6/upgrade3/Chrome46checks/29captures (375/document375/scale1) PASS,
-source rechecks no unresolved findings; Firefox independently source/syntax only.
-DirectSQL null/size/key repairs and final audit rollback/truncation test pass.
-No task-owned app server intentionally left running; private artifacts ignored.
-Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/
-import/docs PASS with empty clone Git status and automatic teardown. npm install
-exited0 but current audit reports one high Zod advisory for locked4.1.12; see exact
-evidence. No zero-advisory claim. Bounded dependency remediation selected next.
+Controlled10,000 invalid student options:20,002issues before,1after. Actual
+contracts156/type/build/built/consumer12/drift/audit0/peergraph/Bank149/assembly50/
+critical9/student34/domains78/Chrome46/Firefox16/docs/import/whitespace PASS.
+MIT license text unchanged; other lock entries/frozen source/artifacts unchanged.
+Separate reviewer regression1/reference31/question-identity26/consumer12/type/drift/
+import/offlinegraph/cachedtarballSHA512 and installed files PASS, no findings.
+Independent live audit NOT_EXECUTED (reviewer external-call prohibition), rootaudit0
+separate; no independentPG/browser rerun. Clean reproduction/checkpoint pending.
+Logs ignored `.local/sec001-*`; do not stage artifacts/node_modules/DBs/tokens.
 
-Next: record/implement bounded Zod dependency remediation from the observed high
-advisory, preserving all frozen contract shapes/artifacts/deterministic replay.
-Inspect package/lock diff, execute targeted resource-bound regression plus existing
-contract/PG/browser integration, obtain independent read-only review and clean
-reproduce. No routine approval question under recorded owner engineering delegation.
-Only owner AGENTS.md and untracked research remain outside checkpoints; preserve.
-After security remediation, evaluate explicit fixed sealing scope; do not invent
-rights/reviewer/publication evidence or claim full Technical MVP/production.
-
-B7 prior handoff remains in70cdd6c; B8 exact implementation/evidence is b886737.
+Next: commit verified owned dependency/test/docs scope, clean reproduce from that
+exact checkpoint, then record final evidence. Continue ready authorized Track B work afterward. No routine owner
+approval needed under recorded engineering delegation; never fabricate real rights,
+qualified human review, manual accessibility or production readiness. B8 exact
+source/evidence preserved in b886737/694df4d and its verification record.
