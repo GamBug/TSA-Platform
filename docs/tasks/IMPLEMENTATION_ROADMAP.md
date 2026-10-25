@@ -4,7 +4,7 @@ Current B8.1, 2026-10-25: actual eligible Bank rehearsal implemented with separa
 immutable021 storage, current EXAM command, audited BANK replay and role-scoped UI.
 [Evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md). Root
 PG/upgrade/regressions/Chrome PASS; actual delegate Firefox16 PASS, independent
-PG6/upgrade3/Chrome46/source final no findings. Clean reproduction pending. This captures historical eligibility, creates no form or
+PG6/upgrade3/Chrome46/source final no findings. Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Zod advisory remediation next. This captures historical eligibility, creates no form or
 attempt and does not attest rights/human review or current stock. Next explicit
 fixed sealing scope follows completed rehearsal acceptance.
 

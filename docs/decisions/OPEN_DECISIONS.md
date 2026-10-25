@@ -36,12 +36,12 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scope.
   [Exact scope/privilege/compatibility/acceptance](WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md),
   [executed evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
-  Clean reproduction pending.
+  Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Zod advisory remediation next.
 - EXAM_MANAGER initiates fixed diagnostic stock capture, BANK_MANAGER views aggregate
   history. New immutable private records, no forms/student history/assembly run writes.
   Existing B7 synthetic reference APIs/data remain separate and unchanged.
 - Root021 SQL/backend/fixtures/browser/shared records; bounded native Luna/XHigh
-  private DTO/UI writers, separate Sol6.1/Medium read-only review. Runtime pending.
+  private DTO/UI writers, separate Sol6.1/Medium read-only final review, no findings.
 
 ## WEB-002 B7.2 — stored fixed reference diagnostics selected 2026-10-25
 

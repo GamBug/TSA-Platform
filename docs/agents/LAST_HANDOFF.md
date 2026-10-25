@@ -1,6 +1,6 @@
-# Handoff — B8.1 eligible Bank stock rehearsal verified, clean reproduction next
+# Handoff — B8.1 eligible Bank stock rehearsal verified and clean reproduced
 
-2026-10-25, feat/track-b-data-auth, HEAD70cdd6c; uncommitted authorized B8 changes.
+2026-10-25, feat/track-b-data-auth, implementation b886737; B8 runtime is committed.
 Root accountable SQL/backend/tests/shared records; actual native Luna/XHigh DTO/UI
 writers released files; UI/Firefox writer released its files.
 Separate actual Sol6.1/Medium read-only final SQL/UI/Chromium review complete, no findings. Owner AGENTS.md
@@ -21,14 +21,18 @@ Independent PG6/upgrade3/Chrome46checks/29captures (375/document375/scale1) PASS
 source rechecks no unresolved findings; Firefox independently source/syntax only.
 DirectSQL null/size/key repairs and final audit rollback/truncation test pass.
 No task-owned app server intentionally left running; private artifacts ignored.
-Clean reproduction/checkpoint still required before further milestone work.
+Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/
+import/docs PASS with empty clone Git status and automatic teardown. npm install
+exited0 but current audit reports one high Zod advisory for locked4.1.12; see exact
+evidence. No zero-advisory claim. Bounded dependency remediation selected next.
 
-Next: commit the verified implementation, clean reproduce from that exact commit,
-then record evidence/checkpoint excluding owner
-AGENTS/research and ignored private `.local` artifacts. Continue next ready Track B
-scope (explicit sealing design after honest rehearsal), without routine approval
-question under recorded owner engineering delegation. No unauthorized real content,
-qualified reviewer/rights/accessibility attestation or production readiness claim.
+Next: record/implement bounded Zod dependency remediation from the observed high
+advisory, preserving all frozen contract shapes/artifacts/deterministic replay.
+Inspect package/lock diff, execute targeted resource-bound regression plus existing
+contract/PG/browser integration, obtain independent read-only review and clean
+reproduce. No routine approval question under recorded owner engineering delegation.
+Only owner AGENTS.md and untracked research remain outside checkpoints; preserve.
+After security remediation, evaluate explicit fixed sealing scope; do not invent
+rights/reviewer/publication evidence or claim full Technical MVP/production.
 
-Previous completed B7 handoff remains in HEAD70cdd6c and linked B7 evidence; no
-reconstruction of earlier conversation required.
+B7 prior handoff remains in70cdd6c; B8 exact implementation/evidence is b886737.

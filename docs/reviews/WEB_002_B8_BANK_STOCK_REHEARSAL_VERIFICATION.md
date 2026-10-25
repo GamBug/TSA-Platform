@@ -1,7 +1,7 @@
 # B8.1 eligible Bank stock rehearsal verification
 
 2026-10-25, branch feat/track-b-data-auth, base70cdd6c. IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED
-within the recorded scope. Clean-checkout reproduction pending.
+within the recorded scope. Clean-checkout reproduction PASS at b886737.
 [Exact selected scope](../decisions/WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md).
 Root accountable SQL/backend/fixture/HTTP-PG/browser/integration/shared records;
 actual native Luna/XHigh private-contract and UI writers, disjoint ownership;
@@ -111,3 +111,30 @@ Chromium scope; it does not imply independently executed Firefox. MANUAL_CHECK_P
 REQUIRED: lawful12/6/12 content/attestor/independent subject review. No real stock,
 performance/operations/production acceptance. Rehearsal snapshots are historical;
 future sealing must revalidate and has no implementation in this slice.
+
+## Clean checkout — b886737
+
+Root used `git clone --no-hardlinks . /tmp/tsa-b8-clean.JzNG0Q`, exactly b886737,
+then `npm ci --ignore-scripts` and `npm run build`: exit0. No manual SQL patches,
+manual API setup, inherited database or browser profile. From the clean clone:
+
+- Focused rehearsal/upgrade/CLI command above: PASS12.
+- `TRACK_B_ARTIFACT_DIR=<ignored clean-chromium> npm run test:track-b:browser`:
+  actual PASS46 checks/29captures.
+- `npm run test:staff:firefox`: actual PASS16 checks/35captures,1280/actual500.
+- `npm run test:built`, `npm run contracts:check`,
+  `npm run contracts:consumer-check`, `npm run docs:check`: exit0.
+- Final `git status --short`: empty. Task-owned fixture servers/databases/browser
+  profiles shut down through harness teardown. Logs `.local/b8-clean-*` ignored.
+
+Installation/advisory observation: npm install exited0 but reported one high Zod
+advisory, confirmed by `npm audit --json` (exit1) against pinned4.1.12:
+[GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5), affected<4.6.6.
+This clean reproduction is not a zero-advisory/security guarantee. Root selected
+bounded dependency remediation as the next ready work item; no production claim.
+Earlier dated dependency audits remain historical evidence, not current status.
+
+Final supplement independent reviewer inspected Firefox B8 patch, new corrupt/
+truncation test and guide/launcher source, syntax/whitespace PASS, no findings.
+New test7 and Firefox were source-reviewed only; no additional independent runtime
+run beyond the explicitly recorded6+3+Chrome46 checks.

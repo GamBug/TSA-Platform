@@ -7,7 +7,10 @@ implemented and independently reviewed in [B7.1](WEB_002_B7_FIXED_REFERENCE_DECI
 schema stays frozen. Stored fixed reference projection/discovery/UI are now
 implemented in [B7.2](WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md),
 [actual evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md); this
-does not implement eligible Bank capture/sealed forms/fixed student delivery.
+does not implement sealed forms/fixed student delivery. Actual eligible Bank capture
+is now implemented separately in [B8.1](WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md),
+[executed evidence](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md); it
+creates immutable historical diagnostic captures only, not sealed forms.
 The source gap and initial design below are historical discovery, not current
 absence of the new fixed parser. Root accountable; native Luna/XHigh read-only
 worker actually mapped these dependencies. This is a concrete technical handoff,
