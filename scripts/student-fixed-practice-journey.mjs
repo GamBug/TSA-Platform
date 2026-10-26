@@ -1,7 +1,7 @@
 // Existing frozen student contracts, exercised through the real local UI.
 import assert from 'node:assert/strict';
 
-export async function runFixedPracticeJourney({evaluate, click, query, waitFor, fixture, capture, report, reload, viewport, escape, narrowWidth=375}) {
+export async function runFixedPracticeJourney({evaluate, click, query, waitFor, fixture, capture, report, reload, viewport, escape, narrowWidth=375, openSecondTab, second, closeSecondTab}) {
   const catalog=await evaluate("fetch('/api/v1/catalog?limit=100').then(r=>r.json())");
   const allForms=catalog.items.filter(row=>row.mode==='PUBLISHED_FIXED');
   assert.equal(allForms.length,4);
@@ -12,7 +12,7 @@ export async function runFixedPracticeJourney({evaluate, click, query, waitFor, 
   for(const row of sameTitle)assert.equal(await evaluate(`document.querySelector('[data-testid="fixed-practice-card"][data-form-id="${row.formId}"]').textContent.includes(${JSON.stringify(row.formId)})`),true,'same-title seals have distinct visible safe references');
   await viewport(1280,900);await evaluate("document.querySelector('[data-testid=fixed-practice-list]').scrollIntoView({block:'start'})");await capture('fixed-catalog-desktop');
   await viewport(narrowWidth,900);await evaluate("document.querySelector('[data-testid=fixed-practice-list]').scrollIntoView({block:'start'})");await capture('fixed-catalog-narrow');
-  const outcomes=[];
+  const outcomes=[];let saveRecoveryChecked=false;
   for(const [index,form] of forms.entries()) {
     const select=`document.querySelector('[data-testid="fixed-practice-open"][data-form-id="${form.formId}"]')`;
     const card=`document.querySelector('[data-testid="fixed-practice-card"][data-form-id="${form.formId}"]')`;
@@ -48,7 +48,43 @@ export async function runFixedPracticeJourney({evaluate, click, query, waitFor, 
       if(position) await click('question-next');
       if(slot.interaction.type==='MULTIPLE_CHOICE'){await click('option-a');await waitFor(`Boolean(${query('multiple-choice-unsaved')})`,'staged multiple choice');await click('option-c');}
       else if(slot.interaction.type==='TRUE_FALSE_GROUP'){await click('tf-s1-true');await waitFor(`!${query('tf-s2-false')}.disabled`,'partial group acknowledged');await click('tf-s2-false');}
-      else await click('option-b');
+      else {
+        if(!saveRecoveryChecked){
+          await evaluate(`(()=>{const original=window.fetch.bind(window);window.__fixedSaveCalls=[];window.__fixedSaveDisconnected=true;window.__fixedDropSave=false;window.fetch=async(input,init={})=>{if(init.method==='PUT'){window.__fixedSaveCalls.push({key:new Headers(init.headers).get('idempotency-key'),body:JSON.parse(init.body)});if(window.__fixedSaveDisconnected)throw new TypeError('Synthetic disconnected fixed answer transport');}const response=await original(input,init);if(init.method==='PUT'&&response.ok&&window.__fixedDropSave){window.__fixedDropSave=false;await response.arrayBuffer();throw new TypeError('Synthetic lost committed fixed save acknowledgement');}return response;};return true;})()`);
+          await click('option-a');await waitFor(`Boolean(${query('save-error')})`,'fixed failed save is visibly unconfirmed');
+          assert.equal(await evaluate(`${query('save-status')}.classList.contains('saved')`),false);
+          assert.equal(await evaluate(`Boolean(${query('answer-unsaved')})&&${query('option-a')}.checked&&${query('question-next')}.disabled&&${query('submit-open')}.disabled&&${query('exam-catalog')}.disabled`),true,'unconfirmed fixed draft blocks navigation and submission');
+          assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2',[id,slot.slotId])).rows[0].n,0);
+          await capture('fixed-save-unconfirmed');
+          await evaluate('window.__fixedSaveDisconnected=false;true');await click('save-error-action');
+          await waitFor(`!${query('save-error')}&&${query('option-a')}.checked&&${query('save-status')}.classList.contains('saved')`,'fixed disconnected save retries explicitly');
+          const disconnected=await evaluate('window.__fixedSaveCalls');assert.equal(disconnected.length,2);assert.deepEqual(disconnected[0],disconnected[1]);
+          await openSecondTab();const other=second();
+          for(let step=0;step<position;step++)await other.click('question-next');
+          await other.click('option-c');await other.waitFor(`Boolean(${query('option-c')}.checked&&${query('save-status')}.classList.contains('saved'))`,'second real fixed tab commits');
+          await click('option-b');await waitFor(`Boolean(${query('save-error')})&&${query('save-error')}.textContent.includes('thay đổi ở nơi khác')`,'fixed stale tab sees revision conflict');
+          assert.equal(await evaluate(`${query('option-b')}.checked&&${query('question-next')}.disabled&&${query('submit-open')}.disabled`),true);
+          assert.match(await evaluate(`${query('save-error-action')}.textContent`),/Tải lại/);
+          const readAnswer=async()=>(await fixture.pool.query('SELECT value,revision::integer AS revision FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2',[id,slot.slotId])).rows[0];
+          assert.deepEqual(await readAnswer(),{value:{type:'SINGLE_CHOICE',optionId:'c'},revision:2});
+          // Close the second tab before capturing: background Chromium pages
+          // can suspend the animation frames used by the screenshot helper.
+          await closeSecondTab();await capture('fixed-save-conflict');
+          const writesBeforeReload=await evaluate('window.__fixedSaveCalls.length');await click('save-error-action');
+          await waitFor(`!${query('save-error')}&&!${query('answer-unsaved')}&&${query('option-c')}.checked`,'fixed conflict reads exact owned state');
+          assert.equal(await evaluate('window.__fixedSaveCalls.length'),writesBeforeReload,'conflict recovery is GET only');
+          assert.deepEqual(await readAnswer(),{value:{type:'SINGLE_CHOICE',optionId:'c'},revision:2});
+          assert.equal(await evaluate('document.body.innerText.includes("Bài dùng chung")'),true,'conflict recovery keeps fixed label');
+          await evaluate('window.__fixedDropSave=true;true');
+          await click('option-b');await waitFor(`Boolean(${query('save-error')})`,'fixed committed save with lost ACK remains unconfirmed');
+          assert.deepEqual(await readAnswer(),{value:{type:'SINGLE_CHOICE',optionId:'b'},revision:3});
+          await click('save-error-action');await waitFor(`!${query('save-error')}&&${query('save-status')}.classList.contains('saved')`,'fixed same-key save acknowledgement recovered');
+          const retry=await evaluate('window.__fixedSaveCalls.slice(-2)');assert.equal(retry.length,2);assert.deepEqual(retry[0],retry[1]);
+          assert.deepEqual(await readAnswer(),{value:{type:'SINGLE_CHOICE',optionId:'b'},revision:3},'retry never advances committed revision twice');
+          assert.deepEqual((await fixture.pool.query('SELECT started_at::text,deadline_at::text FROM tsa.attempts WHERE id=$1',[id])).rows,clocks);
+          saveRecoveryChecked=true;
+        }else await click('option-b');
+      }
       await waitFor(`Boolean(${query('save-status')}.classList.contains('saved'))`,'fixed acknowledged answer');
     }
     await capture(`${form.domain.toLowerCase()}-fixed-saved`);
@@ -67,6 +103,7 @@ export async function runFixedPracticeJourney({evaluate, click, query, waitFor, 
     await click('back-score');await click('return-catalog');await waitFor(`Boolean(${query('catalog-panel')})`,'return to catalog');
     outcomes.push({domain:form.domain,questionCount:form.questionCount,durationSeconds:form.durationSeconds});
   }
+  assert.equal(saveRecoveryChecked,true,'fixed negative save/conflict path executed');
   assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.forms')).rows[0].n,4,'student requests never create forms');
   const history=await evaluate("fetch('/api/v1/attempts?limit=100').then(r=>r.json())");assert.equal(history.items.length,3);assert.ok(history.items.every(row=>row.state==='GRADED'&&row.formMode==='PUBLISHED_FIXED'));
   await capture('fixed-three-domain-history');report.fixedDomains=outcomes;
@@ -83,5 +120,6 @@ export async function runFixedPracticeJourney({evaluate, click, query, waitFor, 
     'B10 each real committed lost acknowledgement retries the identical fixed body/key; post-receipt GET failure recovers through GET only and explicit Start',
     'B10 independent MATH/READING/SCIENCE PostgreSQL saves survive reload without new assignment or clock reset; all grade100 and release explicit review',
     'B10 history preserves three fixed graded attempts sharing original immutable forms; no per-student form or silent personal fallback',
-    'B10 a held real owned fixed GET is rejected after actual external A-to-B session rotation; private result stays cleared');
+    'B10 a held real owned fixed GET is rejected after actual external A-to-B session rotation; private result stays cleared',
+    'B10.2 fixed disconnected save stays unconfirmed; real second-tab conflict reads exact owned state; lost committed save ACK replays body/key without duplicate revision');
 }

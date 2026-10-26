@@ -523,6 +523,8 @@ try {
     if (fixedPracticeTest) {
       workerState.available = true;
       await runFixedPracticeJourney({evaluate, click, query, waitFor, fixture, capture, report,
+        openSecondTab, second:()=>({click:secondClick,waitFor:secondWaitFor}),
+        closeSecondTab:async()=>{await browserCommand('Target.closeTarget',{targetId:secondTargetId});secondSocket.close();secondSocket=null;secondTargetId=null;},
         reload:()=>command('Page.reload',{ignoreCache:true}),
         viewport:(width,height)=>command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false}),
         escape:async()=>{await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});}});

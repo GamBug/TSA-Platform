@@ -958,7 +958,12 @@ try {
       const value = await wd('POST','/execute/async',{args:[expression],script:"const done=arguments[arguments.length-1];Promise.resolve().then(()=>eval(arguments[0])).then(value=>done({value}),error=>done({failure:String(error)}));"});
       if(value.failure)throw new Error(value.failure);return value.value;
     };
+    const primaryWindow=await wd('GET','/window');let fixedSecondWindow;
+    const onSecond=async action=>{await wd('POST','/window',{handle:fixedSecondWindow});try{return await action();}finally{await wd('POST','/window',{handle:primaryWindow});}};
     await runFixedPracticeJourney({evaluate:fixedEvaluate,click,query,waitFor,fixture,capture,report,narrowWidth:500,
+      openSecondTab:async()=>{const created=await wd('POST','/window/new',{type:'tab'});fixedSecondWindow=created.handle;await onSecond(async()=>{await wd('POST','/url',{url:`${runtime.origin}/?student=postgres`});await waitFor('Boolean(document.getElementById("question-title"))','second fixed tab resumes owned attempt');});},
+      second:()=>({click:id=>onSecond(()=>click(id)),waitFor:(expression,label)=>onSecond(()=>waitFor(expression,label))}),
+      closeSecondTab:async()=>{await wd('POST','/window',{handle:fixedSecondWindow});await wd('DELETE','/window');await wd('POST','/window',{handle:primaryWindow});fixedSecondWindow=null;},
       reload:()=>wd('POST','/refresh',{}), viewport:(width,height)=>setViewport(width,height,'fixed'),
       escape:()=>wd('POST','/actions',{actions:[{type:'key',id:'fixed-keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]})});
   } else {

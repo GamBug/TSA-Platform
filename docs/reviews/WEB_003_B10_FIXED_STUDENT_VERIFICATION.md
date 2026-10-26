@@ -166,3 +166,48 @@ Source checkpoint d903ae4 contains the reviewed implementation and initial recor
 A following documentation checkpoint records this clean evidence and the separate
 B11 shorter-profile proposal. Original frozen MVP4/2/4 counts remain enforced;
 B11 is not implemented/approved and does not block this demonstration.
+
+
+## B10.2 fixed save/conflict supplement —2026-10-26
+
+Base3f3ebe8, root sole writer of the existing fixed journey helper and its Chrome/
+Firefox adapters. No application, SQL, fixture, package, public contract or frozen
+vector changed. This closes a named acceptance gap: B10 added a fixed-specific
+save-reconciliation read branch, while earlier negative browser save cases used
+personal attempts. Reused the existing scenario rather than adding a harness.
+
+Actual root `npm run test:student:fixed` PASS6checks/19captures/86 inspected API
+responses, Chrome156 at1280/375. Actual root `npm run test:student:fixed:firefox`
+PASS6checks/19captures, Firefox156 at1280/500; final exit0 and cleanup normal. Within
+the first encountered SINGLE_CHOICE item of the three-domain fixed journey:
+
+- Controlled fetch transport failure occurs before the PUT reaches PostgreSQL.
+  The draft stays selected, the UI says unsaved, and navigation/submission/catalog
+  exit stay disabled; no answer row exists. Explicit retry sends identical body/key
+  and acknowledges revision1. This injection is not a claim of browser-level offline
+  network emulation; the older personal Chromium offline check remains separate.
+- A real second browser tab/window reloads the same owned fixed attempt and saves
+  optionC at revision2. Stale first-tab optionB fails with actual revision conflict,
+  preserves the unsaved draft, and offers explicit reload. GET-only reload preserves
+  optionC/revision2 and the fixed-mode label without another PUT or new attempt.
+- The next optionB actually commits revision3 but its successful HTTP response is
+  deliberately dropped. UI remains unconfirmed until explicit identical body/key
+  replay. PostgreSQL remains revision3, not4. Original Start/deadline text and shared
+  form stay unchanged. All3 final domain attempts still grade100/release/review.
+
+Initial Chromium run reached the real conflict but screenshot capture waited for
+animation frames on a background tab, timing out. Root closed the already-saved
+second tab before capture; conflict/reload assertions remain unchanged. Final
+Chrome/Firefox reruns pass. This was a harness defect, not an application repair.
+Root actually inspected375px conflict capture: prominent unsaved warning, selected
+local draft, explicit reload and disabled navigation are readable. No formal
+accessibility/nativezoom acceptance is inferred.
+
+Root syntax checks for all3 changed scripts and git diff --check PASS. Original
+B10 clean-checkout evidence above continues to describe exact d903ae4; no new clean
+clone of this test-only supplement is claimed. Existing B10 product source hashes
+and independent review are unchanged. B10.2 is AUTOMATED_PASS / PENDING_REVIEW:
+actual independent reviewer hit usage limit during B11 proposal review and was not
+repeatedly retried. No independent review of this supplement is claimed; no model/
+access/quota restriction bypass. Later review should inspect only the three-script
+supplement against3f3ebe8, then execute these two existing browser commands.

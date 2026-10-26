@@ -1596,6 +1596,21 @@ Historical parent card below remains a planning record, not the current blocker.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-26 **B10.2 FIXED SAVE/CONFLICT ACCEPTANCE — AUTOMATED_PASS /
+PENDING_REVIEW**, base3f3ebe8. Root sole writer, existing fixed journey helper/two
+runners only; no application/SQL/contract change. Actual Chrome6checks/19captures/
+86responses and Firefox6/19 PASS: controlled failed save is unsaved/no row; real
+second-tab revision conflict GET-only reload retains exact fixed attempt; dropped
+committed save acknowledgement replays same body/key at unchanged revision3.
+Original clocks/forms preserved; all3 domains still grade100/release/review.
+Root syntax/whitespace PASS. Initial background-tab screenshot timeout repaired
+in harness by closing saved second tab before capture; final both engines pass.
+[Exact evidence/limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md#b102-fixed-saveconflict-supplement-2026-10-26).
+Recommended root/current Codex or Sol6.1 High integration; separate Sol6.1 Medium
+read-only review when available. Actual reviewer usage limit means no independent
+B10.2 review, no quota bypass. Original B10 product source remains independently
+reviewed and clean-reproduced. Writer reservation released at checkpoint.
+
 2026-10-23 bounded local **STUDENT DEMO MILESTONE COMPLETE**, checkpoint `be4705d`:
 fresh no-hardlink clone npm ci/build, Chromium three-domain78, Firefox156 and
 launcher7 PASS; docs pass and clone Git status clean. No database patches.
