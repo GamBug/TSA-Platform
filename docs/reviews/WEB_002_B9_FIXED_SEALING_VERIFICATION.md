@@ -1,7 +1,7 @@
 # WEB-002 B9.1 local fixed sealing verification
 
 2026-10-26, feat/track-b-data-auth, base752516f. IMPLEMENTED / AUTOMATED_PASS /
-INDEPENDENTLY_REVIEWED in executed scope; clean checkpoint reproduction pending.
+INDEPENDENTLY_REVIEWED in executed scope; clean checkpoint5b37a30 reproduced.
 [Exact proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md),
 [scoped owner reply/context](../decisions/OPEN_DECISIONS.md#web-002-b91--scoped-owner-go-ahead2026-10-26).
 Owner's immediate “next.” replied to the specific whole-B9 local-implementation
@@ -127,8 +127,36 @@ Stable final product hashes across independent runs:
 
 ## Limits
 
-Clean reproduction/final records pending. B9 local technical acceptance does not
+Clean reproduction passed as recorded below. B9 local technical acceptance does not
 supply fixed student delivery, lawful accepted12/6/12 inventory, qualified human
 content/rights/accessibility/native zoom, performance/load or production readiness.
 All approved fixture content/rights are synthetic engineering machinery. No real
 content is approved, generated or published by this feature.
+
+## Clean-checkout reproduction —5b37a30
+
+Root2026-10-26 fresh `git clone --no-hardlinks`, detached exact5b37a30 at
+`/tmp/tsa-b9-clean-aphoPk`. No owner dirty files, source patches, copied dependencies,
+manual SQL/API setup, secret files or committed browser evidence. Node24.18.0/
+npm11.16.0/PostgreSQL18.6/Chromium156/Firefox156. Executed:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+node --test tests/integration/bank/fixed-form-sealing.test.mjs tests/integration/bank/fixed-form-races.test.mjs tests/integration/bank/fixed-form-upgrade.test.mjs
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+TRACK_B_ARTIFACT_DIR=.local/clean-staff npm run test:track-b:browser
+STUDENT_ARTIFACT_DIR=.local/clean-domains npm run test:student:domains
+npm run test:staff:firefox
+git status --short
+```
+
+All exit0. Locked install audits zero vulnerabilities; focused12/Chrome50checks+
+34captures/Firefox18checks+42captures/defaultdomains78responses PASS. Contract
+artifacts/import boundaries/docs pass; only preserved historical whitespace warning.
+Final clone Git status empty. Owned fixture processes/databases tear down through
+existing harnesses. This is root clean reproduction, not independently executed.
+Root separately ran actual launcher2/B032 after the guide/runtime changes: PASS.
+No full MVP, real-content, formal accessibility/load/production claim follows.

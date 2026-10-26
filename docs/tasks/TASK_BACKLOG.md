@@ -770,7 +770,9 @@ AGENTS/research. Independent Sol6.1/Medium final read-only review required. Exac
 source-only design review completed. Root focused12/fullBank161/contracts161/
 assembly63/Chrome50/Firefox18/defaultdomains78/type/build/drift/import PASS; native
 writers DTO5/upgrade+races5/B032 PASS, independent focused core7+races4/upgrade1/
-DTO5/Chrome50 PASS, no unresolved findings. Clean reproduction pending.
+DTO5/Chrome50 PASS, no unresolved findings. Clean no-hardlink5b37a30 locked
+install/build/focused12/Chrome50/Firefox18/defaultdomains78/drift/import/docs PASS,
+final clone Git empty. Root launcher2/B032 final PASS.
 [Exact runtime evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
 
 2026-10-26 **STAFF SESSION BINDING — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, based4929a0. Root owns

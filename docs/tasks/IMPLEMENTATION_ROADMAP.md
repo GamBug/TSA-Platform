@@ -4,7 +4,9 @@ Current B9.1,2026-10-26: local fixed sealing/private EXAM metadata implemented u
 recorded specific owner go-ahead. Current eligible stock/immutable snapshots/rights
 horizon, no attempts/history or fixed student delivery. Root focused12/Bank161/
 contracts161/assembly63/Chrome50/Firefox18/defaultdomains78 PASS; independent source/
-core7+races4/upgrade1/DTO5/Chrome50 no unresolved finding. Clean reproduction pending.
+core7+races4/upgrade1/DTO5/Chrome50 no unresolved finding. Clean no-hardlink5b37a30
+install/build/focused12/Chrome50/Firefox18/defaultdomains78/drift/import/docs PASS,
+final clone Git empty.
 [Evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Historical
 proposal paragraphs below are superseded only in this exact scope.
 

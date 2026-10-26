@@ -114,3 +114,7 @@ B9.1 is now implemented and independently reviewed in its separate local scope:
 root focused12/fullBank161/contracts161/assembly63/Chrome50/Firefox18/defaultdomains78
 PASS. Fixed student assignment/delivery remains excluded. Earlier proposal-only
 statements in the dated historical updates above are superseded for staff sealing.
+
+B9 source5b37a30 clean-reproduced in a no-hardlink checkout: locked install/build,
+focused12/staffChrome50/Firefox18/defaultdomains78/drift/import/docs PASS; final
+clone Git empty. [Exact commands](WEB_002_B9_FIXED_SEALING_VERIFICATION.md#clean-checkout-reproduction-5b37a30).

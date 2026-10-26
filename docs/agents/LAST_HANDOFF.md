@@ -1,6 +1,6 @@
-# Handoff — B9.1 local fixed sealing verified; clean checkpoint pending
+# Handoff — B9.1 local fixed sealing verified and clean-reproduced
 
-2026-10-26 Asia/Bangkok, feat/track-b-data-auth, base752516f. Root sole integrator/
+2026-10-26 Asia/Bangkok, feat/track-b-data-auth, source5b37a30 from base752516f. Root sole integrator/
 shared-record owner. Owner's immediate “next.” reply to the explicit whole-B9 local
 implementation question recorded as scoped go-ahead, not human rights/publication
 or student fixed delivery approval. Owner AGENTS.md/untracked research preserved.
@@ -32,9 +32,10 @@ real personal404/actor-key isolation/disabled/revoked-role replay denial include
 Old-data/privilege/B7/B8 populated upgrade preserves existing rows/outputs. Manual
 qualified accessibility/native zoom and lawful12/6/12 stock still require humans.
 
-Next finish final docs/launcher checks, checkpoint owned scope, fresh no-hardlink
-locked install/build/focused12/staff Chrome+Firefox/defaultdomains/drift/import/
-docs verification; record exact commit/clean status. Then next bounded Track B
+Clean no-hardlink5b37a30 at `/tmp/tsa-b9-clean-aphoPk`: locked install/build/
+focused12/staffChrome50/Firefox18/defaultdomains78/drift/import/docs PASS, final
+clone Git empty. Root final launcher2/B032 PASS. Source checkpoint committed,
+subsequent records checkpoint saves this evidence. All writer reservations released. Then next bounded Track B
 scope concerns explicit fixed STUDENT catalog/consent/assignment on the existing
 frozen contracts. B9 does not authorize silently enabling that excluded flow.
 No paidAPI/Astra/live student inference/push/merge/deploy/human approval fabrication.
