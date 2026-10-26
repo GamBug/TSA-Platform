@@ -1563,8 +1563,10 @@ Clean no-hardlinkd903ae4 locked install/build/focused16/launcher10/Chrome5/Firef
 docs PASS, final clone Git empty. Exact failure/limits retained in linked evidence.
 [B11 shorter-profile proposal](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md)
 is PROPOSED / HUMAN_APPROVAL_REQUIRED for frozen count-policy impact. Partial reviewer
-P2 about pre-Start profile identity repaired in proposal; actual reviewer usage limit
-left final B11 review PENDING_REVIEW. No code/runtime test
+P2 about pre-Start profile identity repaired. Actual native Luna/XHigh read-only
+fallback source/wording review completed; fixed/rehearsal4/2/4 and active-profile
+selection boundaries clarified/rechecked, no new policy contradiction. No Sol/Medium
+execution or owner approval claim. No code/runtime test
 or offering activation. Parent remaining scope is shorter-profile selection and externally qualified
 content/accessibility acceptance; no silent profile/reuse fallback is authorized.
 
@@ -1596,7 +1598,7 @@ Historical parent card below remains a planning record, not the current blocker.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
-2026-10-26 **NATIVE FIREFOX200% ZOOM — AUTOMATED_PASS / PENDING_REVIEW**,
+2026-10-26 **NATIVE FIREFOX200% ZOOM — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**,
 base1432c71. Root/current Codex sole implementer; existing Firefox runner and package
 alias, accessibility packet/guide/evidence/coordinated records only. No application,
 SQL, contract, dependency or frozen policy change. Native Firefox FullZoom factor2,
@@ -1605,14 +1607,19 @@ Actual native journey6checks/8captures, default4/4 and fixed6/19 PASS. Saves/rel
 exact clocks, real worker pending→100/release, submit Escape/visible focus and
 explanation Space/return checked. Initial shortcut/geometry/screenshot oracles were
 repaired; no visible product defect found. Syntax/consumer/docs/whitespace and
-invalid/mixed flag early-refusal probes PASS. [Exact evidence/limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+invalid/mixed flag early-refusal probes PASS. Clean no-hardlink7b2457a locked install/
+build/native6/8/default4/4/consumer/docs PASS, final clone Git empty; no retries or
+manual setup. [Exact evidence/limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
 Recommended current Codex or Sol6.1 High integration, separate Sol6.1 Medium read-only
-review when available. Actual reviewer remains usage-limited; no independent review
-or quota bypass. Qualified-human nativezoom/screen-reader outcomes stay NOT TESTED.
+review preferred. Actual Sol remained usage-limited; normally available separate
+native Luna/XHigh read-only fallback inspected source and independently passed
+Chrome fixed6/19/86, Firefox fixed6/19 and native6/8, syntax/whitespace; no actionable
+finding or file edit. No Sol/Medium or quota bypass claim. Qualified-human outcomes
+stay NOT TESTED.
 Writer reservation released at checkpoint; no Chromium nativezoom acceptance claim.
 
 2026-10-26 **B10.2 FIXED SAVE/CONFLICT ACCEPTANCE — AUTOMATED_PASS /
-PENDING_REVIEW**, base3f3ebe8. Root sole writer, existing fixed journey helper/two
+INDEPENDENTLY_REVIEWED in native Luna/XHigh scope**, base3f3ebe8. Root sole writer, existing fixed journey helper/two
 runners only; no application/SQL/contract change. Actual Chrome6checks/19captures/
 86responses and Firefox6/19 PASS: controlled failed save is unsaved/no row; real
 second-tab revision conflict GET-only reload retains exact fixed attempt; dropped
@@ -1622,8 +1629,10 @@ Root syntax/whitespace PASS. Initial background-tab screenshot timeout repaired
 in harness by closing saved second tab before capture; final both engines pass.
 [Exact evidence/limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md#b102-fixed-saveconflict-supplement-2026-10-26).
 Recommended root/current Codex or Sol6.1 High integration; separate Sol6.1 Medium
-read-only review when available. Actual reviewer usage limit means no independent
-B10.2 review, no quota bypass. Original B10 product source remains independently
+read-only review preferred. Actual native Luna/XHigh fallback independently reviewed
+the exact3script diff and ran Chrome6/19/86responses and Firefox6/19; no actionable
+finding, no edits. Preferred Sol capacity remains limited; no Sol/Medium execution
+or restriction bypass claim. Original B10 product source remains independently
 reviewed and clean-reproduced. Writer reservation released at checkpoint.
 
 2026-10-23 bounded local **STUDENT DEMO MILESTONE COMPLETE**, checkpoint `be4705d`:

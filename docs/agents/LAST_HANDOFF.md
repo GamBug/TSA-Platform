@@ -3,9 +3,10 @@
 - Date/role:2026-10-26 Asia/Bangkok, root/current Codex sole implementer/integrator.
 - Branch/base:feat/track-b-data-auth,1432c71. Owner AGENTS.md/untracked research
   preserved/excluded. Source changes limited to existing Firefox runner/package
-  alias; guide/accessibility/evidence/coordinated records. B11 Markdown table only
-  repaired for valid rendering, no scope/approval/runtime change.
-- AUTOMATED_PASS / PENDING_REVIEW. No application/SQL/dependency/frozen contract,
+  alias; guide/accessibility/evidence/coordinated records. Source checkpoint7b2457a.
+  B11 proposal formatting and fixed/active-profile boundaries clarified through
+  separate read-only review; still proposed, no approval or runtime activation.
+- AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in actual native Luna/XHigh scope. No application/SQL/dependency/frozen contract,
   scoring/timing/content change or real human acceptance.
 
 Actual `npm run test:student:zoom:firefox`:6checks/8captures at Firefox FullZoom2,
@@ -14,6 +15,9 @@ clocks, worker-pending→100/released review, submit Escape/visible focus, expla
 Space and catalog return pass; reset restores1. Ordinary Firefox4/4 and fixed6/19
 regressions PASS; syntax/consumer/docs/whitespace and malformed/mixed flag probes
 PASS. Root inspected saved-exam/native submit/expanded explanation captures.
+Clean no-hardlink7b2457a at `/tmp/tsa-native-zoom-clean-zwsgaz97`: locked install/
+build/native6/8/default4/4/consumer/docs PASS, final clone Git empty. Normal cleanup,
+no retry/checkout patch/manual DB/API setup. Exact commands/logs in linked evidence.
 [Exact commands/oracle failures/evidence/limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
 
 Explicit native-only geckodriver --allow-system-access enables the owned temporary
@@ -24,12 +28,21 @@ supply that evidence. Keyboard shortcut initially did not zoom; content outerWid
 and screenshot physical-size assumptions failed and were corrected, not counted
 as passes. No visible application defect surfaced, no styling repair performed.
 
-Independent review NOT PERFORMED: actual prior Sol6.1/Medium usage limit persists,
-no retry/bypass/fabricated fallback. Native automation and B10.2 remain PENDING_REVIEW;
-original B10 product source review/clean reproduction unchanged. All writer files
-released at checkpoint. Next reviewer (recommended available Sol6.1/Medium read-only)
-should inspect the bounded runner/flag/geometry/focus diff and execute native/default
-aliases; B10.2 exact three-script supplement from3f3ebe8 remains separately pending.
+Actual independent native Luna/XHigh normal-entitlement fallback `/root/b9_contracts`
+read-only source/browser review completed. It authored none of the target scripts;
+exact B10.2 3f3ebe8..1432c71 and native1432c71..7b2457a diffs inspected. Chrome
+fixed6/19/86APIresponses, Firefox fixed6/19 and native6/8 independently PASS;
+syntax/whitespace and actual capture inspection PASS, no actionable findings/edits.
+Preferred Sol6.1/Medium usage limit remains; no Sol/Medium execution or quota bypass
+claim. Native and B10.2 pending reviews are closed only in this precise fallback
+scope. No independent ordinary/clean/broad backend run claimed. Source stable after
+review, exact clean proof applies. All writer reservations released at checkpoint.
+B11 separate native Luna/XHigh source/wording review completed: prior metadata P2
+addressed; unchanged021 fixed/rehearsal4/2/4 and no implicit other/unknown-active-
+profile Start/resume boundaries clarified/rechecked, no new policy contradiction.
+Root applied final clarity: only CREATED needs Start; IN_PROGRESS resumes/continues.
+No B11 runtime tests or implementation/owner disposition inferred. Proposal remains
+PROPOSED/HUMAN_APPROVAL_REQUIRED for frozen count-policy support.
 
 Qualified manual nativezoom/displayed-value/screen-reader/contrast/usability remain
 NOT TESTED. B11 count-policy change still requires applicable owner disposition;

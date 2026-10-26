@@ -56,8 +56,11 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   owner disposition or implementation authorization. Original guard4/2/4 stays.
 - Proposed local MATH2/SCIENCE2, explicit independent selection and strict NEW_ONLY;
   no one-question Reading split, silent fallback or altered historical profiles.
-  No application changes, migration/offering activation or runtime tests executed.
-  Complete current demo remains available; lawful inventory/manual accessibility
+  Actual separate native Luna/XHigh read-only source/wording review completed;
+  metadata identity, unchanged fixed/rehearsal4/2/4 and active-profile/explicit Start
+  boundaries clarified/rechecked. No new policy contradiction; this is design review,
+  not owner approval. No application changes, migration/offering activation or
+  runtime tests executed. Complete current demo remains available; lawful inventory/manual accessibility
   remain separately dependent on qualified humans.
 
 ## WEB-002 B9.1 — scoped owner go-ahead,2026-10-26

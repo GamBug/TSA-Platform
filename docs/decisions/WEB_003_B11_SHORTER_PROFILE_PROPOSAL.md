@@ -56,7 +56,10 @@ Frozen student request/catalog/shortage shapes already model the proposed entrie
 any actual need to alter those artifacts must be separately surfaced before coding.
 
 Advertise a SHORTER_PROFILE only for an explicitly enabled current same-domain
-short blueprint with correct configured count/duration. Its discovery is not a
+short blueprint with correct configured count/duration. Initial short-profile support is
+personal NEW_ONLY only: do not advertise REVIEW_MODE for these short blueprints or
+accept a short REVIEW_ALLOWED request by coercing it to NEW_ONLY. Existing full-
+profile review practice remains unchanged; short review needs a separate decision. Its discovery is not a
 promise of current stock or guaranteed feasibility: independent NEW_ONLY allocation
 must still succeed or return its own truthful shortage. Do not run a second
 allocation, write history, create forms, infer feasibility or call AI while merely
@@ -68,6 +71,23 @@ or new staff route/privilege. Personal catalog UI must render multiple profiles 
 blueprintVersionId and domain, preserving current default4/2/4 selection. Merely
 exhausting stock must never trigger a shorter POST. Existing REVIEW_ALLOWED and
 fixed choices remain independently labeled and session-bound.
+
+Keep migration021's `tsa.fixed_stock_blueprint_supported` predicate and its4/2/4
+allowlist/access scope unchanged. B8 rehearsal enumeration/capture, B9 sealing and
+B10 fixed delivery must continue to reject these short profiles. Any new short-
+profile guard/allowlist applies only to the explicitly selected personal NEW_ONLY
+path; do not broaden a shared helper in a way that enables fixed/rehearsal paths.
+
+When any owned CREATED/IN_PROGRESS attempt exists, offer only an explicit resume
+of that existing attempt and block new profile creation. Choosing another profile
+must not silently resume or start an existing attempt whose profile differs or is
+unknown. Current SDK startDemo resumes any active history record before considering
+the requested blueprint ID and automatically starts CREATED; B11 must preserve H1
+while separating profile selection from that behavior. Display exact proven active
+profile metadata when available, otherwise unknown. An owned CREATED reservation
+requires a separate explicit Start; an IN_PROGRESS attempt is explicitly resumed
+or continued. Never pretend the newly selected profile
+was allocated or substitute it for the owned active attempt.
 
 ## Impact and migration analysis
 
@@ -85,7 +105,9 @@ fixed choices remain independently labeled and session-bound.
 
 Inspect and freeze the concrete internal guard/SQL eligibility strategy before
 splitting writers. Verify old4/2/4 and original guard/goldens unchanged, new2/2 exact
-allowlist, populated upgrade preservation and flag-off owned lifecycle. Demonstrate
+allowlist, populated upgrade preservation and flag-off owned lifecycle. Verify B8/B9/B10 fixed/rehearsal4/2/4 support stays
+unchanged, short REVIEW_ALLOWED is not silently enabled, and selecting a different
+or unknown active profile sends no creation/implicit Start request. Demonstrate
 real full-profile shortage with exactly enough unseen stock for the short profile,
 zero POST on offer/cancel, explicit new short selection, persistent save/reload and
 correct2-item grade/review. Verify both personal/fixed H1 and stable/history/group
@@ -113,3 +135,22 @@ then returned an actual usage limit before final review. No independent final
 recheck/completion or B11 runtime test is claimed. Record status PENDING_REVIEW;
 no quota bypass or paid/fabricated fallback. Root documentation check is distinct
 from independent/runtime acceptance; current B10 source review remains complete.
+
+
+## Native Luna/XHigh follow-up design review
+
+Actual separate read-only `/root/b9_contracts`, assigned native Luna/XHigh through
+its existing normal entitlement, compared this proposal with the blueprint guard,
+directory/allocation, frozen receipt/view/history/shortage shapes, student UI/SDK,
+bundle/H1/history SQL and B8/B9/B10 predicates. No tests or repository edits; no
+more specific runtime model identifier was exposed and no Sol/Medium claim.
+Confirmed the prior metadata P2 is adequately addressed at proposal level. Two
+boundary recommendations were incorporated explicitly above: preserve the021 fixed/
+rehearsal4/2/4 predicate/access scope, and prohibit selecting another profile from
+implicitly starting/resuming an existing different/unknown active attempt. Initial
+short support is personal NEW_ONLY only. The same read-only reviewer rechecked these
+paragraphs and required cases: both boundary notes addressed, no new policy
+contradiction. Root applied its final clarity note that explicit Start applies to
+CREATED, while IN_PROGRESS is resumed/continued. No further runtime or independent
+execution is claimed for that wording-only refinement. This remains
+PROPOSED/HUMAN_APPROVAL_REQUIRED, never implementation or owner acceptance.

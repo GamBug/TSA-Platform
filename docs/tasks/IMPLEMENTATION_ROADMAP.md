@@ -4,9 +4,12 @@ Current WEB-004 supplement2026-10-26: real Firefox native200% automation now run
 through mixed saves/reload, submission/Escape, grading/released explanation/Space
 and catalog return. Root6checks/8captures, default4/4 and fixed6/19 PASS; actual
 factor2/DPR2/CSS640 with fixed physical1280 window, no CSS/pinch substitution.
-No application defect found/changed. [Evidence](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
-Independent review pending actual capacity limit; qualified manual/AT acceptance
-remains external. B10.2 review and B11 frozen-policy gates remain explicit.
+Clean no-hardlink7b2457a locked install/build/native6/8/default4/4/consumer/docs
+PASS, final clone Git empty. No application defect found/changed. [Evidence](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+Actual native Luna/XHigh normal-entitlement read-only fallback reviewed both native
+and B10.2 supplements; independent Chrome6/19/86, Firefox fixed6/19/native6/8 PASS,
+no actionable finding. Preferred Sol capacity remains limited, no Sol/Medium claim.
+Qualified manual/AT acceptance and B11 frozen-policy authorization remain external.
 
 Current B10.1,2026-10-26: separately selected under standing engineering delegation,
 implemented existing frozen fixed student contracts for supported B9 seals. Opt-in
