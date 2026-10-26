@@ -1,3 +1,63 @@
+# Handoff — WEB-003 explicit personal review practice
+
+- Date/role:2026-10-26 Asia/Bangkok, root Codex accountable integrator.
+- Status: IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in exact scopes;
+  clean-checkout checkpoint pending. Started feat/track-b-data-auth at0c2ba65.
+- Owner AGENTS.md and untracked research preserved/excluded. No external paid
+  services, real-content approval, push/merge/deploy or frozen-contract changes.
+- Native Luna/XHigh UI and PG-test writers released all reservations. Root owns
+  final SQL/backend/browser/integration/docs. No active write reservation.
+- Authority: recorded engineering-choice delegation, bounded
+  [decision](../decisions/WEB_003_EXPLICIT_REVIEW_PRACTICE_DECISION.md), not wholeADR007.
+- Files: migration022; assembly/attempt/directory/HTTP/runtime opt-in; existing
+  student SDK/controller/styles; existing browser runners plus bounded review
+  journey; allocation/upgrade/domain tests; latest migration arrays; guide/records.
+
+## Implemented
+
+Explicit same-blueprint REVIEW_ALLOWED after genuine unseen shortage, new intent/key,
+fresh unchecked repeat consent bound to the original session nonce, new owned form
+from current eligible stock. Default NEW_ONLY/first-history/H1/600-second TTL/server
+clocks/release rules preserved. Shared capability defaultsfalse; isolated synthetic
+student launcher explicitlytrue. Flag-off preserves stored review replay/delivery.
+No public DTO/artifact/reference-vector/new-role or raw-grant change.
+
+UI lost-ack same-key retry, separate receipt vs read, GET-only recovery, reserved
+explicit Start, truthful mode labels through resume/result/released review/history.
+Mobile current status focuses/scrolls into view. Root reproduced and fixed a real
+cross-account consent race; actual A/B HTTP timing cases now create zero attempts.
+
+## Verification evidence
+
+Exact commands/environment/defects/limits:
+[WEB-003 verification](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+Root actual PG allocation9+upgrade1/fullassembly63/Bank149/student36/critical9/B032,
+contracts156/consumers12/type/drift/boundaries/built PASS. HTTP domains3 includes
+all three actual review flows and both session-switch timings. Root final Chrome65
+API responses/7checks/11captures (375px), Firefox9checks/21captures (actual500px)
+PASS after the nonce repair. Default domains78/staffChrome46/CLI7 passed before
+that repair; the unchanged defaults remain distinct from the new opt-in checks.
+
+Independent Sol6.1/Medium actual PG9/flag-off compatibility/source/UI static checks;
+P2 test-gate liveness repaired. Capacity interrupted its follow-up. Available native
+Sol6/Medium fallback actual PG10, final UI-polish Chrome65/7/11/source no findings;
+then nonce repair source and actual domains3/syntax/diff PASS, no findings. The
+requested extra post-nonce independent browser rerun hit usage limit before
+execution. No independent Firefox or post-nonce browser pass is claimed.
+
+## Continuation
+
+Finish docs/launcher checks, checkpoint only owned files, clean no-hardlink locked
+install/build, targeted PG10/domain3/reviewChrome+Firefox/defaultdomains/drift/
+boundaries/docs reproduction, then record exact commit/results. Preserve owner
+files. Guide now includes explicit review. Current acceptance map E and personal
+reuse H updated; full fixed cross-mode/shorter profiles remain unimplemented.
+
+After this checkpoint select the next ready Track B product gap. Qualified manual
+accessibility/native zoom and real accepted12/6/12 stock need external human inputs;
+do not invent them. No full MVP/performance/production acceptance. Prior B8/SEC/G/H.1
+checkpoints below are durable history; do not repeat their completed work.
+
 # Handoff — Track B current local acceptance, verified student/staff demo and integrated acceptance
 
 2026-10-25, feat/track-b-data-auth, H.1/audit4e26296; implementation/test checkpoints committed.

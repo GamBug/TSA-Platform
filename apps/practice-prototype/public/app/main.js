@@ -9,6 +9,7 @@ const persistentMode = new URLSearchParams(window.location.search).get("student"
 const api = persistentMode ? createPersistentApi() : demoApi;
 
 function replaceApp(content, { examMode = false, resultMode = false, reviewMode = false, catalogMode = false, introMode = false } = {}) {
+  if (persistentMode && !catalogMode && (state.reviewOffer || state.reviewIntent || state.reviewDialog)) clearReviewFlow();
   const routeChanged = persistentMode && (
     app.classList.contains("exam-mode") !== examMode
     || app.classList.contains("result-mode") !== resultMode
@@ -76,6 +77,9 @@ const state = {
   markedAttemptId: null,
   markedSlotIds: new Set(),
   navigatorFilter: "all",
+  reviewOffer: null,
+  reviewIntent: null,
+  reviewDialog: null,
 };
 
 const REVIEW_MARKS_STORAGE_PREFIX = "tsa-practice:attempt-review:";
@@ -85,6 +89,94 @@ function element(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+function isReviewAllowedAttempt(attempt) {
+  return attempt?.formMode === "PERSONALIZED_PRACTICE" && attempt?.reuseMode === "REVIEW_ALLOWED";
+}
+
+function readExpectedAttempt(attemptId, expected) {
+  if (expected?.formMode && expected?.reuseMode) return api.readAttempt(attemptId, expected);
+  return api.readAttempt(attemptId);
+}
+
+function reviewModeLabel() {
+  return "Lượt ôn tập · có thể lặp câu";
+}
+
+function formatPracticeDuration(seconds) {
+  if (!Number.isSafeInteger(seconds) || seconds <= 0) return "thời lượng do danh mục cung cấp";
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (minutes === 0) return `${seconds} giây`;
+  return remainder === 0 ? `${minutes} phút` : `${minutes} phút ${remainder} giây`;
+}
+
+function dismissReviewDialog({ restoreFocus = false } = {}) {
+  const dialog = state.reviewDialog;
+  if (!dialog) return;
+  if (!restoreFocus) dialog.dataset.suppressFocusRestore = "true";
+  if (dialog.open) dialog.close();
+  dialog.remove();
+  if (state.reviewDialog === dialog) state.reviewDialog = null;
+}
+
+function clearReviewFlow() {
+  const hadPendingIntent = state.reviewIntent !== null;
+  state.reviewOffer = null;
+  state.reviewIntent = null;
+  dismissReviewDialog();
+  if (hadPendingIntent) state.busy = false;
+}
+
+function reviewOfferIsCurrent(offer) {
+  if (!offer || state.reviewOffer !== offer || offer.identityGeneration !== state.identityGeneration) return false;
+  const profile = state.catalog.find((entry) => entry.domain === offer.domain);
+  return profile?.blueprintVersionId === offer.blueprintVersionId
+    && profile.questionCount === offer.questionCount
+    && profile.durationSeconds === offer.durationSeconds;
+}
+
+function reconcileReviewFlowWithCatalog() {
+  const flow = state.reviewIntent ?? state.reviewOffer;
+  if (!flow) return;
+  const profile = state.catalog.find((entry) => entry.domain === flow.domain);
+  if (flow.identityGeneration !== state.identityGeneration || profile?.blueprintVersionId !== flow.blueprintVersionId
+      || profile.questionCount !== flow.questionCount || profile.durationSeconds !== flow.durationSeconds) {
+    clearReviewFlow();
+  }
+}
+
+function reviewAlternativeFrom(error, profile) {
+  if (error?.code !== "INSUFFICIENT_UNSEEN_INVENTORY" || error.status !== 422 || !profile) return null;
+  if (!Number.isSafeInteger(profile.questionCount) || profile.questionCount <= 0
+      || !Number.isSafeInteger(profile.durationSeconds) || profile.durationSeconds <= 0) return null;
+  const details = error.details;
+  if (details?.reuseMode !== "NEW_ONLY" || details.blueprintVersionId !== profile.blueprintVersionId
+      || !Array.isArray(details.alternatives)) return null;
+  const alternatives = details.alternatives.filter((item) => item?.kind === "REVIEW_MODE");
+  if (alternatives.length !== 1) return null;
+  const alternative = alternatives[0];
+  const keys = Object.keys(alternative).sort();
+  if (keys.length !== 3 || keys[0] !== "blueprintVersionId" || keys[1] !== "kind" || keys[2] !== "requiresRepeatConsent"
+      || alternative.blueprintVersionId !== profile.blueprintVersionId || alternative.requiresRepeatConsent !== true) return null;
+  return alternative;
+}
+
+function isCanonicalUuid(value) {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+}
+
+function isMatchingReviewReceipt(receipt, intent) {
+  return receipt?.state === "CREATED"
+    && receipt.formMode === "PERSONALIZED_PRACTICE"
+    && receipt.reuseMode === "REVIEW_ALLOWED"
+    && receipt.reusePolicyVersion === "reuse/1"
+    && receipt.domain === intent.domain
+    && isCanonicalUuid(receipt.attemptId)
+    && isCanonicalUuid(receipt.formId)
+    && typeof receipt.startBefore === "string"
+    && Number.isFinite(Date.parse(receipt.startBefore));
 }
 
 function contentText(blocks = []) {
@@ -294,7 +386,7 @@ async function refreshAfterDeadline() {
   if (state.checkingExpiry || state.attempt === null) return;
   state.checkingExpiry = true;
   try {
-    const data = await api.readAttempt(state.attempt.attemptId);
+    const data = await readExpectedAttempt(state.attempt.attemptId, state.attempt);
     if (identityGeneration !== state.identityGeneration) return;
     if (data.attempt.state === "IN_PROGRESS") {
       startTimer(data.attempt, true);
@@ -325,11 +417,13 @@ function tick() {
 
 function resetPersistentIdentity() {
   state.identityGeneration += 1;
+  clearReviewFlow();
   state.history = [];
   state.historyStatus = "";
 }
 
 function clearAttemptState() {
+  clearReviewFlow();
   stopGradePolling();
   clearAttemptReviewState(state.attempt?.attemptId ?? state.markedAttemptId);
   clearTimer();
@@ -447,7 +541,7 @@ async function refreshGradeStatus(attemptId, { finalCheck = false } = {}) {
   const generation = state.gradePollGeneration;
   state.gradePollInFlight = true;
   try {
-    const data = await api.readAttempt(attemptId);
+    const data = await readExpectedAttempt(attemptId, state.attempt);
     if (identityGeneration !== state.identityGeneration) return;
     if (generation !== state.gradePollGeneration || state.attempt?.attemptId !== attemptId) return;
     acceptAttempt(data.attempt);
@@ -483,6 +577,10 @@ function renderCreatedAttempt() {
   const title = element("h1", "intro-title", `${domainName({ domain: attempt.domain })} · bài luyện tập`);
   title.tabIndex = -1;
   card.append(title);
+  if (isReviewAllowedAttempt(attempt)) {
+    card.append(element("p", "review-mode-label", reviewModeLabel()));
+    card.append(element("p", "intro-lead", "Lượt này có thể dùng câu hỏi đã được giao trước đây. Không có cam kết rằng mọi câu sẽ lặp lại."));
+  }
   card.append(element("p", "intro-lead", "Bài đã được lưu trong PostgreSQL cục bộ. Bắt đầu chỉ khi bạn chọn nút bên dưới; đồng hồ máy chủ chạy liên tục sau khi bắt đầu."));
   const facts = element("div", "intro-metrics");
   facts.append(element("div", "intro-metric", `${attempt.questionCount || attempt.slots.length || profile?.questionCount || 0} câu`));
@@ -507,7 +605,7 @@ async function startReservedAttempt() {
   const attempt = state.attempt;
   state.busy = true;
   try {
-    const response = await api.startReservedAttempt(attempt.attemptId);
+    const response = await api.startReservedAttempt(attempt.attemptId, attempt);
     if (identityGeneration !== state.identityGeneration) return;
     void refreshPersistentHistory();
     state.resumeNotice = response.resumed ? "Đã tiếp tục bài đã được giữ" : "";
@@ -537,6 +635,7 @@ function renderPendingGrade() {
   title.id = "pending-grade-title";
   title.tabIndex = -1;
   card.append(title);
+  if (isReviewAllowedAttempt(attempt)) card.append(element("p", "review-mode-label", reviewModeLabel()));
   card.append(element("p", "result-note", "Máy chủ đang xử lý bài đã gửi. Bạn có thể quay lại danh sách; trạng thái được lưu và có thể đọc lại sau."));
   if (state.resumeNotice) card.append(element("p", "notice-panel", state.resumeNotice));
   const status = element("p", "notice-panel", `Trạng thái chấm: ${gradingStateNames[attempt.gradingStatus] || gradingStateNames.PENDING}.`);
@@ -558,6 +657,7 @@ function renderFailedGrade() {
   const title = element("h1", "", "Máy chủ chưa thể chấm bài này.");
   title.tabIndex = -1;
   card.append(title);
+  if (isReviewAllowedAttempt(state.attempt)) card.append(element("p", "review-mode-label", reviewModeLabel()));
   card.append(element("p", "result-note", "Chưa có kết quả nào được công bố. Bạn có thể đọc lại trạng thái từ máy chủ; không có thao tác thử chấm lại trong màn hình này."));
   const status = element("p", "notice-panel", gradingStateNames.FAILED_FINAL + ".");
   status.dataset.testid = "grading-status";
@@ -574,6 +674,7 @@ function renderReleasedResultUnavailable() {
   fragment.append(header());
   const card = element("section", "result-card persistent-grade-card");
   card.append(element("h1", "", "Bài đã được chấm, nhưng kết quả chưa tải được."));
+  if (isReviewAllowedAttempt(state.attempt)) card.append(element("p", "review-mode-label", reviewModeLabel()));
   card.append(element("p", "result-note", "Hãy đọc lại trạng thái từ máy chủ. Đáp án và lời giải chỉ xuất hiện sau khi máy chủ xác nhận bản phát hành."));
   card.append(actionButton("Tải lại trạng thái", "grade-status-retry", () => refreshGradeStatus(state.attempt.attemptId, { finalCheck: true }), "button"));
   card.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
@@ -600,7 +701,7 @@ async function resumePersistentAttempt() {
   const attemptId = state.attempt.attemptId;
   state.busy = true;
   try {
-    const data = await api.readAttempt(attemptId);
+    const data = await readExpectedAttempt(attemptId, state.attempt);
     if (identityGeneration !== state.identityGeneration) return;
     state.busy = false;
     state.resumeNotice = "Đã đọc lại trạng thái đã lưu từ PostgreSQL cục bộ";
@@ -618,7 +719,8 @@ async function openPersistentHistoryAttempt(attemptId) {
   if (!persistentMode || state.busy || hasUnacknowledgedChanges()) return;
   state.busy = true;
   try {
-    const data = await api.readAttempt(attemptId);
+    const record = state.history.find((item) => item.attemptId === attemptId);
+    const data = await readExpectedAttempt(attemptId, record);
     if (identityGeneration !== state.identityGeneration) return;
     state.busy = false;
     state.resumeNotice = "Đã tải trạng thái bài từ lịch sử PostgreSQL cục bộ";
@@ -683,7 +785,7 @@ function header(exam = false) {
     navigation.append(actionButton("Bài luyện tập", "nav-catalog", () => openScreen(renderCatalog), "topbar-link"));
     if (persistentMode) {
       const logout = actionButton("Đăng xuất", "persistent-logout", logoutPersistentCandidate, "topbar-link");
-      logout.disabled = state.busy || hasUnacknowledgedChanges();
+      logout.disabled = (state.busy && state.reviewIntent === null) || hasUnacknowledgedChanges();
       navigation.append(logout);
     }
     if (state.attempt?.state === "GRADED") {
@@ -958,10 +1060,285 @@ function domainCard(domain) {
     cardFooter.append(disabled);
   }
   card.append(cardFooter);
+  if (persistentMode && state.reviewOffer?.domain === domain.domain) {
+    card.append(renderReviewOffer(state.reviewOffer));
+  }
+  if (persistentMode && state.reviewIntent?.domain === domain.domain) {
+    card.append(renderReviewIntentPanel(state.reviewIntent));
+  }
   return card;
 }
 
+function appendReviewStatus(panel, stage, message) {
+  const status = element("p", "review-mode-status", message);
+  status.dataset.testid = "review-mode-status";
+  status.dataset.stage = stage;
+  status.tabIndex = -1;
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  panel.append(status);
+  return status;
+}
+
+function focusReviewStatus() {
+  const status = app.querySelector("[data-testid='review-mode-status']");
+  if (!status) return;
+  status.focus({ preventScroll: true });
+  status.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+}
+
+function renderReviewOffer(offer) {
+  const panel = element("section", "review-mode-card review-mode-offer");
+  panel.dataset.testid = "review-mode-offer";
+  panel.dataset.blueprintVersionId = offer.blueprintVersionId;
+  panel.setAttribute("aria-labelledby", `review-mode-offer-title-${offer.offerId}`);
+  const title = element("h3", "", "Có thể chọn bài ôn tập có lặp câu");
+  title.id = `review-mode-offer-title-${offer.offerId}`;
+  panel.append(title);
+  panel.append(element("p", "", "Máy chủ chưa tìm đủ câu mới cho bộ này. Bạn có thể yêu cầu một bài mới theo cùng lĩnh vực, số câu và thời lượng; bài có thể gồm câu đã được giao trước đây."));
+  appendReviewStatus(panel, "offered", "Chưa tạo bài ôn tập. Cần xác nhận riêng trước khi gửi yêu cầu.");
+  const open = actionButton("Xem lựa chọn ôn tập", "review-mode-open", () => openReviewConsent(offer), "button secondary");
+  open.setAttribute("aria-haspopup", "dialog");
+  open.setAttribute("aria-controls", "review-mode-dialog");
+  open.disabled = state.busy;
+  panel.append(open);
+  return panel;
+}
+
+function renderReviewIntentPanel(intent) {
+  const panel = element("section", "review-mode-card review-mode-outcome");
+  panel.dataset.testid = "review-mode-outcome";
+  panel.dataset.blueprintVersionId = intent.blueprintVersionId;
+  const messages = {
+    posting: "Đang gửi yêu cầu ôn tập. Chưa tải xong trạng thái bài từ máy chủ.",
+    uncertain: "Chưa xác nhận được phản hồi. Máy chủ có thể đã ghi nhận yêu cầu; hãy thử lại đúng yêu cầu này để kiểm tra.",
+    receipt: "Máy chủ đã ghi nhận yêu cầu ôn tập. Đang đọc trạng thái bài từ máy chủ.",
+    "read-unavailable": "Máy chủ đã ghi nhận yêu cầu, nhưng chưa đọc được trạng thái bài. Có thể tải lại trạng thái mà không gửi yêu cầu tạo bài lần nữa.",
+    unverified: "Phản hồi máy chủ chưa khớp với chế độ ôn tập đã yêu cầu. Bài chưa được mở trong giao diện này.",
+    failed: intent.message || "Không tạo được bài ôn tập. Không có thao tác thay thế tự động nào được gửi.",
+  };
+  appendReviewStatus(panel, intent.phase, messages[intent.phase] || messages.failed);
+  if (intent.phase === "uncertain") {
+    const retry = actionButton("Thử lại cùng yêu cầu", "review-mode-retry", () => { void submitReviewIntent(intent); }, "button secondary");
+    retry.disabled = state.busy;
+    panel.append(retry);
+  } else if (intent.phase === "read-unavailable" && intent.receipt?.attemptId) {
+    const reload = actionButton("Tải lại trạng thái bài", "review-mode-reload", () => { void readReviewReceipt(intent); }, "button secondary");
+    reload.disabled = state.busy;
+    panel.append(reload);
+  } else if (["failed", "unverified"].includes(intent.phase)) {
+    const recover = actionButton("Đọc lại bài đã lưu từ máy chủ", "review-mode-recover", () => { void initializePersistent(); }, "button secondary");
+    recover.disabled = state.busy;
+    panel.append(recover);
+  }
+  return panel;
+}
+
+function openReviewConsent(offer) {
+  if (state.busy || !reviewOfferIsCurrent(offer)) {
+    if (state.reviewOffer === offer) {
+      clearReviewFlow();
+      renderCatalog();
+      showMessage("Lựa chọn ôn tập không còn khớp với danh mục hiện tại. Hãy đọc lại danh mục.");
+    }
+    return;
+  }
+  dismissReviewDialog();
+  const dialog = element("dialog", "review-mode-dialog");
+  dialog.id = "review-mode-dialog";
+  dialog.dataset.testid = "review-mode-dialog";
+  dialog.dataset.stage = "confirming";
+  dialog.setAttribute("aria-labelledby", "review-mode-dialog-title");
+  dialog.setAttribute("aria-describedby", "review-mode-dialog-description");
+  dialog.reviewOffer = offer;
+  const title = element("h2", "", "Xác nhận bài ôn tập");
+  title.id = "review-mode-dialog-title";
+  const description = element("p", "", `${domainName({ domain: offer.domain })} · ${offer.questionCount} câu · ${formatPracticeDuration(offer.durationSeconds)}. Bài mới có thể dùng câu hỏi đã được giao trước đây; không có cam kết rằng mọi câu sẽ lặp lại.`);
+  description.id = "review-mode-dialog-description";
+  const warning = element("p", "review-mode-warning", "Lượt này tạo một bài luyện tập mới theo bộ đã chọn. Xác nhận này không xóa lịch sử bài trước và không bảo đảm bài sẽ được tạo nếu nội dung đủ điều kiện thay đổi.");
+  const fieldset = element("fieldset", "review-mode-consent-group");
+  const legend = element("legend", "", "Đồng ý lặp câu");
+  const label = element("label", "review-mode-consent-label");
+  const checkbox = element("input", "review-mode-consent-checkbox");
+  checkbox.type = "checkbox";
+  checkbox.dataset.testid = "review-mode-consent";
+  checkbox.id = "review-mode-consent-input";
+  const labelText = element("span", "", "Tôi đồng ý rằng bài này có thể dùng câu hỏi đã được giao trong bài trước.");
+  label.append(checkbox, labelText);
+  fieldset.append(legend, label);
+  const actions = element("div", "review-mode-dialog-actions");
+  const cancel = actionButton("Hủy", "review-mode-cancel", () => closeReviewConsent(dialog, true), "button secondary");
+  const confirm = actionButton("Xác nhận và tạo bài ôn tập", "review-mode-confirm", () => { void confirmReviewConsent(offer, checkbox, dialog); }, "button");
+  confirm.disabled = true;
+  checkbox.addEventListener("change", () => { confirm.disabled = !checkbox.checked; });
+  actions.append(cancel, confirm);
+  dialog.append(title, description, warning, fieldset, actions);
+  dialog.returnFocusTarget = app.querySelector("[data-testid='review-mode-open']");
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeReviewConsent(dialog, true);
+  });
+  dialog.addEventListener("close", () => {
+    if (!dialog.isConnected) return;
+    checkbox.checked = false;
+    confirm.disabled = true;
+    if (state.reviewDialog === dialog) state.reviewDialog = null;
+    if (state.reviewOffer === offer) {
+      const status = app.querySelector("[data-testid='review-mode-offer'] [data-testid='review-mode-status']");
+      if (status) {
+        status.dataset.stage = "offered";
+        status.textContent = "Chưa tạo bài ôn tập. Cần xác nhận riêng trước khi gửi yêu cầu.";
+      }
+    }
+    const target = dialog.returnFocusTarget;
+    dialog.remove();
+    if (dialog.dataset.suppressFocusRestore !== "true" && target?.isConnected) target.focus({ preventScroll: true });
+  });
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab" || !dialog.open) return;
+    const controls = [...dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter((control) => control.getClientRects().length > 0);
+    const first = controls[0], last = controls.at(-1);
+    if (!first) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  state.reviewDialog = dialog;
+  const offerStatus = app.querySelector("[data-testid='review-mode-offer'] [data-testid='review-mode-status']");
+  if (offerStatus) {
+    offerStatus.dataset.stage = "confirming";
+    offerStatus.textContent = "Đang chờ xác nhận rõ ràng. Chưa gửi yêu cầu tạo bài.";
+  }
+  app.append(dialog);
+  dialog.showModal();
+  checkbox.focus({ preventScroll: true });
+}
+
+function closeReviewConsent(dialog, restoreFocus) {
+  if (state.reviewDialog !== dialog) return;
+  if (!restoreFocus) {
+    dialog.dataset.suppressFocusRestore = "true";
+    if (dialog.open) dialog.close();
+    state.reviewDialog = null;
+    return;
+  }
+  if (dialog.open) dialog.close();
+}
+
+async function confirmReviewConsent(offer, checkbox, dialog) {
+  if (state.busy || !checkbox.checked || dialog.reviewOffer !== offer || !reviewOfferIsCurrent(offer)) return;
+  let requestIntent;
+  try {
+    requestIntent = api.prepareReviewAttempt(offer.blueprintVersionId);
+  } catch {
+    state.reviewOffer = null;
+    state.reviewIntent = { ...offer, phase: "failed", message: "Không thể chuẩn bị yêu cầu theo mã bộ hiện tại. Hãy đọc lại danh mục." };
+    closeReviewConsent(dialog, false);
+    renderCatalog();
+    return;
+  }
+  state.reviewOffer = null;
+  const intent = {
+    ...offer,
+    phase: "posting",
+    requestIntent,
+    receipt: null,
+    message: "",
+  };
+  state.reviewIntent = intent;
+  closeReviewConsent(dialog, false);
+  await submitReviewIntent(intent);
+}
+
+async function submitReviewIntent(intent) {
+  if (state.busy || state.reviewIntent !== intent || intent.identityGeneration !== state.identityGeneration
+      || !intent.requestIntent) return;
+  state.busy = true;
+  intent.phase = "posting";
+  renderCatalog();
+  focusReviewStatus();
+  if (state.reviewIntent !== intent || state.identityGeneration !== intent.identityGeneration) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const receipt = await api.createReviewAttempt(intent.requestIntent);
+    if (state.identityGeneration !== intent.identityGeneration || state.reviewIntent !== intent) return;
+    state.busy = false;
+    intent.requestIntent = null;
+    if (!isMatchingReviewReceipt(receipt, intent)) {
+      intent.phase = "unverified";
+      renderCatalog();
+      focusReviewStatus();
+      return;
+    }
+    intent.receipt = Object.freeze({ attemptId: receipt.attemptId, domain: receipt.domain });
+    intent.phase = "receipt";
+    renderCatalog();
+    focusReviewStatus();
+    await readReviewReceipt(intent);
+  } catch (error) {
+    if (state.identityGeneration !== intent.identityGeneration || state.reviewIntent !== intent) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    if (error?.status === 503 || error?.status === 429) {
+      intent.phase = "uncertain";
+    } else {
+      intent.requestIntent = null;
+      intent.phase = "failed";
+      intent.message = error?.message || "Máy chủ đã từ chối yêu cầu ôn tập. Hãy đọc lại danh mục trước khi chọn lại.";
+    }
+    renderCatalog();
+    focusReviewStatus();
+  }
+}
+
+async function readReviewReceipt(intent) {
+  if (state.busy || state.reviewIntent !== intent || intent.identityGeneration !== state.identityGeneration
+      || !intent.receipt?.attemptId) return;
+  state.busy = true;
+  intent.phase = "receipt";
+  renderCatalog();
+  focusReviewStatus();
+  if (state.reviewIntent !== intent || state.identityGeneration !== intent.identityGeneration) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const response = await api.readReviewAttempt(intent.receipt.attemptId, intent.domain);
+    if (state.identityGeneration !== intent.identityGeneration || state.reviewIntent !== intent) return;
+    state.busy = false;
+    const attempt = response?.attempt;
+    if (!attempt || attempt.attemptId !== intent.receipt.attemptId || attempt.domain !== intent.domain
+        || attempt.formMode !== "PERSONALIZED_PRACTICE" || attempt.reuseMode !== "REVIEW_ALLOWED") {
+      intent.phase = "unverified";
+      renderCatalog();
+      focusReviewStatus();
+      return;
+    }
+    state.reviewIntent = null;
+    state.resumeNotice = "Đã tải trạng thái bài ôn tập có thể lặp câu từ máy chủ.";
+    state.review = null;
+    state.currentIndex = 0;
+    void refreshPersistentHistory();
+    acceptAttempt(attempt);
+  } catch (error) {
+    if (state.identityGeneration !== intent.identityGeneration || state.reviewIntent !== intent) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    intent.phase = error?.code === "UNEXPECTED_ATTEMPT_MODE" ? "unverified" : "read-unavailable";
+    renderCatalog();
+    focusReviewStatus();
+  }
+}
+
 function renderCatalog() {
+  if (persistentMode) reconcileReviewFlowWithCatalog();
   if (persistentMode) {
     stopGradePolling();
     clearTimer();
@@ -1002,6 +1379,8 @@ function renderCatalog() {
       const ownedActive = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) && state.attempt.domain === domain.domain;
       return key === "all" || (domain.available || ownedActive) === (key === "available");
     });
+    const flow = state.reviewIntent ?? state.reviewOffer;
+    if (flow && !domains.some((domain) => domain.domain === flow.domain)) clearReviewFlow();
     for (const button of filters.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === activeControl));
     grid.replaceChildren(...domains.map(domainCard));
     catalogCount.textContent = `${domains.length} lĩnh vực`;
@@ -1019,13 +1398,14 @@ function renderCatalog() {
   panel.append(panelHeader);
   if (persistentMode) panel.append(renderTimingNotice());
   panel.append(filters, grid);
-  if (persistentMode && state.attempt) {
+  if (persistentMode && state.attempt && !state.reviewIntent) {
     const current = element("section", "staff-callout persistent-current-attempt");
     current.dataset.testid = "persistent-current-attempt";
     const currentTitle = state.attempt.state === "GRADED" ? "Kết quả đã sẵn sàng" : ["SUBMITTED", "EXPIRED"].includes(state.attempt.state)
       ? "Bài đã gửi; trạng thái chấm được lưu" : "Bài đã lưu cho hồ sơ này";
     current.append(element("h2", "", currentTitle));
     current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · ${attemptStateNames[state.attempt.state] || "Chưa đọc được trạng thái"}${state.attempt.gradingStatus ? ` · ${gradingStateNames[state.attempt.gradingStatus] || "Chưa đọc được trạng thái chấm"}` : ""}`));
+    if (isReviewAllowedAttempt(state.attempt)) current.append(element("p", "review-mode-label", reviewModeLabel()));
     current.append(actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary"));
     fragment.append(panel, current);
   } else {
@@ -1048,6 +1428,9 @@ function renderCatalog() {
       for (const record of state.history.slice(0, 10)) {
         const row = element("article", "persistent-history-item");
         row.append(element("strong", "", `${domainNames[record.domain] || record.domain} · ${attemptStateNames[record.state] || "Chưa đọc được trạng thái"}`));
+        if (record.formMode === "PERSONALIZED_PRACTICE" && record.reuseMode === "REVIEW_ALLOWED") {
+          row.append(element("span", "review-mode-label", reviewModeLabel()));
+        }
         if (record.score && record.state === "GRADED") {
           row.append(element("span", "", `${record.score.correctCount}/${record.score.totalCount} · ${record.score.percentage}% · luyện tập không chính thức`));
         } else if (record.state === "SUBMITTED" || record.state === "EXPIRED") {
@@ -1077,10 +1460,12 @@ function renderCatalog() {
 async function startDemo(selectedDomain = null) {
   const identityGeneration = state.identityGeneration;
   if (state.busy) return;
+  if (persistentMode) clearReviewFlow();
   state.busy = true;
   renderCatalog();
+  let profile = null;
   try {
-    const profile = persistentMode
+    profile = persistentMode
       ? (typeof selectedDomain === "object" && selectedDomain !== null
         ? selectedDomain
         : state.catalog.find((entry) => entry.domain === selectedDomain))
@@ -1101,6 +1486,22 @@ async function startDemo(selectedDomain = null) {
   } catch (error) {
     if (identityGeneration !== state.identityGeneration) return;
     state.busy = false;
+    const alternative = persistentMode ? reviewAlternativeFrom(error, profile) : null;
+    if (alternative && state.catalog.some((entry) => entry.domain === profile.domain
+        && entry.blueprintVersionId === profile.blueprintVersionId)) {
+      state.reviewOffer = Object.freeze({
+        offerId: window.crypto.randomUUID(),
+        domain: profile.domain,
+        blueprintVersionId: alternative.blueprintVersionId,
+        questionCount: profile.questionCount,
+        durationSeconds: profile.durationSeconds,
+        identityGeneration,
+      });
+      renderCatalog();
+      focusReviewStatus();
+      announce("Có lựa chọn ôn tập cần xác nhận riêng.");
+      return;
+    }
     if (persistentMode && handlePersistentError(error)) return;
     renderCatalog();
     showMessage(error.message || (persistentMode ? "Không thể bắt đầu bài luyện tập." : "Không thể bắt đầu phiên demo."));
@@ -1332,7 +1733,9 @@ async function reloadAttemptAfterSaveConflict() {
   for (const control of app.querySelectorAll("button, input")) control.disabled = true;
   updateSaveStatus("Tải lại trạng thái đã lưu từ máy chủ…");
   try {
-    const data = await api.readAttempt(attemptId);
+    const data = originalAttempt.formMode === "PERSONALIZED_PRACTICE" && originalAttempt.reuseMode === "REVIEW_ALLOWED"
+      ? await api.readReviewAttempt(attemptId, originalAttempt.domain)
+      : await api.readAttempt(attemptId);
     if (identityGeneration !== state.identityGeneration || state.attempt !== originalAttempt) return;
     // Terminal acceptance must see pending edits to explain unresolved saves.
     if (data.attempt.state === "IN_PROGRESS") {
@@ -1578,6 +1981,7 @@ function examTopbar() {
   identityCopy.append(element("strong", "", "TSA Practice"));
   const durationMinutes = Math.floor(state.attempt.durationSeconds / 60);
   identityCopy.append(element("span", "", `${domainNames[state.attempt.domain] || state.attempt.domain || "Bài luyện tập"} · ${persistentMode ? "Local PG" : "Demo"} · ${state.attempt.slots.length} câu · ${durationMinutes} phút`));
+  if (isReviewAllowedAttempt(state.attempt)) identityCopy.append(element("span", "review-mode-label", reviewModeLabel()));
   identity.append(identityCopy);
 
   const clock = element("div", "exam-clock");
@@ -1966,6 +2370,7 @@ function renderResult(result) {
     const domain = element("p", "result-label", `Bài luyện tập độc lập · ${domainNames[state.attempt.domain] || state.attempt.domain} · ${result.totalCount} câu`);
     domain.dataset.testid = "result-domain";
     summary.append(domain);
+    if (isReviewAllowedAttempt(state.attempt)) summary.append(element("p", "review-mode-label", reviewModeLabel()));
   }
   summary.append(title, element("p", "result-label", result.label));
   summary.append(element("p", "result-note", persistentMode
@@ -2096,6 +2501,9 @@ function renderReview() {
   filterGroup.setAttribute("role", "group");
   filterGroup.setAttribute("aria-label", "Lọc kết quả ôn tập");
   const context = element("div", "review-context");
+  if (isReviewAllowedAttempt(state.attempt)) {
+    context.append(element("p", "review-mode-label", "Bài mới được tạo theo chế độ ôn tập có thể lặp câu. Lượt này không sửa hay thay thế các bài đã lưu trước đây."));
+  }
   context.append(
     element("p", "review-repeat-notice", state.review.repeatNotice),
     element("p", "review-disclaimer", persistentMode
@@ -2290,7 +2698,7 @@ async function loginPersistentCandidate(actorKey) {
 }
 
 async function logoutPersistentCandidate() {
-  if (state.busy) return;
+  if (state.busy && state.reviewIntent === null) return;
   resetPersistentIdentity();
   const identityGeneration = state.identityGeneration;
   state.busy = true;

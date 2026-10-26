@@ -67,6 +67,31 @@ persistent student client; `/` alone selects the separately labelled mock client
    can exhaust this tiny NEW_ONLY inventory. That shortage is intentional; the
    application does not silently repeat questions or switch reuse policies.
 
+### Optional explicit review practice
+
+Keep the same disposable student launcher running. After completing a domain,
+request its default practice again. Once previously assigned inventory is exhausted,
+the genuine unseen-inventory shortage offers review of the **same** domain profile.
+Open the review confirmation and show that its repeat-consent checkbox starts
+unchecked. Cancel or Escape sends no creation request. Check it deliberately and
+confirm to create a new review attempt; select **Start** explicitly from its reserved
+screen. The count, duration and server timing rules remain the same.
+
+Answer, wait for acknowledged saves, reload, submit and open the released result
+and explanations as before. Review labels persist through the attempt, result and
+history. Questions may include prior assignments; the algorithm does not promise
+the fewest repeats. Earlier assignment history is preserved, so a later default
+NEW_ONLY request still truthfully reports exhaustion. Review never starts
+automatically and does not repair a lack of currently eligible content.
+
+If creation acknowledgement is lost, use the explicit retry for that same request.
+After acknowledgement, a failed attempt read offers a read-only retry. An uncertain
+or unverified response is not a confirmed reservation. Reload never repeats the
+creation request. Switching accounts clears consent and prior private state.
+The synthetic launcher explicitly enables this capability; shared runtime/service
+constructors keep it disabled by default. See the [executed review-practice checks
+and limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+
 | Synthetic profile | Questions | Independent duration |
 | --- | --- | --- |
 | Mathematics | 4 | 6 minutes |
@@ -296,6 +321,8 @@ From the installed repository root:
 npm run build
 npm run test:student
 npm run test:student:domains
+npm run test:student:review
+npm run test:student:review:firefox
 npm run test:student:keyboard
 npm run test:student:firefox
 npm run test:staff:review

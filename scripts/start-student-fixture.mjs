@@ -40,7 +40,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     const rate = { capacity: 100, refillPerSecond: 10 };
     runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool,
       env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
-      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', leaseSeconds: 30, retrySeconds: 1,
+      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
     return { origin: runtime.origin, fixtureProfile: reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
@@ -72,7 +72,7 @@ async function runWorker() {
       if (demo.fixtureProfile === 'THREE_DOMAINS') {
         process.stdout.write('Choose Mathematics (4), Reading (2), or Science (4). Each is independently timed and scored.\n');
       }
-      process.stdout.write('Answer, wait for saved confirmation, reload, submit, then open the released review.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\nGuide: docs/guides/TRACK_B_SUPERVISOR_DEMO.md\n\n');
+      process.stdout.write('Answer, wait for saved confirmation, reload, submit, then open the released review.\nAfter unseen inventory is exhausted, optional review requires fresh repeat consent and an explicit Start.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\nGuide: docs/guides/TRACK_B_SUPERVISOR_DEMO.md\n\n');
     }
   } catch (error) {
     process.stderr.write(`${error.message}\n`); process.exitCode = 1;

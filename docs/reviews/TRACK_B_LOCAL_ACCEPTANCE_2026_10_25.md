@@ -1,5 +1,7 @@
 # Track B local product acceptance —2026-10-25
 
+Updated2026-10-26 for the separately scoped explicit personal-review increment.
+
 Accountable orchestrator root Codex; feat/track-b-data-auth. This is a current
 navigation and evidence reconciliation, not full Technical MVP or production
 acceptance. Bounded student presentation is complete; B1–B8 staff capabilities are
@@ -55,10 +57,10 @@ are separate bounded additions; counts are not a completion percentage.
 |---|---|
 | C cross-student reuse | AUTOMATED_PASS: actual concurrent separate students may receive identical complete eligible stock, distinct histories. `allocation.test.mjs` concurrent cross-student case, assembly suite. |
 | D same-student no repeat | AUTOMATED_PASS: assigned-unstarted/cancelled identities and merged groups remain excluded; later NEW_ONLY uses disjoint stable IDs. Existing allocation/bundle cases plus G follow-up. |
-| E exhaustion | AUTOMATED_PASS: proven shortage vs bounded unknown, safe projections, no allocation side effects or silent fallback. NOT_EXECUTED/unimplemented: shorter/repeat-consented alternatives; not exposed by current demo. |
+| E exhaustion | AUTOMATED_PASS: proven shortage vs bounded unknown, safe projections, no allocation side effects or silent fallback. Explicit same-blueprint repeat-consented review now passes real PG/HTTP/Chromium/Firefox checks; first-history and later strict NEW_ONLY remain intact. [Exact review evidence](WEB_003_REVIEW_PRACTICE_VERIFICATION.md). Shorter profiles remain unsupported. |
 | F corrected versions | AUTOMATED_PASS: stable-ID and current merged-group exclusion after correction, whole-bundle behavior, independent version-review gates. Existing Bank/assembly cases. |
 | G publication during active exam | AUTOMATED_PASS / INDEPENDENTLY_REVIEWED: real same-question corrected text/key becomes eligible while original sealed rows/clocks/history/digest remain fixed; grade/review retains original4/4. [Exact G evidence](TEST_002_PUBLICATION_DURING_ATTEMPT_VERIFICATION.md). Controlled service/PG evidence, no new browser-publication claim. |
-| H concurrent creation | Existing same-profile real barriers and separate same-key replay AUTOMATED_PASS. Different-domain MATH/READING H.1 winner-order barriers AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; [bounded H.1 evidence](TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md). NOT_EXECUTED: full cross-mode race; fixed/review allocation is not implemented by this personal path. |
+| H concurrent creation | Existing same-profile real barriers and separate same-key replay AUTOMATED_PASS. Different-domain MATH/READING H.1 winner-order barriers AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; [bounded H.1 evidence](TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md). NEW_ONLY vs REVIEW_ALLOWED both winner orders also pass real barriers in the review increment. NOT_EXECUTED: full cross-mode race including unsupported fixed student delivery. |
 | A/B/I/J Track A integration | NOT_EXECUTED/outside this local Track B acceptance scope. Factory500 workload/month-long provider outage/half-batch recovery/replacement adapter are not demonstrated. No paid/live student inference dependency introduced. |
 
 ## External inputs and explicit limits
@@ -67,7 +69,7 @@ are separate bounded additions; counts are not a completion percentage.
 |---|---|
 | Lawful accepted starter stock | HUMAN_APPROVAL_REQUIRED / BLOCKED for real publication:12 MATH,6 READING,12 SCIENCE with question-specific provenance/use rights and named qualified independent content review. [Owner content handoff](../guides/TRACK_B_CONTENT_HANDOFF.md) |
 | Accessibility | MANUAL_CHECK_PENDING: actual qualified screen-reader/native200% zoom/usability record and disposition. [Existing review packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md). Automated focus/reflow is not formal conformance. |
-| Fixed sealing/review alternatives | NOT_EXECUTED: future separately scoped service/API/privilege/product work. Do not alias personal manifests or silently add repeat policy, public forms or student fixed delivery. |
+| Fixed sealing/shorter profiles | NOT_EXECUTED: future separately scoped service/API/privilege/product work. Do not alias personal manifests or silently add profiles, public forms or student fixed delivery. Explicit personal review is implemented in the separately linked scope. |
 | Performance/operations/production | NOT_EXECUTED/outside presentation scope: agreed load target, observed load/hosted identity/operational acceptance. Local PG recovery evidence is not production readiness. No deployment authorization. |
 | Dependency security | SEC-001 patched observed Zod advisory; current dated audit0, exact graph/integrity and compatibility evidence. No complete supply-chain/security guarantee. |
 

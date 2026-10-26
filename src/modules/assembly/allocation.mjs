@@ -72,7 +72,7 @@ function sectionDeficitsForFailure(code, manifest) {
   });
 }
 
-function errorDetails(code, result, blueprintVersionId) {
+function errorDetails(code, result, blueprintVersionId, reuseMode = 'NEW_ONLY') {
   const source = parseJsonRecord(result?.details) ?? result ?? {};
   if (code === 'CONCURRENT_ATTEMPT_EXISTS') {
     return typeof source.attemptId === 'string' ? { existingAttemptId: source.attemptId }
@@ -81,22 +81,22 @@ function errorDetails(code, result, blueprintVersionId) {
   if (code === 'INSUFFICIENT_ELIGIBLE_INVENTORY' || code === 'INSUFFICIENT_UNSEEN_INVENTORY') {
     return {
       blueprintVersionId,
-      reuseMode: 'NEW_ONLY',
+      reuseMode,
       sectionDeficits: safeSectionDeficits(source.sectionDeficits),
       alternatives: safeAlternatives(source.alternatives),
     };
   }
   if (code === 'SEARCH_EXHAUSTED') {
-    return { blueprintVersionId, reuseMode: 'NEW_ONLY' };
+    return { blueprintVersionId, reuseMode };
   }
   return {};
 }
 
-function failCommand(code, result, blueprintVersionId) {
+function failCommand(code, result, blueprintVersionId, reuseMode = 'NEW_ONLY') {
   const status = ErrorHttpStatusByCode[code] ?? ROUTE_ONLY_STATUS[code];
   if (!status) reject(503, 'TEMPORARILY_UNAVAILABLE');
   const error = new BankCommandError(status, code);
-  const details = errorDetails(code, result, blueprintVersionId);
+  const details = errorDetails(code, result, blueprintVersionId, reuseMode);
   if (Object.keys(details).length) error.details = details;
   throw error;
 }
@@ -136,9 +136,10 @@ function statusResult(value) {
   return result;
 }
 
-export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS } = {}) {
+export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') throw new TypeError('identityService is required');
+  if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   const fixedLimits = Object.freeze({ ...limits });
 
   async function runCheck(principal, key, requestHash, blueprintVersionId) {
@@ -169,10 +170,10 @@ export function createAllocationService({ examPool, identityService, limits = DE
     }, { role: 'tsa_exam' });
   }
 
-  async function handlePreflight(result, blueprintVersionId) {
+  async function handlePreflight(result, blueprintVersionId, reuseMode = 'NEW_ONLY') {
     if (result.status === 'REPLAY') return success(result.receipt, true);
-    if (result.status === 'ACTIVE') failCommand('CONCURRENT_ATTEMPT_EXISTS', result, blueprintVersionId);
-    if (result.status === 'ERROR') failCommand(result.code, result, blueprintVersionId);
+    if (result.status === 'ACTIVE') failCommand('CONCURRENT_ATTEMPT_EXISTS', result, blueprintVersionId, reuseMode);
+    if (result.status === 'ERROR') failCommand(result.code, result, blueprintVersionId, reuseMode);
     if (result.status !== 'READY') reject(503, 'TEMPORARILY_UNAVAILABLE');
     return null;
   }
@@ -190,7 +191,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       if (prior.status === 'ERROR') failCommand(prior.code, prior);
       reject(503, 'TEMPORARILY_UNAVAILABLE');
     }
-    if (request.mode === 'PUBLISHED_FIXED' || request.reuseMode === 'REVIEW_ALLOWED') {
+    if (request.mode === 'PUBLISHED_FIXED' || (request.reuseMode === 'REVIEW_ALLOWED' && !enableReviewPractice)) {
       // H1 and retained receipts apply globally, including modes whose actual
       // allocation path is not implemented by this standalone NEW_ONLY slice.
       for (let attempt = 0; attempt < MAX_REPLAN_ATTEMPTS; attempt += 1) {
@@ -207,6 +208,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       reject(409, 'CONCURRENT_MODIFICATION');
     }
     const blueprintVersionId = request.blueprintVersionId;
+    const reuseMode = request.reuseMode ?? 'NEW_ONLY';
 
     for (let attempt = 0; attempt < MAX_REPLAN_ATTEMPTS; attempt += 1) {
       let preflight;
@@ -216,7 +218,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
         if (isRetryableTransactionConflict(error)) continue;
         throw error;
       }
-      const preflightResult = await handlePreflight(preflight, blueprintVersionId);
+      const preflightResult = await handlePreflight(preflight, blueprintVersionId, reuseMode);
       if (preflightResult) return preflightResult;
 
       let committed;
@@ -228,9 +230,11 @@ export function createAllocationService({ examPool, identityService, limits = DE
           principal,
           blueprintVersionId,
           seed: randomSeed(),
+          reuseMode,
           limits: fixedLimits,
         });
         plan = await buildAllocationPlan(examPool, principal, captured);
+        if (reuseMode === 'REVIEW_ALLOWED') plan.acknowledgeRepeats = request.acknowledgeRepeats;
         committed = await runCommit(principal, key, requestHash, plan);
       } catch (error) {
         if (isRetryableTransactionConflict(error)) continue;
@@ -242,21 +246,23 @@ export function createAllocationService({ examPool, identityService, limits = DE
           if (isRetryableTransactionConflict(checkError)) continue;
           throw checkError;
         }
-        const checked = await handlePreflight(afterConflict, blueprintVersionId);
+        const checked = await handlePreflight(afterConflict, blueprintVersionId, reuseMode);
         if (checked) return checked;
         if (error?.code === '23514') reject(503, 'TEMPORARILY_UNAVAILABLE');
         continue;
       }
       if (committed.status === 'CREATED') return success(committed.receipt, false);
       if (committed.status === 'REPLAY') return success(committed.receipt, true);
-      if (committed.status === 'ACTIVE') failCommand('CONCURRENT_ATTEMPT_EXISTS', committed, blueprintVersionId);
+      if (committed.status === 'ACTIVE') failCommand('CONCURRENT_ATTEMPT_EXISTS', committed, blueprintVersionId, reuseMode);
       if (committed.status === 'FAILURE') {
         failCommand(committed.code, {
           ...committed,
           sectionDeficits: sectionDeficitsForFailure(committed.code, plan.manifest),
-        }, blueprintVersionId);
+          alternatives: enableReviewPractice && reuseMode === 'NEW_ONLY' && committed.code === 'INSUFFICIENT_UNSEEN_INVENTORY'
+            ? [{ kind: 'REVIEW_MODE', blueprintVersionId, requiresRepeatConsent: true }] : [],
+        }, blueprintVersionId, reuseMode);
       }
-      if (committed.status === 'ERROR') failCommand(committed.code, committed, blueprintVersionId);
+      if (committed.status === 'ERROR') failCommand(committed.code, committed, blueprintVersionId, reuseMode);
       if (committed.status === 'STALE') continue;
       if (committed.status === 'RECONCILE') {
         let reconciled;
@@ -266,7 +272,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
           if (isRetryableTransactionConflict(error)) continue;
           throw error;
         }
-        const reconciledResult = await handlePreflight(reconciled, blueprintVersionId);
+        const reconciledResult = await handlePreflight(reconciled, blueprintVersionId, reuseMode);
         if (reconciledResult) return reconciledResult;
         continue;
       }

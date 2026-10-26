@@ -62,7 +62,9 @@
     "demo:student:domains": "npm run build && STUDENT_FIXTURE_DOMAINS=true node scripts/start-student-fixture.mjs",
     "dev:track-b": "npm run build && node src/local/track-b.mjs",
     "test:local": "node --test tests/integration/local/*.test.mjs",
-    "test:track-b:browser": "node scripts/verify-track-b-browser.mjs"
+    "test:track-b:browser": "node scripts/verify-track-b-browser.mjs",
+    "test:student:review": "STUDENT_REVIEW_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:review:firefox": "STUDENT_REVIEW_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

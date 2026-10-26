@@ -1,5 +1,13 @@
 # Implementation roadmap
 
+Current WEB-003,2026-10-26: explicit session-bound REVIEW_ALLOWED practice now works
+through fresh consent, reserved Start, persistent answers, grading/released review
+and labeled history in all three domains. NEW_ONLY remains strict/default; no
+fixed delivery or shorter profile was added. Actual PG/HTTP/Chrome/Firefox and
+independent source/PG/browser/security reviews pass in their recorded scopes;
+additional final independent browser rerun was usage-limited. Clean reproduction
+pending. [Evidence/limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+
 Current SEC-001,2026-10-25: exact patched Zod4.6.7 replaces observed vulnerable
 4.1.12; all other pins/frozen sources/artifacts unchanged. Root156contracts/Bank149/
 assembly50/critical9/student34/domains78/Chrome46/Firefox16/audit0 PASS; separate

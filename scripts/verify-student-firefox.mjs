@@ -12,6 +12,11 @@ import { createDatabasePool } from '../src/modules/database/pool.mjs';
 import { createReviewBrowserFixture } from '../tests/integration/bank/review-browser-fixture.mjs';
 
 const artifacts = path.resolve(process.env.STUDENT_FIREFOX_ARTIFACT_DIR ?? '/tmp/tsa-student-firefox-evidence');
+if (process.env.STUDENT_REVIEW_PRACTICE_FIREFOX !== undefined
+    && !['true', 'false'].includes(process.env.STUDENT_REVIEW_PRACTICE_FIREFOX)) {
+  throw new Error('STUDENT_REVIEW_PRACTICE_FIREFOX must be true or false');
+}
+const enableReviewPractice = process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true';
 // Snap Firefox cannot use the host's /tmp checkout as a profile root.
 // A new owned profile in its common directory also works from a clean /tmp clone.
 const profileParent = path.resolve(process.env.STUDENT_FIREFOX_PROFILE_ROOT
@@ -588,6 +593,267 @@ async function runStaffReviewJourney() {
   report.checks.push('Staff B1 synthetic AUTHOR opens only exact version 0 on explicit activation; AVAILABLE SC, native MathML, table, key, explanation, version and hash verified');
   report.checks.push('Staff 1280px desktop and best-supported narrow Firefox viewport screenshots; W3C Escape restores exact row focus; logout clears private DOM');
 }
+
+async function runReviewPracticeJourney() {
+  assert.ok(fixture?.blueprint?.versionId, 'the actual mixed fixture blueprint exists');
+  const installReviewTrace = async (seed = []) => evaluate(`(()=>{window.__reviewErrors=window.__reviewErrors||[];window.addEventListener('error',event=>window.__reviewErrors.push(event.message||'window error'));window.addEventListener('unhandledrejection',event=>window.__reviewErrors.push(String(event.reason?.message||event.reason||'unhandled rejection')));const original=window.fetch.bind(window);window.__reviewCalls=${JSON.stringify(seed)};window.__reviewDropFirstAck=false;window.__reviewHoldNextAck=false;window.fetch=async(...args)=>{const options=args[1]||{};const requestUrl=typeof args[0]==='string'?args[0]:args[0].url;const url=new URL(requestUrl,location.href);const method=String(options.method||'GET').toUpperCase();let requestBody=null;if(url.pathname==='/api/v1/attempts'&&method==='POST'&&typeof options.body==='string')requestBody=JSON.parse(options.body);const response=await original(...args);if(url.pathname==='/api/v1/attempts'&&method==='POST'){const responseBody=await response.clone().json();const record={body:requestBody,key:new Headers(options.headers||{}).get('idempotency-key'),status:response.status,responseBody};window.__reviewCalls.push(record);if(window.__reviewDropFirstAck&&requestBody?.reuseMode==='REVIEW_ALLOWED'&&response.status===201){window.__reviewDropFirstAck=false;window.__reviewDroppedReceipt=responseBody;throw new TypeError('Firefox fixture dropped a real committed review response');}if(window.__reviewHoldNextAck&&requestBody?.reuseMode==='REVIEW_ALLOWED'&&response.status===201){window.__reviewHoldNextAck=false;window.__reviewHeldReceipt=responseBody;await window.__reviewAckGate;}}return response;};return true})()`);
+  await installReviewTrace();
+
+  const narrowViewport = async (height, label) => {
+    let requested = 375;
+    let returned = await wd('POST', '/window/rect', { width: requested, height });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    let measured = await evaluate(`({innerWidth,outerWidth,scrollWidth:document.documentElement.scrollWidth,scale:window.visualViewport?.scale??null})`);
+    if (measured.innerWidth !== requested) {
+      requested = 450;
+      returned = await wd('POST', '/window/rect', { width: requested, height });
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      measured = await evaluate(`({innerWidth,outerWidth,scrollWidth:document.documentElement.scrollWidth,scale:window.visualViewport?.scale??null})`);
+      if (measured.innerWidth !== requested) assert.equal(measured.innerWidth, measured.outerWidth, `${label} reports Firefox's actual minimum width`);
+    }
+    assert.ok(measured.innerWidth >= 320, `${label} has a usable measured viewport`);
+    assert.equal(measured.scrollWidth <= measured.innerWidth, true, `${label} has no horizontal overflow`);
+    if (measured.scale !== null) assert.equal(measured.scale, 1, `${label} is not auto-zoomed`);
+    return { requestedWidth: requested, returnedOuterWidth: returned.width, widthRequestHonored: measured.innerWidth === requested, ...measured };
+  };
+  const readCurrentAttempt = async () => wd('POST', '/execute/async', { args: [], script: `const done=arguments[arguments.length-1];fetch('/api/v1/attempts?limit=100').then(response=>response.json()).then(page=>{const item=page.items.find(value=>['CREATED','IN_PROGRESS'].includes(value.state));if(!item)throw new Error('No owned active attempt');return fetch('/api/v1/attempts/'+item.attemptId).then(response=>response.json())}).then(done,error=>done({error:String(error)}));` });
+  const saveFirstAnswer = async (slot) => {
+    if (slot.interaction.type === 'MULTIPLE_CHOICE') {
+      await click('option-a');
+      assert.equal(await evaluate(`${query('submit-open')}.disabled`), true, 'partial multiple-choice answer remains incomplete');
+      await click('option-c');
+    } else if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
+      await click('tf-s1-true');
+      await waitFor(`!${query('tf-s2-false')}.disabled`, 'review mode first true/false save');
+      await click('tf-s2-false');
+    } else {
+      await click('option-b');
+    }
+    await waitFor(`Boolean(${query('save-status')}.classList.contains('saved'))`, 'review mode acknowledged answer');
+  };
+  const isCompleteAnswer = (slot, answers) => {
+    const value = answers.find(answer => answer.slotId === slot.slotId)?.value;
+    if (slot.interaction.type === 'MULTIPLE_CHOICE') return Array.isArray(value?.optionIds)
+      && value.optionIds.length >= slot.interaction.minSelections;
+    if (slot.interaction.type === 'TRUE_FALSE_GROUP') return Array.isArray(value?.statementValues)
+      && value.statementValues.length === slot.interaction.statements.length;
+    return typeof value?.optionId === 'string';
+  };
+  const finishActiveAttempt = async () => {
+    const current = await readCurrentAttempt();
+    assert.equal(current.state, 'IN_PROGRESS');
+    assert.equal(current.domain, 'MATH');
+    checkPrivate(current);
+    for (const [index, slot] of current.slots.entries()) {
+      if (index > 0) await click('question-next');
+      if (!isCompleteAnswer(slot, current.answers)) await saveFirstAnswer(slot);
+    }
+    await click('submit-open');
+    await click('submit-confirm');
+    await waitFor(`Boolean(${query('result')})`, 'review mode attempt released result');
+    return current;
+  };
+
+  await click('back-score');
+  await click('return-catalog');
+  let shortageCall = null;
+  let shortageFound = false;
+  for (let index = 0; index < 4; index++) {
+    const callCount = await evaluate('window.__reviewCalls.length');
+    await click('demo-start');
+    await waitFor(`Boolean(${query('review-mode-offer')}||document.getElementById('question-title'))`, `bounded NEW_ONLY inventory exhaustion ${index + 1}`);
+    if (await evaluate(`Boolean(${query('review-mode-offer')})`)) {
+      shortageFound = true;
+      const calls = await evaluate('window.__reviewCalls');
+      assert.equal(calls.length, callCount + 1, 'one fresh explicit NEW_ONLY create returned the shortage');
+      shortageCall = calls.at(-1);
+      break;
+    }
+    await finishActiveAttempt();
+    await click('return-catalog');
+  }
+  assert.equal(shortageFound, true, 'bounded actual UI attempts exhaust unseen fixture inventory');
+  assert.equal(shortageCall.status, 422);
+  assert.equal(shortageCall.responseBody?.error?.code, 'INSUFFICIENT_UNSEEN_INVENTORY');
+  assert.equal(shortageCall.responseBody?.error?.details?.reuseMode, 'NEW_ONLY');
+  assert.equal(shortageCall.responseBody?.error?.details?.blueprintVersionId, fixture.blueprint.versionId);
+  assert.deepEqual(shortageCall.responseBody?.error?.details?.alternatives, [{ kind: 'REVIEW_MODE', blueprintVersionId: fixture.blueprint.versionId, requiresRepeatConsent: true }]);
+  assert.deepEqual(shortageCall.body, { blueprintVersionId: fixture.blueprint.versionId }, 'the failed NEW_ONLY request keeps the old omission/body');
+  checkPrivate(shortageCall.responseBody);
+  for (const question of fixture.questions) {
+    assert.equal(JSON.stringify(shortageCall.responseBody).includes(question.versionId), false, 'unseen shortage omits eligible candidate IDs');
+  }
+  const offerVersion = await evaluate(`${query('review-mode-offer')}.dataset.blueprintVersionId`);
+  assert.equal(offerVersion, fixture.blueprint.versionId, 'the offer is pinned to the current failed request blueprint');
+  await setViewport(1280, 900, 'review offer desktop');
+  await evaluate(`(()=>{${query('review-mode-offer')}.scrollIntoView({block:'center'});return true})()`);
+  await capture('review-mode-offer-desktop');
+  const narrow = await narrowViewport(812, 'review offer narrow');
+  await evaluate(`(()=>{${query('review-mode-offer')}.scrollIntoView({block:'center'});return true})()`);
+  await capture(`review-mode-offer-narrow-${narrow.innerWidth}`);
+
+  const postsBeforeConsent = await evaluate('window.__reviewCalls.length');
+  await click('review-mode-open');
+  await waitFor(`Boolean(${query('review-mode-dialog')}.open)`, 'review mode explicit consent dialog');
+  assert.equal(await evaluate(`${query('review-mode-dialog')}.dataset.stage`), 'confirming');
+  assert.equal(await evaluate(`${query('review-mode-status')}.dataset.stage`), 'confirming');
+  assert.equal(await evaluate(`${query('review-mode-consent')}.checked`), false, 'each review consent starts unchecked');
+  assert.equal(await evaluate(`${query('review-mode-confirm')}.disabled`), true, 'empty repeat consent cannot confirm');
+  assert.equal(await evaluate(`${query('review-mode-dialog')}.textContent.includes('Toán học')&&${query('review-mode-dialog')}.textContent.includes('4 câu')&&${query('review-mode-dialog')}.textContent.includes('10 phút')`), true, 'confirmation pins exact domain/count/duration');
+  assert.equal(await evaluate('window.__reviewCalls.length'), postsBeforeConsent, 'opening an unchecked confirmation sends no POST');
+  await setViewport(1280, 900, 'review consent desktop');
+  await capture('review-mode-consent-desktop');
+  const consentNarrow = await narrowViewport(812, 'review consent narrow');
+  await capture(`review-mode-consent-narrow-${consentNarrow.innerWidth}`);
+  await click('review-mode-cancel');
+  await waitFor(`!${query('review-mode-dialog')}?.open`, 'review consent cancel');
+  assert.equal(await evaluate(`document.activeElement===${query('review-mode-open')}`), true, 'cancel restores focus to the offer trigger');
+  assert.equal(await evaluate(`${query('review-mode-status')}.dataset.stage`), 'offered', 'cancel resets the offer state');
+  assert.equal(await evaluate('window.__reviewCalls.length'), postsBeforeConsent, 'cancel sends zero review POSTs');
+  await click('review-mode-open');
+  await waitFor(`Boolean(${query('review-mode-dialog')}.open)`, 'review consent reopen');
+  const escape = '\uE00C';
+  await wd('POST', '/actions', { actions: [{ type: 'key', id: 'review-consent-escape', actions: [
+    { type: 'keyDown', value: escape }, { type: 'keyUp', value: escape },
+  ] }] });
+  await waitFor(`!${query('review-mode-dialog')}?.open`, 'native Escape cancels review consent');
+  assert.equal(await evaluate(`document.activeElement===${query('review-mode-open')}`), true, 'Escape restores focus to the exact offer trigger');
+  assert.equal(await evaluate(`${query('review-mode-consent')}`), null, 'canceled dialog is removed and its consent discarded');
+  assert.equal(await evaluate('window.__reviewCalls.length'), postsBeforeConsent, 'Escape sends zero review POSTs');
+
+  await click('review-mode-open');
+  await waitFor(`Boolean(${query('review-mode-dialog')}.open)`, 'fresh review consent after Escape');
+  await wd('POST', '/actions', { actions: [{ type: 'key', id: 'review-consent-space', actions: [
+    { type: 'keyDown', value: ' ' }, { type: 'keyUp', value: ' ' },
+  ] }] });
+  assert.equal(await evaluate(`${query('review-mode-consent')}.checked`), true, 'keyboard activates the explicit consent checkbox');
+  assert.equal(await evaluate(`${query('review-mode-confirm')}.disabled`), false, 'fresh affirmative consent enables confirmation');
+  assert.equal(await evaluate('window.__reviewCalls.length'), postsBeforeConsent, 'checking consent alone sends zero review POSTs');
+  await evaluate('window.__reviewDropFirstAck=true');
+  await click('review-mode-confirm');
+  await waitFor(`Boolean(${query('review-mode-status')}&&${query('review-mode-status')}.dataset.stage==='uncertain')`, 'lost actual review acknowledgement is reported uncertain');
+  const dropped = await evaluate('window.__reviewCalls.at(-1)');
+  assert.equal(dropped.status, 201, 'the deliberately dropped acknowledgement was a real committed HTTP 201');
+  assert.deepEqual(dropped.body, { mode: 'PERSONALIZED_PRACTICE', blueprintVersionId: fixture.blueprint.versionId, reuseMode: 'REVIEW_ALLOWED', acknowledgeRepeats: true }, 'review consent sends the exact frozen request');
+  assert.notEqual(dropped.key, shortageCall.key, 'review uses a fresh key distinct from the failed NEW_ONLY intent');
+  const afterDroppedAck = await evaluate('window.__reviewCalls.length');
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  assert.equal(await evaluate('window.__reviewCalls.length'), afterDroppedAck, 'uncertain review does not auto-retry');
+  assert.equal(await evaluate(`document.body.textContent.includes(${JSON.stringify(dropped.key)})`), false, 'idempotency key is not rendered');
+  await setViewport(1280, 900, 'review uncertain desktop');
+  await capture('review-mode-uncertain-desktop');
+  await click('review-mode-retry');
+  await waitFor(`Boolean(${query('created-attempt')})`, 'explicit same-key review replay reaches reserved attempt');
+  const reviewCalls = await evaluate(`window.__reviewCalls.filter(call=>call.body?.reuseMode==='REVIEW_ALLOWED')`);
+  assert.equal(reviewCalls.length, 2, 'one lost actual receipt plus one explicit same-intent replay');
+  assert.equal(reviewCalls[0].key, reviewCalls[1].key, 'uncertain retry preserves the exact idempotency key');
+  assert.deepEqual(reviewCalls[0].body, reviewCalls[1].body, 'uncertain retry preserves the exact request body');
+  assert.equal(reviewCalls[0].responseBody.attemptId, reviewCalls[1].responseBody.attemptId, 'replay returns the same persisted receipt');
+  assert.equal(reviewCalls[1].responseBody.state, 'CREATED');
+  assert.equal(reviewCalls[1].responseBody.formMode, 'PERSONALIZED_PRACTICE');
+  assert.equal(reviewCalls[1].responseBody.reuseMode, 'REVIEW_ALLOWED');
+  assert.equal(await evaluate(`Boolean(${query('created-attempt')}&&document.body.textContent.includes('Lượt ôn tập · có thể lặp câu'))`), true, 'receipt and fresh view show the reserved review mode');
+  assert.equal(await evaluate(`document.body.textContent.includes(${JSON.stringify(reviewCalls[1].responseBody.attemptId)})||document.body.textContent.includes(${JSON.stringify(reviewCalls[1].key)})`), false, 'receipt identifiers and idempotency key are not shown as product content');
+  await evaluate(`(()=>{${query('created-attempt')}.scrollIntoView({block:'center'});return true})()`);
+  await capture('review-mode-reserved-desktop');
+  const reservedNarrow = await narrowViewport(812, 'review reserved narrow');
+  await capture(`review-mode-reserved-narrow-${reservedNarrow.innerWidth}`);
+  await setViewport(1280, 900, 'review active desktop');
+  await click('created-start');
+  await waitFor(`Boolean(document.getElementById('question-title')&&${query('exam-header')})`, 'review attempt explicit start');
+  const reviewAttemptView = await readCurrentAttempt();
+  assert.equal(reviewAttemptView.formMode, 'PERSONALIZED_PRACTICE');
+  assert.equal(reviewAttemptView.reuseMode, 'REVIEW_ALLOWED');
+  assert.equal(await evaluate(`${query('exam-header')}.textContent.includes('Lượt ôn tập · có thể lặp câu')`), true, 'active attempt shows persisted review mode');
+  await saveFirstAnswer(reviewAttemptView.slots[0]);
+  await capture('review-mode-active-desktop');
+  const activeNarrow = await narrowViewport(812, 'review active narrow');
+  await capture(`review-mode-active-narrow-${activeNarrow.innerWidth}`);
+  const previousDocument = await evaluate('performance.timeOrigin');
+  const reviewCallsBeforeReload = await evaluate('window.__reviewCalls');
+  await wd('POST', '/refresh', {});
+  await waitFor(`performance.timeOrigin!==${previousDocument}&&Boolean(document.getElementById('question-title')&&${query('exam-header')})`, 'review attempt reload and resume');
+  await installReviewTrace(reviewCallsBeforeReload);
+  const resumedReviewView = await readCurrentAttempt();
+  assert.equal(resumedReviewView.attemptId, reviewAttemptView.attemptId, 'reload resumes the same owned review attempt');
+  assert.equal(resumedReviewView.formMode, 'PERSONALIZED_PRACTICE');
+  assert.equal(resumedReviewView.reuseMode, 'REVIEW_ALLOWED');
+  assert.equal(resumedReviewView.answers.filter(answer=>answer.value).length, 1, 'the actual acknowledged review answer survived reload');
+  assert.equal(await evaluate(`${query('exam-header')}.textContent.includes('Lượt ôn tập · có thể lặp câu')`), true, 'resume keeps the persisted review label');
+  await finishActiveAttempt();
+  const resultText = await evaluate('document.body.textContent');
+  assert.match(resultText, /Lượt ôn tập · có thể lặp câu/, 'released result is labeled as review mode');
+  await setViewport(1280, 900, 'review result desktop');
+  await capture('review-mode-result-desktop');
+  const resultNarrow = await narrowViewport(812, 'review result narrow');
+  await capture(`review-mode-result-narrow-${resultNarrow.innerWidth}`);
+  await setViewport(1280, 900, 'review released review desktop');
+  await click('review-open');
+  await waitFor(`Boolean(${query('review')})`, 'review-mode released answers');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.review-context .review-mode-label'))`), true, 'released-answer screen labels the persisted review mode');
+  assert.equal(await evaluate(`document.body.textContent.includes(${JSON.stringify(reviewCalls[1].key)})`), false, 'released review does not show the create idempotency key');
+  await capture('review-mode-released-review-desktop');
+  const releasedNarrow = await narrowViewport(812, 'review released review narrow');
+  await capture(`review-mode-released-review-narrow-${releasedNarrow.innerWidth}`);
+  await setViewport(1280, 900, 'review history desktop');
+  await click('back-score');
+  await click('return-catalog');
+  await waitFor(`Boolean(${query('persistent-history')})`, 'review attempt history');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.persistent-history .review-mode-label'))`), true, 'history labels its stored review attempt');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.persistent-current-attempt .review-mode-label'))`), true, 'current attempt resume card keeps its review label');
+  await capture('review-mode-history-desktop');
+  const historyNarrow = await narrowViewport(812, 'review history narrow');
+  await capture(`review-mode-history-narrow-${historyNarrow.innerWidth}`);
+  await setViewport(1280, 900, 'post-review NEW_ONLY desktop');
+
+  const callsBeforeStrictAgain = await evaluate('window.__reviewCalls.length');
+  await click('demo-start');
+  await waitFor(`Boolean(${query('review-mode-offer')})`, 'subsequent strict NEW_ONLY remains exhausted');
+  const afterStrictAgain = await evaluate('window.__reviewCalls');
+  assert.equal(afterStrictAgain.length, callsBeforeStrictAgain + 1, 'subsequent default request makes one NEW_ONLY POST only');
+  const strictAgain = afterStrictAgain.at(-1);
+  assert.deepEqual(strictAgain.body, { blueprintVersionId: fixture.blueprint.versionId }, 'default body still omits review fields');
+  assert.equal(strictAgain.responseBody?.error?.code, 'INSUFFICIENT_UNSEEN_INVENTORY');
+  assert.equal(strictAgain.responseBody?.error?.details?.reuseMode, 'NEW_ONLY');
+  assert.deepEqual(strictAgain.responseBody?.error?.details?.alternatives, [{ kind: 'REVIEW_MODE', blueprintVersionId: fixture.blueprint.versionId, requiresRepeatConsent: true }]);
+  assert.equal(await evaluate(`${query('review-mode-status')}.dataset.stage`), 'offered', 'only the current same-blueprint server alternative is offered');
+  assert.equal(await evaluate(`document.querySelector('.persistent-history .review-mode-label')!==null`), true, 'review history remains visible beside later strict shortage');
+  await evaluate(`(()=>{${query('review-mode-offer')}.scrollIntoView({block:'center'});return true})()`);
+  await capture('review-mode-new-only-shortage-desktop');
+  const strictNarrow = await narrowViewport(812, 'post-review NEW_ONLY narrow');
+  await capture(`review-mode-new-only-shortage-narrow-${strictNarrow.innerWidth}`);
+  await setViewport(1280, 900, 'review pending logout desktop');
+
+  await click('review-mode-open');
+  await waitFor(`Boolean(${query('review-mode-dialog')}.open)`, 'fresh review intent before logout fence');
+  await wd('POST', '/actions', { actions: [{ type: 'key', id: 'review-consent-final-space', actions: [
+    { type: 'keyDown', value: ' ' }, { type: 'keyUp', value: ' ' },
+  ] }] });
+  await evaluate('(()=>{window.__reviewHoldNextAck=true;window.__reviewAckGate=new Promise(resolve=>{window.__reviewAckRelease=resolve});return true})()');
+  await click('review-mode-confirm');
+  await waitFor(`window.__reviewCalls.length===${afterStrictAgain.length + 1}&&${query('review-mode-status')}.dataset.stage==='posting'`, 'review creation held after real committed response');
+  const heldCall = await evaluate('window.__reviewCalls.at(-1)');
+  assert.equal(heldCall.status, 201, 'late-completion fence uses an actual committed review response');
+  assert.deepEqual(heldCall.body, { mode: 'PERSONALIZED_PRACTICE', blueprintVersionId: fixture.blueprint.versionId, reuseMode: 'REVIEW_ALLOWED', acknowledgeRepeats: true });
+  await click('persistent-logout');
+  await waitFor(`Boolean(${query('persistent-login-studentA')})`, 'logout clears pending review intent');
+  assert.equal(await evaluate(`Boolean(${query('review-mode-status')})||Boolean(${query('created-attempt')})`), false, 'logout removes all review operation DOM');
+  await evaluate('window.__reviewAckRelease?.()');
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  assert.equal(await evaluate(`Boolean(${query('review-mode-status')})||Boolean(${query('created-attempt')})||document.body.textContent.includes(${JSON.stringify(heldCall.responseBody.attemptId)})`), false, 'late committed response cannot restore the prior identity UI');
+  await click('persistent-login-studentB');
+  await waitFor(`Boolean(${query('persistent-history')})`, 'second synthetic candidate has isolated history');
+  assert.equal(await evaluate(`Boolean(document.querySelector('.persistent-current-attempt .review-mode-label'))||Boolean(document.querySelector('.persistent-history .review-mode-label'))`), false, 'review attempt is not disclosed to another candidate');
+  assert.deepEqual(await evaluate('window.__reviewErrors'), [], 'Firefox review journey has no uncaught or unhandled browser errors');
+  assert.equal(await evaluate(`performance.getEntriesByType('resource').every(item=>new URL(item.name).origin===location.origin)`), true, 'review journey loads no external resources');
+  report.reviewPracticeViewports = { desktop: await setViewport(1280, 900, 'review final desktop'), narrow, consentNarrow, reservedNarrow, activeNarrow, resultNarrow, releasedNarrow, historyNarrow, strictNarrow };
+  report.checks.push('WEB-003 Firefox bounds real NEW_ONLY exhaustion to four UI attempts and shows REVIEW_MODE only for the fresh same-blueprint unseen-inventory alternative');
+  report.checks.push('WEB-003 Firefox native unchecked consent/cancel/Escape restores focus with zero review POSTs; explicit keyboard consent sends exact frozen body under a fresh idempotency key');
+  report.checks.push('WEB-003 Firefox drops a real committed 201 acknowledgement, reports uncertainty, and retries explicitly with identical body/key to replay the same CREATED receipt');
+  report.checks.push('WEB-003 Firefox explicitly starts the reserved review attempt, saves/reloads/resumes/submits/releases/reviews it with persisted mode labels and history; later default NEW_ONLY remains an unseen shortage');
+  report.checks.push('WEB-003 Firefox real committed late receipt is fenced by logout; second synthetic candidate receives no prior review UI/history; screenshots include desktop and actual narrow viewport');
+}
+
 function checkPrivate(value) {
   const privateFields = new Set(['answerKey', 'correctAnswer', 'explanation', 'provenance', 'reviewNotes', 'keySnapshot', 'privateHash']);
   if (Array.isArray(value)) { value.forEach(checkPrivate); return; }
@@ -610,6 +876,7 @@ try {
   runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool,
     workerPool: workerProxy, env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
     pollMilliseconds: 30, sweepBatchSize: 10, executorId: 'firefox-browser', leaseSeconds: 30, retrySeconds: 1,
+    enableReviewPractice,
     createRate: rate, saveRate: { user: rate, attempt: rate } });
   workerState.available = false;
   driver = spawn(process.env.STUDENT_GECKODRIVER ?? '/snap/bin/geckodriver',
@@ -677,6 +944,7 @@ try {
     'SC/MC/TF acknowledged saves and partial MC guard; actual pre-release response privacy',
     'Fresh reload preserves saved answers and exact PostgreSQL clock text',
     'Pending worker outage, recovered 100% release and explicit owner review'];
+  if (enableReviewPractice) await runReviewPracticeJourney();
   if (process.env.STAFF_REVIEW_FIREFOX === 'true') await runStaffReviewJourney();
   await writeFile(path.join(artifacts, 'report.json'), JSON.stringify(report, null, 2));
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

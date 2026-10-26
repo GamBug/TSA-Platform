@@ -4,7 +4,8 @@ import { withTransaction } from '../database/pool.mjs';
 import { UUID_PATTERN, reject } from '../bank/common.mjs';
 
 /** Internal search groundwork; this creates no form, attempt, receipt or approval. */
-export async function captureStandaloneManifest({ examPool, identityService, principal, blueprintVersionId, seed, limits }) {
+export async function captureStandaloneManifest({ examPool, identityService, principal, blueprintVersionId, seed, limits, reuseMode = 'NEW_ONLY' }) {
+  if (!['NEW_ONLY','REVIEW_ALLOWED'].includes(reuseMode)) reject(422, 'VALIDATION_ERROR');
   if (!identityService.mayPerform(principal, 'candidate.attempt.read')) reject(403, 'FORBIDDEN');
   if (!UUID_PATTERN.test(blueprintVersionId)) reject(404, 'NOT_FOUND');
   const stock = await withTransaction(examPool, async (client) => {
@@ -29,7 +30,7 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
   const input = {
     schemaVersion: 'assembly-manifest/1', algorithmVersion: 'assembly/1',
     blueprintVersionId, blueprintHash: stock.blueprintHash, blueprint, seed,
-    reuseMode: 'NEW_ONLY', bankRevision: stock.bankRevision, rightsVersions,
+    reuseMode, bankRevision: stock.bankRevision, rightsVersions,
     historyQuestionIds: stock.historyQuestionIds, historyGroupIds: stock.historyGroupIds,
     units: stock.units,
     conflicts: stock.conflicts, limits,

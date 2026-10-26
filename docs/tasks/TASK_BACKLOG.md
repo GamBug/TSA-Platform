@@ -1487,6 +1487,22 @@ publication and formal acceptance separately gated.
 
 ## WEB-003 — Catalog, creation and explicit shortage UX
 
+2026-10-26 **EXPLICIT REVIEW PRACTICE — IMPLEMENTED / AUTOMATED_PASS /
+INDEPENDENTLY_REVIEWED in exact recorded scopes**, base0c2ba65. Root accountable;
+[bounded decision](../decisions/WEB_003_EXPLICIT_REVIEW_PRACTICE_DECISION.md),
+[actual verification/review limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+Existing frozen DTO/solver support; no public field/route/policy version changes.
+Default strict NEW_ONLY; explicit fresh session-bound repeat consent creates a new
+owned form/current eligible stock, preserves first-history/global H1/server clocks.
+Native Luna/XHigh UI/PG writers released files; separate Sol6.1/Medium and available
+Sol6/Medium fallback reviewed actual source/PG/browser/security scopes. Final extra
+independent browser rerun hit usage limit; root post-repair Chrome/Firefox passed.
+PG allocation9+upgrade1/fullassembly63/Bank149/student36/critical9/B032, real three-
+domain review and Chrome65/Firefox9 checks PASS. Clean-checkout proof pending.
+Full parent WEB-003 remains open for fixed delivery/shorter-profile dependencies;
+this selected personal-review increment does not approve those contracts.
+Historical parent card below remains a planning record, not the current blocker.
+
 - Objective: implement the bounded pre-attempt student flow without timers, answer persistence, scoring or duplicated assembly rules.
 - Prerequisites: FOUND-002 contract artifacts, ASSEMBLY-002 API acceptance, AUTH-001 candidate session, resolved FOUND-007 taxonomy.
 - Input specifications: API catalog/create/StudentShortage DTOs, QUESTION_REUSE_POLICY modes/shortage rules, MVP scope, accessibility requirements.

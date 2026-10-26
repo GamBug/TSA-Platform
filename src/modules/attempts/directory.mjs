@@ -189,11 +189,13 @@ async function runQuery(examPool, work) {
 }
 
 /** Owner-scoped catalog and compact attempt-history reads over the restricted exam role. */
-export function createStudentDirectoryService({ examPool, identityService } = {}) {
+export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
+
+  if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
 
   async function catalog(principal, rawQuery = {}) {
     const userId = requireActor(identityService, principal, 'candidate.attempt.read');
@@ -207,7 +209,9 @@ export function createStudentDirectoryService({ examPool, identityService } = {}
       );
       return result.rows[0]?.result;
     });
-    return parseCatalogEnvelope(value, query.limit);
+    const page = parseCatalogEnvelope(value, query.limit);
+    // SQL metadata stays legacy-strict; only this trusted capability flag advertises review.
+    return enableReviewPractice ? { ...page, items: page.items.map((entry) => ({ ...entry, reviewAllowed: true })) } : page;
   }
 
   async function history(principal, rawQuery = {}) {

@@ -1,3 +1,4 @@
+import { runReviewPracticeJourney } from './student-review-practice-journey.mjs';
 // Real PostgreSQL/browser journey using only disposable postmaster-scoped fixtures.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -24,7 +25,8 @@ import { createDatabasePool } from '../src/modules/database/pool.mjs';
 import { createSourceService } from '../src/modules/sources/service.mjs';
 
 const gradeFailureTest = process.env.STUDENT_GRADE_FAILURE_TEST === 'true';
-const newOnlyTest = process.env.STUDENT_NEW_ONLY_TEST === 'true';
+const reviewPracticeTest = process.env.STUDENT_REVIEW_PRACTICE_TEST === 'true';
+const newOnlyTest = process.env.STUDENT_NEW_ONLY_TEST === 'true' || reviewPracticeTest;
 const allocationRaceTest = process.env.STUDENT_ALLOCATION_RACE_TEST === 'true';
 const admissionTest = process.env.STUDENT_ADMISSION_TEST === 'true';
 const warningResumeTest = process.env.STUDENT_WARNING_RESUME_TEST === 'true';
@@ -40,7 +42,7 @@ if (rateLimitTest) assert.ok(['USER_SAVE', 'ATTEMPT_SAVE'].includes(rateScope), 
 const readingTest = process.env.STUDENT_READING_TEST === 'true';
 const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
 assert.ok([gradeFailureTest, newOnlyTest, allocationRaceTest, admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = gradeFailureTest ? '/tmp/tsa-student-browser-evidence/grading-failure' : newOnlyTest ? '/tmp/tsa-student-browser-evidence/new-only' : allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+const defaultArtifacts = reviewPracticeTest ? '/tmp/tsa-student-browser-evidence/review-practice' : gradeFailureTest ? '/tmp/tsa-student-browser-evidence/grading-failure' : newOnlyTest ? '/tmp/tsa-student-browser-evidence/new-only' : allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -435,7 +437,7 @@ try {
   const rate = { capacity: 100, refillPerSecond: 10 };
   const options = { identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool: workerProxy,
     env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0, pollMilliseconds: 30,
-    sweepBatchSize: 10, executorId: 'student-browser', leaseSeconds: 30, retrySeconds: 1,
+    sweepBatchSize: 10, executorId: 'student-browser', enableReviewPractice: reviewPracticeTest, leaseSeconds: 30, retrySeconds: 1,
     createRate: rate, saveRate: { user: rateLimitTest && rateScope === 'USER_SAVE' ? { capacity: 1, refillPerSecond: rateLimitExpiryTest ? 0.01 : 0.1 } : rate,
       attempt: rateLimitTest && rateScope === 'ATTEMPT_SAVE' ? { capacity: 1, refillPerSecond: rateLimitExpiryTest ? 0.01 : 0.1 } : rate } };
   runtime = await createStudentRuntime(options); workerState.available = false;
@@ -518,7 +520,7 @@ try {
       await runGradeFailureJourney({ evaluate, command, click, query, waitFor, fixture, capture, report, workerPool, workerState, requestRecords });
     } else if (newOnlyTest) {
       workerState.available = true;
-      await runNewOnlyJourney({ evaluate, click, query, waitFor, fixture, capture, report });
+      await (reviewPracticeTest ? runReviewPracticeJourney : runNewOnlyJourney)({ evaluate, command, click, query, waitFor, fixture, capture, report });
     } else if (allocationRaceTest) {
       workerState.available = true;
       await runAllocationRaceJourney({ evaluate, command, click, query, waitFor, fixture, capture, report,

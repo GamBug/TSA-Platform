@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 /** Original isolated stock exercises successive NEW_ONLY; never production inventory. */
-export async function runNewOnlyJourney({ evaluate, click, query, waitFor, fixture, capture, report }) {
+export async function runNewOnlyJourney({ evaluate, click, query, waitFor, fixture, capture, report, expectReviewOffer = false }) {
   assert.equal(fixture.bundles.length, 2);
   assert.notEqual(fixture.bundles[0].content[0].text, fixture.bundles[1].content[0].text);
   await evaluate(`(()=>{const original=window.fetch.bind(window);window.__newOnlyCreates=[];window.fetch=async(input,init={})=>{const response=await original(input,init);const path=new URL(typeof input==='string'?input:input.url,location.href).pathname;if(init.method==='POST'&&path==='/api/v1/attempts')window.__newOnlyCreates.push({status:response.status,request:JSON.parse(init.body),body:await response.clone().json()});return response;};})()`);
@@ -72,8 +72,9 @@ export async function runNewOnlyJourney({ evaluate, click, query, waitFor, fixtu
   assert.equal(beforeShortage.releases.length, 2); assert.ok(beforeShortage.jobs.every((job) => job.kind === 'exam_grade_attempt'));
   assert.equal((await fixture.pool.query('SELECT count(*)::int AS n FROM tsa.questions WHERE eligible_version_id IS NOT NULL')).rows[0].n, 4);
   await click('demo-start');
-  await waitFor(`Boolean(${query('screen-message')})`, 'third creation displays actual unseen-stock shortage');
-  assert.match(await evaluate(`${query('screen-message')}.textContent`), /Chưa đủ câu hỏi mới/);
+  const shortageTarget = expectReviewOffer ? 'review-mode-offer' : 'screen-message';
+  await waitFor(`Boolean(${query(shortageTarget)})`, 'third creation displays actual unseen-stock shortage');
+  assert.match(await evaluate(`${query(shortageTarget)}.textContent`), expectReviewOffer ? /câu mới/ : /Chưa đủ câu hỏi mới/);
   assert.equal(await evaluate("Boolean(document.getElementById('question-title'))"), false);
   const requests = await evaluate('window.__newOnlyCreates'); assert.deepEqual(requests.map((r) => r.status), [201, 201, 422]);
   assert.equal(requests[2].body.error.code, 'INSUFFICIENT_UNSEEN_INVENTORY');

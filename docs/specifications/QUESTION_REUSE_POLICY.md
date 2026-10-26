@@ -2,6 +2,15 @@
 
 Status: PROPOSED implementation policy under ADR-007. Owner requirements recorded in [decisions](../decisions/OPEN_DECISIONS.md) are binding product inputs: shared reusable bank, default personalized new-question practice, no silent repetition, stable-identity history and concurrency safety. This document owns reuse semantics; [assembly](EXAM_ASSEMBLY_SPEC.md) owns selection and [database](../architecture/DATABASE_DESIGN.md) owns persistence.
 
+Current local increment selected2026-10-25 under recorded owner engineering-choice
+delegation: [bounded explicit review decision](../decisions/WEB_003_EXPLICIT_REVIEW_PRACTICE_DECISION.md).
+It implements the existing frozen explicit REVIEW_ALLOWED request/semantics while
+preserving strict NEW_ONLY/defaults/history/clocks. Actual implementation and
+[scoped verification](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md) completed
+2026-10-26; no whole-ADR-007 or real-content/retention approval is implied. Historical
+unresolved proposals below remain historical; current executed evidence lives in
+scoped review records.
+
 ## Modes and assignment boundary
 
 Two orthogonal dimensions avoid duplicating forms:

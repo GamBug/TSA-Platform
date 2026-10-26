@@ -30,6 +30,20 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-003 explicit review practice — selected2026-10-25
+
+- Root-selected under2026-10-24 owner engineering-choice delegation,
+  AUTHORIZED_IN_SCOPE / IMPLEMENTED2026-10-26. [Exact bounded decision/compatibility](WEB_003_EXPLICIT_REVIEW_PRACTICE_DECISION.md).
+- Existing frozen explicit PERSONALIZED_PRACTICE/REVIEW_ALLOWED/true-consent request,
+  catalog signal/shortage alternative and reference solver; no new public field or
+  automatic fallback. NEW_ONLY default/strictness, immutable history/clock, roles,
+  eligibility and PUBLISHED_FIXED separation remain unchanged.
+- Actual read-only scout/source and separate Sol6.1/Medium policy precheck found no
+  specific prohibition; record this selected increment, not whole-ADR-007 approval.
+  Root transaction/SQL integration, bounded native LunaXHigh UI/tests after ownership
+  reservation, separate read-only design/code/security review. Actual PG/HTTP/Chrome/
+  Firefox PASS; [executed evidence and review limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+
 ## SEC-001 — bounded validator repair selected 2026-10-25
 
 - Root-selected under recorded owner engineering-choice delegation,

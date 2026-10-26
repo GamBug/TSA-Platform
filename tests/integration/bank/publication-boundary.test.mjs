@@ -145,7 +145,7 @@ test('migration005 to latest preserves populated source records and installs emp
     await database.pool.query("INSERT INTO tsa.sources (id,title,origin) VALUES ($1,'Preserved synthetic upgrade fixture','OWNED')", [id]);
     const previous = (await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows;
     const upgraded = await migrate(database.pool);
-    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql', '008_bank_delivery_safety.sql', '009_assembly_stock.sql','010_atomic_allocation.sql','011_attempt_delivery.sql','012_answer_saves.sql','013_attempt_submission.sql','014_exam_grading.sql','015_released_results.sql','016_exam_expiry_sweep.sql','017_student_directory.sql','018_bundle_allocation.sql','019_staff_review_context.sql','020_fixed_reference_diagnostics.sql','021_fixed_stock_rehearsals.sql']);
+    assert.deepEqual(upgraded.applied, ['006_bank_review_workflow.sql', '007_bank_equivalence.sql', '008_bank_delivery_safety.sql', '009_assembly_stock.sql','010_atomic_allocation.sql','011_attempt_delivery.sql','012_answer_saves.sql','013_attempt_submission.sql','014_exam_grading.sql','015_released_results.sql','016_exam_expiry_sweep.sql','017_student_directory.sql','018_bundle_allocation.sql','019_staff_review_context.sql','020_fixed_reference_diagnostics.sql','021_fixed_stock_rehearsals.sql','022_explicit_review_practice.sql']);
     assert.deepEqual((await database.pool.query('SELECT * FROM tsa.sources WHERE id=$1', [id])).rows, previous);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.bank_workflow_fixture_scope')).rowCount, 0);
     assert.equal((await database.pool.query('SELECT * FROM tsa_private.question_delivery_checks')).rowCount, 0);

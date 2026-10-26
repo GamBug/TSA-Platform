@@ -60,12 +60,12 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   let principal = null;
   let identityGeneration = 0;
 
-  async function request(path, { method = 'GET', body, key } = {}) {
+  async function request(path, { method = 'GET', body, key, csrfToken = null } = {}) {
     const generation = identityGeneration;
     const headers = new Headers({ accept: 'application/json' });
     if (body !== undefined) headers.set('content-type', 'application/json');
     if (method !== 'GET') {
-      const csrf = readCookie('tsa_local_csrf');
+      const csrf = csrfToken ?? readCookie('tsa_local_csrf');
       if (csrf) headers.set('x-csrf-token', csrf);
     }
     if (key) headers.set('idempotency-key', key);
@@ -83,18 +83,18 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     }
     return value;
   }
-  async function mutation(path, body) {
+  async function mutation(path, body, explicitKey = null, csrfToken = null) {
     const signature = `${path}:${JSON.stringify(body)}`;
-    const key = pendingKeys.get(signature) ?? globalThis.crypto.randomUUID();
-    pendingKeys.set(signature, key);
+    const key = explicitKey ?? pendingKeys.get(signature) ?? globalThis.crypto.randomUUID();
+    if (explicitKey === null) pendingKeys.set(signature, key);
     try {
-      const value = await request(path, { method: path.includes('/answers/') ? 'PUT' : 'POST', body, key });
-      if (pendingKeys.get(signature) === key) pendingKeys.delete(signature);
+      const value = await request(path, { method: path.includes('/answers/') ? 'PUT' : 'POST', body, key, csrfToken });
+      if (explicitKey === null && pendingKeys.get(signature) === key) pendingKeys.delete(signature);
       return value;
     } catch (error) {
       // An uncertain network/503 acknowledgement keeps its exact key for retry.
       // A reload resolves durable state through history/GET, not an invented key guarantee.
-      if (error.status >= 400 && error.status < 500 && error.status !== 429
+      if (explicitKey === null && error.status >= 400 && error.status < 500 && error.status !== 429
           && pendingKeys.get(signature) === key) pendingKeys.delete(signature);
       throw error;
     }
@@ -135,9 +135,14 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
         totalCount: review.totalCount, percentage: review.percentage } : null,
     };
   }
-  async function readAttempt(attemptId) {
+  async function readAttempt(attemptId, expected = null) {
     const path = `/api/v1/attempts/${encodeURIComponent(attemptId)}`;
     const view = await request(path);
+    if (expected?.reuseMode && (!view || view.formMode !== (expected.formMode ?? 'PERSONALIZED_PRACTICE')
+        || view.reuseMode !== expected.reuseMode
+        || (expected.domain && view.domain !== expected.domain))) {
+      throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
+    }
     let released = null;
     if (view.state === 'GRADED') {
       released = await request(`${path}/result`);
@@ -163,7 +168,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     if (!Array.isArray(history?.items)) throw failure('TEMPORARILY_UNAVAILABLE');
     const current = history.items.find((item) => ['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED'].includes(item.state))
       ?? history.items.find((item) => item.state === 'GRADED');
-    return current ? readAttempt(current.attemptId) : { attempt: null };
+    return current ? readAttempt(current.attemptId, current) : { attempt: null };
   }
   async function loginCandidate(actorKey) {
     if (!['studentA', 'studentB'].includes(actorKey)) throw failure('FORBIDDEN', 403);
@@ -190,6 +195,38 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       available: Date.parse(item.availableFrom) <= Date.now() && Date.now() < Date.parse(item.availableUntil),
     })) };
   }
+  function prepareReviewAttempt(blueprintVersionId) {
+    if (typeof blueprintVersionId !== 'string'
+        || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(blueprintVersionId)) {
+      throw failure('VALIDATION_ERROR', 422);
+    }
+    const body = Object.freeze({ mode: 'PERSONALIZED_PRACTICE', blueprintVersionId,
+      reuseMode: 'REVIEW_ALLOWED', acknowledgeRepeats: true });
+    const csrfToken = readCookie('tsa_local_csrf');
+    if (typeof csrfToken !== 'string' || csrfToken.length === 0) throw failure('UNAUTHENTICATED', 401);
+    return Object.freeze({ body, key: globalThis.crypto.randomUUID(), generation: identityGeneration, csrfToken });
+  }
+  async function createReviewAttempt(intent) {
+    if (!intent || intent.generation !== identityGeneration || !intent.body
+        || intent.body.mode !== 'PERSONALIZED_PRACTICE' || intent.body.reuseMode !== 'REVIEW_ALLOWED'
+        || intent.body.acknowledgeRepeats !== true
+        || typeof intent.body.blueprintVersionId !== 'string'
+        || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(intent.body.blueprintVersionId)
+        || typeof intent.key !== 'string'
+        || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(intent.key)) {
+      throw failure('VALIDATION_ERROR', 422);
+    }
+    await session();
+    if (intent.generation !== identityGeneration || intent.csrfToken !== readCookie('tsa_local_csrf')) {
+      throw failure('UNAUTHENTICATED', 401);
+    }
+    // Freeze the session nonce too: a cookie change after this check must fail CSRF,
+    // never transfer one candidate's repeat consent to another candidate.
+    return mutation('/api/v1/attempts', intent.body, intent.key, intent.csrfToken);
+  }
+  async function readReviewAttempt(attemptId, domain) {
+    return readAttempt(attemptId, { formMode: 'PERSONALIZED_PRACTICE', reuseMode: 'REVIEW_ALLOWED', domain });
+  }
   async function startDemo(domain = 'MATH', blueprintVersionId) {
     await session();
     const history = await request('/api/v1/attempts?limit=100');
@@ -203,21 +240,21 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
         existing = { attemptId: error.details.existingAttemptId }; resumed = true;
       }
     }
-    const loaded = await readAttempt(existing.attemptId);
+    const loaded = await readAttempt(existing.attemptId, existing);
     if (loaded.attempt.state === 'CREATED') {
       await mutation(`/api/v1/attempts/${encodeURIComponent(existing.attemptId)}/start`, {});
     }
-    return { ...await readAttempt(existing.attemptId), resumed };
+    return { ...await readAttempt(existing.attemptId, existing), resumed };
   }
-  async function startReservedAttempt(attemptId) {
+  async function startReservedAttempt(attemptId, expected = null) {
     // A reservation action must never fall through to a replacement allocation.
     try { await mutation(`/api/v1/attempts/${encodeURIComponent(attemptId)}/start`, {}); }
     catch (error) {
       if (error.code !== 'FORM_UNAVAILABLE') throw error;
       // Start commits cancellation before returning410; read its safe reason.
-      return { ...await readAttempt(attemptId), resumed: true };
+      return { ...await readAttempt(attemptId, expected), resumed: true };
     }
-    return { ...await readAttempt(attemptId), resumed: true };
+    return { ...await readAttempt(attemptId, expected), resumed: true };
   }
   async function saveAnswer(attemptId, slotId, input) {
     const cached = attempts.get(attemptId);
@@ -255,7 +292,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   async function submitAttempt(attemptId) {
     const closure = await mutation(`/api/v1/attempts/${encodeURIComponent(attemptId)}/submit`, {});
     const cached = attempts.get(attemptId);
-    if (!cached || closure.state === 'GRADED') return readAttempt(attemptId);
+    if (!cached || closure.state === 'GRADED') return readAttempt(attemptId, cached?.view ?? null);
     const view = { ...cached.view, state: closure.state, startBefore: null, activeSectionId: null,
       slots: [], answers: [], closure, serverNow: closure.closedAt ?? cached.view.serverNow };
     const result = display(view);
@@ -277,7 +314,8 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
           statementValues: group(item.response?.values) } : {}), explanation: clone(item.explanation) })) } };
   }
   return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog,
-    startDemo, startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
+    startDemo, prepareReviewAttempt, createReviewAttempt, readReviewAttempt,
+    startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
     loadHistory: () => pages('/api/v1/attempts') });
 }
 
