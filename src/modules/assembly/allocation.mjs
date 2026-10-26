@@ -136,9 +136,10 @@ function statusResult(value) {
   return result;
 }
 
-export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false } = {}) {
+export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') throw new TypeError('identityService is required');
+  if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   const fixedLimits = Object.freeze({ ...limits });
 
@@ -190,6 +191,35 @@ export function createAllocationService({ examPool, identityService, limits = DE
       if (prior.status === 'REPLAY') return success(prior.receipt, true);
       if (prior.status === 'ERROR') failCommand(prior.code, prior);
       reject(503, 'TEMPORARILY_UNAVAILABLE');
+    }
+    if (request.mode === 'PUBLISHED_FIXED' && enableFixedPractice) {
+      for (let attempt = 0; attempt < MAX_REPLAN_ATTEMPTS; attempt += 1) {
+        try {
+          // Commit stale-attempt finalization independently of the later fixed
+          // assignment, matching the existing global H1 allocation contract.
+          const checked = await handlePreflight(await runCheck(principal, key, requestHash, null));
+          if (checked) return checked;
+          const committed = await withTransaction(examPool, async client => {
+            await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+            return statusResult((await client.query('SELECT tsa.exam_fixed_attempt_create($1,$2,$3::jsonb) AS result',
+              [key, requestHash, JSON.stringify(request)])).rows[0]?.result);
+          }, {role:'tsa_exam'});
+          if (committed.status === 'CREATED') return success(committed.receipt, false);
+          if (committed.status === 'RECONCILE') continue;
+          const replay = await handlePreflight(committed);
+          if (replay) return replay;
+          reject(503, 'TEMPORARILY_UNAVAILABLE');
+        } catch (error) {
+          if (isActiveAttemptConstraint(error)) {
+            const replay = await handlePreflight(await runCheck(principal,key,requestHash,null));
+            if (replay) return replay;
+            continue;
+          }
+          if (isRetryableTransactionConflict(error)) continue;
+          throw error;
+        }
+      }
+      reject(409, 'CONCURRENT_MODIFICATION');
     }
     if (request.mode === 'PUBLISHED_FIXED' || (request.reuseMode === 'REVIEW_ALLOWED' && !enableReviewPractice)) {
       // H1 and retained receipts apply globally, including modes whose actual

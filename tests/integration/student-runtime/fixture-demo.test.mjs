@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const script = new URL('../../../scripts/start-student-fixture.mjs', import.meta.url);
 function launch(overrides, detached = false) {
   const child = spawn(process.execPath, [fileURLToPath(script)], {
-    env: { ...process.env, NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true', STUDENT_FIXTURE_DEMO: 'true', STUDENT_FIXTURE_DOMAINS: 'false', STUDENT_FIXTURE_READING: 'false', ...overrides },
+    env: { ...process.env, NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true', STUDENT_FIXTURE_DEMO: 'true', STUDENT_FIXTURE_DOMAINS: 'false', STUDENT_FIXTURE_READING: 'false', STUDENT_FIXTURE_FIXED: 'false', ...overrides },
     stdio: ['ignore', 'pipe', 'pipe'], detached,
   });
   let output = '', errors = '';
@@ -36,9 +36,9 @@ test('disposable demo refuses production and missing explicit fixture opt-in', {
   }
 });
 
-for (const profile of ['MIXED_MATH', 'THREE_DOMAINS', 'SHARED_READING']) test(`disposable ${profile} demo serves the integrated student client and releases its owned runtime when SIGINT reaches its terminal process group`, { timeout: 30_000 }, async (t) => {
-  const domains = profile === 'THREE_DOMAINS', reading = profile === 'SHARED_READING';
-  const p = launch({ STUDENT_FIXTURE_DOMAINS: String(domains), STUDENT_FIXTURE_READING: String(reading) }, true);
+for (const profile of ['MIXED_MATH', 'THREE_DOMAINS', 'SHARED_READING', 'THREE_DOMAINS_FIXED']) test(`disposable ${profile} demo serves the integrated student client and releases its owned runtime when SIGINT reaches its terminal process group`, { timeout: 30_000 }, async (t) => {
+  const fixed = profile === 'THREE_DOMAINS_FIXED', domains = profile === 'THREE_DOMAINS' || fixed, reading = profile === 'SHARED_READING';
+  const p = launch({ STUDENT_FIXTURE_DOMAINS: String(domains), STUDENT_FIXTURE_READING: String(reading), STUDENT_FIXTURE_FIXED: String(fixed) }, true);
   t.after(() => stopChild(p));
   const end = Date.now() + 15_000; let ready;
   while (Date.now() < end && !ready) {
@@ -51,7 +51,7 @@ for (const profile of ['MIXED_MATH', 'THREE_DOMAINS', 'SHARED_READING']) test(`d
   }
   assert.ok(ready, p.errors || 'demo did not become ready');
   assert.equal(ready.event, 'ready'); assert.equal(ready.mode, 'DISPOSABLE_SYNTHETIC_ONLY');
-  assert.equal(ready.fixtureProfile, profile);
+  assert.equal(ready.fixtureProfile, fixed ? 'THREE_DOMAINS' : profile);
   const url = new URL(ready.url); assert.equal(url.hostname, '127.0.0.1'); assert.equal(url.search, '?student=postgres');
   const page = await fetch(url); assert.equal(page.status, 200);
   const main = await (await fetch(new URL('/app/main.js', url))).text();
@@ -74,8 +74,12 @@ for (const profile of ['MIXED_MATH', 'THREE_DOMAINS', 'SHARED_READING']) test(`d
     } });
     assert.equal(catalog.status, 200);
     const page = await catalog.json();
-    assert.deepEqual(page.items.map((entry) => entry.domain).sort(), reading ? ['READING'] : ['MATH', 'READING', 'SCIENCE']);
-    assert.deepEqual(page.items.map((entry) => entry.questionCount).sort(), reading ? [2] : [2, 4, 4]);
+    const personal = page.items.filter(entry => entry.mode === 'PERSONALIZED_PRACTICE');
+    const forms = page.items.filter(entry => entry.mode === 'PUBLISHED_FIXED');
+    assert.equal(forms.length, fixed ? 3 : 0);
+    if (fixed) assert.deepEqual(forms.map(entry=>entry.domain).sort(), ['MATH','READING','SCIENCE']);
+    assert.deepEqual(personal.map((entry) => entry.domain).sort(), reading ? ['READING'] : ['MATH', 'READING', 'SCIENCE']);
+    assert.deepEqual(personal.map((entry) => entry.questionCount).sort(), reading ? [2] : [2, 4, 4]);
   }
   process.kill(-p.child.pid, 'SIGINT'); const [code, signal] = await p.exited;
   assert.equal(code, 0, p.errors); assert.equal(signal, null);
@@ -98,3 +102,7 @@ for (const flags of [{ STUDENT_FIXTURE_READING: 'yes' }, { STUDENT_FIXTURE_READI
     assert.match(p.errors, /STUDENT_FIXTURE_READING must be true or false|Choose one disposable fixture profile/);
   });
 }
+
+for (const flags of [{ STUDENT_FIXTURE_FIXED: 'yes' }, { STUDENT_FIXTURE_FIXED: 'true' }]) test('fixed demo validates opt-in and requires supported domain profile', async t=>{
+ const p=launch(flags);t.after(()=>stopChild(p));const [code]=await p.exited;assert.equal(code,1);assert.equal(p.output,'');assert.match(p.errors,/STUDENT_FIXTURE_FIXED must be true or false|requires the three-domain fixture/);
+});

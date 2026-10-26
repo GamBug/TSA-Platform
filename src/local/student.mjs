@@ -188,6 +188,7 @@ export async function prepareStudentComponents({
   createRate,
   saveRate,
   enableReviewPractice = false,
+  enableFixedPractice = false,
 } = {}) {
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   const config = validateConfig({
@@ -200,7 +201,7 @@ export async function prepareStudentComponents({
   return Object.freeze({
     env: config.env,
     createHandler({ identityService, trustedOrigin }) {
-      return createAttemptHandler({ examPool, identityService, trustedOrigin, enableReviewPractice,
+      return createAttemptHandler({ examPool, identityService, trustedOrigin, enableReviewPractice, enableFixedPractice,
         createRate: config.rates.createRate, saveRate: config.rates.saveRate });
     },
     startWorker() { return createWorkerLoop(sweeper, worker, pollMilliseconds); },

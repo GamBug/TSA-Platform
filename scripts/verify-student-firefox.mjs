@@ -1,3 +1,6 @@
+import { runFixedPracticeJourney } from './student-fixed-practice-journey.mjs';
+import { seedFixedStudentForms } from '../tests/integration/student-runtime/fixed-fixture.mjs';
+import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 // Actual second-engine journey; disposable synthetic PostgreSQL inventory only.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -16,6 +19,8 @@ if (process.env.STUDENT_REVIEW_PRACTICE_FIREFOX !== undefined
     && !['true', 'false'].includes(process.env.STUDENT_REVIEW_PRACTICE_FIREFOX)) {
   throw new Error('STUDENT_REVIEW_PRACTICE_FIREFOX must be true or false');
 }
+if (process.env.STUDENT_FIXED_PRACTICE_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_FIXED_PRACTICE_FIREFOX)) throw new Error('STUDENT_FIXED_PRACTICE_FIREFOX must be true or false');
+const enableFixedPractice = process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true';
 const enableReviewPractice = process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true';
 // Snap Firefox cannot use the host's /tmp checkout as a profile root.
 // A new owned profile in its common directory also works from a clean /tmp clone.
@@ -908,7 +913,8 @@ function checkPrivate(value) {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = await createMixedStudentFixture();
+  fixture = enableFixedPractice ? await createDomainStudentFixture() : await createMixedStudentFixture();
+  if (enableFixedPractice) { await seedFixedStudentForms(fixture); await seedFixedStudentForms({...fixture,domainBlueprints:{MATH:fixture.domainBlueprints.MATH}}); }
   const login = `firefox_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
   workerPool = createDatabasePool({ ...fixture.harness.database.connectionConfig, user: login });
@@ -920,7 +926,7 @@ try {
   runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool,
     workerPool: workerProxy, env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
     pollMilliseconds: 30, sweepBatchSize: 10, executorId: 'firefox-browser', leaseSeconds: 30, retrySeconds: 1,
-    enableReviewPractice,
+    enableReviewPractice, enableFixedPractice,
     createRate: rate, saveRate: { user: rate, attempt: rate } });
   workerState.available = false;
   driver = spawn(process.env.STUDENT_GECKODRIVER ?? '/snap/bin/geckodriver',
@@ -945,7 +951,18 @@ try {
   await wd('POST', '/url', { url: `${runtime.origin}/?student=postgres` });
   await waitFor(`Boolean(${query('persistent-login-studentA')})`, 'explicit candidate login');
   await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
-  await capture('login'); await click('persistent-login-studentA'); await click('demo-start');
+  await capture('login'); await click('persistent-login-studentA');
+  if (enableFixedPractice) {
+    workerState.available = true;
+    const fixedEvaluate = async expression => {
+      const value = await wd('POST','/execute/async',{args:[expression],script:"const done=arguments[arguments.length-1];Promise.resolve().then(()=>eval(arguments[0])).then(value=>done({value}),error=>done({failure:String(error)}));"});
+      if(value.failure)throw new Error(value.failure);return value.value;
+    };
+    await runFixedPracticeJourney({evaluate:fixedEvaluate,click,query,waitFor,fixture,capture,report,narrowWidth:500,
+      reload:()=>wd('POST','/refresh',{}), viewport:(width,height)=>setViewport(width,height,'fixed'),
+      escape:()=>wd('POST','/actions',{actions:[{type:'key',id:'fixed-keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]})});
+  } else {
+  await click('demo-start');
   await waitFor('Boolean(document.getElementById("question-title"))', 'persisted question delivery');
   const view = await wd('POST', '/execute/async', { args: [], script: `const done=arguments[arguments.length-1];fetch('/api/v1/attempts?limit=100').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json()).then(done,e=>done({error:String(e)}));` });
   assert.equal(view.state, 'IN_PROGRESS'); assert.equal(view.slots.length, 4); checkPrivate(view);
@@ -989,6 +1006,7 @@ try {
     'Fresh reload preserves saved answers and exact PostgreSQL clock text',
     'Pending worker outage, recovered 100% release and explicit owner review'];
   if (enableReviewPractice) await runReviewPracticeJourney();
+  }
   if (process.env.STAFF_REVIEW_FIREFOX === 'true') await runStaffReviewJourney();
   await writeFile(path.join(artifacts, 'report.json'), JSON.stringify(report, null, 2));
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

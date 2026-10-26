@@ -169,3 +169,15 @@ uncertain same-request retry, historical receipt versus explicit metadata discov
 read-only error recovery, list/detail tables and current stored availability. Check
 qualified AT/native zoom/mobile focus visibility and session clearing. Engineering
 Chrome375/Firefox actual500 captures do not fill qualified human outcomes.
+
+
+## B10 fixed-form supplement — NOT EXECUTED by a qualified human
+
+Use the separate `demo:student:fixed` command and flags in the supervisor guide.
+Check shared-form references/mode labels at native200%zoom and with the selected
+screen reader; navigate fresh unchecked consent, cancel/Escape/focus restoration,
+explicit reserved Start and save/reload/result/review/history. Verify uncertainty
+and GET-only recovery descriptions remain understandable. Chrome375/Firefox500
+and automated native-modal focus evidence are recorded in B10 verification; they
+do not supply this human acceptance. Never record a synthetic actor as a qualified
+reviewer or extend a sealed clock to complete this check.

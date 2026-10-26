@@ -413,3 +413,21 @@ the snapshot used for the final comparison. Malformed path/query input returns t
 documented 422 validation envelope. Attempt answers may reference only delivered
 slot option/statement IDs; unknown nested response keys/IDs fail closed. Preserve
 existing partial-answer behavior and do not invent a new minimum-selection rule.
+
+
+## B10.1 local fixed student implementation —2026-10-26
+
+The existing frozen fixed CatalogEntry/CreateAttempt/receipt/view/history/result
+contracts are now implemented for supported real B9 seals behind an explicit
+`enableFixedPractice:false` default. No public field/route/error/schema/version or
+StudentShortage change. The opt-in disposable synthetic three-domain launcher alone
+enables new fixed catalog/assignment. Each assignment creates an owned attempt on
+an existing immutable form, not a new assembly. Global H1, stable first-history,
+DB-clock admission/Start timing, current rights and released-result ownership apply.
+Old receipts and owned lifecycle remain available when the new capability is off.
+Internal v2 catalog cursors have a fixed phase and null unconsumed sentinel; public
+opaque cursor shape and old v1 cursors remain compatible. Native student consent is
+separate from personal review. B9's false delivery receipt field remains historical
+seal-operation scope, not a current student-access decision.
+[Selected scope](../decisions/WEB_003_B10_FIXED_STUDENT_DECISION.md),
+[verification](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).

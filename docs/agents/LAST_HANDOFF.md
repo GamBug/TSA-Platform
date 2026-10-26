@@ -1,3 +1,36 @@
+# Handoff — B10.1 fixed student practice implemented and reviewed
+
+2026-10-26 Asia/Bangkok, feat/track-b-data-auth, base3d41eb3/B9 source5b37a30.
+Root accountable integrator/shared-record owner. Separately selected under the
+standing engineering delegation, not B9 staff-only scope expansion or invented
+human approval. Owner AGENTS.md and untracked research preserved/excluded.
+[Decision](../decisions/WEB_003_B10_FIXED_STUDENT_DECISION.md),
+[exact evidence/commands/review/limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+
+Migration024 narrow candidate fixed catalog/assignment, existing frozen DTOs,
+strict shared defaultsfalse, opt-in disposable fixed3domain launcher. No new
+form/run/secret per student request, no score/clock/solver/StudentShortage change.
+Native fresh consent/explicit reserved Start, immutable shared form/owned lifecycle,
+mode labels/history, exact retry/GET-only recovery and session/target fencing.
+Global H1, committed stale cleanup, original history, current rights, Bank correction
+and flag-off owned delivery verified. B9 false receipt remains operation-local.
+
+Actual native Luna/XHigh SDK/UI/boundary writers released ownership; root owns
+all final integration. Separate native Sol6.1/Medium read-only final design/source/
+PG/HTTP/Chrome review complete, no unresolved findings. Actual final boundary9+
+corrected-version/flag-offHTTP1 independentPASS10; SDK4+HTTP1+domains3 independent
+PASS8; corePG/upgrade2 and Chrome5checks/17captures/77responsesPASS. Independent
+Firefox/launcher/clean clone NOT_EXECUTED. Root final Firefox5/17, student40/Bank161/
+contracts161/assembly74/critical9/B032/build/type/drift/import/built/launcher10 PASS;
+root defaultdomains78/review65 responses and staffChrome50 PASS. Clean checkpoint will be recorded in evidence after reproduction.
+
+No paidAPI/Astra/student inference/push/merge/deploy/real-content/human-approval
+fabrication. Qualified accessibility/native200%zoom and lawful12/6/12 accepted
+stock remain external. Shorter profiles are a separately selected future scope;
+no silent fallback. Continue bounded authorized integrated acceptance and observed
+usability defects; do not repeat completed B1–B10 or historical pending reviews.
+All essential evidence lives in the linked record, not only conversation state.
+
 # Handoff — B9.1 local fixed sealing verified and clean-reproduced
 
 2026-10-26 Asia/Bangkok, feat/track-b-data-auth, source5b37a30 from base752516f. Root sole integrator/

@@ -1546,6 +1546,22 @@ publication and formal acceptance separately gated.
 
 ## WEB-003 — Catalog, creation and explicit shortage UX
 
+2026-10-26 **B10.1 EXPLICIT FIXED STUDENT PRACTICE — IMPLEMENTED /
+AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scopes**, base3d41eb3.
+Separately selected under standing delegation; no B9 scope extension or human
+approval fabrication. [Decision](../decisions/WEB_003_B10_FIXED_STUDENT_DECISION.md),
+[verification/review/limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+Real supported B9 seals now have opt-in fixed catalog, fresh native repeat consent,
+owned shared-form assignment, explicit Start and persistent3domain lifecycle.
+No frozen public schema/route, StudentShortage, score/clock or solver change.
+Flags defaultfalse, disposable synthetic launcher alone enables new creation.
+Root PG/HTTP/SDK, both browsers, upgrade/rights/roles/H1/correction/flag-off checks
+pass. Actual Luna SDK/UI/test writers released ownership; separate Sol6.1/Medium
+read-only design/source/PG/HTTP/Chrome final review has no unresolved findings.
+Clean reproduction and exact aggregate commands are recorded in linked evidence.
+Parent remaining scope is shorter-profile selection and externally qualified
+content/accessibility acceptance; no silent profile/reuse fallback is authorized.
+
 2026-10-26 **EXPLICIT REVIEW PRACTICE — IMPLEMENTED / AUTOMATED_PASS /
 INDEPENDENTLY_REVIEWED in exact recorded scopes**, base0c2ba65. Root accountable;
 [bounded decision](../decisions/WEB_003_EXPLICIT_REVIEW_PRACTICE_DECISION.md),
@@ -1560,8 +1576,8 @@ PG allocation9+upgrade1/fullassembly63/Bank149/student36/critical9/B032, real th
 domain review and Chrome65/Firefox9 checks PASS. Clean no-hardlink15edb19 locked
 install/build/targeted20/reviewChrome65/Firefox9/defaultdomains78/drift/boundaries/
 built/docs PASS, final clone Git empty.
-Full parent WEB-003 remains open for fixed delivery/shorter-profile dependencies;
-this selected personal-review increment does not approve those contracts.
+At the personal-review checkpoint, fixed delivery/shorter profiles remained open.
+The separate current B10 record above supersedes only the fixed-delivery gap.
 Historical parent card below remains a planning record, not the current blocker.
 
 - Objective: implement the bounded pre-attempt student flow without timers, answer persistence, scoring or duplicated assembly rules.

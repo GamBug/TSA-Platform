@@ -2478,7 +2478,7 @@ export async function openStaffWorkspace(container, onBack) {
         ['Manifest hash', 'manifestHash'], ['Form hash', 'formHash'], ['Historical state', 'state'],
         ['Captured at', 'capturedAt'], ['Sealed at', 'sealedAt'], ['Historical available from', 'availableFrom'],
         ['Historical available until', 'availableUntil'], ['Rights horizon recorded through', 'requiredThrough'],
-        ['Current eligibility', 'currentEligibility'], ['Student delivery supported', 'studentDeliverySupported'],
+        ['Current eligibility', 'currentEligibility'], ['Student delivery through this seal operation', 'studentDeliverySupported'],
       ]) appendMetadataPair(metadata, label, status.receipt[key]);
       panel.append(metadata, node('p', 'staff-fixed-seal-warning', 'This is a new immutable local synthetic form. It creates no student attempt, assignment, score, or delivery. The receipt does not establish current eligibility, lawful rights, qualified human review, publication eligibility, or student access. A separate explicit GET is required to inspect stored sealed-form metadata.'));
     }
@@ -2579,7 +2579,7 @@ export async function openStaffWorkspace(container, onBack) {
       value.dataset.testid = testId;
       metadata.append(value);
     }
-    const warning = node('p', 'staff-fixed-seal-warning', 'Confirming creates a real new local fixed form. No student attempt or delivery is supported by this feature. This synthetic action is not human content approval or a rights attestation. No student receives this form through this operation.');
+    const warning = node('p', 'staff-fixed-seal-warning', 'Confirming creates a real new local fixed form. This seal operation creates no student attempt or delivery. This synthetic action is not human content approval or a rights attestation. No student receives this form through this operation.');
     warning.id = 'staff-fixed-seal-dialog-warning';
     const actions = node('div', 'staff-fixed-seal-dialog-actions');
     actions.append(
@@ -2858,7 +2858,7 @@ export async function openStaffWorkspace(container, onBack) {
       ['Manifest hash', 'manifestHash'], ['Form hash', 'formHash'], ['Historical state', 'state'],
       ['Captured at', 'capturedAt'], ['Sealed at', 'sealedAt'], ['Historical available from', 'availableFrom'],
       ['Historical available until', 'availableUntil'], ['Required-through horizon recorded', 'requiredThrough'],
-      ['Eligibility at seal receipt', 'currentEligibility'], ['Student delivery supported', 'studentDeliverySupported'],
+      ['Eligibility at seal receipt', 'currentEligibility'], ['Student delivery through this seal operation', 'studentDeliverySupported'],
     ]) appendMetadataPair(metadata, label, item[key]);
     receipt.append(metadata);
     const availability = node('section', 'staff-fixed-form-availability');
@@ -4583,7 +4583,7 @@ export async function openStaffWorkspace(container, onBack) {
     heading.append(headingText, actions);
     shell.append(heading);
     const note = node('p', 'repeat-alert', state.principal.roles.includes('EXAM_MANAGER')
-      ? 'LOCAL_SYNTHETIC_ONLY uses synthetic data. Stock rehearsal remains a separate no-form capture. A distinct explicit action can request one new fixed form, and a separate GET reads sealed-form metadata. Receipts and availability metadata do not establish current rights, qualified human review, publication eligibility, or student-delivery support. No student delivery, approval, or publication action is available.'
+      ? 'LOCAL_SYNTHETIC_ONLY uses synthetic data. Stock rehearsal remains a separate no-form capture. A distinct explicit action can request one new fixed form, and a separate GET reads sealed-form metadata. Receipts and availability metadata do not establish current rights, qualified human review, publication eligibility, or student-delivery support. This staff workspace has no student delivery, approval, or publication action.'
       : 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. BANK_MANAGER có thể chủ động kiểm tra đồ thị chuẩn tắc của các phiên bản được chọn; báo cáo không xác nhận tồn kho đủ điều kiện, quyền hiện tại, rà soát của con người hay khả năng lắp đề. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 

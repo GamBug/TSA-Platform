@@ -64,7 +64,10 @@
     "test:local": "node --test tests/integration/local/*.test.mjs",
     "test:track-b:browser": "node scripts/verify-track-b-browser.mjs",
     "test:student:review": "STUDENT_REVIEW_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",
-    "test:student:review:firefox": "STUDENT_REVIEW_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs"
+    "test:student:review:firefox": "STUDENT_REVIEW_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs",
+    "demo:student:fixed": "npm run build && STUDENT_FIXTURE_DOMAINS=true STUDENT_FIXTURE_FIXED=true node scripts/start-student-fixture.mjs",
+    "test:student:fixed": "STUDENT_FIXED_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:fixed:firefox": "STUDENT_FIXED_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

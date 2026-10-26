@@ -10,6 +10,7 @@ const api = persistentMode ? createPersistentApi() : demoApi;
 
 function replaceApp(content, { examMode = false, resultMode = false, reviewMode = false, catalogMode = false, introMode = false } = {}) {
   if (persistentMode && !catalogMode && (state.reviewOffer || state.reviewIntent || state.reviewDialog)) clearReviewFlow();
+  if (persistentMode && !catalogMode && state.fixedDialog) closeFixedConsent(state.fixedDialog, false);
   const routeChanged = persistentMode && (
     app.classList.contains("exam-mode") !== examMode
     || app.classList.contains("result-mode") !== resultMode
@@ -53,6 +54,7 @@ const attemptStateNames = { CREATED: "Đã giữ bài", IN_PROGRESS: "Đang làm
 const gradingStateNames = { PENDING: "Đang chờ chấm", RUNNING: "Đang chấm", SUCCEEDED: "Đã chấm xong", FAILED_RETRYABLE: "Chấm chưa thành công; máy chủ sẽ thử lại", FAILED_FINAL: "Chưa thể chấm; cần người phụ trách kiểm tra" };
 const state = {
   catalog: [],
+  fixedForms: [],
   identityGeneration: 0,
   history: [],
   historyStatus: "",
@@ -80,6 +82,8 @@ const state = {
   reviewOffer: null,
   reviewIntent: null,
   reviewDialog: null,
+  fixedIntent: null,
+  fixedDialog: null,
 };
 
 const REVIEW_MARKS_STORAGE_PREFIX = "tsa-practice:attempt-review:";
@@ -95,9 +99,65 @@ function isReviewAllowedAttempt(attempt) {
   return attempt?.formMode === "PERSONALIZED_PRACTICE" && attempt?.reuseMode === "REVIEW_ALLOWED";
 }
 
+function isFixedAttempt(attempt) {
+  return attempt?.formMode === "PUBLISHED_FIXED" && attempt?.reuseMode === "FIXED_AS_PUBLISHED";
+}
+
+function fixedPracticeModeLabel() {
+  return "Bài dùng chung · Có thể gặp câu đã làm";
+}
+
+function appendPracticeModeLabel(container, attempt) {
+  if (isFixedAttempt(attempt)) container.append(element("p", "fixed-practice-mode-label", fixedPracticeModeLabel()));
+  else if (isReviewAllowedAttempt(attempt)) container.append(element("p", "review-mode-label", reviewModeLabel()));
+}
+
 function readExpectedAttempt(attemptId, expected) {
+  if (isFixedAttempt(expected)) {
+    if (typeof expected.domain !== "string" || typeof expected.formId !== "string") {
+      throw Object.assign(new Error("Không đọc được mã bài dùng chung đã lưu."), { code: "TEMPORARILY_UNAVAILABLE", status: 503 });
+    }
+    return api.readFixedAttempt(attemptId, expected.domain, expected.formId);
+  }
   if (expected?.formMode && expected?.reuseMode) return api.readAttempt(attemptId, expected);
   return api.readAttempt(attemptId);
+}
+
+function fixedSelectionLocked() {
+  return ["posting", "uncertain", "receipt", "read-unavailable", "unverified"].includes(state.fixedIntent?.phase);
+}
+
+function fixedFormIsCurrent(form) {
+  return Boolean(form && state.fixedForms.some((entry) => entry.formId === form.formId
+    && entry.mode === "PUBLISHED_FIXED" && entry.repeatsAllowed === true
+    && entry.domain === form.domain && entry.name === form.name
+    && entry.questionCount === form.questionCount && entry.durationSeconds === form.durationSeconds
+    && entry.profileKind === form.profileKind && entry.availableFrom === form.availableFrom
+    && entry.availableUntil === form.availableUntil));
+}
+
+function fixedIntentIsCurrent(intent) {
+  return intent && state.fixedIntent === intent && intent.identityGeneration === state.identityGeneration
+    && fixedFormIsCurrent(intent.form);
+}
+
+function isMatchingFixedReceipt(receipt, intent) {
+  return receipt?.state === "CREATED"
+    && receipt.formMode === "PUBLISHED_FIXED"
+    && receipt.reuseMode === "FIXED_AS_PUBLISHED"
+    && receipt.formId === intent.form.formId
+    && receipt.domain === intent.form.domain
+    && isCanonicalUuid(receipt.attemptId)
+    && typeof receipt.startBefore === "string"
+    && Number.isFinite(Date.parse(receipt.startBefore));
+}
+
+function isMatchingFixedAttempt(attempt, intent, attemptId) {
+  return attempt?.attemptId === attemptId
+    && attempt.formMode === "PUBLISHED_FIXED"
+    && attempt.reuseMode === "FIXED_AS_PUBLISHED"
+    && attempt.formId === intent.form.formId
+    && attempt.domain === intent.form.domain;
 }
 
 function reviewModeLabel() {
@@ -127,6 +187,16 @@ function clearReviewFlow() {
   state.reviewIntent = null;
   dismissReviewDialog();
   if (hadPendingIntent) state.busy = false;
+}
+
+function clearFixedFlow() {
+  const dialog = state.fixedDialog;
+  if (dialog) closeFixedConsent(dialog, false);
+  if (state.fixedIntent?.phase === "confirming") {
+    state.fixedIntent.requestIntent = null;
+    state.fixedIntent.phase = "cancelled";
+  }
+  state.fixedIntent = null;
 }
 
 function reviewOfferIsCurrent(offer) {
@@ -418,12 +488,15 @@ function tick() {
 function resetPersistentIdentity() {
   state.identityGeneration += 1;
   clearReviewFlow();
+  clearFixedFlow();
   state.history = [];
   state.historyStatus = "";
+  state.fixedForms = [];
 }
 
 function clearAttemptState() {
   clearReviewFlow();
+  clearFixedFlow();
   stopGradePolling();
   clearAttemptReviewState(state.attempt?.attemptId ?? state.markedAttemptId);
   clearTimer();
@@ -568,7 +641,9 @@ function renderTimingNotice() {
 
 function renderCreatedAttempt() {
   const attempt = state.attempt;
-  const profile = state.catalog.find((entry) => entry.domain === attempt.domain);
+  const profile = isFixedAttempt(attempt)
+    ? state.fixedForms.find((entry) => entry.formId === attempt.formId)
+    : state.catalog.find((entry) => entry.domain === attempt.domain);
   const fragment = document.createDocumentFragment();
   fragment.append(header());
   const card = element("section", "intro-card persistent-attempt-card");
@@ -577,14 +652,19 @@ function renderCreatedAttempt() {
   const title = element("h1", "intro-title", `${domainName({ domain: attempt.domain })} · bài luyện tập`);
   title.tabIndex = -1;
   card.append(title);
-  if (isReviewAllowedAttempt(attempt)) {
-    card.append(element("p", "review-mode-label", reviewModeLabel()));
+  if (isFixedAttempt(attempt)) {
+    appendPracticeModeLabel(card, attempt);
+    card.append(element("p", "intro-lead", "Bộ câu hỏi dùng chung được giữ nguyên; lượt luyện tập này có thể gồm câu bạn đã làm trước đây."));
+  } else if (isReviewAllowedAttempt(attempt)) {
+    appendPracticeModeLabel(card, attempt);
     card.append(element("p", "intro-lead", "Lượt này có thể dùng câu hỏi đã được giao trước đây. Không có cam kết rằng mọi câu sẽ lặp lại."));
   }
   card.append(element("p", "intro-lead", "Bài đã được lưu trong PostgreSQL cục bộ. Bắt đầu chỉ khi bạn chọn nút bên dưới; đồng hồ máy chủ chạy liên tục sau khi bắt đầu."));
   const facts = element("div", "intro-metrics");
   facts.append(element("div", "intro-metric", `${attempt.questionCount || attempt.slots.length || profile?.questionCount || 0} câu`));
-  facts.append(element("div", "intro-metric", `${Math.ceil((attempt.durationSeconds || profile?.durationSeconds || 0) / 60)} phút`));
+  const durationSeconds = attempt.durationSeconds || profile?.durationSeconds;
+  facts.append(element("div", "intro-metric", isFixedAttempt(attempt) && !durationSeconds
+    ? "Chưa có thông tin thời lượng" : formatPracticeDuration(durationSeconds || 0)));
   card.append(facts);
   card.append(element("p", "notice-panel", `Bắt đầu trước ${formatAdmissionTime(attempt.startBefore) || "thời hạn do máy chủ lưu"}.`));
   const actions = element("div", "intro-actions");
@@ -635,7 +715,7 @@ function renderPendingGrade() {
   title.id = "pending-grade-title";
   title.tabIndex = -1;
   card.append(title);
-  if (isReviewAllowedAttempt(attempt)) card.append(element("p", "review-mode-label", reviewModeLabel()));
+  appendPracticeModeLabel(card, attempt);
   card.append(element("p", "result-note", "Máy chủ đang xử lý bài đã gửi. Bạn có thể quay lại danh sách; trạng thái được lưu và có thể đọc lại sau."));
   if (state.resumeNotice) card.append(element("p", "notice-panel", state.resumeNotice));
   const status = element("p", "notice-panel", `Trạng thái chấm: ${gradingStateNames[attempt.gradingStatus] || gradingStateNames.PENDING}.`);
@@ -657,7 +737,7 @@ function renderFailedGrade() {
   const title = element("h1", "", "Máy chủ chưa thể chấm bài này.");
   title.tabIndex = -1;
   card.append(title);
-  if (isReviewAllowedAttempt(state.attempt)) card.append(element("p", "review-mode-label", reviewModeLabel()));
+  appendPracticeModeLabel(card, state.attempt);
   card.append(element("p", "result-note", "Chưa có kết quả nào được công bố. Bạn có thể đọc lại trạng thái từ máy chủ; không có thao tác thử chấm lại trong màn hình này."));
   const status = element("p", "notice-panel", gradingStateNames.FAILED_FINAL + ".");
   status.dataset.testid = "grading-status";
@@ -674,7 +754,7 @@ function renderReleasedResultUnavailable() {
   fragment.append(header());
   const card = element("section", "result-card persistent-grade-card");
   card.append(element("h1", "", "Bài đã được chấm, nhưng kết quả chưa tải được."));
-  if (isReviewAllowedAttempt(state.attempt)) card.append(element("p", "review-mode-label", reviewModeLabel()));
+  appendPracticeModeLabel(card, state.attempt);
   card.append(element("p", "result-note", "Hãy đọc lại trạng thái từ máy chủ. Đáp án và lời giải chỉ xuất hiện sau khi máy chủ xác nhận bản phát hành."));
   card.append(actionButton("Tải lại trạng thái", "grade-status-retry", () => refreshGradeStatus(state.attempt.attemptId, { finalCheck: true }), "button"));
   card.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
@@ -716,7 +796,7 @@ async function resumePersistentAttempt() {
 
 async function openPersistentHistoryAttempt(attemptId) {
   const identityGeneration = state.identityGeneration;
-  if (!persistentMode || state.busy || hasUnacknowledgedChanges()) return;
+  if (!persistentMode || state.busy || fixedSelectionLocked() || hasUnacknowledgedChanges()) return;
   state.busy = true;
   try {
     const record = state.history.find((item) => item.attemptId === attemptId);
@@ -781,15 +861,20 @@ function header(exam = false) {
       const title = app.querySelector("h1");
       if (title) { title.tabIndex = -1; title.focus(); }
     };
-    navigation.append(actionButton("Trang đầu", "nav-home", () => openScreen(renderLanding), "topbar-link"));
-    navigation.append(actionButton("Bài luyện tập", "nav-catalog", () => openScreen(renderCatalog), "topbar-link"));
+    const home = actionButton("Trang đầu", "nav-home", () => openScreen(renderLanding), "topbar-link");
+    const catalog = actionButton("Bài luyện tập", "nav-catalog", () => openScreen(renderCatalog), "topbar-link");
+    home.disabled = fixedSelectionLocked();
+    catalog.disabled = fixedSelectionLocked();
+    navigation.append(home, catalog);
     if (persistentMode) {
       const logout = actionButton("Đăng xuất", "persistent-logout", logoutPersistentCandidate, "topbar-link");
       logout.disabled = (state.busy && state.reviewIntent === null) || hasUnacknowledgedChanges();
       navigation.append(logout);
     }
     if (state.attempt?.state === "GRADED") {
-      navigation.append(actionButton(persistentMode ? "Kết quả luyện tập" : "Kết quả demo", "nav-result", () => openScreen(() => renderResult(state.attempt.result)), "topbar-link"));
+      const result = actionButton(persistentMode ? "Kết quả luyện tập" : "Kết quả demo", "nav-result", () => openScreen(() => renderResult(state.attempt.result)), "topbar-link");
+      result.disabled = fixedSelectionLocked();
+      navigation.append(result);
     }
     const menu = actionButton("Mở menu", "menu-toggle", () => {
       const expanded = menu.getAttribute("aria-expanded") !== "true";
@@ -969,7 +1054,7 @@ function renderExamIntro(domain) {
       ? "Tiếp tục bài demo"
       : "Bắt đầu bài demo";
   const activePersistentAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
-  const sameActiveDomain = activePersistentAttempt?.domain === domain.domain;
+  const sameActiveDomain = activePersistentAttempt?.domain === domain.domain && !isFixedAttempt(activePersistentAttempt);
   const persistentStart = activePersistentAttempt
     ? sameActiveDomain
       ? activePersistentAttempt.state === "CREATED" ? startReservedAttempt : resumePersistentAttempt
@@ -984,7 +1069,7 @@ function renderExamIntro(domain) {
     persistentMode ? (persistentStart ?? (() => showMessage("Hoàn tất hoặc đọc lại bài đang làm trước khi bắt đầu bài khác."))) : () => startDemo(domain),
     "button intro-start",
   );
-  start.disabled = state.busy || (persistentMode && ((activePersistentAttempt !== null && !sameActiveDomain) || (!domain.available && !sameActiveDomain)));
+  start.disabled = state.busy || fixedSelectionLocked() || (persistentMode && ((activePersistentAttempt !== null && !sameActiveDomain) || (!domain.available && !sameActiveDomain)));
   actions.append(start);
   if (persistentMode) {
     start.setAttribute("aria-describedby", "attempt-timing-notice");
@@ -999,7 +1084,7 @@ function renderExamIntro(domain) {
 
 function domainCard(domain) {
   const activeAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
-  const sameActiveDomain = activeAttempt?.domain === domain.domain;
+  const sameActiveDomain = activeAttempt?.domain === domain.domain && !isFixedAttempt(activeAttempt);
   const card = element("article", `domain-card catalog-ticket${domain.available ? " available" : ""}`);
   card.dataset.testid = `catalog-card-${domain.domain}`;
   const index = domain.domain === "MATH" ? "01" : domain.domain === "READING" ? "02" : "03";
@@ -1032,9 +1117,11 @@ function domainCard(domain) {
     const completed = state.attempt?.state === "GRADED";
     const startLabel = completed ? "Bắt đầu lượt demo mới" : state.attempt?.state === "IN_PROGRESS" ? "Tiếp tục bài demo" : "Bắt đầu bài demo";
     const actions = element("div", "domain-actions");
-    actions.append(actionButton("Xem chi tiết", "exam-intro", () => renderExamIntro(domain), "button catalog-details-link"));
+    const details = actionButton("Xem chi tiết", "exam-intro", () => renderExamIntro(domain), "button catalog-details-link");
+    details.disabled = fixedSelectionLocked();
+    actions.append(details);
     if (activeAttempt) {
-      const sameDomain = activeAttempt.domain === domain.domain;
+      const sameDomain = activeAttempt.domain === domain.domain && !isFixedAttempt(activeAttempt);
       const activeLabel = sameDomain
         ? activeAttempt.state === "CREATED" ? "Bắt đầu bài đã giữ" : "Tiếp tục bài đang làm"
         : "Hoàn tất bài đang làm trước";
@@ -1043,7 +1130,7 @@ function domainCard(domain) {
         if (activeAttempt.state === "CREATED") void startReservedAttempt();
         else void resumePersistentAttempt();
       }, "button secondary small catalog-direct-start");
-      continueAttempt.disabled = !sameDomain || state.busy;
+      continueAttempt.disabled = !sameDomain || state.busy || fixedSelectionLocked();
       actions.append(continueAttempt);
     } else {
       actions.append(actionButton(persistentMode ? "Bắt đầu bài luyện tập" : startLabel, "demo-start", () => startDemo(persistentMode ? domain : undefined), "button secondary small catalog-direct-start"));
@@ -1051,7 +1138,7 @@ function domainCard(domain) {
     cardFooter.append(actions);
     const start = actions.querySelector("[data-testid='demo-start']");
     if (persistentMode && start) start.setAttribute("aria-describedby", "attempt-timing-notice");
-    if (start && !start.disabled) start.disabled = state.busy || (persistentMode && !domain.available && !sameActiveDomain);
+    if (start && !start.disabled) start.disabled = state.busy || fixedSelectionLocked() || (persistentMode && !domain.available && !sameActiveDomain);
   } else {
     card.append(element("p", "catalog-card-note", persistentMode ? "Đề nghị này đang đóng theo danh mục máy chủ." : "Nội dung demo chưa được chuẩn bị cho lĩnh vực này."));
     const disabled = element("button", "coming-soon", persistentMode ? "Chưa mở" : "Chưa có nội dung demo");
@@ -1100,7 +1187,7 @@ function renderReviewOffer(offer) {
   const open = actionButton("Xem lựa chọn ôn tập", "review-mode-open", () => openReviewConsent(offer), "button secondary");
   open.setAttribute("aria-haspopup", "dialog");
   open.setAttribute("aria-controls", "review-mode-dialog");
-  open.disabled = state.busy;
+  open.disabled = state.busy || fixedSelectionLocked();
   panel.append(open);
   return panel;
 }
@@ -1120,7 +1207,7 @@ function renderReviewIntentPanel(intent) {
   appendReviewStatus(panel, intent.phase, messages[intent.phase] || messages.failed);
   if (intent.phase === "uncertain") {
     const retry = actionButton("Thử lại cùng yêu cầu", "review-mode-retry", () => { void submitReviewIntent(intent); }, "button secondary");
-    retry.disabled = state.busy;
+    retry.disabled = state.busy || fixedSelectionLocked();
     panel.append(retry);
   } else if (intent.phase === "read-unavailable" && intent.receipt?.attemptId) {
     const reload = actionButton("Tải lại trạng thái bài", "review-mode-reload", () => { void readReviewReceipt(intent); }, "button secondary");
@@ -1135,7 +1222,7 @@ function renderReviewIntentPanel(intent) {
 }
 
 function openReviewConsent(offer) {
-  if (state.busy || !reviewOfferIsCurrent(offer)) {
+  if (state.busy || fixedSelectionLocked() || !reviewOfferIsCurrent(offer)) {
     if (state.reviewOffer === offer) {
       clearReviewFlow();
       renderCatalog();
@@ -1231,7 +1318,7 @@ function closeReviewConsent(dialog, restoreFocus) {
 }
 
 async function confirmReviewConsent(offer, checkbox, dialog) {
-  if (state.busy || !checkbox.checked || dialog.reviewOffer !== offer || !reviewOfferIsCurrent(offer)) return;
+  if (state.busy || fixedSelectionLocked() || !checkbox.checked || dialog.reviewOffer !== offer || !reviewOfferIsCurrent(offer)) return;
   let requestIntent;
   try {
     requestIntent = api.prepareReviewAttempt(offer.blueprintVersionId);
@@ -1256,7 +1343,7 @@ async function confirmReviewConsent(offer, checkbox, dialog) {
 }
 
 async function submitReviewIntent(intent) {
-  if (state.busy || state.reviewIntent !== intent || intent.identityGeneration !== state.identityGeneration
+  if (state.busy || fixedSelectionLocked() || state.reviewIntent !== intent || intent.identityGeneration !== state.identityGeneration
       || !intent.requestIntent) return;
   state.busy = true;
   intent.phase = "posting";
@@ -1337,6 +1424,342 @@ async function readReviewReceipt(intent) {
   }
 }
 
+function fixedFlowStatus(intent) {
+  const messages = {
+    confirming: "Đang chờ xác nhận rõ ràng. Chưa gửi yêu cầu tạo lượt luyện tập.",
+    cancelled: "Chưa tạo lượt luyện tập. Thao tác đã được hủy trước khi gửi yêu cầu.",
+    posting: "Đang gửi yêu cầu tạo một lượt bài dùng chung.",
+    uncertain: "Chưa xác nhận được phản hồi. Máy chủ có thể đã ghi nhận yêu cầu; có thể thử lại đúng yêu cầu này.",
+    receipt: "Máy chủ đã ghi nhận yêu cầu. Đang đọc riêng trạng thái bài đã lưu.",
+    "read-unavailable": "Yêu cầu đã được ghi nhận, nhưng chưa đọc được trạng thái bài. Có thể tải lại bằng một yêu cầu chỉ đọc.",
+    unverified: intent?.message || "Phản hồi chưa khớp với bài đã chọn. Bài chưa được mở; hãy đọc lại trạng thái từ máy chủ.",
+    failed: intent?.message || "Yêu cầu chưa hoàn tất. Đọc lại trạng thái từ máy chủ trước khi chọn lại.",
+  };
+  return messages[intent?.phase] || "Chưa tạo lượt luyện tập. Hãy xem thông tin và xác nhận riêng trước khi gửi yêu cầu.";
+}
+
+function focusFixedStatus(formId) {
+  const card = [...app.querySelectorAll("[data-testid='fixed-practice-card']")]
+    .find((item) => item.dataset.formId === formId);
+  const status = card?.querySelector("[data-testid='fixed-practice-status']");
+  if (!status) return;
+  status.focus({ preventScroll: true });
+  status.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+}
+
+function updateFixedCardStatus(intent) {
+  const card = [...app.querySelectorAll("[data-testid='fixed-practice-card']")]
+    .find((item) => item.dataset.formId === intent?.form?.formId);
+  const status = card?.querySelector("[data-testid='fixed-practice-status']");
+  if (!status) return;
+  status.dataset.stage = intent.phase || "offered";
+  status.textContent = fixedFlowStatus(intent);
+}
+
+function renderFixedIntentPanel(form) {
+  const intent = state.fixedIntent?.form.formId === form.formId ? state.fixedIntent : null;
+  const panel = element("div", "fixed-practice-outcome");
+  const status = element("p", "fixed-practice-status", fixedFlowStatus(intent));
+  status.dataset.testid = "fixed-practice-status";
+  status.dataset.stage = intent?.phase || "offered";
+  status.tabIndex = -1;
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  panel.append(status);
+  if (intent?.phase === "uncertain") {
+    const retry = actionButton("Thử lại cùng yêu cầu", "fixed-practice-retry", () => { void submitFixedIntent(intent); }, "button secondary");
+    retry.disabled = state.busy;
+    panel.append(retry);
+  } else if (intent?.phase === "read-unavailable" && intent.receipt?.attemptId) {
+    const reload = actionButton("Tải lại trạng thái bài", "fixed-practice-reload", () => { void readFixedReceipt(intent); }, "button secondary");
+    reload.disabled = state.busy;
+    panel.append(reload);
+  } else if (["failed", "unverified"].includes(intent?.phase)) {
+    const recover = actionButton("Đọc lại trạng thái từ máy chủ", "fixed-practice-recover", () => { void initializePersistent(); }, "button secondary");
+    recover.disabled = state.busy;
+    panel.append(recover);
+  }
+  return panel;
+}
+
+function renderFixedFormCard(form) {
+  const card = element("article", "fixed-practice-card");
+  card.dataset.testid = "fixed-practice-card";
+  card.dataset.formId = form.formId;
+  card.setAttribute("aria-labelledby", `fixed-practice-title-${form.formId}`);
+  const heading = element("div", "fixed-practice-card-heading");
+  heading.append(element("span", "fixed-practice-kicker", "BÀI DÙNG CHUNG"));
+  heading.append(element("span", "fixed-practice-repeat-chip", "Có thể gặp câu đã làm"));
+  card.append(heading);
+  const title = element("h3", "", form.name);
+  title.id = `fixed-practice-title-${form.formId}`;
+  card.append(title);
+  card.append(element("p", "fixed-practice-reference", `Mã bài dùng chung: ${form.formId}`));
+  card.append(element("p", "fixed-practice-domain", domainNames[form.domain] || form.domain));
+  card.append(element("p", "fixed-practice-mode-label", fixedPracticeModeLabel()));
+  const facts = element("dl", "fixed-practice-facts");
+  for (const [label, value] of [
+    ["Số câu", `${form.questionCount} câu`],
+    ["Thời lượng", formatPracticeDuration(form.durationSeconds)],
+    ["Khoảng thời gian trong danh mục", `${formatAdmissionTime(form.availableFrom) || "—"} – ${formatAdmissionTime(form.availableUntil) || "—"}`],
+  ]) {
+    const item = element("div", "fixed-practice-fact");
+    item.append(element("dt", "", label), element("dd", "", value));
+    facts.append(item);
+  }
+  card.append(facts);
+  card.append(element("p", "fixed-practice-caveat", "Máy chủ sẽ kiểm tra khả dụng khi nhận yêu cầu. Thông tin thời gian lấy từ danh mục; đây không phải xác nhận quyền truy cập."));
+  card.append(renderFixedIntentPanel(form));
+
+  const activeAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
+  const sameOwnedForm = isFixedAttempt(activeAttempt) && activeAttempt.formId === form.formId;
+  const actions = element("div", "fixed-practice-actions");
+  const open = actionButton("Chọn bài dùng chung", "fixed-practice-open", () => { void openFixedPractice(form, open); }, "button");
+  open.dataset.formId = form.formId;
+  open.setAttribute("aria-haspopup", "dialog");
+  open.setAttribute("aria-controls", "fixed-practice-dialog");
+  open.disabled = state.busy || fixedSelectionLocked() || activeAttempt !== null;
+  actions.append(open);
+  if (sameOwnedForm) {
+    const resume = actionButton(activeAttempt.state === "CREATED" ? "Đọc lại bài đã giữ" : "Tiếp tục bài đang làm",
+      "fixed-practice-resume", resumePersistentAttempt, "button secondary");
+    resume.disabled = state.busy || fixedSelectionLocked();
+    actions.append(resume);
+  } else if (activeAttempt) {
+    const locked = element("p", "fixed-practice-lock-note", "Hoàn tất bài đang giữ hoặc đang làm trước khi chọn một lượt mới.");
+    locked.setAttribute("role", "note");
+    actions.append(locked);
+  }
+  card.append(actions);
+  return card;
+}
+
+function renderFixedFormsSection() {
+  const section = element("section", "fixed-practice-section");
+  section.dataset.testid = "fixed-practice-list";
+  const heading = element("div", "fixed-practice-section-heading");
+  const title = element("h2", "", "Bài dùng chung");
+  heading.append(title, element("p", "", "Các bộ giữ nguyên nội dung; một lượt mới có thể gồm câu bạn đã làm trước đây."));
+  section.append(heading);
+  if (state.fixedForms.length === 0) {
+    const empty = element("p", "fixed-practice-empty", "Hiện chưa có bài dùng chung trong danh mục.");
+    empty.dataset.testid = "fixed-practice-empty";
+    section.append(empty);
+    return section;
+  }
+  const list = element("div", "fixed-practice-grid");
+  for (const form of state.fixedForms) list.append(renderFixedFormCard(form));
+  section.append(list);
+  return section;
+}
+
+function openFixedPractice(form, trigger) {
+  if (!persistentMode || state.busy || fixedSelectionLocked()) return;
+  if (!fixedFormIsCurrent(form)) {
+    showMessage("Bài dùng chung không còn khớp với danh mục đang hiển thị. Hãy đọc lại danh mục.");
+    return;
+  }
+  const activeAttempt = ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
+  if (activeAttempt) {
+    showMessage("Hoàn tất hoặc đọc lại bài đang lưu trước khi tạo lượt mới.");
+    return;
+  }
+  let requestIntent;
+  try {
+    // Capture the current session binding when the confirmation opens. No POST occurs here.
+    requestIntent = api.prepareFixedAttempt(form.formId);
+  } catch (error) {
+    const intent = { form, identityGeneration: state.identityGeneration, phase: "failed", requestIntent: null,
+      receipt: null, message: error?.message || "Không thể chuẩn bị xác nhận cho bài đã chọn." };
+    state.fixedIntent = intent;
+    renderCatalog();
+    focusFixedStatus(form.formId);
+    return;
+  }
+  const intent = { form, identityGeneration: state.identityGeneration, phase: "confirming", requestIntent, receipt: null, message: "" };
+  state.fixedIntent = intent;
+
+  const dialog = element("dialog", "fixed-practice-dialog");
+  dialog.id = "fixed-practice-dialog";
+  dialog.dataset.testid = "fixed-practice-dialog";
+  dialog.setAttribute("aria-labelledby", "fixed-practice-dialog-title");
+  dialog.setAttribute("aria-describedby", "fixed-practice-dialog-description");
+  dialog.fixedIntent = intent;
+  const title = element("h2", "", "Xác nhận lượt bài dùng chung");
+  title.id = "fixed-practice-dialog-title";
+  const description = element("p", "fixed-practice-dialog-description",
+    `${form.name} · ${domainNames[form.domain] || form.domain} · ${form.questionCount} câu · ${formatPracticeDuration(form.durationSeconds)}.`);
+  description.id = "fixed-practice-dialog-description";
+  const metadata = element("dl", "fixed-practice-dialog-metadata");
+  metadata.append(
+    element("dt", "", "Khoảng thời gian trong danh mục"),
+    element("dd", "", `${formatAdmissionTime(form.availableFrom) || "—"} – ${formatAdmissionTime(form.availableUntil) || "—"}`),
+  );
+  const warning = element("p", "fixed-practice-dialog-warning",
+    "Xác nhận sẽ yêu cầu một lượt luyện tập mới cho hồ sơ này. Bộ câu hỏi giữ nguyên; máy chủ vẫn kiểm tra khả dụng khi nhận yêu cầu. Lượt chỉ bắt đầu khi bạn bấm nút Bắt đầu sau đó.");
+  const fieldset = element("fieldset", "fixed-practice-consent-group");
+  fieldset.append(element("legend", "", "Xác nhận có thể lặp câu"));
+  const label = element("label", "fixed-practice-consent-label");
+  const checkbox = element("input", "fixed-practice-consent");
+  checkbox.type = "checkbox";
+  checkbox.checked = false;
+  checkbox.dataset.testid = "fixed-practice-consent";
+  checkbox.id = "fixed-practice-consent-input";
+  label.append(checkbox, element("span", "", "Tôi hiểu bài dùng chung có thể gồm câu hỏi tôi đã làm trước đây."));
+  fieldset.append(label);
+  const actions = element("div", "fixed-practice-dialog-actions");
+  const cancel = actionButton("Hủy", "fixed-practice-cancel", () => closeFixedConsent(dialog, true), "button secondary");
+  const confirm = actionButton("Xác nhận và tạo lượt", "fixed-practice-confirm", () => { void confirmFixedPractice(intent, checkbox, dialog); }, "button");
+  confirm.disabled = true;
+  checkbox.addEventListener("change", () => { confirm.disabled = !checkbox.checked; });
+  actions.append(cancel, confirm);
+  dialog.append(title, description, metadata, warning, fieldset, actions);
+  dialog.returnFocusTarget = trigger;
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeFixedConsent(dialog, true);
+  });
+  dialog.addEventListener("close", () => {
+    if (!dialog.isConnected) return;
+    if (dialog.fixedIntent?.phase === "confirming") {
+      dialog.fixedIntent.requestIntent = null;
+      dialog.fixedIntent.phase = "cancelled";
+      updateFixedCardStatus(dialog.fixedIntent);
+    }
+    if (state.fixedDialog === dialog) state.fixedDialog = null;
+    const target = dialog.returnFocusTarget;
+    dialog.remove();
+    if (dialog.dataset.suppressFocusRestore !== "true" && target?.isConnected && !target.disabled) target.focus({ preventScroll: true });
+  });
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab" || !dialog.open) return;
+    const controls = [...dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter((control) => control.getClientRects().length > 0);
+    const first = controls[0], last = controls.at(-1);
+    if (!first) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  state.fixedDialog = dialog;
+  app.append(dialog);
+  dialog.showModal();
+  checkbox.focus({ preventScroll: true });
+}
+
+function closeFixedConsent(dialog, restoreFocus) {
+  if (state.fixedDialog !== dialog) return;
+  if (!restoreFocus) dialog.dataset.suppressFocusRestore = "true";
+  if (!restoreFocus && dialog.fixedIntent?.phase === "confirming") {
+    dialog.fixedIntent.requestIntent = null;
+    dialog.fixedIntent.phase = "cancelled";
+    updateFixedCardStatus(dialog.fixedIntent);
+  }
+  if (dialog.open) dialog.close();
+  else if (dialog.fixedIntent?.phase === "confirming") {
+    dialog.fixedIntent.requestIntent = null;
+    dialog.fixedIntent.phase = "cancelled";
+  }
+  if (!restoreFocus) state.fixedDialog = null;
+}
+
+async function confirmFixedPractice(intent, checkbox, dialog) {
+  if (state.busy || !checkbox.checked || state.fixedDialog !== dialog || dialog.fixedIntent !== intent
+      || intent.phase !== "confirming" || !fixedIntentIsCurrent(intent)) return;
+  intent.phase = "posting";
+  closeFixedConsent(dialog, false);
+  await submitFixedIntent(intent);
+}
+
+async function submitFixedIntent(intent) {
+  if (state.busy || !fixedIntentIsCurrent(intent) || !intent.requestIntent
+      || !["posting", "uncertain"].includes(intent.phase)) return;
+  state.busy = true;
+  intent.phase = "posting";
+  renderCatalog();
+  focusFixedStatus(intent.form.formId);
+  if (!fixedIntentIsCurrent(intent)) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const receipt = await api.createFixedAttempt(intent.requestIntent);
+    if (state.identityGeneration !== intent.identityGeneration || state.fixedIntent !== intent) return;
+    state.busy = false;
+    intent.requestIntent = null;
+    if (!isMatchingFixedReceipt(receipt, intent)) {
+      intent.phase = "unverified";
+      intent.receipt = null;
+      renderCatalog();
+      focusFixedStatus(intent.form.formId);
+      return;
+    }
+    intent.receipt = Object.freeze({ attemptId: receipt.attemptId, domain: receipt.domain, formId: receipt.formId });
+    intent.phase = "receipt";
+    renderCatalog();
+    focusFixedStatus(intent.form.formId);
+    await readFixedReceipt(intent);
+  } catch (error) {
+    if (state.identityGeneration !== intent.identityGeneration || state.fixedIntent !== intent) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    if (error?.status === 503 || error?.status === 429) {
+      intent.phase = "uncertain";
+    } else if (error?.status === 409) {
+      intent.requestIntent = null;
+      intent.phase = "unverified";
+      intent.message = "Máy chủ báo có xung đột với trạng thái hiện tại. Đọc lại bài đã lưu trước khi chọn tiếp.";
+    } else {
+      intent.requestIntent = null;
+      intent.phase = "failed";
+      intent.message = error?.message || "Máy chủ chưa tạo lượt. Đọc lại trạng thái trước khi chọn lại.";
+    }
+    renderCatalog();
+    focusFixedStatus(intent.form.formId);
+  }
+}
+
+async function readFixedReceipt(intent) {
+  if (state.busy || !fixedIntentIsCurrent(intent) || !intent.receipt?.attemptId) return;
+  state.busy = true;
+  intent.phase = "receipt";
+  renderCatalog();
+  focusFixedStatus(intent.form.formId);
+  if (!fixedIntentIsCurrent(intent)) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const response = await api.readFixedAttempt(intent.receipt.attemptId, intent.form.domain, intent.form.formId);
+    if (state.identityGeneration !== intent.identityGeneration || state.fixedIntent !== intent) return;
+    state.busy = false;
+    const attempt = response?.attempt;
+    if (!isMatchingFixedAttempt(attempt, intent, intent.receipt.attemptId)) {
+      intent.phase = "unverified";
+      renderCatalog();
+      focusFixedStatus(intent.form.formId);
+      return;
+    }
+    state.fixedIntent = null;
+    state.resumeNotice = "Đã tải trạng thái lượt bài dùng chung đã lưu. Bài có thể gồm câu bạn đã làm trước đây.";
+    state.review = null;
+    state.currentIndex = 0;
+    void refreshPersistentHistory();
+    acceptAttempt(attempt);
+  } catch (error) {
+    if (state.identityGeneration !== intent.identityGeneration || state.fixedIntent !== intent) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    intent.phase = error?.code === "UNEXPECTED_ATTEMPT_MODE" ? "unverified" : "read-unavailable";
+    renderCatalog();
+    focusFixedStatus(intent.form.formId);
+  }
+}
+
 function renderCatalog() {
   if (persistentMode) reconcileReviewFlowWithCatalog();
   if (persistentMode) {
@@ -1398,6 +1821,7 @@ function renderCatalog() {
   panel.append(panelHeader);
   if (persistentMode) panel.append(renderTimingNotice());
   panel.append(filters, grid);
+  if (persistentMode) panel.append(renderFixedFormsSection());
   if (persistentMode && state.attempt && !state.reviewIntent) {
     const current = element("section", "staff-callout persistent-current-attempt");
     current.dataset.testid = "persistent-current-attempt";
@@ -1405,8 +1829,10 @@ function renderCatalog() {
       ? "Bài đã gửi; trạng thái chấm được lưu" : "Bài đã lưu cho hồ sơ này";
     current.append(element("h2", "", currentTitle));
     current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · ${attemptStateNames[state.attempt.state] || "Chưa đọc được trạng thái"}${state.attempt.gradingStatus ? ` · ${gradingStateNames[state.attempt.gradingStatus] || "Chưa đọc được trạng thái chấm"}` : ""}`));
-    if (isReviewAllowedAttempt(state.attempt)) current.append(element("p", "review-mode-label", reviewModeLabel()));
-    current.append(actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary"));
+    appendPracticeModeLabel(current, state.attempt);
+    const resume = actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary");
+    resume.disabled = fixedSelectionLocked() || state.busy;
+    current.append(resume);
     fragment.append(panel, current);
   } else {
     fragment.append(panel);
@@ -1428,15 +1854,15 @@ function renderCatalog() {
       for (const record of state.history.slice(0, 10)) {
         const row = element("article", "persistent-history-item");
         row.append(element("strong", "", `${domainNames[record.domain] || record.domain} · ${attemptStateNames[record.state] || "Chưa đọc được trạng thái"}`));
-        if (record.formMode === "PERSONALIZED_PRACTICE" && record.reuseMode === "REVIEW_ALLOWED") {
-          row.append(element("span", "review-mode-label", reviewModeLabel()));
-        }
+        appendPracticeModeLabel(row, record);
         if (record.score && record.state === "GRADED") {
           row.append(element("span", "", `${record.score.correctCount}/${record.score.totalCount} · ${record.score.percentage}% · luyện tập không chính thức`));
         } else if (record.state === "SUBMITTED" || record.state === "EXPIRED") {
           row.append(element("span", "", "Đang chờ trạng thái chấm"));
         }
-        row.append(actionButton("Đọc bài đã lưu", `history-${record.attemptId}`, () => openPersistentHistoryAttempt(record.attemptId), "button secondary small"));
+        const openRecord = actionButton("Đọc bài đã lưu", `history-${record.attemptId}`, () => openPersistentHistoryAttempt(record.attemptId), "button secondary small");
+        openRecord.disabled = fixedSelectionLocked() || state.busy;
+        row.append(openRecord);
         entries.append(row);
       }
       history.append(status, entries);
@@ -1459,7 +1885,7 @@ function renderCatalog() {
 
 async function startDemo(selectedDomain = null) {
   const identityGeneration = state.identityGeneration;
-  if (state.busy) return;
+  if (state.busy || (persistentMode && fixedSelectionLocked())) return;
   if (persistentMode) clearReviewFlow();
   state.busy = true;
   renderCatalog();
@@ -1733,9 +2159,11 @@ async function reloadAttemptAfterSaveConflict() {
   for (const control of app.querySelectorAll("button, input")) control.disabled = true;
   updateSaveStatus("Tải lại trạng thái đã lưu từ máy chủ…");
   try {
-    const data = originalAttempt.formMode === "PERSONALIZED_PRACTICE" && originalAttempt.reuseMode === "REVIEW_ALLOWED"
-      ? await api.readReviewAttempt(attemptId, originalAttempt.domain)
-      : await api.readAttempt(attemptId);
+    const data = originalAttempt.formMode === "PUBLISHED_FIXED" && originalAttempt.reuseMode === "FIXED_AS_PUBLISHED"
+      ? await api.readFixedAttempt(attemptId, originalAttempt.domain, originalAttempt.formId)
+      : originalAttempt.formMode === "PERSONALIZED_PRACTICE" && originalAttempt.reuseMode === "REVIEW_ALLOWED"
+        ? await api.readReviewAttempt(attemptId, originalAttempt.domain)
+        : await api.readAttempt(attemptId);
     if (identityGeneration !== state.identityGeneration || state.attempt !== originalAttempt) return;
     // Terminal acceptance must see pending edits to explain unresolved saves.
     if (data.attempt.state === "IN_PROGRESS") {
@@ -1981,7 +2409,8 @@ function examTopbar() {
   identityCopy.append(element("strong", "", "TSA Practice"));
   const durationMinutes = Math.floor(state.attempt.durationSeconds / 60);
   identityCopy.append(element("span", "", `${domainNames[state.attempt.domain] || state.attempt.domain || "Bài luyện tập"} · ${persistentMode ? "Local PG" : "Demo"} · ${state.attempt.slots.length} câu · ${durationMinutes} phút`));
-  if (isReviewAllowedAttempt(state.attempt)) identityCopy.append(element("span", "review-mode-label", reviewModeLabel()));
+  if (isFixedAttempt(state.attempt)) identityCopy.append(element("span", "fixed-practice-mode-label", fixedPracticeModeLabel()));
+  else if (isReviewAllowedAttempt(state.attempt)) identityCopy.append(element("span", "review-mode-label", reviewModeLabel()));
   identity.append(identityCopy);
 
   const clock = element("div", "exam-clock");
@@ -2370,7 +2799,7 @@ function renderResult(result) {
     const domain = element("p", "result-label", `Bài luyện tập độc lập · ${domainNames[state.attempt.domain] || state.attempt.domain} · ${result.totalCount} câu`);
     domain.dataset.testid = "result-domain";
     summary.append(domain);
-    if (isReviewAllowedAttempt(state.attempt)) summary.append(element("p", "review-mode-label", reviewModeLabel()));
+    appendPracticeModeLabel(summary, state.attempt);
   }
   summary.append(title, element("p", "result-label", result.label));
   summary.append(element("p", "result-note", persistentMode
@@ -2501,7 +2930,10 @@ function renderReview() {
   filterGroup.setAttribute("role", "group");
   filterGroup.setAttribute("aria-label", "Lọc kết quả ôn tập");
   const context = element("div", "review-context");
-  if (isReviewAllowedAttempt(state.attempt)) {
+  if (isFixedAttempt(state.attempt)) {
+    context.append(element("p", "fixed-practice-mode-label", fixedPracticeModeLabel()));
+    context.append(element("p", "fixed-practice-review-copy", "Bộ câu hỏi được giữ nguyên. Việc xem câu trả lời và lời giải ở đây chỉ xuất hiện sau khi máy chủ phát hành kết quả; đây là luyện tập không chính thức."));
+  } else if (isReviewAllowedAttempt(state.attempt)) {
     context.append(element("p", "review-mode-label", "Bài mới được tạo theo chế độ ôn tập có thể lặp câu. Lượt này không sửa hay thay thế các bài đã lưu trước đây."));
   }
   context.append(
@@ -2727,7 +3159,9 @@ async function initializePersistent() {
     if (identityGeneration !== state.identityGeneration) return;
     const data = await api.loadCatalog();
     if (identityGeneration !== state.identityGeneration) return;
+    if (!Array.isArray(data.fixedForms)) throw Object.assign(new Error("Danh mục bài dùng chung chưa được tải đúng định dạng."), { code: "TEMPORARILY_UNAVAILABLE", status: 503 });
     state.catalog = data.domains;
+    state.fixedForms = data.fixedForms;
     try {
       const history = await api.loadHistory();
       if (identityGeneration !== state.identityGeneration) return;

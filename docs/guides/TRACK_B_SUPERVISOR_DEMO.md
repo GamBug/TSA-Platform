@@ -103,6 +103,38 @@ Reading in this profile uses standalone synthetic items. For the separate ordere
 shared-passage example, stop this demo and run the same flags with
 `npm run demo:student:reading`. Do not combine the two fixture profiles.
 
+## Optional shared fixed forms
+
+For a fresh fixed-form presentation, stop the other launcher and run:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:fixed
+```
+
+This automatically seals three original synthetic forms through the real local
+Bank service before starting the student site. No SQL patch or manual API call is
+needed. Personal practice stays in the catalog; the separate **Bài dùng chung**
+section offers the same MATH4/READING2/SCIENCE4 independent timings above. Form
+references distinguish choices with the same title. These are immutable shared
+contents, not an official examination or qualified human-reviewed inventory.
+
+Choose **Chọn bài dùng chung**. The repeat-consent checkbox starts unchecked;
+Cancel/Escape creates no attempt. Give consent and confirm the reservation, then
+choose **Bắt đầu bài luyện tập** explicitly. Answer, wait for **Đã lưu**, reload,
+submit and open the released explanations. Return to the catalog and repeat the
+other domains. Fixed mode remains labeled in result and history. A fresh explicit
+repeat uses the same sealed form with a new owned attempt, preserving first-history;
+a later default NEW_ONLY request can still truthfully exhaust its inventory.
+
+If assignment response is uncertain, use **Thử lại cùng yêu cầu**. Once the server
+has acknowledged it, **Tải lại trạng thái bài** performs only a read. Reload resumes
+existing state and never silently assigns another attempt. Current admission,
+rights or withdrawal may reject a new reservation or delivery. Both synthetic
+profiles may receive the same form, but their answers/results/history stay private.
+Stopping this disposable launcher discards all forms and progress. Shared/retained
+runtime defaults keep new fixed catalog/creation disabled. See
+[executed checks and limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+
 ## Stop, reset and recover
 
 Press **Ctrl+C once** in the launcher terminal and wait for it to exit. The owned

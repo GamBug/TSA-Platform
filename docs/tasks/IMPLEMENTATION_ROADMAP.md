@@ -1,5 +1,17 @@
 # Implementation roadmap
 
+Current B10.1,2026-10-26: separately selected under standing engineering delegation,
+implemented existing frozen fixed student contracts for supported B9 seals. Opt-in
+disposable3domain demo, native consent, owned immutable-form attempts, durable H1,
+first-history/current rights, save/reload/grade/released review and truthful recovery.
+Actual independent Sol6.1/Medium source/PG/HTTP/Chrome review no unresolved findings;
+root Firefox/targeted/broad regressions pass. Shared flags remain false. No new
+human approval, production or accepted real-content/accessibility claim.
+[Evidence](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md). Remaining parent
+WEB-003 engineering scope is separately selected shorter profiles; human-qualified
+stock/accessibility remain external. Historical proposals below are superseded only
+by their recorded scoped decisions.
+
 Current B9.1,2026-10-26: local fixed sealing/private EXAM metadata implemented under
 recorded specific owner go-ahead. Current eligible stock/immutable snapshots/rights
 horizon, no attempts/history or fixed student delivery. Root focused12/Bank161/

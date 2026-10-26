@@ -1,15 +1,22 @@
 # Agent onboarding
 
+Current navigation update2026-10-26: Track B has an implemented PostgreSQL-backed
+synthetic student/staff demonstration and scoped owner execution/delegation records.
+Read the CURRENT top of PROJECT_STATE/LAST_HANDOFF/backlog before historical planning
+text. G1/G2/G3 owner dispositions do not supply human rights/content/accessibility
+acceptance. Runnable commands and environment are in the
+[supervisor guide](../guides/TRACK_B_SUPERVISOR_DEMO.md).
+
 This reading sequence must work with an empty conversation. No provider account, agent server or previous chat is required. Start from the repository root; do not assume the current branch/task was assigned to you.
 
 ## Deterministic sequence
 
 1. Read [AGENTS.md](../../AGENTS.md) and [README](../../README.md): project purpose, unofficial status and operating boundaries.
 2. Read [PROJECT_STATE](PROJECT_STATE.md) and [LAST_HANDOFF](LAST_HANDOFF.md): current phase, approval status, completed checks, blockers and starting point. Inspect `git status --short`, current branch and HEAD if one exists. An unborn branch is valid; do not invent a commit reference.
-3. Open the assigned ID in [TASK_BACKLOG](../tasks/TASK_BACKLOG.md). Confirm prerequisites, actual owner, status, file scope, deliverables and tests. If no assignment exists, propose the recommended next task to the owner; do not claim a blocked implementation task. The present next task is review, not application initialization.
+3. Open the assigned ID in [TASK_BACKLOG](../tasks/TASK_BACKLOG.md). Confirm prerequisites, actual owner, status, file scope, deliverables and tests. If no assignment exists, propose the recommended next task to the owner; do not claim a blocked implementation task. Use the current backlog assignment or recorded standing delegation; do not infer a new architecture approval from historical proposed cards.
 4. Read only task-specific specifications using the map below. Follow referenced contracts necessary for your changes, not every research page.
 5. Read the relevant ADR entries in [OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md) and their approval evidence. PROPOSED is not APPROVED. Existing approved contracts must not change silently; unresolved assumptions are explicit task gates.
-6. Read the relevant rows in [TEST_STRATEGY](../quality/TEST_STRATEGY.md), actual runtime commands introduced by the foundation task when they exist, and [HANDOFF_PROTOCOL](HANDOFF_PROTOCOL.md). Claim ownership with coordinated backlog update before implementation. There are no application test commands yet.
+6. Read the relevant rows in [TEST_STRATEGY](../quality/TEST_STRATEGY.md), actual runtime commands introduced by the foundation task when they exist, and [HANDOFF_PROTOCOL](HANDOFF_PROTOCOL.md). Claim ownership with coordinated backlog update before implementation. Use current package.json commands and task verification records; do not treat historical missing-test statements as current facts.
 
 ## Task-specific reading map
 

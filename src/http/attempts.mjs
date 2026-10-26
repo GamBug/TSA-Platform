@@ -148,15 +148,15 @@ async function readJson(request) {
 }
 
 /** Loopback-only student create/start/save/submit/GET adapter using frozen routes. */
-export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false } = {}) {
+export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false } = {}) {
   if (!identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function'
       || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('A trusted identity service is required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
-  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice });
-  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice });
+  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice });
+  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice });
 
   return async function handleAttemptRequest(request) {
     const requestId = randomUUID();

@@ -30,6 +30,22 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-003 B10.1 — selected under standing delegation,2026-10-26
+
+- Selection actor: root engineering orchestrator under the owner's standing
+  engineering-choice/product-completion delegation, after B9 clean acceptance.
+  This is separate from B9's expressly staff-only go-ahead, not an inferred new
+  human utterance or wholeADR007/content/accessibility/production approval.
+- [Exact bounded decision/compatibility](WEB_003_B10_FIXED_STUDENT_DECISION.md):
+  implement existing frozen student fixed catalog/create modes using supported B9
+  seals, fresh session-bound consent, owned attempts/history and unchanged lifecycle.
+  No new public route/field/role or solver, no personal commit relaxation/raw grant.
+  New narrow tsa_exam EXECUTE supports the existing student operation only.
+- AUTHORIZED_IN_SCOPE_UNDER_DELEGATION / IMPLEMENTATION_IN_PROGRESS after independent
+  source/design review. [Actual review/repairs](../reviews/WEB_003_B10_DESIGN_REVIEW.md).
+  Read-only explorer mapping and separate Sol6.1/Medium review executed; no B10
+  runtime acceptance or new human approval claimed. Shared flags defaultfalse; disposable synthetic opt-in only.
+
 ## WEB-002 B9.1 — scoped owner go-ahead,2026-10-26
 
 - Authorizing identity: human repository owner,2026-10-26 Asia/Bangkok.

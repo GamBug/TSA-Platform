@@ -68,7 +68,7 @@ function isUtcMicrosecondInstant(value) {
   catch { return false; }
 }
 
-function decodeCursor(encoded, kind) {
+function decodeCursor(encoded, kind, allowFixed = false) {
   if (encoded === null) return null;
   if (typeof encoded !== 'string' || encoded.length > MAX_CURSOR_LENGTH || !/^[A-Za-z0-9_-]+$/.test(encoded)) {
     reject(422, 'VALIDATION_ERROR');
@@ -89,6 +89,14 @@ function decodeCursor(encoded, kind) {
   }
 
   if (kind === 'catalog') {
+    if (value?.v === 2) {
+      if (!allowFixed || !canonicalObject(value, ['v','kind','phase','afterFormId'])
+        || value.kind !== 'catalog' || value.phase !== 'fixed'
+        || !(value.afterFormId === null || (typeof value.afterFormId === 'string' && UUID_PATTERN.test(value.afterFormId)))
+        || encoded !== encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:value.afterFormId})) reject(422,'VALIDATION_ERROR');
+      return Object.freeze({phase:'fixed',afterFormId:value.afterFormId});
+    }
+
     if (!canonicalObject(value, ['v', 'kind', 'afterBlueprintId'])
         || value.v !== 1 || value.kind !== 'catalog'
         || typeof value.afterBlueprintId !== 'string' || !UUID_PATTERN.test(value.afterBlueprintId)) {
@@ -118,7 +126,7 @@ function parseEnvelope(value, expectedKeys) {
   return envelope;
 }
 
-function parseCatalogEnvelope(value, limit) {
+function parseCatalogEnvelope(value, limit, fixed = false) {
   const envelope = parseEnvelope(value, ['items', 'next']);
   const rawItems = envelope.items;
   if (!Array.isArray(rawItems) || rawItems.length > limit || !(envelope.next === null
@@ -134,25 +142,21 @@ function parseCatalogEnvelope(value, limit) {
     if (!config.success || !parsedEntry.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
     const entry = parsedEntry.data;
     const section = config.data.sections[0];
-    if (entry.mode !== 'PERSONALIZED_PRACTICE' || entry.reviewAllowed !== false
+    const identityId = fixed ? entry.formId : entry.blueprintVersionId;
+    if (entry.mode !== (fixed ? 'PUBLISHED_FIXED' : 'PERSONALIZED_PRACTICE')
+        || (fixed ? entry.repeatsAllowed !== true : entry.reviewAllowed !== false)
         || entry.name !== config.data.name
-        || entry.domain !== section.section
-        || entry.questionCount !== section.count
-        || entry.durationSeconds !== section.durationSeconds
-        || entry.profileKind !== config.data.profileKind
-        || seen.has(entry.blueprintVersionId)) {
-      reject(503, 'TEMPORARILY_UNAVAILABLE');
-    }
-    seen.add(entry.blueprintVersionId);
+        || entry.domain !== section.section || entry.questionCount !== section.count
+        || entry.durationSeconds !== section.durationSeconds || entry.profileKind !== config.data.profileKind
+        || seen.has(identityId)) reject(503,'TEMPORARILY_UNAVAILABLE');
+    seen.add(identityId);
     // Return only the frozen public catalog entry; the validated blueprint config stays private.
     return entry;
   });
 
-  const nextCursor = envelope.next === null ? null : encodeCursor({
-    v: 1,
-    kind: 'catalog',
-    afterBlueprintId: envelope.next,
-  });
+  const nextCursor = envelope.next === null ? null : fixed
+    ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:envelope.next})
+    : encodeCursor({v:1,kind:'catalog',afterBlueprintId:envelope.next});
   const page = CatalogPageSchema.safeParse({ items, nextCursor });
   if (!page.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
   return page.data;
@@ -189,29 +193,37 @@ async function runQuery(examPool, work) {
 }
 
 /** Owner-scoped catalog and compact attempt-history reads over the restricted exam role. */
-export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false } = {}) {
+export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
 
+  if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
 
   async function catalog(principal, rawQuery = {}) {
     const userId = requireActor(identityService, principal, 'candidate.attempt.read');
     const query = parsePageQuery(rawQuery, CatalogQuerySchema);
-    const cursor = decodeCursor(query.cursor, 'catalog');
-    const value = await runQuery(examPool, async (client) => {
+    const cursor = decodeCursor(query.cursor, 'catalog', enableFixedPractice);
+    const page = await runQuery(examPool, async (client) => {
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [userId]);
-      const result = await client.query(
+      const fixedPage = async (limit, after) => parseCatalogEnvelope((await client.query(
+        'SELECT tsa.exam_fixed_catalog_page($1::integer,$2::uuid) AS result', [limit,after])).rows[0]?.result, limit, true);
+      if (cursor?.phase === 'fixed') return fixedPage(query.limit,cursor.afterFormId);
+      const personal = parseCatalogEnvelope((await client.query(
         'SELECT tsa.exam_catalog_page($1::integer,$2::uuid) AS result',
-        [query.limit, cursor?.afterBlueprintId ?? null],
-      );
-      return result.rows[0]?.result;
+        [query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result,query.limit);
+      if (!enableFixedPractice || personal.nextCursor !== null) return personal;
+      const remaining = query.limit-personal.items.length;
+      const fixed = await fixedPage(Math.max(1,remaining),null);
+      if (remaining === 0) return {items:personal.items,nextCursor:fixed.items.length
+        ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:null}) : null};
+      return CatalogPageSchema.parse({items:[...personal.items,...fixed.items],nextCursor:fixed.nextCursor});
     });
-    const page = parseCatalogEnvelope(value, query.limit);
-    // SQL metadata stays legacy-strict; only this trusted capability flag advertises review.
-    return enableReviewPractice ? { ...page, items: page.items.map((entry) => ({ ...entry, reviewAllowed: true })) } : page;
+    // Capability flags only advertise their own mode; fixed rows never gain reviewAllowed.
+    return enableReviewPractice ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE'
+      ? {...entry,reviewAllowed:true} : entry)} : page;
   }
 
   async function history(principal, rawQuery = {}) {

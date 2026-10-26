@@ -15,6 +15,16 @@ const ERROR_TEXT = {
   TEMPORARILY_UNAVAILABLE: 'Máy chủ chưa hoàn tất yêu cầu. Bạn có thể thử lại cùng thao tác.',
 };
 const STATES = new Set(['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED', 'GRADED', 'CANCELLED', 'INVALIDATED']);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const DOMAINS = new Set(['MATH', 'READING', 'SCIENCE']);
+const PROFILE_KINDS = new Set(['INDEPENDENT_PRACTICE', 'PUBLIC_REFERENCE']);
+
+function exactRecord(value, keys) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype
+    && Object.keys(value).length === keys.length
+    && keys.every((key) => Object.hasOwn(value, key));
+}
 
 function failure(code, status = 503, details = {}) {
   const error = new Error(ERROR_TEXT[code] ?? 'Yêu cầu chưa hoàn tất. Hãy kiểm tra trạng thái rồi thử lại.');
@@ -62,6 +72,8 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
 
   async function request(path, { method = 'GET', body, key, csrfToken = null } = {}) {
     const generation = identityGeneration;
+    const studentRequest = path.startsWith('/api/v1/');
+    const sessionNonce = studentRequest ? readCookie('tsa_local_csrf') : null;
     const headers = new Headers({ accept: 'application/json' });
     if (body !== undefined) headers.set('content-type', 'application/json');
     if (method !== 'GET') {
@@ -76,6 +88,12 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       value = await response.json();
     } catch { throw failure('TEMPORARILY_UNAVAILABLE'); }
     if (generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
+    if (studentRequest && sessionNonce !== readCookie('tsa_local_csrf')) {
+      identityGeneration += 1; principal = null; attempts.clear(); pendingKeys.clear();
+      const denied = response.status === 403;
+      const code = denied && typeof value?.error?.code === 'string' ? value.error.code : 'UNAUTHENTICATED';
+      throw failure(code, denied ? 403 : 401);
+    }
     if (!response.ok) {
       const code = value?.error?.code ?? value?.error ?? 'TEMPORARILY_UNAVAILABLE';
       if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') attempts.clear();
@@ -138,9 +156,13 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   async function readAttempt(attemptId, expected = null) {
     const path = `/api/v1/attempts/${encodeURIComponent(attemptId)}`;
     const view = await request(path);
-    if (expected?.reuseMode && (!view || view.formMode !== (expected.formMode ?? 'PERSONALIZED_PRACTICE')
-        || view.reuseMode !== expected.reuseMode
-        || (expected.domain && view.domain !== expected.domain))) {
+    const expectedMode = expected?.formMode
+      ?? (expected?.reuseMode === 'FIXED_AS_PUBLISHED' ? 'PUBLISHED_FIXED' : 'PERSONALIZED_PRACTICE');
+    if (!view || view.attemptId !== attemptId
+        || (expected?.reuseMode && (view.formMode !== expectedMode
+          || view.reuseMode !== expected.reuseMode
+          || (expected.domain && view.domain !== expected.domain)
+          || (expected.formId && view.formId !== expected.formId)))) {
       throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
     }
     let released = null;
@@ -189,11 +211,26 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   }
   async function loadCatalog() {
     const items = await pages('/api/v1/catalog');
-    return { domains: items.filter((item) => item.mode === 'PERSONALIZED_PRACTICE').map((item) => ({
+    const domains = items.filter((item) => item.mode === 'PERSONALIZED_PRACTICE').map((item) => ({
       domain: item.domain, name: item.name, questionCount: item.questionCount, durationSeconds: item.durationSeconds,
       availableFrom: item.availableFrom, availableUntil: item.availableUntil, blueprintVersionId: item.blueprintVersionId,
       available: Date.parse(item.availableFrom) <= Date.now() && Date.now() < Date.parse(item.availableUntil),
-    })) };
+    }));
+    const fixedForms = items.filter((item) => item.mode === 'PUBLISHED_FIXED').map((item) => {
+      const from = typeof item.availableFrom === 'string' ? Date.parse(item.availableFrom) : Number.NaN;
+      const until = typeof item.availableUntil === 'string' ? Date.parse(item.availableUntil) : Number.NaN;
+      if (!UUID.test(item.formId) || typeof item.name !== 'string' || item.name.trim().length === 0
+          || !DOMAINS.has(item.domain) || !Number.isSafeInteger(item.questionCount) || item.questionCount <= 0
+          || !Number.isSafeInteger(item.durationSeconds) || item.durationSeconds <= 0
+          || !PROFILE_KINDS.has(item.profileKind) || item.repeatsAllowed !== true
+          || !Number.isFinite(from) || !Number.isFinite(until) || until <= from) {
+        throw failure('TEMPORARILY_UNAVAILABLE');
+      }
+      return Object.freeze({ mode: 'PUBLISHED_FIXED', formId: item.formId, repeatsAllowed: true,
+        name: item.name, domain: item.domain, questionCount: item.questionCount, durationSeconds: item.durationSeconds,
+        profileKind: item.profileKind, availableFrom: item.availableFrom, availableUntil: item.availableUntil });
+    });
+    return { domains, fixedForms: Object.freeze(fixedForms) };
   }
   function prepareReviewAttempt(blueprintVersionId) {
     if (typeof blueprintVersionId !== 'string'
@@ -223,6 +260,38 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     // Freeze the session nonce too: a cookie change after this check must fail CSRF,
     // never transfer one candidate's repeat consent to another candidate.
     return mutation('/api/v1/attempts', intent.body, intent.key, intent.csrfToken);
+  }
+  function prepareFixedAttempt(formId) {
+    if (typeof formId !== 'string' || !UUID.test(formId)) throw failure('VALIDATION_ERROR', 422);
+    const body = Object.freeze({ mode: 'PUBLISHED_FIXED', formId,
+      reuseMode: 'FIXED_AS_PUBLISHED', acknowledgeRepeats: true });
+    const csrfToken = readCookie('tsa_local_csrf');
+    if (typeof csrfToken !== 'string' || csrfToken.length === 0) throw failure('UNAUTHENTICATED', 401);
+    return Object.freeze({ body, key: globalThis.crypto.randomUUID(), generation: identityGeneration, csrfToken });
+  }
+  async function createFixedAttempt(intent) {
+    const intentKeys = ['body', 'key', 'generation', 'csrfToken'];
+    const bodyKeys = ['mode', 'formId', 'reuseMode', 'acknowledgeRepeats'];
+    if (!exactRecord(intent, intentKeys) || !exactRecord(intent.body, bodyKeys)
+        || intent.generation !== identityGeneration
+        || intent.body.mode !== 'PUBLISHED_FIXED' || !UUID.test(intent.body.formId)
+        || intent.body.reuseMode !== 'FIXED_AS_PUBLISHED' || intent.body.acknowledgeRepeats !== true
+        || typeof intent.key !== 'string' || !UUID.test(intent.key)
+        || typeof intent.csrfToken !== 'string' || intent.csrfToken.length === 0) {
+      throw failure('VALIDATION_ERROR', 422);
+    }
+    await session();
+    if (intent.generation !== identityGeneration || intent.csrfToken !== readCookie('tsa_local_csrf')) {
+      throw failure('UNAUTHENTICATED', 401);
+    }
+    return mutation('/api/v1/attempts', intent.body, intent.key, intent.csrfToken);
+  }
+  async function readFixedAttempt(attemptId, domain, formId) {
+    if (typeof attemptId !== 'string' || !UUID.test(attemptId)
+        || !DOMAINS.has(domain) || typeof formId !== 'string' || !UUID.test(formId)) {
+      throw failure('VALIDATION_ERROR', 422);
+    }
+    return readAttempt(attemptId, { formMode: 'PUBLISHED_FIXED', reuseMode: 'FIXED_AS_PUBLISHED', domain, formId });
   }
   async function readReviewAttempt(attemptId, domain) {
     return readAttempt(attemptId, { formMode: 'PERSONALIZED_PRACTICE', reuseMode: 'REVIEW_ALLOWED', domain });
@@ -315,6 +384,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   }
   return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog,
     startDemo, prepareReviewAttempt, createReviewAttempt, readReviewAttempt,
+    prepareFixedAttempt, createFixedAttempt, readFixedAttempt,
     startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
     loadHistory: () => pages('/api/v1/attempts') });
 }

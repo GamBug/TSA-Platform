@@ -1,6 +1,6 @@
 # Track B local product acceptance —2026-10-25
 
-Updated2026-10-26 for the separately scoped explicit personal-review increment.
+Updated2026-10-26 for separately scoped personal review and B10 fixed student practice.
 
 Accountable orchestrator root Codex; feat/track-b-data-auth. This is a current
 navigation and evidence reconciliation, not full Technical MVP or production
@@ -43,9 +43,15 @@ are original synthetic test machinery, never accepted real inventory.
 | Eligible Bank rehearsal | EXAM captures pinned real technically eligible synthetic stock using DB time/rights horizon; BANK audited aggregate replay; historical NOT_REVALIDATED, no forms/attempts/sealing. Actual success→quarantine→new shortage. [B8](WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md) |
 | Local fixed form sealing | Explicit current EXAM_MANAGER seal of current eligible synthetic stock, immutable new form/private snapshots, safe EXAM metadata, no student assignment/delivery. Actual upgrade/roles/replay/rights/version/quarantine races and browsers pass. [B9 evidence](WEB_002_B9_FIXED_SEALING_VERIFICATION.md). |
 
+Separate B10 student fixed practice is AUTOMATED_PASS / INDEPENDENTLY_REVIEWED
+in its recorded scope: existing frozen catalog/consent/assignment/lifecycle,
+shared immutable forms, global H1 and first-history, actual3domain browser flows,
+rights/role/BOLA/CSRF, corrected-version and flag-off delivery checks.
+[Commands, review and limits](WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+
 These staff capabilities are AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in their exact
-records. Question approval/publication, real qualified review and fixed student delivery
-are not implied. B8 no-form warnings and role separation remain part of the product.
+records. Question approval/publication and real qualified review are not implied.
+B9 does not authorize fixed student delivery; B10 is separately selected and verified. B8 no-form warnings and role separation remain part of the product.
 
 ## Scenario reconciliation
 
@@ -61,7 +67,7 @@ are separate bounded additions; counts are not a completion percentage.
 | E exhaustion | AUTOMATED_PASS: proven shortage vs bounded unknown, safe projections, no allocation side effects or silent fallback. Explicit same-blueprint repeat-consented review now passes real PG/HTTP/Chromium/Firefox checks; first-history and later strict NEW_ONLY remain intact. [Exact review evidence](WEB_003_REVIEW_PRACTICE_VERIFICATION.md). Shorter profiles remain unsupported. |
 | F corrected versions | AUTOMATED_PASS: stable-ID and current merged-group exclusion after correction, whole-bundle behavior, independent version-review gates. Existing Bank/assembly cases. |
 | G publication during active exam | AUTOMATED_PASS / INDEPENDENTLY_REVIEWED: real same-question corrected text/key becomes eligible while original sealed rows/clocks/history/digest remain fixed; grade/review retains original4/4. [Exact G evidence](TEST_002_PUBLICATION_DURING_ATTEMPT_VERIFICATION.md). Controlled service/PG evidence, no new browser-publication claim. |
-| H concurrent creation | Existing same-profile real barriers and separate same-key replay AUTOMATED_PASS. Different-domain MATH/READING H.1 winner-order barriers AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; [bounded H.1 evidence](TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md). NEW_ONLY vs REVIEW_ALLOWED both winner orders also pass real barriers in the review increment. NOT_EXECUTED: full cross-mode race including unsupported fixed student delivery. |
+| H concurrent creation | Existing same-profile real barriers and separate same-key replay AUTOMATED_PASS. Different-domain MATH/READING H.1 winner-order barriers AUTOMATED_PASS / INDEPENDENTLY_REVIEWED; [bounded H.1 evidence](TEST_002_CROSS_DOMAIN_CREATION_VERIFICATION.md). NEW_ONLY vs REVIEW_ALLOWED both winner orders also pass real barriers in the review increment. B10 actual fixed vs NEW_ONLY and REVIEW_ALLOWED both winner orders now pass real lock barriers; see separate evidence. No exhaustive all-mode/race assertion. |
 | A/B/I/J Track A integration | NOT_EXECUTED/outside this local Track B acceptance scope. Factory500 workload/month-long provider outage/half-batch recovery/replacement adapter are not demonstrated. No paid/live student inference dependency introduced. |
 
 ## External inputs and explicit limits
@@ -70,7 +76,7 @@ are separate bounded additions; counts are not a completion percentage.
 |---|---|
 | Lawful accepted starter stock | HUMAN_APPROVAL_REQUIRED / BLOCKED for real publication:12 MATH,6 READING,12 SCIENCE with question-specific provenance/use rights and named qualified independent content review. [Owner content handoff](../guides/TRACK_B_CONTENT_HANDOFF.md) |
 | Accessibility | MANUAL_CHECK_PENDING: actual qualified screen-reader/native200% zoom/usability record and disposition. [Existing review packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md). Automated focus/reflow is not formal conformance. |
-| Fixed sealing/shorter profiles | NOT_EXECUTED: future separately scoped service/API/privilege/product work. B9.1 local staff sealing/metadata is implemented under its recorded go-ahead; [evidence](WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Do not alias personal manifests or silently add profiles, public forms or student fixed delivery. Explicit personal review is implemented in the separately linked scope. |
+| Fixed sealing/shorter profiles | B10 existing-contract fixed student practice is now implemented and separately verified; shorter profiles remain NOT_EXECUTED and need a specific bounded selection. B9.1 local staff sealing/metadata is implemented under its recorded go-ahead; [evidence](WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Do not alias personal manifests or silently add profiles or fixed delivery outside the explicit B10 flag. Explicit personal review is implemented in the separately linked scope. |
 | Performance/operations/production | NOT_EXECUTED/outside presentation scope: agreed load target, observed load/hosted identity/operational acceptance. Local PG recovery evidence is not production readiness. No deployment authorization. |
 | Dependency security | SEC-001 patched observed Zod advisory; current dated audit0, exact graph/integrity and compatibility evidence. No complete supply-chain/security guarantee. |
 
