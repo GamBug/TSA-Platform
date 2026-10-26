@@ -280,6 +280,14 @@ grants the explicit author draft handoff. [B4 engineering disposition](../decisi
 adds only the simulated negative actions above and attribution repair; rights
 edits/approval/publication and qualified human acceptance remain separate.
 
+If another tab changes the authenticated session, an old workspace confirmation
+cannot move onto that replacement session. The workspace clears private content
+and pending confirmations and offers **Reload current session**. This reads the
+current account; it does not resend a command or log out that account. Inspect
+current state and make a fresh explicit choice before another command. A previously
+unacknowledged operation remains unconfirmed, even after this local cleanup.
+[Session-binding evidence](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md).
+
 ### Eligible Bank stock rehearsal (B8.1)
 
 The same disposable staff launcher automatically provisions four additional

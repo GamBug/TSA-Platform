@@ -589,6 +589,27 @@ async function runStaffReviewJourney() {
   assert.equal(await evaluate(`Boolean(${query('staff-bank-rehearsals')})||Boolean(${query('staff-bank-rehearsal-detail')})||document.body.textContent.includes(${JSON.stringify(successReceipt.rehearsalId)})||document.body.textContent.includes(${JSON.stringify(shortageReceipt.rehearsalId)})`),false,'logout clears private rehearsal history and detail DOM');
   report.checks.push('B8 Firefox BANK_MANAGER explicitly reads history/detail; actual UI quarantine removes one of four approved synthetic Bank questions; a fresh EXAM capture records only the proven MATH shortfall while prior SUCCESS remains historical; aggregates contain no candidate/private identifiers, current eligibility remains NOT_REVALIDATED, viewport/keyboard/logout/privacy checks pass');
 
+  await evaluate(`${query('actor-select')}.value='examManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'Firefox session-race EXAM workspace');
+  await click('staff-fixed-rehearsal-blueprints-open');
+  await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprint-select')})`,'Firefox session-race blueprint selection');
+  await evaluate(`(()=>{const select=${query('staff-fixed-rehearsal-blueprint-select')};select.value=${JSON.stringify(rehearsalBlueprint.blueprintVersionId)};select.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+  await click('staff-fixed-rehearsal-open');
+  const beforeSessionSwitch=(await staffFixture.fixture.pool.query('SELECT count(*)::integer AS n FROM tsa_private.fixed_stock_rehearsals')).rows[0].n;
+  const beforeSessionSwitchPosts=await evaluate("window.__ffRehearsal.filter(call=>call.method==='POST').length");
+  await evaluate(`(async()=>{const token=()=>document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith('tsa_local_csrf='))?.slice('tsa_local_csrf='.length);const post=(path,body,csrf)=>fetch(path,{method:'POST',headers:{'content-type':'application/json',...(csrf?{'x-csrf-token':token()}: {})},body:JSON.stringify(body),credentials:'same-origin'});if((await post('/local-auth/logout',{},true)).status!==200)throw new Error('Synthetic session rotation logout failed');if((await post('/local-auth/bootstrap',{},false)).status!==201)throw new Error('Synthetic session rotation bootstrap failed');if((await post('/local-auth/login',{actorKey:'examManager'},true)).status!==200)throw new Error('Synthetic session rotation login failed');return true})()`);
+  await click('staff-fixed-rehearsal-confirm');
+  await waitFor(`Boolean(${query('staff-session-reload')})`,'Firefox changed-session recovery instead of an old command');
+  assert.equal(await evaluate("window.__ffRehearsal.filter(call=>call.method==='POST').length"),beforeSessionSwitchPosts,'Firefox changed session sends zero old confirmation POSTs');
+  assert.equal((await staffFixture.fixture.pool.query('SELECT count(*)::integer AS n FROM tsa_private.fixed_stock_rehearsals')).rows[0].n,beforeSessionSwitch);
+  assert.equal(await evaluate(`!${query('staff-review-context')}&&!${query('staff-fixed-rehearsal-status')}&&document.activeElement.id==='staff-title'`),true,'Firefox clears private/intent DOM and focuses the recovery heading');
+  await setViewport(1280,900,'Firefox session recovery desktop');await capture('staff-session-changed-desktop');
+  await setViewport(narrowMeasured.innerWidth,812,'Firefox session recovery narrow');await capture(`staff-session-changed-narrow-${narrowMeasured.innerWidth}`);
+  await click('staff-session-reload');await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'Firefox explicit current-session read recovery');
+  assert.equal(await evaluate("window.__ffRehearsal.filter(call=>call.method==='POST').length"),beforeSessionSwitchPosts,'Firefox recovery reads only and requires a new confirmation for any command');
+  assert.equal(await evaluate("performance.getEntriesByType('resource').every(item=>new URL(item.name).origin===location.origin)"),true);
+  report.checks.push('Firefox real authenticated session rotation invalidates a pending confirmation with zero command writes; private intent DOM clears, heading focus and desktop/narrow recovery are usable, explicit current-session reload performs no command');
+
   report.viewports = { staffDesktop: desktopViewport, staffNarrow: {
     requestedOuterWidth: narrowRequested, returnedOuterWidth: narrowViewport.width,
     widthRequestHonored: narrowWidthHonored, ...narrowMeasured,

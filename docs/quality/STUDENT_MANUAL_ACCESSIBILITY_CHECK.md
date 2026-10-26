@@ -151,3 +151,12 @@ GET-only recovery, reserved explicit Start and review labels through resumed
 attempt, result, released explanations and history. Check mobile status visibility,
 qualified AT and native zoom. Automated Chrome375/Firefox actual500 checks are
 engineering evidence; all qualified human outcomes remain NOT TESTED.
+
+## Staff session-change recovery — MANUAL_CHECK_PENDING
+
+Assess the changed-session notice, removal of private content/pending confirmations,
+heading focus and **Reload current session** action with qualified AT/native zoom.
+The action reads current state and never resends a command; unacknowledged commands
+remain unconfirmed. Check that the new account is clear after explicit recovery
+and that a fresh confirmation is needed. Automated Chrome/Firefox checks do not
+fill qualified-human outcome fields. No human outcome has been recorded.

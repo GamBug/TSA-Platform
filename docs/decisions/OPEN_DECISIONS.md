@@ -40,10 +40,11 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 - Scope: deliberate fixed seal plus EXAM_MANAGER safe list/detail; current stock,
   immutable new fixed snapshots, no student attempt/history/delivery/publication.
   Preserve B7 reference-only API boundary, B8 rehearsal and all personal contracts.
-- No owner approval identity/date/evidence is recorded for B9. No independent review
-  has executed; reviewer quota is exhausted. Root source/documentation only;
-  runtime/contract/migration/browser acceptance NOT_EXECUTED. Do not infer approval
-  from this proposal or synthetic workflow states.
+- No owner approval identity/date/evidence is recorded for B9. Separate native
+  Sol6.1/Medium source-only review executed2026-10-26; response-ID framing P2
+  repaired/rechecked with no further finding. [Exact review](../reviews/WEB_002_B9_DESIGN_REVIEW.md).
+  Runtime/contract/migration/browser acceptance NOT_EXECUTED. Do not infer approval
+  from design review, this proposal or synthetic workflow states.
 
 ## WEB-003 explicit review practice — selected2026-10-25
 

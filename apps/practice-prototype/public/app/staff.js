@@ -530,11 +530,11 @@ function readCookie(name) {
   return null;
 }
 
-async function request(path, { method = 'GET', body, csrf = false, idempotencyKey } = {}) {
+async function sendRequest(path, { method = 'GET', body, csrf = false, csrfToken, idempotencyKey } = {}) {
   const headers = new Headers();
   if (body !== undefined) headers.set('content-type', 'application/json');
   if (csrf) {
-    const token = readCookie('tsa_local_csrf');
+    const token = csrfToken ?? readCookie('tsa_local_csrf');
     if (!token) throw new Error('Phiên cục bộ chưa sẵn sàng. Hãy đăng nhập lại.');
     headers.set('x-csrf-token', token);
   }
@@ -1228,6 +1228,8 @@ export async function openStaffWorkspace(container, onBack) {
   };
   const state = {
     principal: null,
+    sessionBinding: null,
+    sessionRequestId: 0,
     template: null,
     items: [],
     nextCursor: null,
@@ -1274,6 +1276,61 @@ export async function openStaffWorkspace(container, onBack) {
     datasetPreflightStatus: { stage: 'idle', message: 'Chưa chạy kiểm tra tập phiên bản.' },
     datasetPreflightControls: null,
   };
+
+  function sessionChangedError() {
+    const error = new Error('The local session changed. Reload its current state before continuing.');
+    error.code = 'STAFF_SESSION_CHANGED';
+    return error;
+  }
+
+  function clearChangedSession() {
+    clearPrivateReviewView();
+    state.identityEpoch += 1;
+    state.sessionRequestId += 1;
+    state.listRequestId += 1;
+    state.sessionBinding = null;
+    state.principal = null;
+    state.template = null;
+    state.pendingCreate = null;
+    state.canReadList = false;
+    state.items = [];
+    state.nextCursor = null;
+    state.listLoading = false;
+    state.listLoadingMore = false;
+    state.listError = null;
+    state.busy = false;
+    renderLogin('The local session changed. Private content and pending confirmations were cleared. Unacknowledged commands remain unconfirmed.', { sessionChanged: true });
+    const title = container.querySelector('#staff-title');
+    if (title) { title.tabIndex = -1; title.focus(); }
+  }
+
+  async function request(path, options = {}) {
+    // Login establishes a binding; all subsequent workspace requests retain it.
+    if (['/local-auth/session', '/local-auth/bootstrap', '/local-auth/login'].includes(path)) {
+      return sendRequest(path, options);
+    }
+    const binding = state.sessionBinding;
+    const epoch = state.identityEpoch;
+    const isCurrent = () => isWorkspaceActive() && binding === state.sessionBinding && epoch === state.identityEpoch;
+    const nonceMatches = () => binding && binding.csrfToken === readCookie('tsa_local_csrf');
+    if (!isCurrent() || !nonceMatches()) {
+      if (isCurrent()) clearChangedSession();
+      throw sessionChangedError();
+    }
+    try {
+      const value = await sendRequest(path, { ...options, csrfToken: binding.csrfToken });
+      if (!isCurrent() || (path !== '/local-auth/logout' && !nonceMatches())) {
+        if (isCurrent()) clearChangedSession();
+        throw sessionChangedError();
+      }
+      return value;
+    } catch (error) {
+      if (!isCurrent()) throw sessionChangedError();
+      if (isCurrent() && (!nonceMatches() || error.status === 401
+        || ['CSRF_FAILED', 'CSRF_REJECTED'].includes(error.code))) clearChangedSession();
+      throw error;
+    }
+  }
   const returnToPractice = () => {
     if (!isWorkspaceActive()) return;
     clearPrivateReviewView();
@@ -1289,14 +1346,28 @@ export async function openStaffWorkspace(container, onBack) {
   }
 
   async function refreshSession() {
-    const session = await request('/local-auth/session');
-    if (!isWorkspaceActive()) return false;
-    if (principalKey(session.principal) !== principalKey(state.principal)) clearPrivateReviewView();
+    const requestId = ++state.sessionRequestId;
+    const epoch = state.identityEpoch;
+    const binding = state.sessionBinding;
+    const isCurrent = () => isWorkspaceActive() && requestId === state.sessionRequestId
+      && epoch === state.identityEpoch && binding === state.sessionBinding;
+    const csrfToken = readCookie('tsa_local_csrf');
+    let session;
+    try { session = await request('/local-auth/session'); }
+    catch (error) { if (!isCurrent()) return false; throw error; }
+    if (!isCurrent()) return false;
+    if (csrfToken !== readCookie('tsa_local_csrf') || (session.principal?.authenticated && !csrfToken)) {
+      clearChangedSession();
+      return false;
+    }
+    if (principalKey(session.principal) !== principalKey(state.principal)
+      || csrfToken !== state.sessionBinding?.csrfToken) clearPrivateReviewView();
     state.principal = session.principal;
+    state.sessionBinding = session.principal?.authenticated ? Object.freeze({ csrfToken }) : null;
     return true;
   }
 
-  function renderLogin(message = '') {
+  function renderLogin(message = '', { sessionChanged = false } = {}) {
     if (!isWorkspaceActive()) return;
     const shell = document.createDocumentFragment();
     shell.append(makeHeader());
@@ -1308,6 +1379,16 @@ export async function openStaffWorkspace(container, onBack) {
     card.append(node('p', 'staff-intro', 'Đăng nhập bằng một vai trò tổng hợp cố định. Khu này kết nối PostgreSQL cục bộ riêng với phiên luyện tập demo trong bộ nhớ.'));
     const notice = node('p', 'repeat-alert', 'Mọi nội dung ở đây chỉ là dữ liệu kiểm thử tổng hợp. Quyền nguồn UNKNOWN không xác nhận quyền sử dụng; không có chức năng rà soát hoặc xuất bản.');
     card.append(notice);
+    if (sessionChanged) {
+      showWorkspaceMessage(card, message);
+      card.append(button('Reload current session', 'staff-session-reload', async () => {
+        try { await loadWorkspace(); }
+        catch (error) { if (isWorkspaceActive() && error.code !== 'STAFF_SESSION_CHANGED') renderLogin(error.message); }
+      }), backButton());
+      shell.append(card, footer());
+      container.replaceChildren(shell);
+      return;
+    }
     const form = node('form', 'staff-login-form');
     const label = node('label', '', 'Vai trò thử nghiệm');
     label.htmlFor = 'synthetic-actor';
@@ -3681,13 +3762,15 @@ export async function openStaffWorkspace(container, onBack) {
     }
     actions.append(button('Đăng xuất', 'staff-logout', async () => {
       if (!isWorkspaceActive()) return;
+      const logoutEpoch = state.identityEpoch;
       clearPrivateReviewView();
       try {
         await request('/local-auth/logout', { method: 'POST', body: {}, csrf: true });
-        if (!isWorkspaceActive()) return;
+        if (!isWorkspaceActive() || logoutEpoch !== state.identityEpoch) return;
         state.identityEpoch += 1;
         state.listRequestId += 1;
         state.principal = null;
+        state.sessionBinding = null;
         state.template = null;
         state.canReadList = false;
         state.items = [];
@@ -3697,7 +3780,7 @@ export async function openStaffWorkspace(container, onBack) {
         state.listError = null;
         renderLogin('Phiên tổng hợp đã kết thúc.');
       } catch (error) {
-        showWorkspaceMessage(container, error.message);
+        if (logoutEpoch === state.identityEpoch && error.code !== 'STAFF_SESSION_CHANGED') showWorkspaceMessage(container, error.message);
       }
     }, 'button secondary small'));
     heading.append(headingText, actions);
@@ -3869,6 +3952,8 @@ export async function openStaffWorkspace(container, onBack) {
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!isWorkspaceActive() || state.busy) return;
+        const submissionEpoch = state.identityEpoch;
+        const submissionIsCurrent = () => isWorkspaceActive() && submissionEpoch === state.identityEpoch;
         for (const [input, message] of requiredTextInputs) {
           input.setCustomValidity(input.value.trim() ? '' : message);
         }
@@ -3929,7 +4014,7 @@ export async function openStaffWorkspace(container, onBack) {
           const result = await request('/api/v1/questions', {
             method: 'POST', body: draft, csrf: true, idempotencyKey: state.pendingCreate.key,
           });
-          if (!isWorkspaceActive()) return;
+          if (!submissionIsCurrent()) return;
           state.pendingCreate = null;
           state.filters = { state: 'DRAFT', section: '' };
           const stateFilter = container.querySelector('[data-testid="staff-state-filter"]');
@@ -3937,11 +4022,12 @@ export async function openStaffWorkspace(container, onBack) {
           if (stateFilter) stateFilter.value = state.filters.state;
           if (sectionFilter) sectionFilter.value = state.filters.section;
           await loadQuestionList({ reset: true });
+          if (!submissionIsCurrent()) return;
           showWorkspaceMessage(container, `Đã tạo bản nháp DRAFT ${result.questionId}. Chưa có rà soát, phê duyệt hoặc quyền xuất bản.`);
         } catch (error) {
-          showWorkspaceMessage(container, error.message);
+          if (submissionIsCurrent() && error.code !== 'STAFF_SESSION_CHANGED') showWorkspaceMessage(container, error.message);
         } finally {
-          if (isWorkspaceActive()) {
+          if (submissionIsCurrent()) {
             state.busy = false;
             create.disabled = false;
           }

@@ -97,3 +97,10 @@ or adding actions. Independent review not performed for that low-impact edit;
 Clean no-hardlinkcb09027 locked install/build/staffChrome46/Firefox16/docs also PASS,
 final clone Git empty. The current guide additionally distinguishes eligible B8
 synthetic fixture stock from lawful accepted real inventory.
+
+Existing staff session binding additionally passes actual auth-rotation/late-response
+recovery: root Chrome48/Firefox17/B032/local15/import/docs and independent final
+source/Chrome48/B032. Old confirmations do not rebind to replacement session cookies;
+local cleanup preserves the replacement login. [Exact scope](WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md).
+B9 has separate source-only design review and repaired framing; new privileged
+runtime operations remain unapproved/unimplemented.

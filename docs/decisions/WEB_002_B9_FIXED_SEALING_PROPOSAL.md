@@ -13,7 +13,8 @@ cross-module SQL/identity/immutable-snapshot integration; native Luna/XHigh for 
 bounded private DTO or staff UI after disjoint ownership. Separate available Codex
 Sol/Medium read-only review is required before acceptance of this security-sensitive
 increment. These are recommendations, not executed delegation or model availability.
-Current independent reviewer quota is exhausted. Existing subscriptions only.
+Independent Sol6.1/Medium source review actually executed2026-10-26; see the
+[design review record](../reviews/WEB_002_B9_DESIGN_REVIEW.md). Existing subscriptions only.
 
 ## Product outcome and scope
 
@@ -69,7 +70,10 @@ revision/withdrawnAt, separately from historical receipt. Never claim current
 rights or student delivery from this metadata. No raw actor ID is returned.
 Do not expose generic /forms or change B7/B8 list/detail responses in this scope.
 
-Use existing no-store/nosniff/Vary:Origin headers and matching body/header request ID.
+Use existing no-store/nosniff/Vary:Origin headers and a fresh X-Request-Id on every
+HTTP response. Matching body/header request IDs apply to error envelopes only.
+Strict success receipts contain no requestId; same-key success replay preserves the
+exact historical receipt body while its HTTP header identifies the current request.
 Command auth/Origin/CSRF precede JSON parsing. Recheck current role before successful
 idempotent replay; same actor/route/key/body replays the exact historical receipt,
 changed body409, actors isolated. Errors reuse existing strict private envelopes
@@ -145,7 +149,8 @@ Keyboard/focus restoration/mobile wrapping and identity response fencing apply.
 ## Required acceptance before implementation can be accepted
 
 1. Independent contract/privilege review and durable applicable owner disposition.
-   Additive DTO negatives, operation/header/request-ID framing and unchanged old
+   Additive DTO negatives, initial success/replayed success/error request-ID framing
+   (fresh headers, unchanged replay body, matching error body/header) and unchanged old
    artifacts/vectors; no implementation against an assumed grant.
 2. Real PG success for standalone and complete shared bundles; exact canonical
    form/run/private hashes and triggered integrity. Failed/short stock creates no
@@ -163,6 +168,7 @@ Keyboard/focus restoration/mobile wrapping and identity response fencing apply.
    setup. Clean no-hardlink reproduction and guide/records/checkpoint required.
 
 Only source inspection/documentation was executed for this proposal. All B9 runtime,
-contracts, migration, browser and independent-review checks remain NOT_EXECUTED.
+contracts, migration and browser checks remain NOT_EXECUTED. Independent source
+review executed in the linked record; it is not implementation or owner approval.
 Qualified human accessibility, real lawful12/6/12 review/publication and production
 acceptance remain independent external requirements.

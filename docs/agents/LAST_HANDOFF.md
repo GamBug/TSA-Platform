@@ -1,3 +1,61 @@
+# Handoff — WEB-002 staff session binding and B9 design review
+
+- Date/role:2026-10-26 Asia/Bangkok, root Codex sole writer/integrator.
+- Branch/base: feat/track-b-data-auth,d4929a0. Authorized existing-route UI security
+  repair and documentation; source checkpoint/clean reproduction pending.
+- Owner AGENTS.md/untracked research preserved/excluded. No active writer reservation
+  outside root final integration. No new role/route/grant/contract/migration or B9 code.
+
+## Implemented
+
+Actual browser regression reproduced old confirmation creating a third capture
+instead of retaining two after same synthetic EXAM actor's real logout/login session
+rotation. Workspace now captures session nonce; requests retain binding/epoch,
+mutations send pinned CSRF, changes clear private/list/template/draft-intent/confirmation
+state locally, and **Reload current session** reads only. Replacement login survives.
+Older read successes/errors cannot wipe newer recovery. No unacknowledged operation
+is falsely declared rolled back. Existing B3/B4/B8 retries keep body/key/nonce.
+[Exact evidence and source hashes](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md).
+
+## Verified and reviewed
+
+Root final Chrome48checks/29captures, Firefox17checks/37captures, B032/local15/
+syntax/import/docs/whitespace PASS. Real pre-dispatch change sends0command; dispatch
+change gets real403; zero new captures. Held real session success/controlled503
+cannot wipe newer recovery. Root inspected actual500px Firefox recovery capture.
+No qualified AT/native zoom/accessibility acceptance. Clean reproduction pending.
+
+Actual separate native Sol6.1/Medium `/root/b9_design_review` read-only final source/
+Chromium48/B032/syntax/whitespace PASS; source/runner hashes stable at launch/end,
+no unresolved findings. Intermediate refresh/stale-error P2s repaired and rechecked.
+Firefox supplement NOT_REVIEWED/NOT_EXECUTED independently. No capacity error in
+this session, unlike prior historical handoffs. Reviewer wrote no files.
+
+B9 source-only design review also completed: exhaustive success receipt conflicted
+with body/header request-ID equality and exact replay. Wording repaired: fresh
+success header, no success body ID, exact replay body; errors match body/header.
+Final independent wording recheck passed, no further finding.
+[Exact attribution](../reviews/WEB_002_B9_DESIGN_REVIEW.md). B9 runtime/contract/
+migration/browser tests NOT_EXECUTED; no implementation or owner approval inferred.
+
+## Continuation
+
+Checkpoint only owned files, reproduce locked install/build/current staff Chrome/
+Firefox in a fresh no-hardlink checkout, then record exact source checkpoint and
+clean status. Preserve owner files and ignored evidence. No paidAPI/Astra/student
+inference/push/merge/deploy/real content approval. Scope files: staff.js, existing
+Chrome/Firefox staff runners, B9 proposal/review and coordinated guide/state/backlog.
+No backend/student module or frozen artifact changed.
+
+Next privileged operation remains the concrete B9 proposal, PROPOSED /
+HUMAN_APPROVAL_REQUIRED under the mission's new-operation boundary. Generic 'next'
+does not establish specific contract approval. Continue safe existing-contract
+repairs as observed; do not invent rights, reviewer qualifications or approvals.
+Qualified manual accessibility and lawful reviewed12/6/12 inventory remain external
+human inputs. Broader Technical MVP/performance/production remain unaccepted.
+Current completed review-practice and B1–B8 evidence remains linked below; prior
+handoff headings are history, this top section is current.
+
 # Handoff — Track B review practice complete; next fixed sealing contract proposed
 
 - Date/role:2026-10-26 Asia/Bangkok, root Codex accountable orchestrator.

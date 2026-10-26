@@ -1,5 +1,13 @@
 # Implementation roadmap
 
+Current existing staff-session repair,2026-10-26: actual old-confirmation defect
+reproduced and fixed through nonce/epoch/refresh fencing and GET-only recovery.
+Root Chrome48/Firefox17/B032/local15/import/docs PASS, independent final source/
+Chrome48/B032 PASS, no unresolved findings; clean reproduction pending.
+[Evidence](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md). No new API/role.
+B9 source-only design review now completed, response-ID P2 repaired/rechecked;
+[review](../reviews/WEB_002_B9_DESIGN_REVIEW.md). It remains proposed, not owner approval.
+
 Next privileged milestone B9.1,2026-10-26: concrete
 [fixed sealing/list/detail proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md)
 prepared as required by the standing mission; PROPOSED / HUMAN_APPROVAL_REQUIRED,
@@ -7,7 +15,8 @@ not implementation approval. Preserve B7 reference-only filtering and B8 no-form
 rehearsals. New candidate fixed delivery remains separate. Current bounded staff
 publication-status clarity passed existing Chrome46/Firefox16/B032 checks;
 [evidence](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md). No independent
-review of that display edit or B9 proposal is claimed; reviewer usage exhausted.
+review of that earlier display checkpoint is claimed; B9 now has the separate
+source-only review above. The earlier reviewer usage interruption is historical.
 
 Current WEB-003,2026-10-26: explicit session-bound REVIEW_ALLOWED practice now works
 through fresh consent, reserved Start, persistent answers, grading/released review

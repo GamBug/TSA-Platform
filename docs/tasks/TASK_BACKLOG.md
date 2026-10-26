@@ -759,6 +759,19 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-26 **STAFF SESSION BINDING — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, based4929a0. Root owns
+staff.js, existing staff Chrome/Firefox verification and coordinated records.
+Inspect/reproduce whether B3/B4/B8 confirmed commands can use a replacement session
+nonce, then apply the smallest existing-contract repair and actual browser checks.
+No new role/route/grant/schema, no B9 implementation or inferred approval. Preserve
+owner AGENTS/research. Recommended current Codex root or Sol6.1/High for UI/session
+integration, separate available Sol6.1/Medium read-only security review; native
+reviewer actually executed source/Chrome48/B032/syntax/whitespace, no unresolved
+findings. Root Chrome48/Firefox17/B032/local15/import/docs PASS; real pre-fix
+capture3vs2 reproduced, delayed-response P2 repaired. Clean reproduction pending.
+[Exact evidence/limits](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md).
+Existing B9 source-only design review completed separately.
+
 2026-10-26 **B9.1 FIXED SEALING — PROPOSAL PREPARED**, basecb09027.
 Root owns decision/shared records only; no runtime/code reservation. The mission
 requires a specific proposal for a new privileged operation rather than assuming
@@ -770,7 +783,9 @@ B8 remains rehearsal only. New fixed seal/list/detail needs applicable dispositi
 student fixed delivery, qualified approval and real rights remain excluded.
 Recommended Codex Sol6.1/High/current available root for integration; bounded native
 Luna/XHigh DTO/UI writers and separate available Sol/Medium independent review after
-approval. No delegation/review executed for this proposal; reviewer usage exhausted.
+approval. Separate native Sol6.1/Medium source-only design review executed2026-10-26.
+One response-ID framing P2 repaired/rechecked; no unresolved finding, no runtime
+or owner approval. [Design review](../reviews/WEB_002_B9_DESIGN_REVIEW.md).
 Documentation/links/whitespace checked; no application suite claimed for a proposal.
 
 2026-10-26 **PUBLICATION-STATUS CLARITY — IMPLEMENTED / AUTOMATED_PASS**, base5650e25.

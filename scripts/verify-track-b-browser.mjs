@@ -1576,6 +1576,64 @@ try {
   await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'B8 historical check login');await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');await waitFor(`Boolean(${query('staff-bank-rehearsals-open')})`,'B8 historical check tools');await click('staff-bank-rehearsals-open');await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='list-loaded'`,'B8 both historical rows');await evaluate(`document.querySelector('[data-testid="staff-bank-rehearsal-open"][data-rehearsal-id="${stockReceipt.rehearsalId}"]').click()`);await waitFor(`${query('staff-bank-rehearsals-status')}?.dataset.stage==='detail-loaded'`,'B8 historical success after quarantine');assert.equal(await evaluate(`${query('staff-bank-rehearsal-detail')}.textContent.includes('SUCCESS')&&${query('staff-bank-rehearsal-detail')}.textContent.includes('NOT_REVALIDATED')`),true);
   report.checks.push('B8 BANK_MANAGER actual history and private aggregate replay, cached back focus, no candidate IDs, desktop/mobile; quarantine yields new proven shortage while old success stays historical, reload creates no attempt/capture');
 
+  // Real local-auth rotation without notifying the workspace models another tab.
+  const rotateExamSession = `async () => {
+    const token=()=>document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith('tsa_local_csrf='))?.slice('tsa_local_csrf='.length);
+    const post=(path,body,csrf)=>fetch(path,{method:'POST',headers:{'content-type':'application/json',...(csrf?{'x-csrf-token':token()}: {})},body:JSON.stringify(body),credentials:'same-origin'});
+    if((await post('/local-auth/logout',{},true)).status!==200)throw new Error('Synthetic session rotation logout failed');
+    if((await post('/local-auth/bootstrap',{},false)).status!==201)throw new Error('Synthetic session rotation bootstrap failed');
+    if((await post('/local-auth/login',{actorKey:'examManager'},true)).status!==200)throw new Error('Synthetic session rotation login failed');
+    return true;
+  }`;
+  async function openSessionRaceConfirmation() {
+    await click('staff-fixed-rehearsal-blueprints-open');
+    await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprint-select')})`,'session race blueprint metadata');
+    await evaluate(`${query('staff-fixed-rehearsal-blueprint-select')}.value=${JSON.stringify(stockBlueprint.versionId)};${query('staff-fixed-rehearsal-blueprint-select')}.dispatchEvent(new Event('change',{bubbles:true}))`);
+    await click('staff-fixed-rehearsal-open');
+  }
+  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'session race EXAM login');
+  await evaluate(`${query('actor-select')}.value='examManager'`);await click('staff-login');
+  await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'session race EXAM workspace');
+  await openSessionRaceConfirmation();
+  const beforeSessionRace=(await reviewFixture.fixture.pool.query('SELECT count(*)::integer AS n FROM tsa_private.fixed_stock_rehearsals')).rows[0].n;
+  const beforeSessionRacePosts=networkOperations.filter(op=>new URL(op.url).pathname==='/api/v1/fixed-rehearsals'&&op.method==='POST').length;
+  await evaluate(`(${rotateExamSession})()`);
+  await click('staff-fixed-rehearsal-confirm');
+  await waitFor(`Boolean(${query('staff-session-reload')})||${query('staff-fixed-rehearsal-status')}?.dataset.stage==='acknowledged'`,'old confirmation after real session rotation');
+  assert.equal((await reviewFixture.fixture.pool.query('SELECT count(*)::integer AS n FROM tsa_private.fixed_stock_rehearsals')).rows[0].n,beforeSessionRace,'old staff confirmation must not bind to a replacement authenticated session');
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname==='/api/v1/fixed-rehearsals'&&op.method==='POST').length,beforeSessionRacePosts,'session mismatch blocks before command POST');
+  assert.equal(await evaluate(`Boolean(${query('staff-session-reload')})&&!${query('staff-review-context')}&&!${query('staff-fixed-rehearsal-status')}`),true,'session change clears private content and pending command');
+  await click('staff-session-reload');await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'explicit GET-only current-session recovery');
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname==='/api/v1/fixed-rehearsals'&&op.method==='POST').length,beforeSessionRacePosts,'session recovery never replays the old command');
+  await openSessionRaceConfirmation();
+  await evaluate(`(()=>{const original=window.fetch;window.__staffDispatchRace={armed:true,status:null};window.fetch=async(input,init={})=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(window.__staffDispatchRace.armed&&url.pathname==='/api/v1/fixed-rehearsals'&&init.method==='POST'){window.__staffDispatchRace.armed=false;await (${rotateExamSession})();const response=await original(input,init);window.__staffDispatchRace.status=response.status;return response;}return original(input,init);};return true})()`);
+  await click('staff-fixed-rehearsal-confirm');
+  await waitFor(`Boolean(${query('staff-session-reload')})`,'dispatch-time session change clears workspace');
+  assert.equal(await evaluate('window.__staffDispatchRace.status'),403,'dispatch-time switch uses the original nonce and actual server CSRF rejection');
+  assert.equal((await reviewFixture.fixture.pool.query('SELECT count(*)::integer AS n FROM tsa_private.fixed_stock_rehearsals')).rows[0].n,beforeSessionRace,'both actual session races create no capture');
+  assert.equal(await evaluate(`fetch('/local-auth/session').then(r=>r.json()).then(s=>s.principal?.authenticated&&s.principal.roles.includes('EXAM_MANAGER'))`),true,'local cleanup never logs out the replacement session');
+  for (const delayedFailure of [false,true]) {
+    if (!await evaluate(`Boolean(${query('staff-session-reload')})`)) {
+      await evaluate(`(${rotateExamSession})()`);
+      await click('staff-fixed-rehearsal-blueprints-open');
+      await waitFor(`Boolean(${query('staff-session-reload')})`,'next read detects external session change');
+    }
+    await evaluate(`(()=>{const original=window.fetch;window.__staffSessionHold={armed:true,held:false,finished:false,release:null};window.fetch=async(input,init={})=>{const url=new URL(typeof input==='string'?input:input.url,location.href);const response=await original(input,init);if(window.__staffSessionHold.armed&&url.pathname==='/local-auth/session'&&(init.method??'GET')==='GET'){window.__staffSessionHold.armed=false;window.__staffSessionHold.held=true;await new Promise(resolve=>window.__staffSessionHold.release=resolve);window.__staffSessionHold.finished=true;return ${delayedFailure}?new Response(JSON.stringify({error:{code:'TEMPORARILY_UNAVAILABLE'}}),{status:503,headers:{'content-type':'application/json'}}):response;}return response;};return true})()`);
+    await click('staff-session-reload');
+    await waitFor('window.__staffSessionHold.held','old authenticated session read held after server response');
+    await evaluate(`(${rotateExamSession})()`);
+    await click('staff-session-reload');
+    await waitFor(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})`,'newer current-session read establishes replacement workspace');
+    await evaluate('window.__staffSessionHold.release();true');
+    await waitFor('window.__staffSessionHold.finished','older held session response released');
+    await new Promise(resolve=>setTimeout(resolve,100));
+    assert.equal(await evaluate(`Boolean(${query('staff-fixed-rehearsal-blueprints-open')})&&!${query('staff-session-reload')}`),true,'late old session success or controlled failure cannot clear or replace newer workspace');
+  }
+  assert.equal(networkOperations.filter(op=>new URL(op.url).pathname==='/api/v1/fixed-rehearsals'&&op.method==='POST').length,beforeSessionRacePosts+1,'all session recovery requests preserve the single rejected command POST');
+  assert.equal((await reviewFixture.fixture.pool.query('SELECT count(*)::integer AS n FROM tsa_private.fixed_stock_rehearsals')).rows[0].n,beforeSessionRace,'delayed response recovery never creates another capture');
+  report.checks.push('Existing staff confirmation is bound to its authenticated session: actual same-actor logout/login rotation before confirm sends zero commands; dispatch rotation fails real CSRF403, clears private state, and explicit recovery reads only');
+  report.checks.push('Replacement authenticated session survives local cleanup; held older real session success and controlled503 cannot clear a newer explicitly reloaded workspace; recovery creates no command');
+
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });
   await waitFor(`Boolean(${query('staff-open')})`, 'mock-only landing');
