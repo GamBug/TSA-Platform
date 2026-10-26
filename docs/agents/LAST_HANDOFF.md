@@ -1,3 +1,42 @@
+# Handoff — actual Firefox native200% zoom automation
+
+- Date/role:2026-10-26 Asia/Bangkok, root/current Codex sole implementer/integrator.
+- Branch/base:feat/track-b-data-auth,1432c71. Owner AGENTS.md/untracked research
+  preserved/excluded. Source changes limited to existing Firefox runner/package
+  alias; guide/accessibility/evidence/coordinated records. B11 Markdown table only
+  repaired for valid rendering, no scope/approval/runtime change.
+- AUTOMATED_PASS / PENDING_REVIEW. No application/SQL/dependency/frozen contract,
+  scoring/timing/content change or real human acceptance.
+
+Actual `npm run test:student:zoom:firefox`:6checks/8captures at Firefox FullZoom2,
+DPR2/CSS640x407, fixed physical WebDriver1280x900. Real mixed saves/reload/exact
+clocks, worker-pending→100/released review, submit Escape/visible focus, explanation
+Space and catalog return pass; reset restores1. Ordinary Firefox4/4 and fixed6/19
+regressions PASS; syntax/consumer/docs/whitespace and malformed/mixed flag probes
+PASS. Root inspected saved-exam/native submit/expanded explanation captures.
+[Exact commands/oracle failures/evidence/limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+
+Explicit native-only geckodriver --allow-system-access enables the owned temporary
+profile's FullZoom control; content context restored in finally, no owner browser
+profile or system DB touched. Other scenarios retain old browser args. Screenshots
+are CSS-normalized, not physical-pixel zoom proof; factor/DPR/viewport observations
+supply that evidence. Keyboard shortcut initially did not zoom; content outerWidth
+and screenshot physical-size assumptions failed and were corrected, not counted
+as passes. No visible application defect surfaced, no styling repair performed.
+
+Independent review NOT PERFORMED: actual prior Sol6.1/Medium usage limit persists,
+no retry/bypass/fabricated fallback. Native automation and B10.2 remain PENDING_REVIEW;
+original B10 product source review/clean reproduction unchanged. All writer files
+released at checkpoint. Next reviewer (recommended available Sol6.1/Medium read-only)
+should inspect the bounded runner/flag/geometry/focus diff and execute native/default
+aliases; B10.2 exact three-script supplement from3f3ebe8 remains separately pending.
+
+Qualified manual nativezoom/displayed-value/screen-reader/contrast/usability remain
+NOT TESTED. B11 count-policy change still requires applicable owner disposition;
+no shortened profile or Reading split activated. Lawful12/6/12 independent human
+reviewed stock remains external. No paidAPI/Astra/student inference/push/merge/deploy.
+No claim of full Technical MVP/accessibility/performance/production readiness.
+
 # Handoff — B10.2 fixed save acceptance supplement
 
 2026-10-26 Asia/Bangkok, feat/track-b-data-auth, base3f3ebe8; B10 product source

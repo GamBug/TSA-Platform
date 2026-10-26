@@ -14,7 +14,7 @@ import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 import { createReviewBrowserFixture } from '../tests/integration/bank/review-browser-fixture.mjs';
 
-const artifacts = path.resolve(process.env.STUDENT_FIREFOX_ARTIFACT_DIR ?? '/tmp/tsa-student-firefox-evidence');
+const artifacts = path.resolve(process.env.STUDENT_FIREFOX_ARTIFACT_DIR ?? (process.env.STUDENT_NATIVE_ZOOM_FIREFOX === 'true' ? '/tmp/tsa-student-native-zoom-evidence' : '/tmp/tsa-student-firefox-evidence'));
 if (process.env.STUDENT_REVIEW_PRACTICE_FIREFOX !== undefined
     && !['true', 'false'].includes(process.env.STUDENT_REVIEW_PRACTICE_FIREFOX)) {
   throw new Error('STUDENT_REVIEW_PRACTICE_FIREFOX must be true or false');
@@ -22,6 +22,10 @@ if (process.env.STUDENT_REVIEW_PRACTICE_FIREFOX !== undefined
 if (process.env.STUDENT_FIXED_PRACTICE_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_FIXED_PRACTICE_FIREFOX)) throw new Error('STUDENT_FIXED_PRACTICE_FIREFOX must be true or false');
 const enableFixedPractice = process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true';
 const enableReviewPractice = process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true';
+if (process.env.STUDENT_NATIVE_ZOOM_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_NATIVE_ZOOM_FIREFOX)) throw new Error('STUDENT_NATIVE_ZOOM_FIREFOX must be true or false');
+const enableNativeZoom = process.env.STUDENT_NATIVE_ZOOM_FIREFOX === 'true';
+if (enableNativeZoom && (enableReviewPractice || enableFixedPractice || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Native zoom runs as a separate student browser scenario');
+
 // Snap Firefox cannot use the host's /tmp checkout as a profile root.
 // A new owned profile in its common directory also works from a clean /tmp clone.
 const profileParent = path.resolve(process.env.STUDENT_FIREFOX_PROFILE_ROOT
@@ -73,6 +77,46 @@ async function setViewport(width, height, label) {
   assert.equal(measured.scrollWidth <= measured.innerWidth, true, `${label} has no horizontal overflow`);
   if (measured.scale !== null) assert.equal(measured.scale, 1, `${label} visual viewport is not auto-zoomed`);
   return { requestedOuterWidth: width, returnedOuterWidth: requested.width, ...measured };
+}
+// Only the owned disposable automation browser permits this chrome-context
+// control. It calls Firefox's FullZoom controller, not application CSS or pinch.
+async function browserZoom(factor) {
+  await wd('POST','/moz/context',{context:'chrome'});
+  try {
+    return await evaluate(`(()=>{FullZoom.setZoom(${factor});const browser=gBrowser.selectedBrowser;return{
+      factor:ZoomManager.getZoomForBrowser(browser)};})()`);
+  } finally {
+    await wd('POST','/moz/context',{context:'content'});
+  }
+}
+const zoomGeometry = async () => ({...await evaluate(`({innerWidth,innerHeight,outerWidth,outerHeight,devicePixelRatio,
+  visualScale:window.visualViewport?.scale??null,documentWidth:document.documentElement.scrollWidth})`),
+  windowRect:await wd('GET','/window/rect')});
+async function nativeKey(value) {
+  await wd('POST','/actions',{actions:[{type:'key',id:'native-student-keyboard',actions:[{type:'keyDown',value},{type:'keyUp',value}]}]});
+}
+async function nativeFocus(stage) {
+  const focus=await evaluate(`(()=>{const e=document.activeElement,r=e.getBoundingClientRect();return{tag:e.tagName,id:e.id,testId:e.dataset.testid??null,visible:r.width>0&&r.height>0&&r.left>=-1&&r.right<=innerWidth+1&&r.top>=-1&&r.bottom<=innerHeight+1};})()`);
+  assert.equal(focus.visible,true,`native200% focused control stays visible at ${stage}`);
+  (report.nativeZoom.focus??=[]).push({stage,...focus});
+}
+async function setNativeZoom() {
+  const baseline=await zoomGeometry();
+  report.nativeZoom={method:'Firefox FullZoom browser control in owned disposable automation profile; no CSS or emulation scale',baseline,states:[]};
+  report.nativeZoom.control=await browserZoom(2);
+  assert.equal(report.nativeZoom.control.factor,2,'Firefox browser control confirms native200%');
+  await waitFor(`Math.abs(devicePixelRatio/${baseline.devicePixelRatio}-2)<.01`,'native browser zoom geometry');
+  await assertNativeZoom('login');
+}
+async function assertNativeZoom(stage) {
+  const geometry=await zoomGeometry(),baseline=report.nativeZoom.baseline;
+  assert.ok(Math.abs(geometry.devicePixelRatio/baseline.devicePixelRatio-2)<.01,`actual native200% DPR ratio at ${stage}: ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.windowRect.width,baseline.windowRect.width,'WebDriver physical browser width stays fixed');
+  assert.equal(geometry.windowRect.height,baseline.windowRect.height,'WebDriver physical browser height stays fixed');
+  assert.ok(Math.abs(geometry.innerWidth*2-baseline.innerWidth)<=1,'CSS viewport halves at actual native zoom');
+  assert.ok(geometry.documentWidth<=geometry.innerWidth,'native zoom has no document overflow');
+  if(geometry.visualScale!==null)assert.equal(geometry.visualScale,1,'native zoom is distinct from pinch zoom');
+  report.nativeZoom.states.push({stage,...geometry});
 }
 async function runStaffReviewJourney() {
   // Clear the completed student fixture's same-origin cookies before opening a
@@ -930,7 +974,7 @@ try {
     createRate: rate, saveRate: { user: rate, attempt: rate } });
   workerState.available = false;
   driver = spawn(process.env.STUDENT_GECKODRIVER ?? '/snap/bin/geckodriver',
-    ['--host', '127.0.0.1', '--port', '0', '--profile-root', profileRoot], { stdio: ['ignore', 'pipe', 'pipe'] });
+    ['--host', '127.0.0.1', '--port', '0', '--profile-root', profileRoot, ...(enableNativeZoom ? ['--allow-system-access'] : [])], { stdio: ['ignore', 'pipe', 'pipe'] });
   for (const stream of [driver.stdout, driver.stderr]) {
     stream.setEncoding('utf8'); stream.on('data', (chunk) => { driverLog = (driverLog + chunk).slice(-32_000); });
   }
@@ -950,6 +994,7 @@ try {
   await wd('POST', '/window/rect', { width: 1280, height: 900 });
   await wd('POST', '/url', { url: `${runtime.origin}/?student=postgres` });
   await waitFor(`Boolean(${query('persistent-login-studentA')})`, 'explicit candidate login');
+  if (enableNativeZoom) await setNativeZoom();
   await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
   await capture('login'); await click('persistent-login-studentA');
   if (enableFixedPractice) {
@@ -967,6 +1012,7 @@ try {
       reload:()=>wd('POST','/refresh',{}), viewport:(width,height)=>setViewport(width,height,'fixed'),
       escape:()=>wd('POST','/actions',{actions:[{type:'key',id:'fixed-keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]})});
   } else {
+  if(enableNativeZoom){await waitFor(`Boolean(${query('demo-start')})`,'native zoom catalog');await assertNativeZoom('catalog');await capture('native-zoom-catalog');}
   await click('demo-start');
   await waitFor('Boolean(document.getElementById("question-title"))', 'persisted question delivery');
   const view = await wd('POST', '/execute/async', { args: [], script: `const done=arguments[arguments.length-1];fetch('/api/v1/attempts?limit=100').then(r=>r.json()).then(p=>fetch('/api/v1/attempts/'+p.items[0].attemptId)).then(r=>r.json()).then(done,e=>done({error:String(e)}));` });
@@ -996,20 +1042,49 @@ try {
   await waitFor(`performance.timeOrigin!==${priorDocument} && Boolean(document.getElementById('question-title'))`, 'fresh document resumes');
   assert.match(await evaluate(`${query('answered-count')}.textContent`), /4\/4/);
   assert.deepEqual((await fixture.pool.query('SELECT started_at::text,deadline_at::text FROM tsa.attempts WHERE id=$1', [view.attemptId])).rows, clocks);
+  if(enableNativeZoom)await assertNativeZoom('saved-exam-after-reload');
   await capture('saved-exam');
-  await click('submit-open'); await click('submit-confirm');
+  await click('submit-open');
+  if(enableNativeZoom){
+    await waitFor("Boolean(document.getElementById('submit-dialog')?.open)",'native zoom submit dialog');
+    await assertNativeZoom('submission-dialog');await nativeFocus('submission-dialog-initial');await capture('native-zoom-submit-dialog');
+    await nativeKey('\uE00C');await waitFor("!document.getElementById('submit-dialog')?.open",'native zoom Escape closes submit');
+    assert.equal(await evaluate("document.activeElement.dataset.testid"),'submit-open');await nativeFocus('submission-dialog-Escape');
+    await click('submit-open');
+  }
+  await click('submit-confirm');
   await waitFor(`Boolean(${query('grading-pending')})`, 'durable pending submission');
   workerState.available = true;
   await waitFor(`Boolean(${query('result')})`, 'released result');
   assert.match(await evaluate(`${query('result-score')}.textContent`), /100/);
+  if(enableNativeZoom)await assertNativeZoom('released-result');
   await capture('released-result'); await click('review-open');
   await waitFor(`Boolean(${query('back-score')})`, 'released owner review');
+  if(enableNativeZoom)await assertNativeZoom('released-review');
   await capture('released-review');
+  if(enableNativeZoom){
+    await click('review-explanation-toggle');await waitFor(`${query('explanation')}.open`,'native zoom released explanation');
+    await nativeFocus('released-explanation-summary');await nativeKey(' ');await waitFor(`!${query('explanation')}.open`,'native zoom Space closes explanation');
+    await nativeKey(' ');await waitFor(`${query('explanation')}.open&&!${query('review-explanation-pane')}.hidden`,'native zoom Space opens explanation');
+    await assertNativeZoom('released-explanation');await capture('native-zoom-explanation');
+    await click('back-score');await click('return-catalog');await waitFor(`Boolean(${query('catalog-panel')})`,'native zoom return to catalog');
+    await assertNativeZoom('return-catalog');await capture('native-zoom-history');
+  }
+
   assert.equal(await evaluate(`performance.getEntriesByType('resource').every(item=>new URL(item.name).origin===location.origin)`), true);
   report.checks = ['Actual Firefox candidate login and mixed-type PostgreSQL allocation/delivery',
     'SC/MC/TF acknowledged saves and partial MC guard; actual pre-release response privacy',
     'Fresh reload preserves saved answers and exact PostgreSQL clock text',
     'Pending worker outage, recovered 100% release and explicit owner review'];
+  if(enableNativeZoom){
+    const screenshotPng=Buffer.from(await wd('GET','/screenshot'),'base64');
+    report.nativeZoom.screenshot={width:screenshotPng.readUInt32BE(16),height:screenshotPng.readUInt32BE(20)};
+    assert.equal(report.nativeZoom.screenshot.width,(await zoomGeometry()).innerWidth,'Firefox WebDriver normalizes screenshot width to CSS pixels');
+    report.nativeZoom.resetControl=await browserZoom(1);await waitFor(`devicePixelRatio===${report.nativeZoom.baseline.devicePixelRatio}`,'native browser zoom reset');const reset=await zoomGeometry();
+    assert.equal(reset.devicePixelRatio,report.nativeZoom.baseline.devicePixelRatio);assert.equal(reset.innerWidth,report.nativeZoom.baseline.innerWidth);
+    report.nativeZoom.reset=reset;report.checks.push('Actual Firefox native200% browser zoom preserves physical viewport, halves CSS viewport and doubles DPR through catalog, mixed saves/reload, result/review; reset restores100%');
+    report.checks.push('Native200% submission Escape restores visible trigger focus; released explanation supports Space toggle and readable return to catalog/history');
+  }
   if (enableReviewPractice) await runReviewPracticeJourney();
   }
   if (process.env.STAFF_REVIEW_FIREFOX === 'true') await runStaffReviewJourney();

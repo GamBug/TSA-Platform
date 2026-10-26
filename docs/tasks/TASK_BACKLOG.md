@@ -1596,6 +1596,21 @@ Historical parent card below remains a planning record, not the current blocker.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-26 **NATIVE FIREFOX200% ZOOM — AUTOMATED_PASS / PENDING_REVIEW**,
+base1432c71. Root/current Codex sole implementer; existing Firefox runner and package
+alias, accessibility packet/guide/evidence/coordinated records only. No application,
+SQL, contract, dependency or frozen policy change. Native Firefox FullZoom factor2,
+DPR2/CSS640x407 while WebDriver physical window stays1280x900; reset restores1.
+Actual native journey6checks/8captures, default4/4 and fixed6/19 PASS. Saves/reload/
+exact clocks, real worker pending→100/release, submit Escape/visible focus and
+explanation Space/return checked. Initial shortcut/geometry/screenshot oracles were
+repaired; no visible product defect found. Syntax/consumer/docs/whitespace and
+invalid/mixed flag early-refusal probes PASS. [Exact evidence/limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+Recommended current Codex or Sol6.1 High integration, separate Sol6.1 Medium read-only
+review when available. Actual reviewer remains usage-limited; no independent review
+or quota bypass. Qualified-human nativezoom/screen-reader outcomes stay NOT TESTED.
+Writer reservation released at checkpoint; no Chromium nativezoom acceptance claim.
+
 2026-10-26 **B10.2 FIXED SAVE/CONFLICT ACCEPTANCE — AUTOMATED_PASS /
 PENDING_REVIEW**, base3f3ebe8. Root sole writer, existing fixed journey helper/two
 runners only; no application/SQL/contract change. Actual Chrome6checks/19captures/

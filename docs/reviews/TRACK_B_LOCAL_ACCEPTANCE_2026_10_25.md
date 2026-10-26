@@ -20,7 +20,7 @@ supply lawful content, qualified human review or formal accessibility evidence.
 | Confirmed save and reload | AUTOMATED_PASS: revisions, acknowledged-only save feedback, persistence/resume/conflict/offline recovery. Reload creates no new attempt; client time cannot extend server deadlines. [Student evidence](TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md) |
 | Submit/grade/result/released review | AUTOMATED_PASS: real submit/jobs/trusted worker/release, no fabricated offline submission or failed-grading score; only released explanations. Current domains78/critical9/student34/results7/grading23 execution is recorded in linked checkpoints. |
 | Important security/integrity errors | AUTOMATED_PASS within executed scenarios: owned conflicts, CSRF/Origin/BOLA, no silent NEW_ONLY fallback, truthful exhaustion, current revocation/quarantine restrictions and immutable sealed state. No all-failure/performance guarantee. |
-| Desktop/mobile/keyboard | AUTOMATED_PASS: Chrome1280/375 and Firefox1280/actual500; prior student keyboard/AX checks. MANUAL_CHECK_PENDING for qualified screen reader/native200% zoom/full accessibility. |
+| Desktop/mobile/keyboard | AUTOMATED_PASS: Chrome1280/375 and Firefox1280/actual500; prior student keyboard/AX checks plus [actual Firefox native200% automation](WEB_004_NATIVE_ZOOM_VERIFICATION.md)6checks/8captures. MANUAL_CHECK_PENDING for qualified screen reader/native200% zoom/full accessibility. |
 | Automated regression and handoff | AUTOMATED_PASS / INDEPENDENTLY_REVIEWED within exact linked scopes. Complete runnable guide, exact commands, limits and local commits; no push/deployment. |
 
 Run the student demonstration as documented, then the separate disposable staff

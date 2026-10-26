@@ -5,6 +5,12 @@ WEB-004 remains IN_PROGRESS. Automated keyboard, AX/reflow and Firefox evidence
 is in [the verification record](../reviews/WEB_004_ACCESSIBILITY_CROSS_BROWSER_VERIFICATION.md).
 Timing accommodations and a complete WCAG audit remain separate owner review work.
 
+2026-10-26 automated supplement: actual Firefox native200% browser-controller
+journey passed6checks/8captures with observed factor2/DPR2/CSS640 and fixed physical
+window1280. [Exact evidence and limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+This does not fill any human outcome cell below; qualified review is still NOT
+EXECUTED, including the human-recorded displayed zoom value.
+
 ## Isolated setup
 
 Use a dedicated private browser session/profile; local cookies are shared across

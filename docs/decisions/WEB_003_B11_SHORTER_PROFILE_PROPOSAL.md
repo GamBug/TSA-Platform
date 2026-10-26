@@ -28,8 +28,9 @@ domain; exposing a second same-domain blueprint before implementing explicit pro
 selection would be misleading. Personal reserved views/receipts do not carry a
 blueprintVersionId or pre-Start duration; domain alone cannot identify a short
 profile after reload or rollback. Existing main.js personal CREATED fallback uses
-a domain lookup and must not be reused to guess the full profile for a short attempt. A generic blueprint parser or hand-edited database
-row is not permission to bypass these boundaries.
+a domain lookup and must not be reused to guess the full profile for a short
+attempt. A generic blueprint parser or hand-edited database row is not permission
+to bypass these boundaries.
 
 ## Proposed exact local scope
 
@@ -76,12 +77,7 @@ fixed choices remain independently labeled and session-bound.
 | Contracts | Additive internal guard only if sufficient; no public DTO, mode, request/replay, released-review, root export or solver/golden alteration. Original guard must still reject2/2 counts. |
 | SQL/service | A numbered additive migration/narrow compatibility change may recognize the separately pinned profiles; inspect all current hard-coded MVP guards before implementation. No raw grants, new role, history relaxation or hidden reuse. |
 | Data | Create new immutable synthetic blueprint versions and explicit offerings via fixture setup; adjust each new quota to its2-item count. Never rewrite existing questions, historical blueprints/forms/attempts or accepted content. |
-| Browser | Explicit same-domain profile choice, visible configured count/duration; multiple-card keyboard/focus behavior, truthful shortage/offer freshness, and exact-or-unknown created/resume/history/review metadata after reload/flag-off. Default buttons remain legacy profile. Audit every profile-sensitive path, including
-created/resume/history metadata and reviewOffer/reviewIntent. Retain exact proven
-selection metadata in a session-bound intent when available; after reload or when
-that metadata is unavailable show the profile/duration as unknown before Start.
-Never infer profile or duration from domain alone or widen public DTOs to make a
-display convenient. The started attempt's server clocks remain authoritative. |
+| Browser | Explicit same-domain profile choice/count/duration, keyboard/focus and truthful offer freshness; preserve legacy defaults. Audit created/resume/history and reviewOffer/reviewIntent. Keep exact proven selection metadata in session-bound intents; show unknown when unavailable after reload/flag-off. Never infer duration/profile from domain or widen public DTOs for convenience. Started server clocks remain authoritative. |
 | Lifecycle | Existing H1, first-history/current merged groups, rights, DB-clock Start/expiry, grading/release and NEW_ONLY semantics. Exact fresh receipt and same-key replay remain unchanged. |
 | Rollback | Disable new profiles/flag for new catalog/creation, retain receipts/owned lifecycle and historical snapshots/history. No destructive down migration. |
 

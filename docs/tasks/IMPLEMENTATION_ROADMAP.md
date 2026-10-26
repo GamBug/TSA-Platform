@@ -1,5 +1,13 @@
 # Implementation roadmap
 
+Current WEB-004 supplement2026-10-26: real Firefox native200% automation now runs
+through mixed saves/reload, submission/Escape, grading/released explanation/Space
+and catalog return. Root6checks/8captures, default4/4 and fixed6/19 PASS; actual
+factor2/DPR2/CSS640 with fixed physical1280 window, no CSS/pinch substitution.
+No application defect found/changed. [Evidence](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+Independent review pending actual capacity limit; qualified manual/AT acceptance
+remains external. B10.2 review and B11 frozen-policy gates remain explicit.
+
 Current B10.1,2026-10-26: separately selected under standing engineering delegation,
 implemented existing frozen fixed student contracts for supported B9 seals. Opt-in
 disposable3domain demo, native consent, owned immutable-form attempts, durable H1,

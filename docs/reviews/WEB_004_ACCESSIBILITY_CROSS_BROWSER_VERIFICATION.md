@@ -1,5 +1,11 @@
 # Student keyboard, reflow and second-engine verification
 
+Current supplement2026-10-26: [actual Firefox native200% automated evidence](WEB_004_NATIVE_ZOOM_VERIFICATION.md)
+now passes6checks/8captures; fixed physical window, native factor2/DPR2 and CSS640,
+including reload, submit/Escape and released explanation/Space. This is distinct
+from the historical reflow-equivalent Chromium setup below. Qualified human/AT
+nativezoom outcome cells remain NOT TESTED; independent supplement review pending.
+
 2026-10-22, branch `feat/track-b-data-auth`, base `e136627`. Accountable Sol owns
 second-engine verification, narrow integration fixes and shared records. Native
 Luna/XHigh owns the isolated Chromium accessibility mode in the existing browser

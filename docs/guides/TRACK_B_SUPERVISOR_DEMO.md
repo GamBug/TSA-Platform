@@ -404,6 +404,7 @@ npm run test:student:review
 npm run test:student:review:firefox
 npm run test:student:keyboard
 npm run test:student:firefox
+npm run test:student:zoom:firefox
 npm run test:staff:review
 npm run test:track-b:browser
 npm run test:staff:firefox
@@ -427,3 +428,14 @@ Real-content acceptance inputs are listed in the separate [content handoff](TRAC
 The demonstration does not supply those human/rights attestations. Fixed
 assembly scope has a [specific contract/service dependency record](../decisions/WEB_002_FIXED_DIAGNOSTICS_DEPENDENCIES.md);
 canonical dataset preflight does not replace it.
+
+
+The optional `test:student:zoom:firefox` command reuses the isolated mixed-question
+journey at actual Firefox native200% zoom, including saved reload, submit/Escape,
+result and explanation/Space. Verified with Firefox156/geckodriver0.37.1; this mode
+requires geckodriver's `--allow-system-access` option for the owned disposable
+browser's FullZoom control. Ordinary/fixed/staff modes do not enable that option.
+No owner browser profile is reused. Evidence is local under
+`/tmp/tsa-student-native-zoom-evidence`; screenshots are normalized CSS pixels.
+[Automation evidence/limits](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md) remains
+separate from qualified human accessibility/nativezoom acceptance.
