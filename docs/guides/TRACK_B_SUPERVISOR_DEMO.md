@@ -72,10 +72,10 @@ persistent student client; `/` alone selects the separately labelled mock client
 Keep the same disposable student launcher running. After completing a domain,
 request its default practice again. Once previously assigned inventory is exhausted,
 the genuine unseen-inventory shortage offers review of the **same** domain profile.
-Open the review confirmation and show that its repeat-consent checkbox starts
+Choose **Xem lựa chọn ôn tập** and show that its repeat-consent checkbox starts
 unchecked. Cancel or Escape sends no creation request. Check it deliberately and
-confirm to create a new review attempt; select **Start** explicitly from its reserved
-screen. The count, duration and server timing rules remain the same.
+choose **Xác nhận và tạo bài ôn tập** to create a new review attempt. Select
+**Bắt đầu bài luyện tập** explicitly from its reserved screen. The count, duration and server timing rules remain the same.
 
 Answer, wait for acknowledged saves, reload, submit and open the released result
 and explanations as before. Review labels persist through the attempt, result and
@@ -265,7 +265,8 @@ There is no automatic undo, APPROVE or publication action. All of this runs in t
 owned disposable fixture; it creates no lawful published inventory.
 
 The isolated fixture's rights records are simulations, not a lawful real-content
-attestation or qualified human review. It creates no published inventory. The
+attestation or qualified human review. Its B8 eligible synthetic stock is test
+machinery, not lawful accepted real inventory. The
 synthetic REVIEWER has only server-authorized access to independent IN_REVIEW
 versions; it cannot act as a qualified approver through this interface.
 

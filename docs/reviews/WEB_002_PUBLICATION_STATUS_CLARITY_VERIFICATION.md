@@ -53,3 +53,13 @@ reviewer exhausted its usage quota; no retry or independent review is fabricated
 Earlier B1/B8 and WEB-003 reviews do not cover this later edit. Automated keyboard/
 responsive checks are not qualified AT/native zoom or formal accessibility approval.
 No real-content, publication, production or whole-MVP acceptance is implied.
+
+## Clean-checkout reproduction —cb09027
+
+Root2026-10-26 fresh `git clone --no-hardlinks`, detached exactcb09027 at
+`/tmp/tsa-staff-status-clean-sXnxTf`; locked `npm ci --ignore-scripts` (zero audit
+vulnerabilities), `npm run build`, `npm run test:track-b:browser`,
+`npm run test:staff:firefox`, `npm run docs:check`: all exit0. Actual Chrome46checks/
+29captures and Firefox16checks/35captures pass. Final `git status --short` empty.
+No source patches, manual SQL/API setup or copied dependencies; this is root clean
+reproduction, not independent review. Owned fixture teardown remains automatic.

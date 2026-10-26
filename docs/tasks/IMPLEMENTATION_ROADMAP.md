@@ -1,5 +1,14 @@
 # Implementation roadmap
 
+Next privileged milestone B9.1,2026-10-26: concrete
+[fixed sealing/list/detail proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md)
+prepared as required by the standing mission; PROPOSED / HUMAN_APPROVAL_REQUIRED,
+not implementation approval. Preserve B7 reference-only filtering and B8 no-form
+rehearsals. New candidate fixed delivery remains separate. Current bounded staff
+publication-status clarity passed existing Chrome46/Firefox16/B032 checks;
+[evidence](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md). No independent
+review of that display edit or B9 proposal is claimed; reviewer usage exhausted.
+
 Current WEB-003,2026-10-26: explicit session-bound REVIEW_ALLOWED practice now works
 through fresh consent, reserved Start, persistent answers, grading/released review
 and labeled history in all three domains. NEW_ONLY remains strict/default; no

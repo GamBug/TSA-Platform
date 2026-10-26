@@ -759,6 +759,20 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-26 **B9.1 FIXED SEALING — PROPOSAL PREPARED**, basecb09027.
+Root owns decision/shared records only; no runtime/code reservation. The mission
+requires a specific proposal for a new privileged operation rather than assuming
+backend capability grants authority. [Exact proposed API/SQL/UI/upgrade/acceptance](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md).
+Status PROPOSED / HUMAN_APPROVAL_REQUIRED; implementation NOT_EXECUTED. Source gap:
+existing B7 list/detail would admit a new fixed run attached to a real form and
+misdescribe it as reference-only; compatibility filtering is explicitly required.
+B8 remains rehearsal only. New fixed seal/list/detail needs applicable disposition;
+student fixed delivery, qualified approval and real rights remain excluded.
+Recommended Codex Sol6.1/High/current available root for integration; bounded native
+Luna/XHigh DTO/UI writers and separate available Sol/Medium independent review after
+approval. No delegation/review executed for this proposal; reviewer usage exhausted.
+Documentation/links/whitespace checked; no application suite claimed for a proposal.
+
 2026-10-26 **PUBLICATION-STATUS CLARITY — IMPLEMENTED / AUTOMATED_PASS**, base5650e25.
 Root owns only staff.js, the existing Chrome/Firefox staff assertions, guide and
 coordinated records. Approved B1 already returns publicationEligibility:NOT_EVALUATED;
@@ -769,7 +783,8 @@ Recommended Codex Sol6.1/High or current available root for bounded UI integrati
 separate Medium read-only review if available. Current reviewer usage limit is
 recorded; this low-impact display change will not be claimed independently reviewed.
 Existing staff Chrome/Firefox, B032/syntax/boundaries/docs PASS; root inspected actual
-narrow Firefox capture. No new suite. [Exact evidence/limits](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md).
+narrow Firefox capture. Clean no-hardlinkcb09027 install/build/Chrome46/Firefox16/
+docs PASS, final clone Git empty. No new suite. [Exact evidence/limits](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md).
 
 2026-10-25 **B8.1 ELIGIBLE BANK REHEARSAL — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base70cdd6c.
 Root selects separate actual eligible Bank capture before sealing;

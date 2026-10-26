@@ -11,6 +11,11 @@ does not implement sealed forms/fixed student delivery. Actual eligible Bank cap
 is now implemented separately in [B8.1](WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md),
 [executed evidence](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md); it
 creates immutable historical diagnostic captures only, not sealed forms.
+Next sealing milestone has a concrete [B9.1 proposal](WEB_002_B9_FIXED_SEALING_PROPOSAL.md),
+prepared2026-10-26. It is PROPOSED / HUMAN_APPROVAL_REQUIRED for new privileged
+operations, not implementation or fixed student-delivery approval. Source inspection
+found B7 would admit newly sealed fixed runs without an explicit form-exclusion
+filter; the proposed migration must preserve its reference-only boundary.
 The source gap and initial design below are historical discovery, not current
 absence of the new fixed parser. Root accountable; native Luna/XHigh read-only
 worker actually mapped these dependencies. This is a concrete technical handoff,

@@ -69,7 +69,7 @@ are separate bounded additions; counts are not a completion percentage.
 |---|---|
 | Lawful accepted starter stock | HUMAN_APPROVAL_REQUIRED / BLOCKED for real publication:12 MATH,6 READING,12 SCIENCE with question-specific provenance/use rights and named qualified independent content review. [Owner content handoff](../guides/TRACK_B_CONTENT_HANDOFF.md) |
 | Accessibility | MANUAL_CHECK_PENDING: actual qualified screen-reader/native200% zoom/usability record and disposition. [Existing review packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md). Automated focus/reflow is not formal conformance. |
-| Fixed sealing/shorter profiles | NOT_EXECUTED: future separately scoped service/API/privilege/product work. Do not alias personal manifests or silently add profiles, public forms or student fixed delivery. Explicit personal review is implemented in the separately linked scope. |
+| Fixed sealing/shorter profiles | NOT_EXECUTED: future separately scoped service/API/privilege/product work. A concrete [B9.1 sealing/metadata proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md) is prepared, not approved or implemented. Do not alias personal manifests or silently add profiles, public forms or student fixed delivery. Explicit personal review is implemented in the separately linked scope. |
 | Performance/operations/production | NOT_EXECUTED/outside presentation scope: agreed load target, observed load/hosted identity/operational acceptance. Local PG recovery evidence is not production readiness. No deployment authorization. |
 | Dependency security | SEC-001 patched observed Zod advisory; current dated audit0, exact graph/integrity and compatibility evidence. No complete supply-chain/security guarantee. |
 
@@ -87,3 +87,13 @@ Explicit-review checkpoint15edb19 is also clean-reproduced2026-10-26: locked ins
 build, targeted20 (allocation/upgrade/domain/session security/launcher), review
 Chrome65/Firefox9, default three-domain78, contracts/boundaries/built/docs PASS;
 final clone Git empty. [Exact reproduction](WEB_003_REVIEW_PRACTICE_VERIFICATION.md#clean-checkout-reproduction-15edb19).
+
+The later staff publication-status display atcb09027 passed root Chrome46checks/
+29captures, Firefox16checks/35captures, B032/syntax/boundaries/docs. It makes the
+existing NOT_EVALUATED field readable without computing publication eligibility
+or adding actions. Independent review not performed for that low-impact edit;
+[exact evidence](WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md).
+
+Clean no-hardlinkcb09027 locked install/build/staffChrome46/Firefox16/docs also PASS,
+final clone Git empty. The current guide additionally distinguishes eligible B8
+synthetic fixture stock from lawful accepted real inventory.

@@ -30,6 +30,21 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 B9.1 — proposed fixed sealing contract,2026-10-26
+
+- PROPOSED / HUMAN_APPROVAL_REQUIRED for the new privileged API and SQL operations;
+  no B9 implementation or runtime acceptance. Root prepared the
+  [specific contract/privilege/migration/consumer/acceptance proposal](WEB_002_B9_FIXED_SEALING_PROPOSAL.md)
+  under the mission's new-operation decision-proposal rule. Existing B8 rehearsal
+  and proposed broad staff table do not authorize sealing or fixed student delivery.
+- Scope: deliberate fixed seal plus EXAM_MANAGER safe list/detail; current stock,
+  immutable new fixed snapshots, no student attempt/history/delivery/publication.
+  Preserve B7 reference-only API boundary, B8 rehearsal and all personal contracts.
+- No owner approval identity/date/evidence is recorded for B9. No independent review
+  has executed; reviewer quota is exhausted. Root source/documentation only;
+  runtime/contract/migration/browser acceptance NOT_EXECUTED. Do not infer approval
+  from this proposal or synthetic workflow states.
+
 ## WEB-003 explicit review practice — selected2026-10-25
 
 - Root-selected under2026-10-24 owner engineering-choice delegation,

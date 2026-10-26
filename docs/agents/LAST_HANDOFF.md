@@ -1,3 +1,68 @@
+# Handoff — Track B review practice complete; next fixed sealing contract proposed
+
+- Date/role:2026-10-26 Asia/Bangkok, root Codex accountable orchestrator.
+- Branch/checkpoints: feat/track-b-data-auth; review implementation15edb19,
+  clean evidence5650e25, staff displaycb09027. This handoff covers the following
+  documentation checkpoint for clean staff evidence, B9.1 proposal and coordinated
+  records. No active writer reservations.
+- Owner AGENTS.md change/untracked research preserved/excluded throughout.
+- Immediate synthetic student presentation and B1–B8 staff subset remain functional;
+  explicit personal review is complete in its separately recorded scope. No paid
+  API/Astra/student inference/push/merge/deploy/real content approval.
+
+## Implemented and verified
+
+Review15edb19: default strict NEW_ONLY; new review intent/key/current eligible form,
+session-bound unchecked repeat consent, immutable first-history/H1/server clocks,
+reserved explicit Start, acknowledged persistence/reload/submit/grade/released
+review/mode labels, same-key lost-ack retry and GET-only read recovery. Actual
+account-switch defect reproduced and fixed, both HTTP timing cases create0attempts.
+[Exact source/independent attribution/clean commands](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+Root fullassembly63/Bank149/student36/critical9/contracts156/B032 PASS. Clean no-
+hardlink15edb19 install/build/targeted20/reviewChrome65/Firefox9/defaultdomains78/
+contracts/boundaries/built/docs PASS, final clone Git empty. Native Luna writers
+released files; separate Sol6.1/Medium and available Sol6/Medium fallback actual
+PG/source/browser/security reviews no unresolved findings. Extra post-nonce
+independent browser rerun NOT_EXECUTED due to usage quota; root browsers passed.
+
+Staffcb09027: existing B1 NOT_EVALUATED now readable before metadata, separate from
+workflow/preview permission in available/blocked/held inspections. No API/role/action
+change. Root staff Chrome46checks/29captures, Firefox16checks/35captures, B032/syntax/
+boundaries/docs PASS; narrow Firefox capture inspected. Clean no-hardlinkcb09027
+locked install/build/staffChrome46/Firefox16/docs PASS, final clone Git empty.
+Independent review not
+performed for this low-impact edit, reviewer usage exhausted.
+[Exact evidence](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md).
+
+## Next contract and authorization boundary
+
+[B9.1 fixed sealing/list/detail proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md)
+is now concrete: proposed private DTO/routes, role/SQL/snapshot boundary, database
+window/horizon, atomic fixed seal, safe metadata, B7 no-form filtering, upgrade/
+rollback and acceptance cases. Source inspection identified that existing B7
+queries would otherwise mislabel a new real fixed seal as reference-only.
+PROPOSED / HUMAN_APPROVAL_REQUIRED; no B9 runtime, schemas, migration or code was
+implemented or independently reviewed. The mission explicitly requires a proposal
+for new privileged operations; existing B8 and the broad proposed staff table are
+not sealing authorization. Applicable owner contract disposition is absent. Do not
+infer it from this document or fabricate human rights/review evidence.
+
+After applicable B9 disposition, recommended current available Codex root or
+Sol6.1/High integrates SQL/services; native Luna/XHigh may own bounded private
+DTO/UI files; separate available Sol/Medium read-only review before acceptance.
+Current reviewer quota is exhausted; do not bypass it. No new delegation occurred
+for the proposal. First implement only the approved scope, retain unsupported
+student fixed delivery, and preserve all old contract bytes/goldens.
+
+Remaining external inputs: lawful accepted12MATH/6READING/12SCIENCE with rights and
+qualified independent human review; qualified screen-reader/native200% zoom checks.
+These are human requirements, not reasons to fake publication or formal accessibility
+acceptance. Full Technical MVP/performance/production remain unaccepted. New
+privileged fixed operation is a contract decision, not another backend-test task.
+Documentation/links/whitespace for the proposal checked; runtime tests NOT_EXECUTED
+because it is a documentation-only next-scope artifact. Previous handoffs below
+are historical; this top section is current. No ownership remains reserved.
+
 # Handoff — WEB-002 publication-status display
 
 2026-10-26 Asia/Bangkok, root Codex accountable. Base5650e25 after clean WEB-003
