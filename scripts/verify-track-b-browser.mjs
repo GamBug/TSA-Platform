@@ -297,6 +297,8 @@ try {
   assert.equal(blockedContext.body.workflow.state, 'DRAFT');
   assert.equal(blockedContext.body.preview.status, 'BLOCKED');
   assert.equal(blockedContext.body.preview.reason, 'RIGHTS_BLOCKED');
+  assert.equal(await evaluate(`${query('staff-publication-status')}?.dataset.evaluation`), 'NOT_EVALUATED', 'blocked private access never implies a publication assessment');
+  assert.equal(await evaluate(`${query('staff-publication-status')}?.innerText.includes('Not evaluated by this inspection.')`), true, 'publication status is understandable without interpreting an enum');
   assert.equal(Object.hasOwn(blockedContext.body.preview, 'question'), false, 'blocked retained source returns no question, key or explanation object');
   assert.equal(blockedContext.body.sources.some((source) => source.currentRights?.status === 'UNKNOWN'), true, 'retained source keeps its actual UNKNOWN rights decision');
   const blockedPanelText = await evaluate(`${query('staff-review-context')}.innerText`);
@@ -577,6 +579,9 @@ try {
     assert.equal(response.body.preview.status, 'AVAILABLE');
     assert.equal(response.body.environment, 'LOCAL_SYNTHETIC_ONLY');
     assert.equal(response.body.publicationEligibility, 'NOT_EVALUATED');
+    assert.equal(await evaluate(`${query('staff-publication-status')}?.dataset.evaluation`), response.body.publicationEligibility, 'AVAILABLE preview preserves the unevaluated server publication status');
+    assert.equal(await evaluate(`${query('staff-publication-status')}?.innerText.includes('does not establish qualified human review, lawful content rights, or permission to publish.')`), true, 'preview/workflow state is distinguished from permission to publish');
+    assert.equal(await evaluate(`${query('staff-publication-status')}?.querySelectorAll('button,a,input').length`), 0, 'publication status grants no action or navigation');
     assert.equal(response.body.rightsEvidenceIncluded, false);
     const question = response.body.preview.question;
     interactionTypes.add(question.interaction.type);
@@ -1196,6 +1201,7 @@ try {
   const heldSelector=`[data-testid="staff-review-inspect"][data-version-id="${reviewFixture.questions[2].versionId}"]`;
   await evaluate(`document.querySelector(${JSON.stringify(heldSelector)}).focus()`);await pressKey('Enter','Enter',13,String.fromCharCode(13));
   await waitFor(`${query('staff-review-context')}?.textContent.includes('QUARANTINED')`,'current manager hold metadata');
+  assert.equal(await evaluate(`${query('staff-publication-status')}?.dataset.evaluation`), 'NOT_EVALUATED', 'held workflow remains separate from publication assessment');
   assert.equal(await evaluate(`Boolean(document.querySelector('.staff-review-preview'))`),false);
   assert.equal(await evaluate(`Boolean(${query('disposition-quarantine-open')})`),false,'already-held version cannot create another hold intent');
   report.checks.push('B4 manager quarantine discloses related impact, treats post-commit error as uncertain and retries same intent; logout fences late receipt and fresh held view contains no private question');

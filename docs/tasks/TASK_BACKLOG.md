@@ -759,6 +759,18 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-26 **PUBLICATION-STATUS CLARITY — IMPLEMENTED / AUTOMATED_PASS**, base5650e25.
+Root owns only staff.js, the existing Chrome/Firefox staff assertions, guide and
+coordinated records. Approved B1 already returns publicationEligibility:NOT_EVALUATED;
+UI displays the raw enum. Render an understandable explicit unevaluated status for
+available, blocked and held inspections. Do not derive eligibility from workflow,
+preview permission or synthetic approvals. No API/schema/role/action changes.
+Recommended Codex Sol6.1/High or current available root for bounded UI integration;
+separate Medium read-only review if available. Current reviewer usage limit is
+recorded; this low-impact display change will not be claimed independently reviewed.
+Existing staff Chrome/Firefox, B032/syntax/boundaries/docs PASS; root inspected actual
+narrow Firefox capture. No new suite. [Exact evidence/limits](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md).
+
 2026-10-25 **B8.1 ELIGIBLE BANK REHEARSAL — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base70cdd6c.
 Root selects separate actual eligible Bank capture before sealing;
 [exact scope/impact/acceptance](../decisions/WEB_002_B8_BANK_STOCK_REHEARSAL_DECISION.md).

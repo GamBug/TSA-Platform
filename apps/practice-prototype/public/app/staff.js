@@ -2932,6 +2932,17 @@ export async function openStaffWorkspace(container, onBack) {
     const content = node('div', 'staff-review-content');
     const version = context?.version ?? {};
     const workflow = context?.workflow ?? {};
+    const publication = node('section', 'notice-panel');
+    publication.dataset.testid = 'staff-publication-status';
+    publication.dataset.evaluation = context?.publicationEligibility === 'NOT_EVALUATED' ? 'NOT_EVALUATED' : 'UNKNOWN';
+    publication.setAttribute('aria-labelledby', 'staff-publication-title');
+    const publicationTitle = node('h3', '', 'Publication eligibility');
+    publicationTitle.id = 'staff-publication-title';
+    publication.append(publicationTitle,
+      node('p', '', publication.dataset.evaluation === 'NOT_EVALUATED'
+        ? 'Not evaluated by this inspection.' : 'No publication assessment is available.'),
+      node('p', '', 'An APPROVED workflow state or an AVAILABLE private preview does not establish qualified human review, lawful content rights, or permission to publish.'));
+    content.append(publication);
     const metadata = node('dl', 'staff-review-metadata');
     appendMetadataPair(metadata, 'Môi trường', context?.environment ?? 'Không xác định');
     appendMetadataPair(metadata, 'Cơ sở truy cập', context?.accessBasis ?? 'Không xác định');

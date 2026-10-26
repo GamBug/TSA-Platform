@@ -1,3 +1,25 @@
+# Handoff — WEB-002 publication-status display
+
+2026-10-26 Asia/Bangkok, root Codex accountable. Base5650e25 after clean WEB-003
+checkpoint15edb19. Bounded display-only increment IMPLEMENTED / AUTOMATED_PASS.
+Owner AGENTS.md/untracked research preserved/excluded. No active write reservations.
+
+Existing B1 NOT_EVALUATED now has a named readable status before inspection metadata,
+separate from workflow/preview permission, including blocked/held states. Only
+staff.js and existing Chrome/Firefox assertions in application/test code; guide and
+coordinated records updated. No backend/schema/role/action/migration changes.
+[Exact source/commands/evidence/limits](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md).
+Root actual staff Chrome/Firefox/B032/syntax/boundaries/docs/whitespace PASS; actual
+500px Firefox capture inspected. No independent review for this low-impact edit:
+available reviewer usage limit, no review fabricated. Human AT/native zoom and
+rights/qualified content approval remain external inputs.
+
+Next: checkpoint this scope, then prepare the specific fixed-form sealing decision
+and impact/migration/acceptance proposal required before any new privileged route
+or fixed student delivery. Existing B8 rehearsals create no form, and the broad
+proposed staff API table is not approval. Continue safe authorized work; preserve
+prior exact clean WEB-003 evidence below. No push/deploy/paidAPI/Astra/generation.
+
 # Handoff — WEB-003 explicit personal review practice
 
 - Date/role:2026-10-26 Asia/Bangkok, root Codex accountable integrator.

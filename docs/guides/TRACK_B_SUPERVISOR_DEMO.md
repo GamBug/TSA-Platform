@@ -148,6 +148,11 @@ private key and explanation; the unsafe synthetic version shows a metadata-only
 CONTENT_UNSUPPORTED block. Close the view by its control or Escape; return/logout
 clears private content. These private reads are denied to ordinary students.
 
+Each exact-version inspection shows **Publication eligibility: Not evaluated by
+this inspection** before its metadata. An AVAILABLE preview or APPROVED workflow
+state is separate from lawful rights, qualified review and permission to publish.
+This status section provides no approval/publication action.
+
 The author form now supports **Một đáp án đúng**, **Nhiều đáp án đúng** and
 **Đúng hoặc sai cho từng mệnh đề**. This compact synthetic MATH editor has exactly
 two options/statements. MC requires one or both correct options (student selection
