@@ -41,10 +41,24 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   seals, fresh session-bound consent, owned attempts/history and unchanged lifecycle.
   No new public route/field/role or solver, no personal commit relaxation/raw grant.
   New narrow tsa_exam EXECUTE supports the existing student operation only.
-- AUTHORIZED_IN_SCOPE_UNDER_DELEGATION / IMPLEMENTATION_IN_PROGRESS after independent
-  source/design review. [Actual review/repairs](../reviews/WEB_003_B10_DESIGN_REVIEW.md).
-  Read-only explorer mapping and separate Sol6.1/Medium review executed; no B10
-  runtime acceptance or new human approval claimed. Shared flags defaultfalse; disposable synthetic opt-in only.
+- AUTHORIZED_IN_SCOPE_UNDER_DELEGATION / IMPLEMENTED / AUTOMATED_PASS /
+  INDEPENDENTLY_REVIEWED in exact recorded scopes. Source d903ae4 and clean no-hardlink
+  reproduction passed; initial Firefox session-cleanup failure and unchanged-source
+  passing retry disclosed. [Design review](../reviews/WEB_003_B10_DESIGN_REVIEW.md),
+  [executed evidence/limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+  No new human approval claimed. Shared flags defaultfalse; disposable synthetic opt-in only.
+
+## WEB-003 B11.1 — shorter-profile proposal,2026-10-26
+
+- Root prepared the [bounded proposal](WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md)
+  under standing engineering-choice authority after B10. PROPOSED /
+  HUMAN_APPROVAL_REQUIRED for expanding frozen MVP count-policy support; not an
+  owner disposition or implementation authorization. Original guard4/2/4 stays.
+- Proposed local MATH2/SCIENCE2, explicit independent selection and strict NEW_ONLY;
+  no one-question Reading split, silent fallback or altered historical profiles.
+  No application changes, migration/offering activation or runtime tests executed.
+  Complete current demo remains available; lawful inventory/manual accessibility
+  remain separately dependent on qualified humans.
 
 ## WEB-002 B9.1 — scoped owner go-ahead,2026-10-26
 

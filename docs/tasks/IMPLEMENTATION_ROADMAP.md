@@ -7,7 +7,11 @@ first-history/current rights, save/reload/grade/released review and truthful rec
 Actual independent Sol6.1/Medium source/PG/HTTP/Chrome review no unresolved findings;
 root Firefox/targeted/broad regressions pass. Shared flags remain false. No new
 human approval, production or accepted real-content/accessibility claim.
-[Evidence](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md). Remaining parent
+Clean no-hardlinkd903ae4 locked install/build/focused16/launcher10/Chrome5/Firefox5
+unchanged-source retry/defaultdomains78/drift/import/docs PASS, final clone Git empty;
+first Firefox cleanup timeout retained. [Evidence](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+[B11 proposal](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md) is unimplemented
+and requires frozen count-policy disposition; current4/2/4 guard unchanged. Remaining parent
 WEB-003 engineering scope is separately selected shorter profiles; human-qualified
 stock/accessibility remain external. Historical proposals below are superseded only
 by their recorded scoped decisions.

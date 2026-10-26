@@ -1,6 +1,6 @@
 # Handoff — B10.1 fixed student practice implemented and reviewed
 
-2026-10-26 Asia/Bangkok, feat/track-b-data-auth, base3d41eb3/B9 source5b37a30.
+2026-10-26 Asia/Bangkok, feat/track-b-data-auth, source d903ae4 from base3d41eb3/B9 source5b37a30.
 Root accountable integrator/shared-record owner. Separately selected under the
 standing engineering delegation, not B9 staff-only scope expansion or invented
 human approval. Owner AGENTS.md and untracked research preserved/excluded.
@@ -22,12 +22,27 @@ corrected-version/flag-offHTTP1 independentPASS10; SDK4+HTTP1+domains3 independe
 PASS8; corePG/upgrade2 and Chrome5checks/17captures/77responsesPASS. Independent
 Firefox/launcher/clean clone NOT_EXECUTED. Root final Firefox5/17, student40/Bank161/
 contracts161/assembly74/critical9/B032/build/type/drift/import/built/launcher10 PASS;
-root defaultdomains78/review65 responses and staffChrome50 PASS. Clean checkpoint will be recorded in evidence after reproduction.
+root defaultdomains78/review65 responses, staffChrome50/Firefox18 PASS.
+Clean no-hardlinkd903ae4 at `/tmp/tsa-b10-clean-mug6hckp`: locked install/build/
+focused16/launcher10/Chrome5/Firefox5unchanged-source retry/defaultdomains78/drift/
+import/docs PASS, final clone Git empty. First Firefox flow passed5/17 but DELETE
+session timed out; initial exit1 excluded, explicit unchanged-source retryexit0
+retained. No application fix/assertion relaxation or independent clone claim.
 
 No paidAPI/Astra/student inference/push/merge/deploy/real-content/human-approval
 fabrication. Qualified accessibility/native200%zoom and lawful12/6/12 accepted
-stock remain external. Shorter profiles are a separately selected future scope;
-no silent fallback. Continue bounded authorized integrated acceptance and observed
+stock remain external. [B11 shorter-profile proposal](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md)
+prepared, PROPOSED/HUMAN_APPROVAL_REQUIRED for frozen4/2/4 policy expansion; no
+implementation/migration/activation or runtime test. No Reading bundle split or
+silent fallback. Current authorized demonstration milestones and staff subset are
+implemented; remaining qualified acceptance and new frozen-policy features need
+their recorded inputs. Do not bypass the gate under generic execution authority.
+B11 partial read-only review raised exact-or-unknown pre-Start profile metadata;
+root proposal repaired. Reviewer then hit actual usage limit, so B11 final review
+PENDING_REVIEW, no independent recheck claimed. No quota bypass or repeated review
+attempt. Continue safe existing-contract integrated save/conflict verification;
+root sole writer reserves scripts/student-fixed-practice-journey.mjs for B10.2.
+B10 product source remains unchanged/reviewed; no B11 implementation. Continue bounded authorized integrated acceptance and observed
 usability defects; do not repeat completed B1–B10 or historical pending reviews.
 All essential evidence lives in the linked record, not only conversation state.
 

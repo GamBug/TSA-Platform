@@ -1558,8 +1558,14 @@ Flags defaultfalse, disposable synthetic launcher alone enables new creation.
 Root PG/HTTP/SDK, both browsers, upgrade/rights/roles/H1/correction/flag-off checks
 pass. Actual Luna SDK/UI/test writers released ownership; separate Sol6.1/Medium
 read-only design/source/PG/HTTP/Chrome final review has no unresolved findings.
-Clean reproduction and exact aggregate commands are recorded in linked evidence.
-Parent remaining scope is shorter-profile selection and externally qualified
+Clean no-hardlinkd903ae4 locked install/build/focused16/launcher10/Chrome5/Firefox5
+(on unchanged-source retry after first session-cleanup timeout)/domains78/drift/import/
+docs PASS, final clone Git empty. Exact failure/limits retained in linked evidence.
+[B11 shorter-profile proposal](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md)
+is PROPOSED / HUMAN_APPROVAL_REQUIRED for frozen count-policy impact. Partial reviewer
+P2 about pre-Start profile identity repaired in proposal; actual reviewer usage limit
+left final B11 review PENDING_REVIEW. No code/runtime test
+or offering activation. Parent remaining scope is shorter-profile selection and externally qualified
 content/accessibility acceptance; no silent profile/reuse fallback is authorized.
 
 2026-10-26 **EXPLICIT REVIEW PRACTICE — IMPLEMENTED / AUTOMATED_PASS /
@@ -1820,6 +1826,14 @@ Luna is usage-limited, separate Sol6.1/Medium review when available.
 - Required verification: browser multi-tab/offline/reconnect/expiry journeys, keyboard/zoom/screen-reader checks, response/hydration/bundle leakage scan and controlled-clock boundary tests. Suggested agent capability: MEDIUM (Terra). Risk: High — timing/key leakage. Status: IN_PROGRESS for the bounded local integration above; full EXAM/SCORE/WEB acceptance remains outstanding.
 
 ## TEST-002 — Independent critical-invariant and security regression harness
+
+2026-10-26 current B10 integration adds actual fixed vs NEW_ONLY/REVIEW_ALLOWED
+H1 winner orders, durable stale cleanup under later failure, corrected Bank version
+with original sealed grading, flag-off owned lifecycle and real HTTP BOLA/CSRF/Origin.
+Root assembly74/student40/critical9 and separate final Sol6.1/Medium scoped review
+PASS; [exact B10 evidence](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+This supersedes historical unsupported-fixed H notes only. No full A–J, Track A,
+performance or qualified-human acceptance is inferred; original HTTP review is closed.
 
 2026-10-25 **SCENARIO G — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, starting3cd49be. Root accountable;
 read-only existing scout mapped C–H and checked other attempt/grading/result/runtime

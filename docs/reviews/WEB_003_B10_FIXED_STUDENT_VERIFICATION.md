@@ -128,3 +128,41 @@ Clean-checkout reproduction and final local checkpoint are recorded below after
 source acceptance. Next ready engineering scope remains bounded integrated acceptance
 and existing-contract student/staff usability; shorter profiles require a separate
 specific selection and real eligible inventory, never silent fallback.
+
+
+## Clean-checkout reproduction — d903ae4
+
+Root created a no-hardlink clone `/tmp/tsa-b10-clean-mug6hckp` of exact source
+d903ae4, without owner AGENTS.md/research changes, existing node_modules or local
+fixture data. `npm ci --ignore-scripts` PASS (observed audit0); build PASS. Exact
+commands executed sequentially in that checkout:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+node --test tests/integration/assembly/fixed-allocation.test.mjs tests/integration/assembly/fixed-boundary.test.mjs tests/integration/assembly/fixed-upgrade.test.mjs tests/critical/persistent-api-fixed-attempt.test.mjs tests/integration/student-runtime/fixed-practice.test.mjs
+node --test tests/integration/student-runtime/fixture-demo.test.mjs
+npm run test:student:fixed
+npm run test:student:fixed:firefox
+npm run test:student:domains
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain=v1
+```
+
+Focused16 and launcher10 PASS. Chrome5checks/17captures and defaultdomains78
+responses PASS. Firefox's first run completed all5checks/17captures but its DELETE
+session cleanup exceeded20seconds, exiting1; it is **not** counted as a passing
+run. The exact same Firefox command was rerun on the unchanged source checkout:
+exit0,5checks/17captures, normal cleanup. No source/dependency/profile patch or
+relaxed assertion was used. This observed automation teardown flake remains a
+limitation; the launcher teardown tests separately passed. Contract drift/consumer/
+documentation checks PASS. Final clone Git output was empty. No independent clean
+clone/Firefox review claimed. Root logs `.local/b10-clean-*` retain both the initial
+failure and explicit retry; no generated evidence/credentials/databases committed.
+
+Source checkpoint d903ae4 contains the reviewed implementation and initial records.
+A following documentation checkpoint records this clean evidence and the separate
+B11 shorter-profile proposal. Original frozen MVP4/2/4 counts remain enforced;
+B11 is not implemented/approved and does not block this demonstration.
