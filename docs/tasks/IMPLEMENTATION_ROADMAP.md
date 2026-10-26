@@ -8,7 +8,9 @@ Firefox7/18 PASS; separate read-only gpt-6-luna source/PG10/HTTP1/finalbrowsers 
 remaining blocker (reasoning not exposed, no Sol/Medium claim). Shared false by
 default, disposable explicit demo only. [Evidence/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
 No shorter Reading/review/fixed or automatic fallback. Lawful reviewed stock and
-qualified manual accessibility remain external, not supplied by technical delegation.
+qualified manual accessibility remain external, not supplied by technical delegation. Clean no-hardlink9cccfcb install/build/focused10/Chrome7/18/110/Firefox7/18/launcher13/
+drift/import/docs PASS, final clone Git empty. [Concise supervisor sequence](../guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md)
+now accompanies the full engineering guide.
 
 Current WEB-004 supplement2026-10-26: real Firefox native200% automation now runs
 through mixed saves/reload, submission/Escape, grading/released explanation/Space

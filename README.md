@@ -6,6 +6,7 @@ G1 is accepted; G2/G3 are owner accepted. Track B has verified local PostgreSQL 
 
 ## Demonstrate the PostgreSQL-backed student website
 
+For the presentation sequence, use the [one-page supervisor walkthrough](docs/guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md).
 Follow the [supervisor demo guide](docs/guides/TRACK_B_SUPERVISOR_DEMO.md) for a
 complete three-domain walkthrough, pinned prerequisites, startup and teardown.
 From an installed checkout:

@@ -141,9 +141,37 @@ HTTP test     cb43c3ed2943050ae44f050b3d8f7329d50b030b8dcec89502b7e013421bbde6
 
 ## Limits and continuation
 
-Clean-checkout reproduction is recorded below after its actual execution.
+Clean-checkout reproduction is recorded below. The [one-page supervisor sequence](../guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md) uses the automatically seeded launcher; no manual database/API setup.
 MANUAL_CHECK_PENDING: qualified screen-reader/nativezoom/usability acceptance.
 HUMAN_APPROVAL_REQUIRED: lawful accepted12/6/12 inventory and qualified independent
 content review. No performance target/load evidence or production rollout. No new
 staff routes/roles, real content publication or shortened fixed/review profile.
 Current engineering choice authority does not supply any of those human inputs.
+
+
+## Clean-checkout reproduction —9cccfcb
+
+Root created a no-hardlink clone of exact source9cccfcb at
+`/tmp/tsa-b11-clean-0zsmth1u`, excluding owner AGENTS/research changes, existing
+node_modules, databases and browser profiles. Commands executed sequentially:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+node --test tests/integration/assembly/short-practice.test.mjs tests/integration/assembly/short-boundary.test.mjs tests/integration/assembly/short-upgrade.test.mjs tests/integration/student-runtime/short-practice.test.mjs
+STUDENT_ARTIFACT_DIR=/tmp/tsa-b11-clean-evidence/chrome npm run test:student:short
+STUDENT_FIREFOX_ARTIFACT_DIR=/tmp/tsa-b11-clean-evidence/firefox npm run test:student:short:firefox
+node --test tests/integration/student-runtime/fixture-demo.test.mjs
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain=v1
+```
+
+All exit0: locked install observed audit0; build; focused10; Chrome7checks/18captures/
+110responses; Firefox7/18; launcher13; drift/consumer/docs. No retry, checkout patch,
+manual database/API setup or external paid service. Normal owned fixture/browser/
+listener teardown. Final clone Git output empty. Root logs `.local/b11-clean-*` and
+private artifacts above are not committed. No independent clean execution claimed.
+Source9cccfcb contains the reviewed implementation; a following documentation
+checkpoint records this evidence and the concise presentation handoff.

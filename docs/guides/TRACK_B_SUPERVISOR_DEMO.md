@@ -1,5 +1,7 @@
 # Track B supervisor demonstration
 
+For a concise presentation sequence, use the [one-page run of show](TRACK_B_SUPERVISOR_RUN_OF_SHOW.md). This guide contains setup and optional engineering/staff details.
+
 Current engineering acceptance and remaining human inputs: [dated acceptance map](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
 
 This guide demonstrates an unofficial TSA practice website using real local

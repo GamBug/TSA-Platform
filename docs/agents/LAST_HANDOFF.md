@@ -1,7 +1,7 @@
 # Handoff — B11.1 explicit shorter personal practice
 
 - Date/role:2026-10-26 Asia/Bangkok, root/current Codex accountable integrator.
-- Branch/base:feat/track-b-data-auth,a986920. Owner AGENTS.md/untracked research
+- Branch/base:feat/track-b-data-auth,source9cccfcb from basea986920. Owner AGENTS.md/untracked research
   preserved/excluded. Renewed owner “full permission. all choice is your...” after
   B11 gate authorizes root's bounded technical selection; no invented literal
   whole-proposal/human/content/accessibility/production approval.
@@ -28,10 +28,16 @@ defaultdomains78/review65/fixed86/staffChrome50, keyboard22responses/18AX/82focu
 (0failures) and native200%6/8 regressions PASS. First failed oracle/
 fixture/UI runs repaired and excluded from passing evidence. Qualified human and
 all-mode/performance/production acceptance remain distinct. All writer reservations
-released at checkpoint. Clean source reproduction follows, then record exact hash.
+released at checkpoint. Clean no-hardlink9cccfcb at `/tmp/tsa-b11-clean-0zsmth1u`:
+locked install/build/focused10/Chrome7/18/110/Firefox7/18/launcher13/drift/import/docs
+PASS, final clone Git empty. Normal teardown, no retry/checkout patch/manual DB/API.
+No independent clean claim. Following docs checkpoint records evidence and the
+[one-page supervisor sequence](../guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md); current
+student/staff demonstration can be presented directly from its automatic launcher.
 
-Next execute clean no-hardlink locked install/build/focused10/shortChrome+Firefox/
-launcher/contract/docs verification and record actual results, without DB patches.
+Next remaining acceptance inputs are qualified manual AT/nativezoom/usability and
+lawful reviewed starter inventory; technical execution authority does not fabricate
+those people/rights. No further concrete visible defect in the bounded B11 audit.
 No push/merge/deploy/paidAPI/Astra/student inference/unauthorized real content.
 Human lawful12/6/12 question-specific rights + qualified review and manual AT remain
 external. After this checkpoint, choose the next concrete ready Track B product
