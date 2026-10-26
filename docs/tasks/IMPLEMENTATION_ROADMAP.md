@@ -5,8 +5,9 @@ through fresh consent, reserved Start, persistent answers, grading/released revi
 and labeled history in all three domains. NEW_ONLY remains strict/default; no
 fixed delivery or shorter profile was added. Actual PG/HTTP/Chrome/Firefox and
 independent source/PG/browser/security reviews pass in their recorded scopes;
-additional final independent browser rerun was usage-limited. Clean reproduction
-pending. [Evidence/limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+additional final independent browser rerun was usage-limited. Clean no-hardlink
+15edb19 install/build/targeted20/reviewChrome65/Firefox9/defaultdomains78/drift/
+boundaries/built/docs PASS, final clone Git empty. [Evidence/limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
 
 Current SEC-001,2026-10-25: exact patched Zod4.6.7 replaces observed vulnerable
 4.1.12; all other pins/frozen sources/artifacts unchanged. Root156contracts/Bank149/

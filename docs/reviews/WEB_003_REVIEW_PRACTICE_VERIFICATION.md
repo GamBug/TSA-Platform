@@ -1,7 +1,7 @@
 # WEB-003 explicit review practice verification
 
 2026-10-25, feat/track-b-data-auth, base0c2ba65. IMPLEMENTED / AUTOMATED_PASS in
-executed scope through2026-10-26; clean reproduction pending.
+executed scope through2026-10-26; clean checkpoint15edb19 reproduced.
 [Exact selected decision](../decisions/WEB_003_EXPLICIT_REVIEW_PRACTICE_DECISION.md).
 Root accountable SQL/backend/browser/integration/shared records; actual native
 Luna/XHigh student UI and separate bounded PG-test writers, disjoint ownership.
@@ -149,9 +149,40 @@ Firefox execution or post-nonce independent browser pass is claimed.
 
 ## Limits and next
 
-Clean reproduction pending. Independent review completed in the exact scopes above;
+Clean reproduction passed as recorded below. Independent review completed in the exact scopes above;
 the additional post-nonce browser rerun was NOT_EXECUTED due to usage limits. No full Technical MVP,
 qualified screen-reader/native zoom/accessibility, lawful12/6/12 content, whole-ADR
 approval, production/load or fixed-form delivery acceptance. Shorter profiles stay
 unsupported under current MVP counts. All fixture approval is synthetic machinery;
 current rights/human qualification is not fabricated by this feature.
+
+## Clean-checkout reproduction —15edb19
+
+2026-10-26, `/tmp/tsa-web003-clean-JAqxpY`, fresh `git clone --no-hardlinks` from
+this repository, detached exact15edb19. No owner dirty files, source patches,
+manual SQL/API setup, secret files or copied node_modules. Node24.18.0/npm11.16.0;
+fixture PostgreSQL18.6, Chromium156/Firefox156. Root executed:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+node --test tests/integration/assembly/review-allocation.test.mjs tests/integration/assembly/review-upgrade.test.mjs tests/integration/student-runtime/domains.test.mjs tests/integration/student-runtime/fixture-demo.test.mjs
+npm run contracts:check
+npm run contracts:consumer-check
+npm run test:built
+npm run docs:check
+STUDENT_ARTIFACT_DIR=.local/clean-review-chromium npm run test:student:review
+STUDENT_ARTIFACT_DIR=.local/clean-domains npm run test:student:domains
+npm run test:student:review:firefox
+git status --short
+```
+
+All commands exit0. Locked install audits26packages/zero vulnerabilities; build and
+20 targeted tests pass (allocation9/upgrade1/domains3/launcher7). Contracts/drift,
+consumer boundaries, emitted-package checks and documentation links pass; only
+preserved historical whitespace warning. Actual Chrome review65responses/7checks/
+11captures and default domains78responses pass. Actual Firefox review9checks/
+21captures passes, desktop1280/narrow actual500px (requested450 clamped by Firefox).
+Final clone Git status is empty. Owned fixture processes/databases tear down through
+the existing harnesses. Screenshots/logs stay ignored; no qualified human acceptance
+or independently executed clean clone is claimed.

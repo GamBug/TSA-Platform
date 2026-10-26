@@ -82,3 +82,8 @@ linked records and [latest handoff](../agents/LAST_HANDOFF.md).
 Final integration checkpoint4e26296 is clean-reproduced: locked install/build,
 assembly53/results7/docs PASS, final clone Git empty. B8/SEC/G source-specific clean
 proofs remain separately attributed above; no full-MVP percentage is asserted.
+
+Explicit-review checkpoint15edb19 is also clean-reproduced2026-10-26: locked install/
+build, targeted20 (allocation/upgrade/domain/session security/launcher), review
+Chrome65/Firefox9, default three-domain78, contracts/boundaries/built/docs PASS;
+final clone Git empty. [Exact reproduction](WEB_003_REVIEW_PRACTICE_VERIFICATION.md#clean-checkout-reproduction-15edb19).

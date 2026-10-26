@@ -2,7 +2,7 @@
 
 - Date/role:2026-10-26 Asia/Bangkok, root Codex accountable integrator.
 - Status: IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in exact scopes;
-  clean-checkout checkpoint pending. Started feat/track-b-data-auth at0c2ba65.
+  clean no-hardlink15edb19 reproduced. Started feat/track-b-data-auth at0c2ba65.
 - Owner AGENTS.md and untracked research preserved/excluded. No external paid
   services, real-content approval, push/merge/deploy or frozen-contract changes.
 - Native Luna/XHigh UI and PG-test writers released all reservations. Root owns
@@ -47,13 +47,14 @@ execution. No independent Firefox or post-nonce browser pass is claimed.
 
 ## Continuation
 
-Finish docs/launcher checks, checkpoint only owned files, clean no-hardlink locked
-install/build, targeted PG10/domain3/reviewChrome+Firefox/defaultdomains/drift/
-boundaries/docs reproduction, then record exact commit/results. Preserve owner
+Checkpoint15edb19 completed; clean no-hardlink `/tmp/tsa-web003-clean-JAqxpY`
+locked install/build/targeted20/reviewChrome65/Firefox9/defaultdomains78/drift/
+boundaries/built/docs PASS; final clone Git empty. Root launcher7/docs/whitespace
+checks also passed after guide/launcher copy updates. Preserve owner
 files. Guide now includes explicit review. Current acceptance map E and personal
 reuse H updated; full fixed cross-mode/shorter profiles remain unimplemented.
 
-After this checkpoint select the next ready Track B product gap. Qualified manual
+Next select the next ready Track B product gap. Qualified manual
 accessibility/native zoom and real accepted12/6/12 stock need external human inputs;
 do not invent them. No full MVP/performance/production acceptance. Prior B8/SEC/G/H.1
 checkpoints below are durable history; do not repeat their completed work.

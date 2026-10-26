@@ -131,3 +131,23 @@ infeasibility versus unknown feasibility, no-form/no-qualification warnings,
 focusable narrow tables, cached back, Escape/close focus and logout privacy with
 qualified AT/native zoom. Automated Chrome375/Firefox actual500 is not formal
 accessibility acceptance.
+
+## Separate B8 eligible-stock rehearsal — MANUAL_CHECK_PENDING
+
+Use the disposable staff fixture and the supervisor guide's B8 walkthrough.
+Assess EXAM_MANAGER blueprint/window labels, native confirmation, pending and
+same-request retry, then BANK_MANAGER historical diagnostic tables and the
+NOT_REVALIDATED warning. Check role changes, close/Escape, focus restoration,
+qualified AT and native zoom. A captured SUCCESS creates no form or student
+attempt; this distinction must be understandable. No human outcome is recorded.
+
+## Explicit student review practice — MANUAL_CHECK_PENDING
+
+Use the disposable student launcher and the guide's optional review walkthrough.
+After real unseen-inventory exhaustion, assess the same-domain offer, initial
+unchecked repeat-consent checkbox, native dialog naming, keyboard cancellation
+and focus restoration. Check uncertainty versus acknowledged receipt/read failure,
+GET-only recovery, reserved explicit Start and review labels through resumed
+attempt, result, released explanations and history. Check mobile status visibility,
+qualified AT and native zoom. Automated Chrome375/Firefox actual500 checks are
+engineering evidence; all qualified human outcomes remain NOT TESTED.
