@@ -2,9 +2,9 @@
 
 - Date/role:2026-10-26 Asia/Bangkok, root Codex sole writer/integrator.
 - Branch/base: feat/track-b-data-auth,d4929a0. Authorized existing-route UI security
-  repair and documentation; source checkpoint/clean reproduction pending.
-- Owner AGENTS.md/untracked research preserved/excluded. No active writer reservation
-  outside root final integration. No new role/route/grant/contract/migration or B9 code.
+  repair and documentation committed5c397b0; clean reproduction passed.
+- Owner AGENTS.md/untracked research preserved/excluded. All writer reservations
+  released after the verified checkpoints. No new role/route/grant/contract/migration or B9 code.
 
 ## Implemented
 
@@ -23,7 +23,8 @@ Root final Chrome48checks/29captures, Firefox17checks/37captures, B032/local15/
 syntax/import/docs/whitespace PASS. Real pre-dispatch change sends0command; dispatch
 change gets real403; zero new captures. Held real session success/controlled503
 cannot wipe newer recovery. Root inspected actual500px Firefox recovery capture.
-No qualified AT/native zoom/accessibility acceptance. Clean reproduction pending.
+No qualified AT/native zoom/accessibility acceptance. Clean no-hardlink5c397b0
+install/build/Chrome48/Firefox17/docs/import PASS, final clone Git empty.
 
 Actual separate native Sol6.1/Medium `/root/b9_design_review` read-only final source/
 Chromium48/B032/syntax/whitespace PASS; source/runner hashes stable at launch/end,
@@ -40,9 +41,10 @@ migration/browser tests NOT_EXECUTED; no implementation or owner approval inferr
 
 ## Continuation
 
-Checkpoint only owned files, reproduce locked install/build/current staff Chrome/
-Firefox in a fresh no-hardlink checkout, then record exact source checkpoint and
-clean status. Preserve owner files and ignored evidence. No paidAPI/Astra/student
+Source checkpoint5c397b0 clean-reproduced at `/tmp/tsa-staff-session-clean-Tb4JFt`;
+locked install/build/current staff Chrome48/Firefox17/docs/import PASS, clone Git
+empty. Final documentation checkpoint records that evidence. Preserve owner files
+and ignored evidence. No paidAPI/Astra/student
 inference/push/merge/deploy/real content approval. Scope files: staff.js, existing
 Chrome/Firefox staff runners, B9 proposal/review and coordinated guide/state/backlog.
 No backend/student module or frozen artifact changed.

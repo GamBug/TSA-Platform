@@ -768,7 +768,8 @@ owner AGENTS/research. Recommended current Codex root or Sol6.1/High for UI/sess
 integration, separate available Sol6.1/Medium read-only security review; native
 reviewer actually executed source/Chrome48/B032/syntax/whitespace, no unresolved
 findings. Root Chrome48/Firefox17/B032/local15/import/docs PASS; real pre-fix
-capture3vs2 reproduced, delayed-response P2 repaired. Clean reproduction pending.
+capture3vs2 reproduced, delayed-response P2 repaired. Clean no-hardlink5c397b0
+locked install/build/Chrome48/Firefox17/docs/import PASS, final clone Git empty.
 [Exact evidence/limits](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md).
 Existing B9 source-only design review completed separately.
 

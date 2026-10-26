@@ -104,3 +104,7 @@ source/Chrome48/B032. Old confirmations do not rebind to replacement session coo
 local cleanup preserves the replacement login. [Exact scope](WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md).
 B9 has separate source-only design review and repaired framing; new privileged
 runtime operations remain unapproved/unimplemented.
+
+Staff session-binding source checkpoint5c397b0 clean no-hardlink reproduction:
+locked install/build/Chrome48/Firefox17/docs/import PASS, final clone Git empty.
+This repairs existing session behavior; it adds no B9 sealing authority.

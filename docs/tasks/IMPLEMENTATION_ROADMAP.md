@@ -3,7 +3,8 @@
 Current existing staff-session repair,2026-10-26: actual old-confirmation defect
 reproduced and fixed through nonce/epoch/refresh fencing and GET-only recovery.
 Root Chrome48/Firefox17/B032/local15/import/docs PASS, independent final source/
-Chrome48/B032 PASS, no unresolved findings; clean reproduction pending.
+Chrome48/B032 PASS, no unresolved findings. Clean no-hardlink5c397b0 install/
+build/Chrome48/Firefox17/docs/import PASS, final clone Git empty.
 [Evidence](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md). No new API/role.
 B9 source-only design review now completed, response-ID P2 repaired/rechecked;
 [review](../reviews/WEB_002_B9_DESIGN_REVIEW.md). It remains proposed, not owner approval.

@@ -92,8 +92,31 @@ error this session. Separate B9 source-only design finding/disposition is in
 
 ## Limits and continuation
 
-Clean checkpoint reproduction pending. No qualified accessibility/native zoom,
+Clean checkpoint5c397b0 reproduced below. No qualified accessibility/native zoom,
 lawful12/6/12 inventory, qualified human review, fixed student delivery, performance
 or production acceptance. Existing manual review packet remains pending. B9's new
 privileged contract remains PROPOSED / HUMAN_APPROVAL_REQUIRED; this repair uses
 existing authorized routes and supplies no sealing authority.
+
+## Clean-checkout reproduction —5c397b0
+
+Root2026-10-26 fresh `git clone --no-hardlinks`, detached exact5c397b0 at
+`/tmp/tsa-staff-session-clean-Tb4JFt`. No owner dirty files, copied dependencies,
+source patches or manual SQL/API setup. Node24.18.0/npm11.16.0/PostgreSQL18.6,
+Chromium156/Firefox156. Executed:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:track-b:browser
+npm run test:staff:firefox
+npm run docs:check
+npm run contracts:consumer-check
+git status --short
+```
+
+All exit0. Locked install audits zero vulnerabilities; actual Chrome48checks/
+29captures and Firefox17checks/37captures pass. Docs/import boundaries pass with
+only preserved historical whitespace warning. Final clone Git status empty.
+Fixture teardown uses the existing owned-process/database cleanup. Evidence remains
+ignored. This is root clean reproduction; independent review is attributed above.
