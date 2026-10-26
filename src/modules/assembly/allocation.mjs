@@ -1,3 +1,4 @@
+import {parseShortPracticeConfig} from './practice-profiles.mjs';
 import { randomBytes } from 'node:crypto';
 import {
   CreateAttemptSchema,
@@ -136,9 +137,10 @@ function statusResult(value) {
   return result;
 }
 
-export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false } = {}) {
+export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') throw new TypeError('identityService is required');
+  if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
   if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   const fixedLimits = Object.freeze({ ...limits });
@@ -164,6 +166,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
   async function runCommit(principal, key, requestHash, plan) {
     return withTransaction(examPool, async (client) => {
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+      await client.query("SELECT set_config('tsa.enable_short_practice',$1,true)",[String(enableShortPractice && plan.manifest.reuseMode==='NEW_ONLY' && Boolean(parseShortPracticeConfig(plan.manifest.blueprint)))]);
       const result = await client.query(
         'SELECT tsa.assembly_commit_personal($1,$2,$3::jsonb) AS result',
         [key, requestHash, JSON.stringify(plan)]);
@@ -263,6 +266,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
           reuseMode,
           limits: fixedLimits,
         });
+        if (parseShortPracticeConfig(captured.manifest.blueprint) && (!enableShortPractice || reuseMode!=='NEW_ONLY')) reject(422,'UNSUPPORTED_TYPE');
         plan = await buildAllocationPlan(examPool, principal, captured);
         if (reuseMode === 'REVIEW_ALLOWED') plan.acknowledgeRepeats = request.acknowledgeRepeats;
         committed = await runCommit(principal, key, requestHash, plan);
@@ -285,11 +289,19 @@ export function createAllocationService({ examPool, identityService, limits = DE
       if (committed.status === 'REPLAY') return success(committed.receipt, true);
       if (committed.status === 'ACTIVE') failCommand('CONCURRENT_ATTEMPT_EXISTS', committed, blueprintVersionId, reuseMode);
       if (committed.status === 'FAILURE') {
+        const shortAlternatives=enableShortPractice&&reuseMode==='NEW_ONLY'
+          && !parseShortPracticeConfig(plan.manifest.blueprint)
+          && ['INSUFFICIENT_UNSEEN_INVENTORY','INSUFFICIENT_ELIGIBLE_INVENTORY'].includes(committed.code)
+          ?await withTransaction(examPool,async client=>{
+            await client.query("SELECT set_config('tsa.local_user_id',$1,true)",[principal.userId]);
+            return (await client.query('SELECT tsa.exam_short_practice_alternatives($1) AS result',[blueprintVersionId])).rows[0]?.result??[];
+          },{role:'tsa_exam'}):[];
         failCommand(committed.code, {
           ...committed,
           sectionDeficits: sectionDeficitsForFailure(committed.code, plan.manifest),
-          alternatives: enableReviewPractice && reuseMode === 'NEW_ONLY' && committed.code === 'INSUFFICIENT_UNSEEN_INVENTORY'
-            ? [{ kind: 'REVIEW_MODE', blueprintVersionId, requiresRepeatConsent: true }] : [],
+          alternatives: [...(enableReviewPractice && reuseMode === 'NEW_ONLY' && committed.code === 'INSUFFICIENT_UNSEEN_INVENTORY'
+            && !parseShortPracticeConfig(plan.manifest.blueprint)
+            ? [{ kind: 'REVIEW_MODE', blueprintVersionId, requiresRepeatConsent: true }] : []),...safeAlternatives(shortAlternatives)],
         }, blueprintVersionId, reuseMode);
       }
       if (committed.status === 'ERROR') failCommand(committed.code, committed, blueprintVersionId, reuseMode);

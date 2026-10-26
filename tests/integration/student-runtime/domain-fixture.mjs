@@ -8,10 +8,12 @@ import { createMixedStudentFixture } from './mixed-fixture.mjs';
 const hash = (value) => `sha256:${createHash('sha256').update(canonicalize(value)).digest('hex')}`;
 
 /** Original standalone engineering fixtures; no retained seed or human approval. */
-export async function createDomainStudentFixture() {
+export async function createDomainStudentFixture({extraPerLargeDomain=0}={}) {
+  if(!Number.isSafeInteger(extraPerLargeDomain)||extraPerLargeDomain<0||extraPerLargeDomain>8)throw new TypeError('Bounded extra synthetic inventory required');
   const f = await createMixedStudentFixture({ durationSeconds: 360 });
   try {
     f.domainBlueprints = { MATH: f.blueprint };
+    for(let index=0;index<extraPerLargeDomain;index++)await f.createQuestion();
     for (const [section, count, durationSeconds, name] of [
       ['READING', 2, 180, 'Bài đọc hiểu tổng hợp'],
       ['SCIENCE', 4, 360, 'Bài khoa học tổng hợp'],
@@ -30,7 +32,7 @@ export async function createDomainStudentFixture() {
           VALUES($1,$3,$4,'DOMAIN',NULL,'{}'),($2,$3,$5,'SKILL',$1,'{}')`, [domainId, skillId, taxonomyVersionId, section, skill]);
       });
       const template = createPrivateTemplate(f.source);
-      for (let index = 0; index < count; index++) {
+      for (let index = 0; index < count+(section==='SCIENCE'?extraPerLargeDomain:0); index++) {
         const text = (value) => [{ type: 'text', text: value }];
         const question = {
           schemaVersion: 'question/1', language: 'vi-VN', section, taxonomyVersionId, domainId,

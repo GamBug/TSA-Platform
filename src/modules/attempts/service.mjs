@@ -211,14 +211,14 @@ function parseReleasedReview(value, attemptId) {
  * budgets commit in separate PostgreSQL transactions; SQL owns each command's
  * persisted receipt, current lifecycle guards, and answer revision.
  */
-export function createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false } = {}) {
+export function createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
   const rate = validateCreateRate(createRate);
   const saveRates = saveRate === undefined ? null : validateSaveRate(saveRate);
-  const allocation = createAllocationService({ examPool, identityService, enableReviewPractice, enableFixedPractice });
+  const allocation = createAllocationService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice });
 
   async function runReceipt(principal, key, requestHash) {
     return withTransaction(examPool, async (client) => {

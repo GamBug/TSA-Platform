@@ -67,6 +67,8 @@ function publicSlot(value) {
 export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(...args), readCookie = cookie } = {}) {
   const attempts = new Map();
   const pendingKeys = new Map();
+  const catalogProfiles = new Map(),personalProfiles = new Map();
+  const shortIntents = new WeakSet();
   let principal = null;
   let identityGeneration = 0;
 
@@ -89,14 +91,14 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     } catch { throw failure('TEMPORARILY_UNAVAILABLE'); }
     if (generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
     if (studentRequest && sessionNonce !== readCookie('tsa_local_csrf')) {
-      identityGeneration += 1; principal = null; attempts.clear(); pendingKeys.clear();
+      identityGeneration += 1; principal = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
       const denied = response.status === 403;
       const code = denied && typeof value?.error?.code === 'string' ? value.error.code : 'UNAUTHENTICATED';
       throw failure(code, denied ? 403 : 401);
     }
     if (!response.ok) {
       const code = value?.error?.code ?? value?.error ?? 'TEMPORARILY_UNAVAILABLE';
-      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') attempts.clear();
+      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') { attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); }
       throw failure(typeof code === 'string' ? code : 'TEMPORARILY_UNAVAILABLE', response.status, value?.error?.details ?? {});
     }
     return value;
@@ -141,6 +143,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     const responses = new Map(values.map((item) => [item.slotId, item.value]));
     return {
       attemptId: view.attemptId, formId: view.formId, domain: view.domain, state: view.state,
+      practiceProfile: clone(personalProfiles.get(view.attemptId) ?? null),
       formMode: view.formMode, reuseMode: view.reuseMode, startBefore: view.startBefore,
       serverNow: view.serverNow, startedAt: view.startedAt, deadlineAt: view.deadlineAt,
       closedAt: view.closure.closedAt, closureReason: view.closure.cancellationReason ?? view.closure.terminalReason,
@@ -162,7 +165,9 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
         || (expected?.reuseMode && (view.formMode !== expectedMode
           || view.reuseMode !== expected.reuseMode
           || (expected.domain && view.domain !== expected.domain)
-          || (expected.formId && view.formId !== expected.formId)))) {
+          || (expected.formId && view.formId !== expected.formId)
+        || (expected.questionCount && (!Array.isArray(view.sections)
+          || view.sections.reduce((sum,section)=>sum+section.count,0)!==expected.questionCount))))) {
       throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
     }
     let released = null;
@@ -180,7 +185,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     const current = await request('/local-auth/session');
     if (!current.authenticated) throw failure('UNAUTHENTICATED', 401);
     if (!current.principal?.roles?.includes('CANDIDATE')) throw failure('FORBIDDEN', 403);
-    if (principal?.userId !== current.principal.userId) { identityGeneration += 1; attempts.clear(); pendingKeys.clear(); }
+    if (principal?.userId !== current.principal.userId) { identityGeneration += 1; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear(); }
     principal = current.principal;
     return current;
   }
@@ -194,7 +199,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   }
   async function loginCandidate(actorKey) {
     if (!['studentA', 'studentB'].includes(actorKey)) throw failure('FORBIDDEN', 403);
-    identityGeneration += 1; attempts.clear(); pendingKeys.clear();
+    identityGeneration += 1; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
     const current = await request('/local-auth/session');
     if (current.authenticated) {
       if (current.principal?.actorKey !== actorKey) throw failure('FORBIDDEN', 403);
@@ -205,17 +210,21 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     return session();
   }
   async function logout() {
-    identityGeneration += 1; principal = null; attempts.clear(); pendingKeys.clear();
+    identityGeneration += 1; principal = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
     await request('/local-auth/logout', { method: 'POST', body: {} });
-    principal = null; attempts.clear(); pendingKeys.clear();
+    principal = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
   }
   async function loadCatalog() {
     const items = await pages('/api/v1/catalog');
     const domains = items.filter((item) => item.mode === 'PERSONALIZED_PRACTICE').map((item) => ({
       domain: item.domain, name: item.name, questionCount: item.questionCount, durationSeconds: item.durationSeconds,
+      isShort: ['MATH','SCIENCE'].includes(item.domain)&&item.questionCount===2&&item.durationSeconds===180,
+      reviewAllowed:item.reviewAllowed===true,
       availableFrom: item.availableFrom, availableUntil: item.availableUntil, blueprintVersionId: item.blueprintVersionId,
       available: Date.parse(item.availableFrom) <= Date.now() && Date.now() < Date.parse(item.availableUntil),
     }));
+    catalogProfiles.clear();
+    for(const profile of domains)catalogProfiles.set(profile.blueprintVersionId,Object.freeze(clone(profile)));
     const fixedForms = items.filter((item) => item.mode === 'PUBLISHED_FIXED').map((item) => {
       const from = typeof item.availableFrom === 'string' ? Date.parse(item.availableFrom) : Number.NaN;
       const until = typeof item.availableUntil === 'string' ? Date.parse(item.availableUntil) : Number.NaN;
@@ -231,6 +240,29 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
         profileKind: item.profileKind, availableFrom: item.availableFrom, availableUntil: item.availableUntil });
     });
     return { domains, fixedForms: Object.freeze(fixedForms) };
+  }
+  function prepareShortAttempt(blueprintVersionId) {
+    const profile=catalogProfiles.get(blueprintVersionId),csrfToken=readCookie('tsa_local_csrf');
+    if(!profile?.isShort||!UUID.test(blueprintVersionId))throw failure('VALIDATION_ERROR',422);
+    if(typeof csrfToken!=='string'||!csrfToken)throw failure('UNAUTHENTICATED',401);
+    const intent=Object.freeze({body:Object.freeze({blueprintVersionId}),key:crypto.randomUUID(),
+      generation:identityGeneration,csrfToken,profile});
+    shortIntents.add(intent);return intent;
+  }
+  async function createShortAttempt(intent) {
+    if(!shortIntents.has(intent)||intent.generation!==identityGeneration)throw failure('UNAUTHENTICATED',401);
+    await session();
+    if(intent.generation!==identityGeneration||intent.csrfToken!==readCookie('tsa_local_csrf'))throw failure('UNAUTHENTICATED',401);
+    const receipt=await mutation('/api/v1/attempts',intent.body,intent.key,intent.csrfToken);
+    if(!UUID.test(receipt?.attemptId)||!UUID.test(receipt?.formId)||receipt.state!=='CREATED'
+      ||receipt.domain!==intent.profile.domain||receipt.formMode!=='PERSONALIZED_PRACTICE'
+      ||receipt.reuseMode!=='NEW_ONLY')throw failure('UNEXPECTED_ATTEMPT_MODE',502);
+    personalProfiles.set(receipt.attemptId,intent.profile);
+    return receipt;
+  }
+  async function readShortAttempt(attemptId,domain) {
+    if(!UUID.test(attemptId)||!['MATH','SCIENCE'].includes(domain))throw failure('VALIDATION_ERROR',422);
+    return readAttempt(attemptId,{formMode:'PERSONALIZED_PRACTICE',reuseMode:'NEW_ONLY',domain,questionCount:2});
   }
   function prepareReviewAttempt(blueprintVersionId) {
     if (typeof blueprintVersionId !== 'string'
@@ -300,20 +332,17 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     await session();
     const history = await request('/api/v1/attempts?limit=100');
     let existing = history.items.find((item) => ['CREATED', 'IN_PROGRESS'].includes(item.state));
-    let resumed = Boolean(existing);
-    if (!existing) {
-      if (typeof blueprintVersionId !== 'string') throw failure('VALIDATION_ERROR', 422);
-      try { existing = await mutation('/api/v1/attempts', { blueprintVersionId }); }
-      catch (error) {
-        if (error.code !== 'CONCURRENT_ATTEMPT_EXISTS' || !error.details.existingAttemptId) throw error;
-        existing = { attemptId: error.details.existingAttemptId }; resumed = true;
-      }
-    }
+    if(existing)throw failure('CONCURRENT_ATTEMPT_EXISTS',409,{existingAttemptId:existing.attemptId});
+    if (typeof blueprintVersionId !== 'string') throw failure('VALIDATION_ERROR', 422);
+    existing=await mutation('/api/v1/attempts',{blueprintVersionId});
+    const profile=catalogProfiles.get(blueprintVersionId);
+    if(profile && profile.domain===domain && existing.domain===domain && existing.formMode==='PERSONALIZED_PRACTICE'
+      && existing.reuseMode==='NEW_ONLY')personalProfiles.set(existing.attemptId,profile);
     const loaded = await readAttempt(existing.attemptId, existing);
     if (loaded.attempt.state === 'CREATED') {
       await mutation(`/api/v1/attempts/${encodeURIComponent(existing.attemptId)}/start`, {});
     }
-    return { ...await readAttempt(existing.attemptId, existing), resumed };
+    return { ...await readAttempt(existing.attemptId, existing), resumed:false };
   }
   async function startReservedAttempt(attemptId, expected = null) {
     // A reservation action must never fall through to a replacement allocation.
@@ -385,6 +414,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog,
     startDemo, prepareReviewAttempt, createReviewAttempt, readReviewAttempt,
     prepareFixedAttempt, createFixedAttempt, readFixedAttempt,
+    prepareShortAttempt, createShortAttempt, readShortAttempt,
     startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
     loadHistory: () => pages('/api/v1/attempts') });
 }

@@ -68,7 +68,10 @@
     "demo:student:fixed": "npm run build && STUDENT_FIXTURE_DOMAINS=true STUDENT_FIXTURE_FIXED=true node scripts/start-student-fixture.mjs",
     "test:student:fixed": "STUDENT_FIXED_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:fixed:firefox": "STUDENT_FIXED_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs",
-    "test:student:zoom:firefox": "STUDENT_NATIVE_ZOOM_FIREFOX=true node scripts/verify-student-firefox.mjs"
+    "test:student:zoom:firefox": "STUDENT_NATIVE_ZOOM_FIREFOX=true node scripts/verify-student-firefox.mjs",
+    "demo:student:short": "npm run build && STUDENT_FIXTURE_DOMAINS=true STUDENT_FIXTURE_SHORT=true node scripts/start-student-fixture.mjs",
+    "test:student:short": "STUDENT_SHORT_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:short:firefox": "STUDENT_SHORT_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

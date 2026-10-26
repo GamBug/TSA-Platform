@@ -30,6 +30,29 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## Renewed Track B choice authority and B11 selection —2026-10-26
+
+- Delegating identity: human repository owner. Exact latest instruction, after the
+  final report identified B11's frozen-count policy gate: “full permission. all
+  choice is your. do things you think is the best for this project.”
+- Root treats this as renewed authority to make the presented bounded technical
+  choice, not as a fabricated literal “Approve B11” utterance. Root selects the
+  reviewed [B11 proposal](WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md): optional local
+  personal NEW_ONLY MATH2/180seconds and SCIENCE2/180seconds, separate explicit
+  choices/shortage alternatives, preserving original4/2/4 guard/profiles and all
+  B8/B9/B10 fixed/rehearsal support/privileges. No one-item Reading split.
+- AUTHORIZED_IN_SCOPE_UNDER_RENEWED_DELEGATION / IMPLEMENTED / AUTOMATED_PASS /
+  INDEPENDENTLY_REVIEWED in recorded scopes. [Executed evidence/review/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+  This resolves B11's local expanded-profile selection gate only. Preserve original
+  public contracts/root exports/solver/goldens, first-history/H1/rights/clock/release
+  invariants and default-off shared capability. New exact private profile pins and
+  narrowly scoped internal compatibility are permitted as documented engineering
+  choices; no real content, qualified review/accessibility or production acceptance.
+- Earlier PROPOSED/HUMAN_APPROVAL_REQUIRED entries remain historical preparation
+  records, superseded only by this scoped selection. No wholeADR007 or unrelated
+  policy approval. Existing no push/remote merge/deploy/paidAPI/Astra/live student
+  inference/unauthorized content/unrelated destructive-operation limits persist.
+
 ## WEB-003 B10.1 — selected under standing delegation,2026-10-26
 
 - Selection actor: root engineering orchestrator under the owner's standing

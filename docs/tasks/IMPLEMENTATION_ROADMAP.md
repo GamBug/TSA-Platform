@@ -1,5 +1,15 @@
 # Implementation roadmap
 
+Current B11.1,2026-10-26: renewed owner choice authority selected optional local
+personalNEW_ONLY Math2/180+Science2/180, now implemented and independently reviewed.
+Original4/2/4 Mvp guard/public artifacts/solver/fixed predicates unchanged. Root
+assembly83/student44/Bank161/contracts161/critical9/launcher13 and Chrome7/18/110+
+Firefox7/18 PASS; separate read-only gpt-6-luna source/PG10/HTTP1/finalbrowsers no
+remaining blocker (reasoning not exposed, no Sol/Medium claim). Shared false by
+default, disposable explicit demo only. [Evidence/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+No shorter Reading/review/fixed or automatic fallback. Lawful reviewed stock and
+qualified manual accessibility remain external, not supplied by technical delegation.
+
 Current WEB-004 supplement2026-10-26: real Firefox native200% automation now runs
 through mixed saves/reload, submission/Escape, grading/released explanation/Space
 and catalog return. Root6checks/8captures, default4/4 and fixed6/19 PASS; actual

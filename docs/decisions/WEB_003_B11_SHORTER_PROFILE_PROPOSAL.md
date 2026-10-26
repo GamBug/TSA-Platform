@@ -1,5 +1,16 @@
 # WEB-003 B11.1 — bounded shorter-profile recovery proposal
 
+CURRENT2026-10-26: AUTHORIZED_IN_SCOPE_UNDER_RENEWED_DELEGATION /
+IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scopes.
+[Executed evidence/review/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+After B11 was named as the next frozen-count choice,
+the owner delegated “full permission. all choice is your. do things you think is
+the best for this project.” Root selects the exact bounded technical scope below;
+this is not a fabricated literal whole-proposal approval. [Durable authority/scope](OPEN_DECISIONS.md#renewed-track-b-choice-authority-and-b11-selection-2026-10-26).
+Original guard/profiles/public DTO/root/solver and fixed/rehearsal support remain
+unchanged. Qualified human/content/accessibility/production gates remain separate.
+Historical proposal/review paragraphs below preserve preparation, not current gate.
+
 2026-10-26, prepared after B10 source d903ae4. PROPOSED /
 HUMAN_APPROVAL_REQUIRED for the specified frozen MVP count-policy impact. No
 implementation, migration, public artifact generation, synthetic offering activation

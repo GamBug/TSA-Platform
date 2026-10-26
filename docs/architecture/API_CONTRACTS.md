@@ -431,3 +431,19 @@ separate from personal review. B9's false delivery receipt field remains histori
 seal-operation scope, not a current student-access decision.
 [Selected scope](../decisions/WEB_003_B10_FIXED_STUDENT_DECISION.md),
 [verification](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+
+
+## B11.1 optional local shorter personal profiles —2026-10-26
+
+Under renewed owner choice delegation, supported pinned MATH2/180 and SCIENCE2/180
+profiles use existing frozen personal NEW_ONLY catalog/create/shortage/lifecycle
+contracts. Shared enableShortPractice defaultsfalse; explicit disposable launcher
+only. No new public field/route/error or root/solver/golden change, and original
+Mvp4/2/4 guard plus fixed/rehearsal predicates remain unchanged. A current same-
+parent SHORTER_PROFILE alternative is metadata, not feasibility proof or automatic
+allocation. Short REVIEW_ALLOWED/fixed/Reading1 are unsupported. Creation preserves
+receipt-first/global H1/history/current rights/clocks; disabled new creation retains
+owned lifecycle. Client exact metadata is session-bound and unknown after loss of
+proof; no duration/profile inference from domain or implicit Start on conflict.
+[Scope/authority](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md),
+[actual verification/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).

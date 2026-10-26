@@ -135,6 +135,43 @@ Stopping this disposable launcher discards all forms and progress. Shared/retain
 runtime defaults keep new fixed catalog/creation disabled. See
 [executed checks and limits](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
 
+## Optional shorter personal practice
+
+Stop the other launcher and start a fresh isolated demonstration:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:short
+```
+
+The original Mathematics4/Reading2/Science4 profiles keep their existing durations.
+Two additional green cards offer Mathematics2 and Science2, each3minutes, using
+only questions never assigned to the current student. Reading stays2; a passage
+bundle is never split to manufacture a shorter offer. This launcher automatically
+creates original synthetic inventory/profile pins, not accepted real question stock.
+
+Complete the full Mathematics profile, return to the catalog and request it again.
+The small unseen pool cannot supply another four-question attempt; its truthful
+shortage can now suggest the separate two-question profile. Merely seeing that
+offer does not allocate anything or guarantee current stock. Choose the short
+profile, inspect its native confirmation and cancel/Escape once to show nothing
+was created. Reopen, confirm the reservation, then explicitly choose **Bắt đầu bài
+luyện tập**. No repeat-consent checkbox is needed for this NEW_ONLY choice.
+
+Answer, wait for acknowledged saves, reload, submit and view the released result/
+explanation. Repeat the full→short journey for Science. The four owned history
+entries retain their separate counts/scores; all earlier assignment history stays.
+The server can truthfully reject an exhausted short profile too; it does not switch
+policy, generate content or replace the request automatically.
+
+A lost creation response offers the same-request retry. After acknowledgement,
+failed reads recover through GET only. Reloading a reservation never starts or
+reallocates it; if its exact profile/duration cannot be proven from the frozen
+response, the screen says unavailable before Start. After explicit Start, actual
+server start/deadline supply the correct3minute clock. Existing attempts block new
+profile choices; an externally created reservation is read explicitly and never
+started merely by choosing another card. Changing accounts invalidates old intents.
+See [executed checks/review/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+
 ## Stop, reset and recover
 
 Press **Ctrl+C once** in the launcher terminal and wait for it to exit. The owned
@@ -405,6 +442,8 @@ npm run test:student:review:firefox
 npm run test:student:keyboard
 npm run test:student:firefox
 npm run test:student:zoom:firefox
+npm run test:student:short
+npm run test:student:short:firefox
 npm run test:staff:review
 npm run test:track-b:browser
 npm run test:staff:firefox

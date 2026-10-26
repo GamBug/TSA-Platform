@@ -11,6 +11,13 @@ preserving strict NEW_ONLY/defaults/history/clocks. Actual implementation and
 unresolved proposals below remain historical; current executed evidence lives in
 scoped review records.
 
+Current local B11 addition2026-10-26 supports explicitly selected pinned shorter
+Math/Science profiles in personal NEW_ONLY only; original full profiles/history/
+fixed guards remain unchanged. Shortage alternatives are optional metadata, never
+an automatic allocation or feasibility promise. No short review/fixed/Reading1
+activation. [Scope/authority](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md),
+[executed evidence](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+
 ## Modes and assignment boundary
 
 Two orthogonal dimensions avoid duplicating forms:

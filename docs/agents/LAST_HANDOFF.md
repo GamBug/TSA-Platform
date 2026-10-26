@@ -1,3 +1,44 @@
+# Handoff — B11.1 explicit shorter personal practice
+
+- Date/role:2026-10-26 Asia/Bangkok, root/current Codex accountable integrator.
+- Branch/base:feat/track-b-data-auth,a986920. Owner AGENTS.md/untracked research
+  preserved/excluded. Renewed owner “full permission. all choice is your...” after
+  B11 gate authorizes root's bounded technical selection; no invented literal
+  whole-proposal/human/content/accessibility/production approval.
+- IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in exact scopes.
+  [Authority](../decisions/OPEN_DECISIONS.md#renewed-track-b-choice-authority-and-b11-selection-2026-10-26),
+  [full commands/review/repairs/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+
+025 private immutable short profile pins, narrow safe catalog/alternative functions,
+original personal-commit count branch only for validated pinned NEWONLY+trustedflag.
+Original Mvp4/2/4/public/root/solver/goldens/021fixed guards unchanged. Shared new
+capability defaultsfalse; demo:student:short auto-seeds original synthetic6Math/
+6Science/2Reading plus2/180 personal short profiles. No shortReading/review/fixed.
+Exact profile/native confirmation, same-key uncertainty/GET-only recovery, explicit
+CREATED Start, unknown metadata after reload, no implicit other-active Start and
+actual session rotation fences. UI reserved padding/readable Vietnamese copy fixed.
+
+Actual Luna/XHigh UI and bounded test writer released disjoint ownership. Root
+backend/SDK/fixtures/browser/docs; distinct read-only explorer gpt-6-luna final
+source/PG10/HTTP1/Chrome7checks18captures110APIresponses/Firefox7/18 PASS, no
+remaining source blocker; reasoning not exposed, no independent Sol/Medium claim.
+Actual final source hashes stable in evidence. Root assembly83/student44/Bank161/
+contracts161/critical9/B032/SDK4/launcher13/build/type/drift/import/built PASS;
+defaultdomains78/review65/fixed86/staffChrome50, keyboard22responses/18AX/82focus
+(0failures) and native200%6/8 regressions PASS. First failed oracle/
+fixture/UI runs repaired and excluded from passing evidence. Qualified human and
+all-mode/performance/production acceptance remain distinct. All writer reservations
+released at checkpoint. Clean source reproduction follows, then record exact hash.
+
+Next execute clean no-hardlink locked install/build/focused10/shortChrome+Firefox/
+launcher/contract/docs verification and record actual results, without DB patches.
+No push/merge/deploy/paidAPI/Astra/student inference/unauthorized real content.
+Human lawful12/6/12 question-specific rights + qualified review and manual AT remain
+external. After this checkpoint, choose the next concrete ready Track B product
+acceptance gap under renewed delegation; do not redo completed native/B10 reviews
+or stop for routine implementation choices. Older proposal gate records below are
+historical, superseded only in the selected B11 technical scope.
+
 # Handoff — actual Firefox native200% zoom automation
 
 - Date/role:2026-10-26 Asia/Bangkok, root/current Codex sole implementer/integrator.

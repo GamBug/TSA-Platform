@@ -187,3 +187,16 @@ and GET-only recovery descriptions remain understandable. Chrome375/Firefox500
 and automated native-modal focus evidence are recorded in B10 verification; they
 do not supply this human acceptance. Never record a synthetic actor as a qualified
 reviewer or extend a sealed clock to complete this check.
+
+
+## B11 shorter-profile supplement — MANUAL_CHECK_PENDING
+
+Use the separate `demo:student:short` command and flags in the supervisor guide.
+Inspect exact same-domain full/short selection/count/duration, genuine shortage
+alternative, native confirmation/Cancel/Escape, uncertain same-request retry and
+GET-only recovery. CREATED must require explicit Start; unknown metadata after
+reload must be understandable and not mistaken for a new/full-profile assignment.
+Assess account change and existing-attempt recovery, keyboard/focus at nativezoom,
+and short exam/result/review/history wording. Automated Chrome375/Firefox500 and
+actual browser scenarios are engineering evidence only. No human outcome or real
+content/rights approval is recorded here.

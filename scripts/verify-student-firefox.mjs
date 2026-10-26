@@ -1,3 +1,5 @@
+import { runShortPracticeJourney } from './student-short-practice-journey.mjs';
+import { seedShortStudentProfiles } from '../tests/integration/student-runtime/short-fixture.mjs';
 import { runFixedPracticeJourney } from './student-fixed-practice-journey.mjs';
 import { seedFixedStudentForms } from '../tests/integration/student-runtime/fixed-fixture.mjs';
 import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
@@ -20,11 +22,14 @@ if (process.env.STUDENT_REVIEW_PRACTICE_FIREFOX !== undefined
   throw new Error('STUDENT_REVIEW_PRACTICE_FIREFOX must be true or false');
 }
 if (process.env.STUDENT_FIXED_PRACTICE_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_FIXED_PRACTICE_FIREFOX)) throw new Error('STUDENT_FIXED_PRACTICE_FIREFOX must be true or false');
+if(process.env.STUDENT_SHORT_PRACTICE_FIREFOX!==undefined&&!['true','false'].includes(process.env.STUDENT_SHORT_PRACTICE_FIREFOX))throw new Error('STUDENT_SHORT_PRACTICE_FIREFOX must be true or false');
+const enableShortPractice=process.env.STUDENT_SHORT_PRACTICE_FIREFOX==='true';
 const enableFixedPractice = process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true';
 const enableReviewPractice = process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true';
 if (process.env.STUDENT_NATIVE_ZOOM_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_NATIVE_ZOOM_FIREFOX)) throw new Error('STUDENT_NATIVE_ZOOM_FIREFOX must be true or false');
 const enableNativeZoom = process.env.STUDENT_NATIVE_ZOOM_FIREFOX === 'true';
-if (enableNativeZoom && (enableReviewPractice || enableFixedPractice || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Native zoom runs as a separate student browser scenario');
+if (enableShortPractice && (enableReviewPractice || enableFixedPractice || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Short practice runs as a separate student browser scenario');
+if (enableNativeZoom && (enableShortPractice || enableReviewPractice || enableFixedPractice || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Native zoom runs as a separate student browser scenario');
 
 // Snap Firefox cannot use the host's /tmp checkout as a profile root.
 // A new owned profile in its common directory also works from a clean /tmp clone.
@@ -957,7 +962,8 @@ function checkPrivate(value) {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = enableFixedPractice ? await createDomainStudentFixture() : await createMixedStudentFixture();
+  fixture = enableFixedPractice || enableShortPractice ? await createDomainStudentFixture({extraPerLargeDomain:enableShortPractice?2:0}) : await createMixedStudentFixture();
+  if(enableShortPractice)await seedShortStudentProfiles(fixture);
   if (enableFixedPractice) { await seedFixedStudentForms(fixture); await seedFixedStudentForms({...fixture,domainBlueprints:{MATH:fixture.domainBlueprints.MATH}}); }
   const login = `firefox_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -970,7 +976,7 @@ try {
   runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool,
     workerPool: workerProxy, env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
     pollMilliseconds: 30, sweepBatchSize: 10, executorId: 'firefox-browser', leaseSeconds: 30, retrySeconds: 1,
-    enableReviewPractice, enableFixedPractice,
+    enableReviewPractice:enableReviewPractice||enableShortPractice, enableFixedPractice, enableShortPractice,
     createRate: rate, saveRate: { user: rate, attempt: rate } });
   workerState.available = false;
   driver = spawn(process.env.STUDENT_GECKODRIVER ?? '/snap/bin/geckodriver',
@@ -997,7 +1003,13 @@ try {
   if (enableNativeZoom) await setNativeZoom();
   await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
   await capture('login'); await click('persistent-login-studentA');
-  if (enableFixedPractice) {
+  if(enableShortPractice){
+    workerState.available=true;
+    const scenarioEvaluate=async expression=>{const value=await wd('POST','/execute/async',{args:[expression],script:"const done=arguments[arguments.length-1];Promise.resolve().then(()=>eval(arguments[0])).then(value=>done({value}),error=>done({failure:String(error)}));"});if(value.failure)throw new Error(value.failure);return value.value;};
+    await runShortPracticeJourney({evaluate:scenarioEvaluate,click,query,waitFor,fixture,capture,report,narrowWidth:500,
+      reload:()=>wd('POST','/refresh',{}),viewport:(width,height)=>setViewport(width,height,'short'),
+      escape:()=>wd('POST','/actions',{actions:[{type:'key',id:'short-keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]})});
+  } else if (enableFixedPractice) {
     workerState.available = true;
     const fixedEvaluate = async expression => {
       const value = await wd('POST','/execute/async',{args:[expression],script:"const done=arguments[arguments.length-1];Promise.resolve().then(()=>eval(arguments[0])).then(value=>done({value}),error=>done({failure:String(error)}));"});

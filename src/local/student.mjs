@@ -189,7 +189,9 @@ export async function prepareStudentComponents({
   saveRate,
   enableReviewPractice = false,
   enableFixedPractice = false,
+  enableShortPractice = false,
 } = {}) {
+  if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   const config = validateConfig({
     env, port, pollMilliseconds, sweepBatchSize, executorId, leaseSeconds, retrySeconds, createRate, saveRate,
@@ -201,7 +203,7 @@ export async function prepareStudentComponents({
   return Object.freeze({
     env: config.env,
     createHandler({ identityService, trustedOrigin }) {
-      return createAttemptHandler({ examPool, identityService, trustedOrigin, enableReviewPractice, enableFixedPractice,
+      return createAttemptHandler({ examPool, identityService, trustedOrigin, enableReviewPractice, enableFixedPractice, enableShortPractice,
         createRate: config.rates.createRate, saveRate: config.rates.saveRate });
     },
     startWorker() { return createWorkerLoop(sweeper, worker, pollMilliseconds); },

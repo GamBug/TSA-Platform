@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
 import { createSharedReadingFixture } from '../tests/integration/student-runtime/shared-reading-fixture.mjs';
+import { seedShortStudentProfiles } from '../tests/integration/student-runtime/short-fixture.mjs';
 import { seedFixedStudentForms } from '../tests/integration/student-runtime/fixed-fixture.mjs';
 import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
@@ -15,11 +16,12 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       || env.LOCAL_SYNTHETIC_ONLY !== 'true' || env.STUDENT_FIXTURE_DEMO !== 'true') {
     throw new Error('Disposable student demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true');
   }
-  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED']) {
+  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT']) {
     if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) throw new Error(`${flag} must be true or false`);
   }
   const domains = env.STUDENT_FIXTURE_DOMAINS === 'true', reading = env.STUDENT_FIXTURE_READING === 'true';
-  const fixed = env.STUDENT_FIXTURE_FIXED === 'true';
+  const fixed = env.STUDENT_FIXTURE_FIXED === 'true', short = env.STUDENT_FIXTURE_SHORT === 'true';
+  if (short && !domains) throw new Error('Short student demonstration requires the three-domain fixture');
   if (fixed && !domains) throw new Error('Fixed student demonstration requires the three-domain fixture');
   if (domains && reading) throw new Error('Choose one disposable fixture profile');
   let fixture, workerPool, runtime;
@@ -35,8 +37,9 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     return closing;
   };
   try {
-    fixture = reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture() : await createMixedStudentFixture();
+    fixture = reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
     if (fixed) await seedFixedStudentForms(fixture);
+    if (short) await seedShortStudentProfiles(fixture);
     const login = `fixture_worker_${randomUUID().replaceAll('-', '')}`;
     await fixture.pool.query(`CREATE ROLE ${login} LOGIN`);
     await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
@@ -44,9 +47,9 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     const rate = { capacity: 100, refillPerSecond: 10 };
     runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool,
       env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
-      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, leaseSeconds: 30, retrySeconds: 1,
+      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
-    return { origin: runtime.origin, fixedPractice: fixed, fixtureProfile: reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
+    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, fixtureProfile: reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Demo startup and cleanup failed'); }
     throw error;
@@ -76,6 +79,7 @@ async function runWorker() {
       if (demo.fixtureProfile === 'THREE_DOMAINS') {
         process.stdout.write('Choose Mathematics (4), Reading (2), or Science (4). Each is independently timed and scored.\n');
       }
+      if (demo.shortPractice) process.stdout.write('Short Mathematics/Science profiles are explicit two-question NEW_ONLY choices with a separate Start; shortage never creates one automatically.\n');
       if (demo.fixedPractice) process.stdout.write('Fixed forms also appear in the catalog: choose one, give fresh repeat consent, then explicitly Start the reserved attempt.\n');
       process.stdout.write('Answer, wait for saved confirmation, reload, submit, then open the released review.\nAfter unseen inventory is exhausted, optional review requires fresh repeat consent and an explicit Start.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\nGuide: docs/guides/TRACK_B_SUPERVISOR_DEMO.md\n\n');
     }

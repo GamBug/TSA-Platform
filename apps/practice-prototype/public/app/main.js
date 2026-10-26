@@ -11,6 +11,7 @@ const api = persistentMode ? createPersistentApi() : demoApi;
 function replaceApp(content, { examMode = false, resultMode = false, reviewMode = false, catalogMode = false, introMode = false } = {}) {
   if (persistentMode && !catalogMode && (state.reviewOffer || state.reviewIntent || state.reviewDialog)) clearReviewFlow();
   if (persistentMode && !catalogMode && state.fixedDialog) closeFixedConsent(state.fixedDialog, false);
+  if (persistentMode && !catalogMode && state.shortDialog) closeShortConsent(state.shortDialog, false);
   const routeChanged = persistentMode && (
     app.classList.contains("exam-mode") !== examMode
     || app.classList.contains("result-mode") !== resultMode
@@ -82,6 +83,10 @@ const state = {
   reviewOffer: null,
   reviewIntent: null,
   reviewDialog: null,
+  shortOffer: null,
+  shortIntent: null,
+  shortDialog: null,
+  conflictRecovery: null,
   fixedIntent: null,
   fixedDialog: null,
 };
@@ -112,6 +117,13 @@ function appendPracticeModeLabel(container, attempt) {
   else if (isReviewAllowedAttempt(attempt)) container.append(element("p", "review-mode-label", reviewModeLabel()));
 }
 
+function appendPersonalProfileLabel(container, attempt) {
+  if (attempt?.formMode !== "PERSONALIZED_PRACTICE") return;
+  const label = element("p", "personal-practice-profile-label", `Hồ sơ: ${profileSummary(attempt)}`);
+  label.dataset.testid = "practice-profile-label";
+  container.append(label);
+}
+
 function readExpectedAttempt(attemptId, expected) {
   if (isFixedAttempt(expected)) {
     if (typeof expected.domain !== "string" || typeof expected.formId !== "string") {
@@ -119,12 +131,85 @@ function readExpectedAttempt(attemptId, expected) {
     }
     return api.readFixedAttempt(attemptId, expected.domain, expected.formId);
   }
+  if (isShortPersonalAttempt(expected)) {
+    return api.readShortAttempt(attemptId, expected.domain);
+  }
   if (expected?.formMode && expected?.reuseMode) return api.readAttempt(attemptId, expected);
   return api.readAttempt(attemptId);
 }
 
+function isShortPersonalAttempt(attempt) {
+  return attempt?.formMode === "PERSONALIZED_PRACTICE"
+    && attempt?.reuseMode === "NEW_ONLY"
+    && ["MATH", "SCIENCE"].includes(attempt.domain)
+    && (attempt?.practiceProfile?.isShort === true || attempt.questionCount === 2);
+}
+
+function currentActivePersistentAttempt() {
+  return persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
+}
+
+function profileForAttempt(attempt) {
+  const profile = attempt?.practiceProfile;
+  if (!profile || profile.domain !== attempt.domain || !isCanonicalUuid(profile.blueprintVersionId)
+      || typeof profile.name !== "string" || !profile.name.trim()
+      || !Number.isSafeInteger(profile.questionCount) || profile.questionCount <= 0
+      || !Number.isSafeInteger(profile.durationSeconds) || profile.durationSeconds <= 0) return null;
+  const supported = profile.domain === "MATH"
+    ? (profile.questionCount === 4 && profile.durationSeconds === 360 && profile.isShort === false)
+      || (profile.questionCount === 2 && profile.durationSeconds === 180 && profile.isShort === true)
+    : profile.domain === "READING"
+      ? profile.questionCount === 2 && profile.durationSeconds === 180 && profile.isShort === false
+      : profile.domain === "SCIENCE"
+        ? (profile.questionCount === 4 && profile.durationSeconds === 360 && profile.isShort === false)
+          || (profile.questionCount === 2 && profile.durationSeconds === 180 && profile.isShort === true)
+        : false;
+  return supported && (profile.isShort !== true || isValidShortProfile(profile)) ? profile : null;
+}
+
+function profileSummary(attempt) {
+  const profile = profileForAttempt(attempt);
+  return profile
+    ? profile.name
+    : "Chưa xác định từ dữ liệu đã tải.";
+}
+
+function sameCatalogProfile(left, right) {
+  return Boolean(left && right && left.blueprintVersionId === right.blueprintVersionId
+    && left.domain === right.domain && left.name === right.name
+    && left.questionCount === right.questionCount && left.durationSeconds === right.durationSeconds
+    && left.isShort === right.isShort && left.reviewAllowed === right.reviewAllowed
+    && left.availableFrom === right.availableFrom && left.availableUntil === right.availableUntil);
+}
+
+function catalogProfileById(blueprintVersionId) {
+  return state.catalog.find((entry) => entry.blueprintVersionId === blueprintVersionId) ?? null;
+}
+
+function isValidShortProfile(profile) {
+  return profile?.isShort === true && profile.reviewAllowed === false
+    && ["MATH", "SCIENCE"].includes(profile.domain)
+    && profile.questionCount === 2 && profile.durationSeconds === 180
+    && typeof profile.name === "string" && profile.name.trim().length > 0
+    && isCanonicalUuid(profile.blueprintVersionId);
+}
+
+function fullCatalogProfiles() {
+  const order = { MATH: 0, READING: 1, SCIENCE: 2 };
+  return state.catalog.filter((entry) => entry.isShort !== true)
+    .sort((left, right) => (order[left.domain] ?? 99) - (order[right.domain] ?? 99));
+}
+
+function shortCatalogProfiles() {
+  const order = { MATH: 0, SCIENCE: 1 };
+  return state.catalog.filter(isValidShortProfile)
+    .sort((left, right) => (order[left.domain] ?? 99) - (order[right.domain] ?? 99));
+}
+
 function fixedSelectionLocked() {
-  return ["posting", "uncertain", "receipt", "read-unavailable", "unverified"].includes(state.fixedIntent?.phase);
+  return ["posting", "uncertain", "receipt", "read-unavailable", "unverified"].includes(state.fixedIntent?.phase)
+    || ["posting", "uncertain", "receipt", "read-unavailable", "unverified"].includes(state.shortIntent?.phase)
+    || state.conflictRecovery !== null;
 }
 
 function fixedFormIsCurrent(form) {
@@ -199,10 +284,22 @@ function clearFixedFlow() {
   state.fixedIntent = null;
 }
 
+function clearShortFlow() {
+  const dialog = state.shortDialog;
+  if (dialog) closeShortConsent(dialog, false);
+  if (state.shortIntent?.phase === "confirming") {
+    state.shortIntent.requestIntent = null;
+    state.shortIntent.phase = "cancelled";
+  }
+  state.shortOffer = null;
+  state.shortIntent = null;
+}
+
 function reviewOfferIsCurrent(offer) {
   if (!offer || state.reviewOffer !== offer || offer.identityGeneration !== state.identityGeneration) return false;
-  const profile = state.catalog.find((entry) => entry.domain === offer.domain);
+  const profile = catalogProfileById(offer.blueprintVersionId);
   return profile?.blueprintVersionId === offer.blueprintVersionId
+    && profile.domain === offer.domain && profile.isShort !== true && profile.reviewAllowed === true
     && profile.questionCount === offer.questionCount
     && profile.durationSeconds === offer.durationSeconds;
 }
@@ -210,15 +307,17 @@ function reviewOfferIsCurrent(offer) {
 function reconcileReviewFlowWithCatalog() {
   const flow = state.reviewIntent ?? state.reviewOffer;
   if (!flow) return;
-  const profile = state.catalog.find((entry) => entry.domain === flow.domain);
-  if (flow.identityGeneration !== state.identityGeneration || profile?.blueprintVersionId !== flow.blueprintVersionId
+  const profile = catalogProfileById(flow.blueprintVersionId);
+  if (flow.identityGeneration !== state.identityGeneration || profile?.domain !== flow.domain
+      || profile.isShort === true || profile.reviewAllowed !== true
       || profile.questionCount !== flow.questionCount || profile.durationSeconds !== flow.durationSeconds) {
     clearReviewFlow();
   }
 }
 
 function reviewAlternativeFrom(error, profile) {
-  if (error?.code !== "INSUFFICIENT_UNSEEN_INVENTORY" || error.status !== 422 || !profile) return null;
+  if (error?.code !== "INSUFFICIENT_UNSEEN_INVENTORY" || error.status !== 422 || !profile
+      || profile.isShort === true || profile.reviewAllowed !== true) return null;
   if (!Number.isSafeInteger(profile.questionCount) || profile.questionCount <= 0
       || !Number.isSafeInteger(profile.durationSeconds) || profile.durationSeconds <= 0) return null;
   const details = error.details;
@@ -488,7 +587,9 @@ function tick() {
 function resetPersistentIdentity() {
   state.identityGeneration += 1;
   clearReviewFlow();
+  clearShortFlow();
   clearFixedFlow();
+  state.conflictRecovery = null;
   state.history = [];
   state.historyStatus = "";
   state.fixedForms = [];
@@ -496,6 +597,7 @@ function resetPersistentIdentity() {
 
 function clearAttemptState() {
   clearReviewFlow();
+  clearShortFlow();
   clearFixedFlow();
   stopGradePolling();
   clearAttemptReviewState(state.attempt?.attemptId ?? state.markedAttemptId);
@@ -521,6 +623,7 @@ function acceptAttempt(attempt) {
     state.pendingMultipleChoice = null;
   }
   state.attempt = attempt;
+  state.conflictRecovery = null;
   if (persistentMode) {
     state.savingSlotId = null;
     state.busy = false;
@@ -643,7 +746,7 @@ function renderCreatedAttempt() {
   const attempt = state.attempt;
   const profile = isFixedAttempt(attempt)
     ? state.fixedForms.find((entry) => entry.formId === attempt.formId)
-    : state.catalog.find((entry) => entry.domain === attempt.domain);
+    : profileForAttempt(attempt);
   const fragment = document.createDocumentFragment();
   fragment.append(header());
   const card = element("section", "intro-card persistent-attempt-card");
@@ -658,13 +761,19 @@ function renderCreatedAttempt() {
   } else if (isReviewAllowedAttempt(attempt)) {
     appendPracticeModeLabel(card, attempt);
     card.append(element("p", "intro-lead", "Lượt này có thể dùng câu hỏi đã được giao trước đây. Không có cam kết rằng mọi câu sẽ lặp lại."));
+    appendPersonalProfileLabel(card, attempt);
+  } else {
+    appendPersonalProfileLabel(card, attempt);
   }
   card.append(element("p", "intro-lead", "Bài đã được lưu trong PostgreSQL cục bộ. Bắt đầu chỉ khi bạn chọn nút bên dưới; đồng hồ máy chủ chạy liên tục sau khi bắt đầu."));
   const facts = element("div", "intro-metrics");
-  facts.append(element("div", "intro-metric", `${attempt.questionCount || attempt.slots.length || profile?.questionCount || 0} câu`));
-  const durationSeconds = attempt.durationSeconds || profile?.durationSeconds;
-  facts.append(element("div", "intro-metric", isFixedAttempt(attempt) && !durationSeconds
-    ? "Chưa có thông tin thời lượng" : formatPracticeDuration(durationSeconds || 0)));
+  const questionCount = Number.isSafeInteger(attempt.questionCount) && attempt.questionCount > 0
+    ? attempt.questionCount : attempt.slots.length;
+  facts.append(element("div", "intro-metric", questionCount > 0 ? `${questionCount} câu` : "Chưa có thông tin số câu"));
+  const durationSeconds = Number.isSafeInteger(attempt.durationSeconds) && attempt.durationSeconds > 0
+    ? attempt.durationSeconds : profile?.durationSeconds;
+  facts.append(element("div", "intro-metric", !durationSeconds
+    ? "Chưa có thông tin thời lượng" : formatPracticeDuration(durationSeconds)));
   card.append(facts);
   card.append(element("p", "notice-panel", `Bắt đầu trước ${formatAdmissionTime(attempt.startBefore) || "thời hạn do máy chủ lưu"}.`));
   const actions = element("div", "intro-actions");
@@ -674,7 +783,9 @@ function renderCreatedAttempt() {
   actions.append(start);
   actions.append(actionButton("Quay lại danh sách", "return-catalog", () => renderCatalog(), "button secondary"));
   card.append(actions);
-  fragment.append(card, footerNote());
+  const page = element("div", "intro-page");
+  page.append(card);
+  fragment.append(page, footerNote());
   replaceApp(fragment, { introMode: true });
   app.querySelector("h1")?.focus();
 }
@@ -946,6 +1057,11 @@ function renderLanding() {
 }
 
 function renderExamIntro(domain) {
+  if (persistentMode && (domain?.isShort === true || !sameCatalogProfile(catalogProfileById(domain?.blueprintVersionId), domain))) {
+    renderCatalog();
+    showMessage("Hồ sơ không còn khớp với danh mục hiện tại. Đọc lại danh mục trước khi tiếp tục.");
+    return;
+  }
   const fragment = document.createDocumentFragment();
   const topbar = header();
   topbar.querySelector("[data-testid='nav-catalog']")?.classList.add("active");
@@ -1053,8 +1169,10 @@ function renderExamIntro(domain) {
     : state.attempt?.state === "IN_PROGRESS"
       ? "Tiếp tục bài demo"
       : "Bắt đầu bài demo";
-  const activePersistentAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
-  const sameActiveDomain = activePersistentAttempt?.domain === domain.domain && !isFixedAttempt(activePersistentAttempt);
+  const activePersistentAttempt = currentActivePersistentAttempt();
+  const activeProfile = profileForAttempt(activePersistentAttempt);
+  const sameActiveDomain = Boolean(activePersistentAttempt && activeProfile
+    && activeProfile.blueprintVersionId === domain.blueprintVersionId && !isFixedAttempt(activePersistentAttempt));
   const persistentStart = activePersistentAttempt
     ? sameActiveDomain
       ? activePersistentAttempt.state === "CREATED" ? startReservedAttempt : resumePersistentAttempt
@@ -1083,8 +1201,10 @@ function renderExamIntro(domain) {
 }
 
 function domainCard(domain) {
-  const activeAttempt = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) ? state.attempt : null;
-  const sameActiveDomain = activeAttempt?.domain === domain.domain && !isFixedAttempt(activeAttempt);
+  const activeAttempt = currentActivePersistentAttempt();
+  const activeProfile = profileForAttempt(activeAttempt);
+  const sameActiveDomain = Boolean(activeAttempt && activeProfile
+    && activeProfile.blueprintVersionId === domain.blueprintVersionId && !isFixedAttempt(activeAttempt));
   const card = element("article", `domain-card catalog-ticket${domain.available ? " available" : ""}`);
   card.dataset.testid = `catalog-card-${domain.domain}`;
   const index = domain.domain === "MATH" ? "01" : domain.domain === "READING" ? "02" : "03";
@@ -1121,7 +1241,7 @@ function domainCard(domain) {
     details.disabled = fixedSelectionLocked();
     actions.append(details);
     if (activeAttempt) {
-      const sameDomain = activeAttempt.domain === domain.domain && !isFixedAttempt(activeAttempt);
+      const sameDomain = sameActiveDomain;
       const activeLabel = sameDomain
         ? activeAttempt.state === "CREATED" ? "Bắt đầu bài đã giữ" : "Tiếp tục bài đang làm"
         : "Hoàn tất bài đang làm trước";
@@ -1147,10 +1267,10 @@ function domainCard(domain) {
     cardFooter.append(disabled);
   }
   card.append(cardFooter);
-  if (persistentMode && state.reviewOffer?.domain === domain.domain) {
+  if (persistentMode && state.reviewOffer?.blueprintVersionId === domain.blueprintVersionId) {
     card.append(renderReviewOffer(state.reviewOffer));
   }
-  if (persistentMode && state.reviewIntent?.domain === domain.domain) {
+  if (persistentMode && state.reviewIntent?.blueprintVersionId === domain.blueprintVersionId) {
     card.append(renderReviewIntentPanel(state.reviewIntent));
   }
   return card;
@@ -1422,6 +1542,383 @@ async function readReviewReceipt(intent) {
     renderCatalog();
     focusReviewStatus();
   }
+}
+
+function shorterAlternativeFrom(error, sourceProfile) {
+  if (!sourceProfile || sourceProfile.isShort === true || error?.status !== 422
+      || !["INSUFFICIENT_UNSEEN_INVENTORY", "INSUFFICIENT_ELIGIBLE_INVENTORY"].includes(error?.code)) return null;
+  const details = error.details;
+  if (details?.reuseMode !== "NEW_ONLY" || details.blueprintVersionId !== sourceProfile.blueprintVersionId
+      || !Array.isArray(details.alternatives)) return null;
+  const alternatives = details.alternatives.filter((item) => item?.kind === "SHORTER_PROFILE");
+  if (alternatives.length !== 1) return null;
+  const alternative = alternatives[0];
+  const keys = Object.keys(alternative).sort();
+  if (keys.length !== 3 || keys[0] !== "blueprintVersionId" || keys[1] !== "kind" || keys[2] !== "name"
+      || !isCanonicalUuid(alternative.blueprintVersionId) || typeof alternative.name !== "string") return null;
+  return alternative;
+}
+
+function shortIntentIsCurrent(intent) {
+  const profile = catalogProfileById(intent?.profile?.blueprintVersionId);
+  return Boolean(intent && state.shortIntent === intent && intent.identityGeneration === state.identityGeneration
+    && !currentActivePersistentAttempt() && isValidShortProfile(intent.profile)
+    && sameCatalogProfile(profile, intent.profile)
+    && intent.requestIntent?.body?.blueprintVersionId === intent.profile.blueprintVersionId);
+}
+
+function shortFlowStatus(intent) {
+  const messages = {
+    confirming: "Chưa tạo bài. Xem lại hồ sơ rồi xác nhận riêng; lượt này chỉ dùng câu chưa được giao trước đây.",
+    cancelled: "Chưa tạo bài. Yêu cầu đã được hủy trước khi gửi.",
+    posting: "Đang gửi yêu cầu tạo bài ngắn. Chưa mở bài cho đến khi trạng thái được đọc lại từ máy chủ.",
+    uncertain: "Chưa xác nhận được phản hồi. Máy chủ có thể đã ghi nhận yêu cầu; hãy thử lại đúng yêu cầu này.",
+    receipt: "Máy chủ đã ghi nhận yêu cầu. Đang đọc riêng trạng thái bài đã lưu.",
+    "read-unavailable": "Yêu cầu đã được ghi nhận, nhưng chưa đọc được trạng thái bài. Có thể tải lại bằng yêu cầu chỉ đọc.",
+    unverified: intent?.message || "Phản hồi chưa khớp với hồ sơ đã chọn. Bài chưa được mở; hãy đọc lại trạng thái máy chủ.",
+    failed: intent?.message || "Không tạo được bài. Đọc lại trạng thái máy chủ trước khi chọn tiếp.",
+  };
+  return messages[intent?.phase] || "Chọn rõ ràng một hồ sơ; chưa có yêu cầu tạo bài nào được gửi.";
+}
+
+function updateShortCardStatus(blueprintVersionId) {
+  const card = [...app.querySelectorAll("[data-testid='short-practice-card']")]
+    .find((item) => item.dataset.blueprintVersionId === blueprintVersionId);
+  const status = card?.querySelector("[data-testid='short-practice-status']");
+  if (!status) return;
+  status.dataset.stage = state.shortIntent?.profile?.blueprintVersionId === blueprintVersionId
+    ? state.shortIntent.phase : state.shortOffer?.blueprintVersionId === blueprintVersionId ? "offered" : "ready";
+  status.textContent = state.shortIntent?.profile?.blueprintVersionId === blueprintVersionId
+    ? shortFlowStatus(state.shortIntent)
+    : state.shortOffer?.blueprintVersionId === blueprintVersionId
+      ? "Máy chủ đã đề xuất hồ sơ này như một lựa chọn riêng. Chọn xác nhận để yêu cầu bài; chưa có bài nào được tạo."
+      : "Bài chỉ dùng câu chưa được giao trước đây. Máy chủ kiểm tra lại khả dụng khi nhận yêu cầu.";
+}
+
+function focusShortStatus(blueprintVersionId) {
+  const card = [...app.querySelectorAll("[data-testid='short-practice-card']")]
+    .find((item) => item.dataset.blueprintVersionId === blueprintVersionId);
+  const status = card?.querySelector("[data-testid='short-practice-status']");
+  if (!status) return;
+  status.focus({ preventScroll: true });
+  status.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+}
+
+function renderShortIntentPanel(profile) {
+  const intent = state.shortIntent?.profile?.blueprintVersionId === profile.blueprintVersionId ? state.shortIntent : null;
+  const offered = state.shortOffer?.blueprintVersionId === profile.blueprintVersionId;
+  const panel = element("div", "short-practice-outcome");
+  panel.dataset.testid = offered ? "short-practice-offer" : "short-practice-outcome";
+  panel.dataset.blueprintVersionId = profile.blueprintVersionId;
+  const message = intent ? shortFlowStatus(intent) : offered
+    ? profile.available
+      ? "Máy chủ đã đề xuất hồ sơ này như một lựa chọn riêng. Chọn xác nhận để yêu cầu bài; chưa có bài nào được tạo."
+      : "Máy chủ đã đề xuất hồ sơ này, nhưng danh mục hiện đánh dấu là chưa mở. Chưa gửi yêu cầu tạo bài."
+    : "Bài chỉ dùng câu chưa được giao trước đây. Máy chủ kiểm tra lại khả dụng khi nhận yêu cầu.";
+  const status = element("p", "short-practice-status", message);
+  status.dataset.testid = "short-practice-status";
+  status.dataset.stage = intent?.phase || (offered ? "offered" : "ready");
+  status.tabIndex = -1;
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  panel.append(status);
+  if (intent?.phase === "uncertain") {
+    const retry = actionButton("Thử lại cùng yêu cầu", "short-practice-retry", () => { void submitShortIntent(intent); }, "button secondary");
+    retry.disabled = state.busy;
+    retry.dataset.blueprintVersionId = profile.blueprintVersionId;
+    panel.append(retry);
+  } else if (intent?.phase === "read-unavailable" && intent.receipt?.attemptId) {
+    const reload = actionButton("Tải lại trạng thái bài", "short-practice-reload", () => { void readShortReceipt(intent); }, "button secondary");
+    reload.disabled = state.busy;
+    reload.dataset.blueprintVersionId = profile.blueprintVersionId;
+    panel.append(reload);
+  } else if (["failed", "unverified"].includes(intent?.phase)) {
+    const recover = actionButton("Đọc lại trạng thái từ máy chủ", "short-practice-recover", () => { void initializePersistent(); }, "button secondary");
+    recover.disabled = state.busy;
+    recover.dataset.blueprintVersionId = profile.blueprintVersionId;
+    panel.append(recover);
+  }
+  return panel;
+}
+
+function renderShortProfileCard(profile) {
+  const offered = state.shortOffer?.blueprintVersionId === profile.blueprintVersionId;
+  const active = currentActivePersistentAttempt();
+  const card = element("article", `short-practice-card${profile.available ? " available" : ""}`);
+  card.dataset.testid = "short-practice-card";
+  card.dataset.blueprintVersionId = profile.blueprintVersionId;
+  card.setAttribute("aria-labelledby", `short-practice-title-${profile.blueprintVersionId}`);
+  card.append(element("p", "short-practice-kicker", offered ? "LỰA CHỌN ĐƯỢC ĐỀ XUẤT" : "BÀI LUYỆN TẬP NGẮN"));
+  const title = element("h3", "", `${domainNames[profile.domain] || profile.domain} · Bài ngắn`);
+  title.id = `short-practice-title-${profile.blueprintVersionId}`;
+  card.append(title);
+  card.append(element("p", "short-practice-name", profile.name));
+  const facts = element("p", "short-practice-facts", `${profile.questionCount} câu · ${formatPracticeDuration(profile.durationSeconds)}`);
+  card.append(facts);
+  card.append(element("p", "short-practice-description", "Lượt này chỉ dùng câu chưa được giao trước đây. Đây là lựa chọn riêng; máy chủ kiểm tra lại nội dung và khả dụng khi nhận yêu cầu."));
+  if (profile.availableFrom || profile.availableUntil) {
+    card.append(element("p", "short-practice-window", `Mở ${formatAdmissionTime(profile.availableFrom) || "—"} · Đóng ${formatAdmissionTime(profile.availableUntil) || "—"}`));
+  }
+  card.append(renderShortIntentPanel(profile));
+  const activeProfile = profileForAttempt(active);
+  const activeSameProfile = Boolean(active && activeProfile && activeProfile.blueprintVersionId === profile.blueprintVersionId);
+  const open = actionButton(activeSameProfile
+    ? active.state === "CREATED" ? "Bắt đầu bài đã giữ" : "Tiếp tục bài đang làm"
+    : "Xem xác nhận", "short-practice-open", () => {
+      if (activeSameProfile) {
+        if (active.state === "CREATED") void startReservedAttempt();
+        else void resumePersistentAttempt();
+      } else void openShortConsent(profile, open);
+    }, "button short-practice-open");
+  open.dataset.blueprintVersionId = profile.blueprintVersionId;
+  open.setAttribute("aria-haspopup", "dialog");
+  open.setAttribute("aria-controls", "short-practice-dialog");
+  open.disabled = state.busy || fixedSelectionLocked() || (active !== null && !activeSameProfile) || (!activeSameProfile && !profile.available);
+  card.append(open);
+  return card;
+}
+
+function openShortConsent(profile, trigger) {
+  const currentProfile = catalogProfileById(profile?.blueprintVersionId);
+  if (state.busy || fixedSelectionLocked() || currentActivePersistentAttempt()
+      || !isValidShortProfile(profile) || !sameCatalogProfile(currentProfile, profile)
+      || !profile.available) {
+    if (!sameCatalogProfile(currentProfile, profile)) {
+      showMessage("Hồ sơ không còn khớp với danh mục đã tải. Đọc lại danh mục trước khi chọn.");
+    }
+    return;
+  }
+  let requestIntent;
+  try {
+    requestIntent = api.prepareShortAttempt(profile.blueprintVersionId);
+    if (!requestIntent || !Object.isFrozen(requestIntent) || !Object.isFrozen(requestIntent.body)
+        || !Object.isFrozen(requestIntent.profile) || requestIntent.body.blueprintVersionId !== profile.blueprintVersionId
+        || !Number.isSafeInteger(requestIntent.generation) || !requestIntent.key || !requestIntent.csrfToken
+        || !sameCatalogProfile(requestIntent.profile, profile) || !isValidShortProfile(requestIntent.profile)) {
+      throw new Error("The prepared profile no longer matches the catalog.");
+    }
+  } catch {
+    state.shortIntent = {
+      profile: Object.freeze({ ...profile }), identityGeneration: state.identityGeneration,
+      phase: "failed", requestIntent: null, receipt: null,
+      message: "Chưa thể chuẩn bị một yêu cầu đúng theo hồ sơ hiện tại. Hãy đọc lại danh mục.",
+    };
+    renderCatalog();
+    focusShortStatus(profile.blueprintVersionId);
+    return;
+  }
+  const intent = {
+    profile: requestIntent.profile, identityGeneration: state.identityGeneration,
+    phase: "confirming", requestIntent, receipt: null, message: "",
+  };
+  state.shortIntent = intent;
+  state.shortOffer = null;
+  updateShortCardStatus(profile.blueprintVersionId);
+  const dialog = element("dialog", "short-practice-dialog");
+  dialog.id = "short-practice-dialog";
+  dialog.dataset.testid = "short-practice-dialog";
+  dialog.dataset.stage = "confirming";
+  dialog.dataset.blueprintVersionId = profile.blueprintVersionId;
+  dialog.setAttribute("aria-labelledby", "short-practice-dialog-title");
+  dialog.setAttribute("aria-describedby", "short-practice-dialog-description");
+  dialog.shortIntent = intent;
+  const title = element("h2", "", "Xác nhận bài luyện tập ngắn");
+  title.id = "short-practice-dialog-title";
+  const description = element("p", "", `${domainNames[profile.domain] || profile.domain} · ${profile.questionCount} câu · ${formatPracticeDuration(profile.durationSeconds)}. Chỉ dùng câu chưa được giao trước đây.`);
+  description.id = "short-practice-dialog-description";
+  const note = element("p", "short-practice-dialog-note", "Bài chỉ yêu cầu câu chưa được giao trước đây. Xác nhận tạo một lượt riêng; bài chưa bắt đầu cho đến khi bạn chọn nút Bắt đầu sau đó. Khả dụng và nội dung được máy chủ kiểm tra lại khi nhận yêu cầu.");
+  const actions = element("div", "short-practice-dialog-actions");
+  const cancel = actionButton("Hủy", "short-practice-cancel", () => closeShortConsent(dialog, true), "button secondary");
+  const confirm = actionButton("Xác nhận tạo bài", "short-practice-confirm", () => { void confirmShortPractice(intent, dialog); }, "button");
+  confirm.dataset.blueprintVersionId = profile.blueprintVersionId;
+  actions.append(cancel, confirm);
+  dialog.append(title, description, note, actions);
+  dialog.returnFocusTarget = trigger;
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeShortConsent(dialog, true);
+  });
+  dialog.addEventListener("close", () => {
+    if (!dialog.isConnected) return;
+    if (dialog.shortIntent?.phase === "confirming") {
+      dialog.shortIntent.requestIntent = null;
+      dialog.shortIntent.phase = "cancelled";
+      updateShortCardStatus(profile.blueprintVersionId);
+    }
+    if (state.shortDialog === dialog) state.shortDialog = null;
+    const target = dialog.returnFocusTarget;
+    dialog.remove();
+    if (dialog.dataset.suppressFocusRestore !== "true" && target?.isConnected && !target.disabled) target.focus({ preventScroll: true });
+  });
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab" || !dialog.open) return;
+    const controls = [...dialog.querySelectorAll("button:not([disabled]), [tabindex]:not([tabindex='-1'])")]
+      .filter((control) => control.getClientRects().length > 0);
+    const first = controls[0], last = controls.at(-1);
+    if (!first) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  state.shortDialog = dialog;
+  app.append(dialog);
+  dialog.showModal();
+  confirm.focus({ preventScroll: true });
+}
+
+function closeShortConsent(dialog, restoreFocus) {
+  if (state.shortDialog !== dialog) return;
+  if (!restoreFocus) dialog.dataset.suppressFocusRestore = "true";
+  if (dialog.shortIntent?.phase === "confirming") {
+    dialog.shortIntent.requestIntent = null;
+    dialog.shortIntent.phase = "cancelled";
+    updateShortCardStatus(dialog.shortIntent.profile.blueprintVersionId);
+  }
+  if (dialog.open) dialog.close();
+  else if (state.shortIntent?.phase === "confirming") {
+    state.shortIntent.requestIntent = null;
+    state.shortIntent.phase = "cancelled";
+  }
+  if (!restoreFocus) state.shortDialog = null;
+}
+
+async function confirmShortPractice(intent, dialog) {
+  if (state.busy || state.shortDialog !== dialog || dialog.shortIntent !== intent
+      || intent.phase !== "confirming" || !shortIntentIsCurrent(intent)) return;
+  intent.phase = "posting";
+  closeShortConsent(dialog, false);
+  await submitShortIntent(intent);
+}
+
+function isMatchingShortReceipt(receipt, intent) {
+  return receipt?.state === "CREATED" && receipt.formMode === "PERSONALIZED_PRACTICE"
+    && receipt.reuseMode === "NEW_ONLY" && receipt.domain === intent.profile.domain
+    && isCanonicalUuid(receipt.attemptId) && isCanonicalUuid(receipt.formId)
+    && typeof receipt.startBefore === "string" && Number.isFinite(Date.parse(receipt.startBefore));
+}
+
+function isMatchingShortAttempt(attempt, intent, receipt) {
+  const profile = profileForAttempt(attempt);
+  const slotCount = Array.isArray(attempt?.slots) ? attempt.slots.length : -1;
+  const slotsMatchState = attempt?.state === "CREATED" ? slotCount === 0
+    : attempt?.state === "IN_PROGRESS" ? slotCount === intent.profile.questionCount
+      : ["SUBMITTED", "EXPIRED", "CANCELLED", "INVALIDATED"].includes(attempt?.state) ? slotCount === 0
+        : attempt?.state === "GRADED" ? slotCount === intent.profile.questionCount : false;
+  return attempt?.attemptId === receipt.attemptId && attempt.formId === receipt.formId
+    && attempt.domain === intent.profile.domain
+    && attempt.formMode === "PERSONALIZED_PRACTICE" && attempt.reuseMode === "NEW_ONLY"
+    && attempt.questionCount === intent.profile.questionCount && slotsMatchState
+    && sameCatalogProfile(profile, intent.profile);
+}
+
+async function submitShortIntent(intent) {
+  if (state.busy || state.shortIntent !== intent || !shortIntentIsCurrent(intent)
+      || !intent.requestIntent || !["posting", "uncertain"].includes(intent.phase)) return;
+  state.busy = true;
+  intent.phase = "posting";
+  renderCatalog();
+  focusShortStatus(intent.profile.blueprintVersionId);
+  if (!shortIntentIsCurrent(intent)) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const receipt = await api.createShortAttempt(intent.requestIntent);
+    if (state.identityGeneration !== intent.identityGeneration || state.shortIntent !== intent) return;
+    state.busy = false;
+    intent.requestIntent = null;
+    if (!isMatchingShortReceipt(receipt, intent)) {
+      intent.phase = "unverified";
+      intent.receipt = null;
+      renderCatalog();
+      focusShortStatus(intent.profile.blueprintVersionId);
+      return;
+    }
+    intent.receipt = Object.freeze({ attemptId: receipt.attemptId, domain: receipt.domain, formId: receipt.formId });
+    intent.phase = "receipt";
+    renderCatalog();
+    focusShortStatus(intent.profile.blueprintVersionId);
+    await readShortReceipt(intent);
+  } catch (error) {
+    if (state.identityGeneration !== intent.identityGeneration || state.shortIntent !== intent) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    if (error?.status === 503 || error?.status === 429) {
+      intent.phase = "uncertain";
+    } else {
+      intent.requestIntent = null;
+      intent.phase = error?.code === "CONCURRENT_ATTEMPT_EXISTS" ? "unverified" : "failed";
+      intent.message = error?.code === "CONCURRENT_ATTEMPT_EXISTS"
+        ? "Đã có bài đang giữ hoặc đang làm. Đọc lại bài đã lưu trước khi chọn hồ sơ khác."
+        : error?.message || "Máy chủ chưa tạo bài. Đọc lại trạng thái trước khi chọn tiếp.";
+    }
+    renderCatalog();
+    focusShortStatus(intent.profile.blueprintVersionId);
+  }
+}
+
+async function readShortReceipt(intent) {
+  if (state.busy || state.shortIntent !== intent || intent.identityGeneration !== state.identityGeneration
+      || !intent.receipt?.attemptId) return;
+  state.busy = true;
+  intent.phase = "receipt";
+  renderCatalog();
+  focusShortStatus(intent.profile.blueprintVersionId);
+  if (state.shortIntent !== intent || state.identityGeneration !== intent.identityGeneration) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const response = await api.readShortAttempt(intent.receipt.attemptId, intent.profile.domain);
+    if (state.identityGeneration !== intent.identityGeneration || state.shortIntent !== intent) return;
+    state.busy = false;
+    const attempt = response?.attempt;
+    if (!isMatchingShortAttempt(attempt, intent, intent.receipt)) {
+      intent.phase = "unverified";
+      renderCatalog();
+      focusShortStatus(intent.profile.blueprintVersionId);
+      return;
+    }
+    state.shortIntent = null;
+    state.shortOffer = null;
+    state.resumeNotice = "Đã tải trạng thái bài ngắn đã lưu từ máy chủ. Chọn Bắt đầu khi bạn sẵn sàng.";
+    state.review = null;
+    state.currentIndex = 0;
+    void refreshPersistentHistory();
+    acceptAttempt(attempt);
+  } catch (error) {
+    if (state.identityGeneration !== intent.identityGeneration || state.shortIntent !== intent) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    intent.phase = error?.code === "UNEXPECTED_ATTEMPT_MODE" ? "unverified" : "read-unavailable";
+    renderCatalog();
+    focusShortStatus(intent.profile.blueprintVersionId);
+  }
+}
+
+async function receiveShortAlternative(error, sourceProfile, identityGeneration) {
+  const alternative = shorterAlternativeFrom(error, sourceProfile);
+  if (!alternative) return false;
+  try {
+    const data = await api.loadCatalog();
+    if (identityGeneration !== state.identityGeneration) return true;
+    state.catalog = data.domains;
+    state.fixedForms = data.fixedForms;
+    reconcileReviewFlowWithCatalog();
+    const profile = catalogProfileById(alternative.blueprintVersionId);
+    state.shortOffer = profile && isValidShortProfile(profile) && profile.domain === sourceProfile.domain
+      && profile.name === alternative.name && profile.questionCount < sourceProfile.questionCount
+      ? Object.freeze({ blueprintVersionId: profile.blueprintVersionId, identityGeneration })
+      : Object.freeze({ blueprintVersionId: alternative.blueprintVersionId, identityGeneration, unavailable: true });
+  } catch {
+    if (identityGeneration !== state.identityGeneration) return true;
+    state.shortOffer = Object.freeze({ blueprintVersionId: alternative.blueprintVersionId, identityGeneration, unavailable: true });
+  }
+  return true;
 }
 
 function fixedFlowStatus(intent) {
@@ -1760,6 +2257,61 @@ async function readFixedReceipt(intent) {
   }
 }
 
+function conflictRecoveryStatus(recovery) {
+  if (recovery?.phase === "reading") return "Đang đọc trạng thái bài hiện có. Chưa gửi yêu cầu tạo bài mới.";
+  if (recovery?.phase === "failed") return recovery.message || "Chưa đọc được bài hiện có. Thử lại bằng yêu cầu chỉ đọc.";
+  if (recovery?.phase === "unverified") return "Trạng thái đọc được chưa khớp với bài hiện có đã được máy chủ báo. Chưa mở bài và chưa gửi yêu cầu tạo mới.";
+  return "Máy chủ báo đang có một bài đã lưu. Đọc trạng thái bài đó trước khi chọn hoặc tạo hồ sơ khác.";
+}
+
+function focusConflictRecovery() {
+  app.querySelector("[data-testid='attempt-conflict-status']")?.focus({ preventScroll: true });
+}
+
+function isReadableConflictAttempt(attempt, attemptId) {
+  const knownMode = isFixedAttempt(attempt)
+    || (attempt?.formMode === "PERSONALIZED_PRACTICE" && ["NEW_ONLY", "REVIEW_ALLOWED"].includes(attempt.reuseMode));
+  return attempt?.attemptId === attemptId && knownMode
+    && ["CREATED", "IN_PROGRESS", "SUBMITTED", "EXPIRED", "GRADED", "CANCELLED", "INVALIDATED"].includes(attempt.state);
+}
+
+async function recoverConflictingAttempt(recovery) {
+  if (state.busy || state.conflictRecovery !== recovery || recovery.identityGeneration !== state.identityGeneration
+      || !isCanonicalUuid(recovery.attemptId)) return;
+  state.busy = true;
+  recovery.phase = "reading";
+  renderCatalog();
+  focusConflictRecovery();
+  if (state.conflictRecovery !== recovery || recovery.identityGeneration !== state.identityGeneration) {
+    state.busy = false;
+    return;
+  }
+  try {
+    const response = await api.readAttempt(recovery.attemptId);
+    if (state.identityGeneration !== recovery.identityGeneration || state.conflictRecovery !== recovery) return;
+    state.busy = false;
+    if (!isReadableConflictAttempt(response?.attempt, recovery.attemptId)) {
+      recovery.phase = "unverified";
+      renderCatalog();
+      focusConflictRecovery();
+      return;
+    }
+    state.conflictRecovery = null;
+    state.resumeNotice = "Đã đọc lại trạng thái bài hiện có từ máy chủ. Bài chỉ bắt đầu khi bạn chọn Bắt đầu.";
+    state.review = null;
+    state.currentIndex = 0;
+    acceptAttempt(response.attempt);
+  } catch (error) {
+    if (state.identityGeneration !== recovery.identityGeneration || state.conflictRecovery !== recovery) return;
+    state.busy = false;
+    if (handlePersistentError(error)) return;
+    recovery.phase = "failed";
+    recovery.message = error?.message || "Chưa đọc được bài hiện có. Thử lại bằng yêu cầu chỉ đọc.";
+    renderCatalog();
+    focusConflictRecovery();
+  }
+}
+
 function renderCatalog() {
   if (persistentMode) reconcileReviewFlowWithCatalog();
   if (persistentMode) {
@@ -1782,7 +2334,7 @@ function renderCatalog() {
     ? "Danh mục hiển thị số câu, thời lượng và khoảng mở mà máy chủ cung cấp cho từng bài độc lập."
     : "Chọn một lĩnh vực để xem thông tin bài luyện tập cục bộ."));
   const headerActions = element("div", "catalog-panel-header-actions");
-  const catalogCount = element("span", "catalog-count", `${state.catalog.length} lĩnh vực`);
+  const catalogCount = element("span", "catalog-count", `${new Set(state.catalog.map((entry) => entry.domain)).size} lĩnh vực`);
   catalogCount.dataset.testid = "catalog-count";
   catalogCount.setAttribute("role", "status");
   catalogCount.setAttribute("aria-live", "polite");
@@ -1791,22 +2343,48 @@ function renderCatalog() {
     app.querySelector("h1")?.focus();
   }, "button secondary small"));
   panelHeader.append(heading, headerActions);
+  panel.append(panelHeader);
+  if (persistentMode && state.conflictRecovery) {
+    const recovery = element("section", "short-practice-unavailable attempt-conflict-recovery");
+    recovery.dataset.testid = "attempt-conflict-recovery";
+    const status = element("p", "short-practice-status", conflictRecoveryStatus(state.conflictRecovery));
+    status.dataset.testid = "attempt-conflict-status";
+    status.dataset.stage = state.conflictRecovery.phase || "available";
+    status.tabIndex = -1;
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    const read = actionButton("Đọc bài hiện có", "attempt-conflict-recover", () => { void recoverConflictingAttempt(state.conflictRecovery); }, "button secondary");
+    read.disabled = state.busy;
+    recovery.append(status, read);
+    panel.append(recovery);
+  }
 
   const filters = element("div", "catalog-filters");
   filters.setAttribute("role", "group");
   filters.setAttribute("aria-label", persistentMode ? "Lọc bài luyện tập" : "Lọc bài demo");
   const grid = element("div", "catalog-grid");
   grid.dataset.testid = "catalog-grid";
+  const orderedDomains = [...new Set(state.catalog.map((entry) => entry.domain))]
+    .sort((left, right) => ({ MATH: 0, READING: 1, SCIENCE: 2 }[left] ?? 99) - ({ MATH: 0, READING: 1, SCIENCE: 2 }[right] ?? 99));
+  const catalogCountText = (domains) => {
+    const profiles = state.catalog.filter((entry) => domains.includes(entry.domain)).length;
+    return profiles > domains.length ? `${domains.length} lĩnh vực · ${profiles} hồ sơ` : `${domains.length} lĩnh vực`;
+  };
+  catalogCount.textContent = catalogCountText(orderedDomains);
   function applyFilter(key, activeControl) {
-    const domains = state.catalog.filter(domain => {
-      const ownedActive = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) && state.attempt.domain === domain.domain;
-      return key === "all" || (domain.available || ownedActive) === (key === "available");
+    const domains = orderedDomains.filter((domain) => {
+      const entries = state.catalog.filter((entry) => entry.domain === domain);
+      const ownedActive = persistentMode && ["CREATED", "IN_PROGRESS"].includes(state.attempt?.state) && state.attempt.domain === domain;
+      const available = entries.some((entry) => entry.available) || ownedActive;
+      return key === "all" || available === (key === "available");
     });
     const flow = state.reviewIntent ?? state.reviewOffer;
-    if (flow && !domains.some((domain) => domain.domain === flow.domain)) clearReviewFlow();
+    if (flow && !domains.includes(flow.domain)) clearReviewFlow();
     for (const button of filters.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === activeControl));
-    grid.replaceChildren(...domains.map(domainCard));
-    catalogCount.textContent = `${domains.length} lĩnh vực`;
+    const full = fullCatalogProfiles().filter((profile) => domains.includes(profile.domain));
+    const short = shortCatalogProfiles().filter((profile) => domains.includes(profile.domain));
+    grid.replaceChildren(...full.map(domainCard), ...short.map(renderShortProfileCard));
+    catalogCount.textContent = catalogCountText(domains);
     announce(`${domains.length} lĩnh vực trong bộ lọc.`);
   }
   for (const [key, label] of [["all", "Tất cả"], ["available", "Có thể làm"], ["unavailable", persistentMode ? "Chưa mở" : "Chưa có nội dung"]]) {
@@ -1817,8 +2395,20 @@ function renderCatalog() {
     control.setAttribute("aria-pressed", String(key === "all"));
     filters.append(control);
   }
-  for (const domain of state.catalog) grid.append(domainCard(domain));
-  panel.append(panelHeader);
+  for (const domain of fullCatalogProfiles()) grid.append(domainCard(domain));
+  for (const profile of shortCatalogProfiles()) grid.append(renderShortProfileCard(profile));
+  if (persistentMode && state.shortOffer?.unavailable) {
+    const notice = element("section", "short-practice-unavailable");
+    notice.dataset.testid = "short-practice-unavailable";
+    const status = element("p", "short-practice-status", "Máy chủ đề xuất một hồ sơ ngắn hơn, nhưng hồ sơ có cùng mã và metadata đó chưa xuất hiện trong danh mục mới tải. Chưa gửi yêu cầu tạo bài; tải lại danh mục trước khi chọn.");
+    status.dataset.testid = "short-practice-status";
+    status.dataset.stage = "unavailable";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    const reload = actionButton("Đọc lại danh mục", "short-practice-reload", () => { void initializePersistent(); }, "button secondary");
+    notice.append(status, reload);
+    panel.append(notice);
+  }
   if (persistentMode) panel.append(renderTimingNotice());
   panel.append(filters, grid);
   if (persistentMode) panel.append(renderFixedFormsSection());
@@ -1830,6 +2420,7 @@ function renderCatalog() {
     current.append(element("h2", "", currentTitle));
     current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · ${attemptStateNames[state.attempt.state] || "Chưa đọc được trạng thái"}${state.attempt.gradingStatus ? ` · ${gradingStateNames[state.attempt.gradingStatus] || "Chưa đọc được trạng thái chấm"}` : ""}`));
     appendPracticeModeLabel(current, state.attempt);
+    appendPersonalProfileLabel(current, state.attempt);
     const resume = actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary");
     resume.disabled = fixedSelectionLocked() || state.busy;
     current.append(resume);
@@ -1855,6 +2446,7 @@ function renderCatalog() {
         const row = element("article", "persistent-history-item");
         row.append(element("strong", "", `${domainNames[record.domain] || record.domain} · ${attemptStateNames[record.state] || "Chưa đọc được trạng thái"}`));
         appendPracticeModeLabel(row, record);
+        appendPersonalProfileLabel(row, record);
         if (record.score && record.state === "GRADED") {
           row.append(element("span", "", `${record.score.correctCount}/${record.score.totalCount} · ${record.score.percentage}% · luyện tập không chính thức`));
         } else if (record.state === "SUBMITTED" || record.state === "EXPIRED") {
@@ -1886,17 +2478,22 @@ function renderCatalog() {
 async function startDemo(selectedDomain = null) {
   const identityGeneration = state.identityGeneration;
   if (state.busy || (persistentMode && fixedSelectionLocked())) return;
+  if (persistentMode && currentActivePersistentAttempt()) {
+    showMessage("Đã có bài đang giữ hoặc đang làm. Đọc lại bài đó trước khi chọn hồ sơ khác.");
+    return;
+  }
   if (persistentMode) clearReviewFlow();
   state.busy = true;
   renderCatalog();
   let profile = null;
   try {
-    profile = persistentMode
-      ? (typeof selectedDomain === "object" && selectedDomain !== null
-        ? selectedDomain
-        : state.catalog.find((entry) => entry.domain === selectedDomain))
-      : null;
-    if (persistentMode && !profile) throw new Error("Chọn một bài đang mở trong danh mục máy chủ.");
+    if (persistentMode && typeof selectedDomain === "object" && selectedDomain !== null) {
+      profile = catalogProfileById(selectedDomain.blueprintVersionId);
+      if (!sameCatalogProfile(profile, selectedDomain)) throw new Error("Hồ sơ không còn khớp với danh mục đang hiển thị.");
+    } else {
+      profile = persistentMode ? fullCatalogProfiles().find((entry) => entry.domain === selectedDomain) : null;
+    }
+    if (persistentMode && (!profile || profile.isShort === true || !profile.available)) throw new Error("Chọn một bài đang mở trong danh mục máy chủ.");
     const response = persistentMode
       ? await api.startDemo(profile.domain, profile.blueprintVersionId)
       : await api.startDemo("MATH");
@@ -1912,9 +2509,19 @@ async function startDemo(selectedDomain = null) {
   } catch (error) {
     if (identityGeneration !== state.identityGeneration) return;
     state.busy = false;
+    if (persistentMode && error?.code === "CONCURRENT_ATTEMPT_EXISTS"
+        && isCanonicalUuid(error.details?.existingAttemptId)) {
+      state.conflictRecovery = { attemptId: error.details.existingAttemptId, identityGeneration, phase: "available" };
+      renderCatalog();
+      focusConflictRecovery();
+      announce("Máy chủ đã báo một bài hiện có. Đọc lại trạng thái trước khi chọn tiếp.");
+      return;
+    }
+    const shorterFound = persistentMode && profile ? await receiveShortAlternative(error, profile, identityGeneration) : false;
+    if (identityGeneration !== state.identityGeneration) return;
     const alternative = persistentMode ? reviewAlternativeFrom(error, profile) : null;
-    if (alternative && state.catalog.some((entry) => entry.domain === profile.domain
-        && entry.blueprintVersionId === profile.blueprintVersionId)) {
+    const currentProfile = profile ? catalogProfileById(profile.blueprintVersionId) : null;
+    if (alternative && sameCatalogProfile(currentProfile, profile)) {
       state.reviewOffer = Object.freeze({
         offerId: window.crypto.randomUUID(),
         domain: profile.domain,
@@ -1930,7 +2537,7 @@ async function startDemo(selectedDomain = null) {
     }
     if (persistentMode && handlePersistentError(error)) return;
     renderCatalog();
-    showMessage(error.message || (persistentMode ? "Không thể bắt đầu bài luyện tập." : "Không thể bắt đầu phiên demo."));
+    if (!shorterFound) showMessage(error.message || (persistentMode ? "Không thể bắt đầu bài luyện tập." : "Không thể bắt đầu phiên demo."));
   }
 }
 
@@ -2453,6 +3060,7 @@ function renderExam() {
   const content = element("div", "exam-content");
   content.dataset.testid = "exam-content";
   const restored = resumeNotice();
+  appendPersonalProfileLabel(content, state.attempt);
   const repeatAlert = element("p", "repeat-alert", persistentMode ? state.attempt.repeatNotice : `Bản demo · ${state.attempt.repeatNotice}`);
 
   const question = state.attempt.slots[state.currentIndex];
@@ -2800,6 +3408,7 @@ function renderResult(result) {
     domain.dataset.testid = "result-domain";
     summary.append(domain);
     appendPracticeModeLabel(summary, state.attempt);
+    appendPersonalProfileLabel(summary, state.attempt);
   }
   summary.append(title, element("p", "result-label", result.label));
   summary.append(element("p", "result-note", persistentMode

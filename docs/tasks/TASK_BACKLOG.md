@@ -1546,6 +1546,26 @@ publication and formal acceptance separately gated.
 
 ## WEB-003 — Catalog, creation and explicit shortage UX
 
+2026-10-26 **B11.1 SHORTER PERSONAL PRACTICE — IMPLEMENTED / AUTOMATED_PASS /
+INDEPENDENTLY_REVIEWED in recorded scopes**, basea986920. Renewed owner delegation
+resolves the presented local selection gate; root selected reviewed Math2/180+
+Science2/180 personalNEW_ONLY, original4/2/4/public/solver/fixed guards unchanged.
+[Authority](../decisions/OPEN_DECISIONS.md#renewed-track-b-choice-authority-and-b11-selection-2026-10-26),
+[scope](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md),
+[actual verification/review/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+Root SQL/SDK/runtime/fixtures/browser/records; native Luna/XHigh UI and boundedPG
+test writer released ownership. Actual distinct read-only gpt-6-luna explorer
+source/PG10/HTTP1/Chrome7checks18captures110responses/Firefox7/18 final review PASS,
+no remaining source blocker; reasoning not exposed, no Sol/Medium execution claim.
+Root assembly83/student44/Bank161/contracts161/critical9/B032/SDK4/launcher13 and
+build/type/drift/import/built PASS; defaultdomains78/review65/fixed86/staffChrome50
+regressions PASS. Same-key/flag-off/rights/H1/history/upgrade/CSRF/BOLA/session and
+truthful unknown metadata verified. Clean reproduction recorded after execution.
+Shared capability defaultsfalse; explicit disposable launcher only. No Reading1,
+shortreview/fixed mode, automatic fallback, content/human/production acceptance.
+Parent scoped engineering presentation complete; qualified human acceptance and
+lawful12/6/12 inventory remain external. Original cards below are historical.
+
 2026-10-26 **B10.1 EXPLICIT FIXED STUDENT PRACTICE — IMPLEMENTED /
 AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scopes**, base3d41eb3.
 Separately selected under standing delegation; no B9 scope extension or human
