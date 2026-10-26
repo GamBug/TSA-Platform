@@ -4280,6 +4280,780 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assemblies": {
+      "post": {
+        "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission, the trusted same-origin staff session, a CSRF token, and an idempotency key. The strict JSON body pins one exact supported one-domain blueprint and capture window; omitted seed stays omitted in the parsed body and the server uses seed 42. The body is limited to 1 MiB. Success returns the immutable historical seal receipt only; it creates no student attempt, assignment, score, release, or student-delivery capability.",
+        "operationId": "staffCreateFixedSeal",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{43}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "pattern": "^[\\x21-\\x7e]{1,128}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "blueprintHash": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "blueprintVersionId": {
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                    "type": "string"
+                  },
+                  "mode": {
+                    "enum": [
+                      "PUBLISHED_FIXED"
+                    ],
+                    "type": "string"
+                  },
+                  "seed": {
+                    "maximum": 4294967295,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "windowMinutes": {
+                    "maximum": 1440,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "mode",
+                  "blueprintVersionId",
+                  "blueprintHash",
+                  "windowMinutes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission, the trusted same-origin staff session, a CSRF token, and an idempotency key. The strict JSON body pins one exact supported one-domain blueprint and capture window; omitted seed stays omitted in the parsed body and the server uses seed 42. The body is limited to 1 MiB. Success returns the immutable historical seal receipt only; it creates no student attempt, assignment, score, release, or student-delivery capability.",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "assemblyRunId": {
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                      "type": "string"
+                    },
+                    "availableFrom": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "availableUntil": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "blueprintHash": {
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "blueprintVersionId": {
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                      "type": "string"
+                    },
+                    "capturedAt": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "currentEligibility": {
+                      "enum": [
+                        "NOT_REVALIDATED"
+                      ],
+                      "type": "string"
+                    },
+                    "formHash": {
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "formId": {
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                      "type": "string"
+                    },
+                    "manifestHash": {
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "mode": {
+                      "enum": [
+                        "PUBLISHED_FIXED"
+                      ],
+                      "type": "string"
+                    },
+                    "requiredThrough": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "reuseMode": {
+                      "enum": [
+                        "FIXED_AS_PUBLISHED"
+                      ],
+                      "type": "string"
+                    },
+                    "schemaVersion": {
+                      "enum": [
+                        "staff-fixed-seal-receipt/1"
+                      ],
+                      "type": "string"
+                    },
+                    "sealedAt": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "seed": {
+                      "maximum": 4294967295,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "state": {
+                      "enum": [
+                        "SEALED"
+                      ],
+                      "type": "string"
+                    },
+                    "studentDeliverySupported": {
+                      "enum": [
+                        false
+                      ],
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "assemblyRunId",
+                    "formId",
+                    "blueprintVersionId",
+                    "blueprintHash",
+                    "mode",
+                    "reuseMode",
+                    "seed",
+                    "manifestHash",
+                    "formHash",
+                    "state",
+                    "capturedAt",
+                    "sealedAt",
+                    "availableFrom",
+                    "availableUntil",
+                    "requiredThrough",
+                    "currentEligibility",
+                    "studentDeliverySupported"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Historical receipt for the committed fixed-form seal",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewMalformedJsonResponse"
+                }
+              }
+            },
+            "description": "Request body is not valid JSON",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewCsrfOrForbiddenResponse"
+                }
+              }
+            },
+            "description": "CSRF validation failed or current principal lacks EXAM_MANAGER or exam.assembly.write permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewNotFoundResponse"
+                }
+              }
+            },
+            "description": "Pinned blueprint version is missing or not visible",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewConflictResponse"
+                }
+              }
+            },
+            "description": "Blueprint pin, idempotency key, or concurrent stock snapshot conflicts",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewPayloadTooLargeResponse"
+                }
+              }
+            },
+            "description": "Request body exceeds the 1 MiB limit",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "error": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "VALIDATION_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "additionalProperties": false,
+                              "properties": {},
+                              "type": "object"
+                            },
+                            "message": {
+                              "enum": [
+                                "Request is invalid"
+                              ],
+                              "type": "string"
+                            },
+                            "requestId": {
+                              "maxLength": 256,
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message",
+                            "requestId",
+                            "details"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "error": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "INSUFFICIENT_ELIGIBLE_INVENTORY"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "additionalProperties": false,
+                              "properties": {},
+                              "type": "object"
+                            },
+                            "message": {
+                              "maxLength": 1024,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "requestId": {
+                              "maxLength": 256,
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message",
+                            "requestId",
+                            "details"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "error": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "CONSTRAINT_CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "additionalProperties": false,
+                              "properties": {},
+                              "type": "object"
+                            },
+                            "message": {
+                              "maxLength": 1024,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "requestId": {
+                              "maxLength": 256,
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message",
+                            "requestId",
+                            "details"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "error": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "SEARCH_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            "details": {
+                              "additionalProperties": false,
+                              "properties": {},
+                              "type": "object"
+                            },
+                            "message": {
+                              "maxLength": 1024,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "requestId": {
+                              "maxLength": 256,
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message",
+                            "requestId",
+                            "details"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Request is invalid or bounded assembly reports one typed solver outcome",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSubmitReviewTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stock capture or receipt state is unavailable or uncertain",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Seal one new fixed form from current eligible synthetic stock"
+      }
+    },
     "/api/v1/assembly-runs": {
       "get": {
         "description": "Requires a current BANK_MANAGER principal with the existing bank.diagnostics.read permission. Accepts no query, request body, or request headers and returns at most twenty captured fixed-reference runs; personal and unsupported runs are outside this scope.",
@@ -5325,6 +6099,916 @@
           }
         },
         "summary": "Run an explicit canonical dataset preflight"
+      }
+    },
+    "/api/v1/fixed-forms": {
+      "get": {
+        "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission. Accepts no query, request body, or request headers; it returns at most twenty safe fixed-form metadata rows and does not revalidate historical eligibility, rights, or student-delivery capability.",
+        "operationId": "staffFixedForms",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "accessBasis": {
+                      "enum": [
+                        "EXAM_MANAGER"
+                      ],
+                      "type": "string"
+                    },
+                    "environment": {
+                      "enum": [
+                        "LOCAL_SYNTHETIC_ONLY"
+                      ],
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "assemblyRunId": {
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                            "type": "string"
+                          },
+                          "availableFrom": {
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                            "type": "string"
+                          },
+                          "availableUntil": {
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                            "type": "string"
+                          },
+                          "blueprintHash": {
+                            "pattern": "^sha256:[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "blueprintVersionId": {
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                            "type": "string"
+                          },
+                          "capturedAt": {
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                            "type": "string"
+                          },
+                          "currentEligibility": {
+                            "enum": [
+                              "NOT_REVALIDATED"
+                            ],
+                            "type": "string"
+                          },
+                          "domain": {
+                            "enum": [
+                              "MATH",
+                              "READING",
+                              "SCIENCE"
+                            ],
+                            "type": "string"
+                          },
+                          "durationSeconds": {
+                            "maximum": 21600,
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "formHash": {
+                            "pattern": "^sha256:[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "formId": {
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                            "type": "string"
+                          },
+                          "manifestHash": {
+                            "pattern": "^sha256:[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "mode": {
+                            "enum": [
+                              "PUBLISHED_FIXED"
+                            ],
+                            "type": "string"
+                          },
+                          "questionCount": {
+                            "maximum": 4,
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "requiredThrough": {
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                            "type": "string"
+                          },
+                          "reuseMode": {
+                            "enum": [
+                              "FIXED_AS_PUBLISHED"
+                            ],
+                            "type": "string"
+                          },
+                          "schemaVersion": {
+                            "enum": [
+                              "staff-fixed-seal-receipt/1"
+                            ],
+                            "type": "string"
+                          },
+                          "sealedAt": {
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                            "type": "string"
+                          },
+                          "seed": {
+                            "maximum": 4294967295,
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "state": {
+                            "enum": [
+                              "SEALED"
+                            ],
+                            "type": "string"
+                          },
+                          "studentDeliverySupported": {
+                            "enum": [
+                              false
+                            ],
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "schemaVersion",
+                          "assemblyRunId",
+                          "formId",
+                          "blueprintVersionId",
+                          "blueprintHash",
+                          "mode",
+                          "reuseMode",
+                          "seed",
+                          "manifestHash",
+                          "formHash",
+                          "state",
+                          "capturedAt",
+                          "sealedAt",
+                          "availableFrom",
+                          "availableUntil",
+                          "requiredThrough",
+                          "currentEligibility",
+                          "studentDeliverySupported",
+                          "domain",
+                          "questionCount",
+                          "durationSeconds"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "limit": {
+                      "enum": [
+                        20
+                      ],
+                      "type": "number"
+                    },
+                    "observedAt": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "schemaVersion": {
+                      "enum": [
+                        "staff-fixed-forms/1"
+                      ],
+                      "type": "string"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "environment",
+                    "accessBasis",
+                    "observedAt",
+                    "limit",
+                    "truncated",
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Newest-first bounded metadata for sealed fixed forms",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks EXAM_MANAGER or exam.assembly.write permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected query or request body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored fixed-form metadata is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List the latest sealed fixed-form metadata"
+      }
+    },
+    "/api/v1/fixed-forms/{formId}": {
+      "get": {
+        "description": "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission. Accepts no query, request body, or request headers. Returns one exact stored fixed-form projection with fresh availability metadata; unknown, personal, reference-only, rehearsal-only, and unsupported legacy forms are not exposed.",
+        "operationId": "staffFixedForm",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "accessBasis": {
+                      "enum": [
+                        "EXAM_MANAGER"
+                      ],
+                      "type": "string"
+                    },
+                    "availability": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "availableFrom": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "availableUntil": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "revision": {
+                          "exclusiveMinimum": 0,
+                          "type": "integer"
+                        },
+                        "withdrawnAt": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "revision",
+                        "availableFrom",
+                        "availableUntil",
+                        "withdrawnAt"
+                      ],
+                      "type": "object"
+                    },
+                    "environment": {
+                      "enum": [
+                        "LOCAL_SYNTHETIC_ONLY"
+                      ],
+                      "type": "string"
+                    },
+                    "form": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "assemblyRunId": {
+                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                          "type": "string"
+                        },
+                        "availableFrom": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "availableUntil": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "blueprintHash": {
+                          "pattern": "^sha256:[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "blueprintVersionId": {
+                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                          "type": "string"
+                        },
+                        "capturedAt": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "currentEligibility": {
+                          "enum": [
+                            "NOT_REVALIDATED"
+                          ],
+                          "type": "string"
+                        },
+                        "domain": {
+                          "enum": [
+                            "MATH",
+                            "READING",
+                            "SCIENCE"
+                          ],
+                          "type": "string"
+                        },
+                        "durationSeconds": {
+                          "maximum": 21600,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "formHash": {
+                          "pattern": "^sha256:[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "formId": {
+                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                          "type": "string"
+                        },
+                        "manifestHash": {
+                          "pattern": "^sha256:[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "mode": {
+                          "enum": [
+                            "PUBLISHED_FIXED"
+                          ],
+                          "type": "string"
+                        },
+                        "questionCount": {
+                          "maximum": 4,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "requiredThrough": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "reuseMode": {
+                          "enum": [
+                            "FIXED_AS_PUBLISHED"
+                          ],
+                          "type": "string"
+                        },
+                        "schemaVersion": {
+                          "enum": [
+                            "staff-fixed-seal-receipt/1"
+                          ],
+                          "type": "string"
+                        },
+                        "sealedAt": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                          "type": "string"
+                        },
+                        "seed": {
+                          "maximum": 4294967295,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "state": {
+                          "enum": [
+                            "SEALED"
+                          ],
+                          "type": "string"
+                        },
+                        "studentDeliverySupported": {
+                          "enum": [
+                            false
+                          ],
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "schemaVersion",
+                        "assemblyRunId",
+                        "formId",
+                        "blueprintVersionId",
+                        "blueprintHash",
+                        "mode",
+                        "reuseMode",
+                        "seed",
+                        "manifestHash",
+                        "formHash",
+                        "state",
+                        "capturedAt",
+                        "sealedAt",
+                        "availableFrom",
+                        "availableUntil",
+                        "requiredThrough",
+                        "currentEligibility",
+                        "studentDeliverySupported",
+                        "domain",
+                        "questionCount",
+                        "durationSeconds"
+                      ],
+                      "type": "object"
+                    },
+                    "observedAt": {
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                      "type": "string"
+                    },
+                    "schemaVersion": {
+                      "enum": [
+                        "staff-fixed-form/1"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "environment",
+                    "accessBasis",
+                    "observedAt",
+                    "form",
+                    "availability"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Safe metadata for one exact sealed fixed form",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffUnauthenticatedResponse"
+                }
+              }
+            },
+            "description": "No authenticated session",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffForbiddenResponse"
+                }
+              }
+            },
+            "description": "Current principal lacks EXAM_MANAGER or exam.assembly.write permission",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffNotFoundResponse"
+                }
+              }
+            },
+            "description": "Form is unknown or outside the supported fixed-seal scope",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Malformed path or unexpected query/body",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffTemporarilyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Stored fixed-form detail is unavailable",
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "no-store"
+                  ],
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "Origin"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "nosniff"
+                  ],
+                  "type": "string"
+                }
+              },
+              "X-Request-Id": {
+                "required": true,
+                "schema": {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read safe metadata and fresh availability for one sealed fixed form"
       }
     },
     "/api/v1/fixed-rehearsal-blueprints": {

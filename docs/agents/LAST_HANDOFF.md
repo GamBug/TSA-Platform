@@ -1,3 +1,45 @@
+# Handoff — B9.1 local fixed sealing verified; clean checkpoint pending
+
+2026-10-26 Asia/Bangkok, feat/track-b-data-auth, base752516f. Root sole integrator/
+shared-record owner. Owner's immediate “next.” reply to the explicit whole-B9 local
+implementation question recorded as scoped go-ahead, not human rights/publication
+or student fixed delivery approval. Owner AGENTS.md/untracked research preserved.
+
+Native Luna/XHigh DTO/UI writers and upgrade/race writer released all reservations.
+Root owns final integration, SQL/backend/HTTP/fixtures/browser/docs. Actual separate
+Sol6.1/Medium read-only reviewer completed final source/PG/Chrome/supplement review,
+no unresolved findings; no independent Firefox or clean clone execution claimed.
+[Exact implemented scope/commands/findings/attribution](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
+
+Implemented023 immutable private fixed sidecar/current-EXAM snapshots+commit+safe
+metadata and exact B7 form exclusion. Three additive private routes, current stock/
+rights/version/bundle/conflict/quota/hash checks, atomic real form with no attempts/
+history. Frozen student/public/personal/reference vectors unchanged. Shared flags
+false; disposable demo creation/read true; retained metadata-only. Disable creation
+retains existing receipt replay/read support. No raw keys/candidate IDs in HTTP.
+
+UI native explicit real-form confirmation/cancel/Escape, uncertain samebody/key
+retry, historical receipt distinct from GET-only safe metadata, current stored
+availability, reload discovery, session/focus/mobile fences. Root repairs all review
+findings and genuine integration failures; no automatic reuse/profile/delivery.
+
+Root actual focused12/fullBank161/contracts161/assembly63/Chrome50(34captures)/
+Firefox18(42captures)/defaultdomains78/type/build/drift/import/built PASS. Writers
+DTO5/upgrade1/races4/B032 PASS. Independent source/core7+races4/upgrade1/DTO5/Chrome50
+PASS, stable final hashes in evidence record, no unresolved findings. Rights revoked
+and corrected-version publication races proved alongside both quarantine orders;
+real personal404/actor-key isolation/disabled/revoked-role replay denial included.
+Old-data/privilege/B7/B8 populated upgrade preserves existing rows/outputs. Manual
+qualified accessibility/native zoom and lawful12/6/12 stock still require humans.
+
+Next finish final docs/launcher checks, checkpoint owned scope, fresh no-hardlink
+locked install/build/focused12/staff Chrome+Firefox/defaultdomains/drift/import/
+docs verification; record exact commit/clean status. Then next bounded Track B
+scope concerns explicit fixed STUDENT catalog/consent/assignment on the existing
+frozen contracts. B9 does not authorize silently enabling that excluded flow.
+No paidAPI/Astra/live student inference/push/merge/deploy/human approval fabrication.
+Historical prior handoffs below preserve completed work; do not redo it.
+
 # Handoff — WEB-002 staff session binding and B9 design review
 
 - Date/role:2026-10-26 Asia/Bangkok, root Codex sole writer/integrator.

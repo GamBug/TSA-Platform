@@ -30,6 +30,28 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
   push/remote merge/production deployment or unrelated destructive operations.
   These existing prohibitions are retained. Do not label AI decisions human review.
 
+## WEB-002 B9.1 — scoped owner go-ahead,2026-10-26
+
+- Authorizing identity: human repository owner,2026-10-26 Asia/Bangkok.
+- Durable conversational evidence: root explicitly asked, “Approve B9.1 as a whole
+  for local implementation?” and linked the independently reviewed proposal. The
+  owner's immediate reply was “next.” Root treats this direct response as an
+  instruction to proceed with that specific proposal, consistent with the standing
+  engineering-choice delegation. It is not a claim that the owner used the word
+  “approve”, whole-ADR approval, real-content attestation or production authorization.
+- Scope is exactly the proposal at752516f (Git blob
+  f38b88baf023503b85c779938ac5707ef3aad6fc): new local privileged fixed seal and safe
+  EXAM_MANAGER metadata list/detail, bounded current eligible synthetic stock,
+  private immutable snapshots, B7 reference-only separation and B8 compatibility.
+  Student fixed delivery, rights edits/qualified human approval/publication remain
+  excluded. Public/student and existing personal contracts remain frozen.
+- Root accountable for SQL/services/HTTP/fixtures/browser/integration/records;
+  disjoint native Luna/XHigh private DTO/UI writers may implement their reserved
+  scopes, separate available Sol6.1/Medium read-only final review. Existing subscriptions
+  only. B9 IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in its exact scope;
+  [runtime/upgrade/browser evidence](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Prior proposal
+  status below is historical and superseded only within this recorded scope.
+
 ## WEB-002 B9.1 — proposed fixed sealing contract,2026-10-26
 
 - PROPOSED / HUMAN_APPROVAL_REQUIRED for the new privileged API and SQL operations;

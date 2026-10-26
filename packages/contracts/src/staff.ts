@@ -875,6 +875,176 @@ export const StaffFixedRehearsalListSchema = z
 
 export type StaffFixedRehearsalList = z.infer<typeof StaffFixedRehearsalListSchema>;
 
+const StaffFixedSealWindowMinutesSchema = z.number().int().min(1).max(1_440);
+const StaffFixedSealModeSchema = z.literal("PUBLISHED_FIXED");
+const StaffFixedSealReuseModeSchema = z.literal("FIXED_AS_PUBLISHED");
+const StaffFixedSealStateSchema = z.literal("SEALED");
+const FixedFormDomainSchema = z.enum(["MATH", "READING", "SCIENCE"]);
+
+/** Strict private command input for sealing one exact supported fixed blueprint. */
+export const StaffFixedSealRequestSchema = z
+  .object({
+    mode: StaffFixedSealModeSchema,
+    blueprintVersionId: UUID,
+    blueprintHash: Hash,
+    windowMinutes: StaffFixedSealWindowMinutesSchema,
+    seed: z.number().int().min(0).max(0xffff_ffff).optional(),
+  })
+  .strict();
+
+export type StaffFixedSealRequest = z.infer<typeof StaffFixedSealRequestSchema>;
+
+const StaffFixedSealReceiptFieldsSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-seal-receipt/1"),
+    assemblyRunId: UUID,
+    formId: UUID,
+    blueprintVersionId: UUID,
+    blueprintHash: Hash,
+    mode: StaffFixedSealModeSchema,
+    reuseMode: StaffFixedSealReuseModeSchema,
+    seed: z.number().int().min(0).max(0xffff_ffff),
+    manifestHash: Hash,
+    formHash: Hash,
+    state: StaffFixedSealStateSchema,
+    capturedAt: UTCDateTime,
+    sealedAt: UTCDateTime,
+    availableFrom: UTCDateTime,
+    availableUntil: UTCDateTime,
+    requiredThrough: UTCDateTime,
+    currentEligibility: z.literal("NOT_REVALIDATED"),
+    studentDeliverySupported: z.literal(false),
+  })
+  .strict();
+
+function validateStaffFixedSealReceipt(
+  value: z.output<typeof StaffFixedSealReceiptFieldsSchema>,
+  context: z.RefinementCtx,
+): void {
+  const capturedAt = utcMicroseconds(value.capturedAt);
+  const sealedAt = utcMicroseconds(value.sealedAt);
+  const availableFrom = utcMicroseconds(value.availableFrom);
+  const availableUntil = utcMicroseconds(value.availableUntil);
+  const requiredThrough = utcMicroseconds(value.requiredThrough);
+
+  if (capturedAt !== null && availableFrom !== null && capturedAt !== availableFrom) {
+    context.addIssue({ code: "custom", path: ["availableFrom"], message: "Availability must start at the captured server time" });
+  }
+  if (capturedAt !== null && sealedAt !== null && sealedAt < capturedAt) {
+    context.addIssue({ code: "custom", path: ["sealedAt"], message: "Sealing cannot precede capture" });
+  }
+  if (sealedAt !== null && availableUntil !== null && sealedAt >= availableUntil) {
+    context.addIssue({ code: "custom", path: ["sealedAt"], message: "Sealing must precede the availability end" });
+  }
+
+  if (availableFrom !== null && availableUntil !== null) {
+    const windowMicros = availableUntil - availableFrom;
+    if (windowMicros < 60_000_000n || windowMicros > 86_400_000_000n || windowMicros % 60_000_000n !== 0n) {
+      context.addIssue({ code: "custom", path: ["availableUntil"], message: "Availability must span an exact one-to-1440-minute window" });
+    }
+  }
+
+  if (availableUntil !== null && requiredThrough !== null) {
+    const horizonMicros = requiredThrough - availableUntil;
+    if (horizonMicros < 601_000_000n || horizonMicros > 22_200_000_000n || horizonMicros % 1_000_000n !== 0n) {
+      context.addIssue({
+        code: "custom",
+        path: ["requiredThrough"],
+        message: "Required horizon must include 600 seconds plus an integral one-to-21600-second domain duration",
+      });
+    }
+  }
+}
+
+/** Historical success receipt only; it contains no request ID, environment or window length. */
+export const StaffFixedSealReceiptSchema = StaffFixedSealReceiptFieldsSchema.superRefine(validateStaffFixedSealReceipt);
+
+export type StaffFixedSealReceipt = z.infer<typeof StaffFixedSealReceiptSchema>;
+
+const StaffFixedFormListItemSchema = StaffFixedSealReceiptFieldsSchema
+  .extend({
+    domain: FixedFormDomainSchema,
+    questionCount: z.number().int().min(1).max(4),
+    durationSeconds: z.number().int().min(1).max(21_600).refine(Number.isSafeInteger, "Expected a positive safe integer"),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    validateStaffFixedSealReceipt(value, context);
+    const availableUntil = utcMicroseconds(value.availableUntil);
+    const requiredThrough = utcMicroseconds(value.requiredThrough);
+    if (availableUntil !== null && requiredThrough !== null &&
+        requiredThrough - availableUntil !== BigInt(600 + value.durationSeconds) * 1_000_000n) {
+      context.addIssue({
+        code: "custom",
+        path: ["requiredThrough"],
+        message: "Required horizon must equal 600 seconds plus the fixed-form duration",
+      });
+    }
+    const expectedCount = value.domain === "READING" ? 2 : 4;
+    if (value.questionCount !== expectedCount) {
+      context.addIssue({ code: "custom", path: ["questionCount"], message: "Question count must match the fixed-form domain" });
+    }
+  });
+
+/** Flat receipt-plus-domain metadata for sealed forms; no candidate or private source fields. */
+export const StaffFixedFormListSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-forms/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("EXAM_MANAGER"),
+    observedAt: UTCDateTime,
+    limit: z.literal(20),
+    truncated: z.boolean(),
+    items: z.array(StaffFixedFormListItemSchema).max(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seenFormIds = new Set<string>();
+    value.items.forEach((item, index) => {
+      if (seenFormIds.has(item.formId)) {
+        context.addIssue({ code: "custom", path: ["items", index, "formId"], message: "Form IDs must be unique" });
+      }
+      seenFormIds.add(item.formId);
+
+      if (index === 0) return;
+      const previous = value.items[index - 1]!;
+      if (previous.sealedAt < item.sealedAt || previous.sealedAt === item.sealedAt && previous.formId <= item.formId) {
+        context.addIssue({ code: "custom", path: ["items", index], message: "Forms must be ordered newest first by sealed time and form ID" });
+      }
+    });
+
+    if (value.truncated && value.items.length !== 20) {
+      context.addIssue({ code: "custom", path: ["items"], message: "Truncated form results must contain the full twenty-row limit" });
+    }
+    enforceStaffResponseByteLimit(value, context, "Fixed form list");
+  });
+
+export type StaffFixedFormList = z.infer<typeof StaffFixedFormListSchema>;
+
+const StaffFixedFormAvailabilitySchema = z
+  .object({
+    revision: PositiveSafeInteger,
+    availableFrom: UTCDateTime,
+    availableUntil: UTCDateTime,
+    withdrawnAt: UTCDateTime.nullable(),
+  })
+  .strict();
+
+/** Exact-ID safe metadata; availability is a fresh read, separate from the historical receipt. */
+export const StaffFixedFormDetailSchema = z
+  .object({
+    schemaVersion: z.literal("staff-fixed-form/1"),
+    environment: z.literal("LOCAL_SYNTHETIC_ONLY"),
+    accessBasis: z.literal("EXAM_MANAGER"),
+    observedAt: UTCDateTime,
+    form: StaffFixedFormListItemSchema,
+    availability: StaffFixedFormAvailabilitySchema,
+  })
+  .strict()
+  .superRefine((value, context) => enforceStaffResponseByteLimit(value, context, "Fixed form detail"));
+
+export type StaffFixedFormDetail = z.infer<typeof StaffFixedFormDetailSchema>;
+
 const StaffFixedRehearsalDiagnosticSectionSchema = z.discriminatedUnion("section", [
   z.object({ section: z.literal("MATH"), requiredCount: z.literal(4), selectedCount: z.number().int().min(0).max(4) }).strict(),
   z.object({ section: z.literal("READING"), requiredCount: z.literal(2), selectedCount: z.number().int().min(0).max(2) }).strict(),

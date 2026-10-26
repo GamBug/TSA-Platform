@@ -43,9 +43,12 @@ describe("dedicated private staff artifacts", () => {
     const document = JSON.parse(artifact) as StaffDocument;
     assert.equal(document.openapi, "3.1.0");
     assert.deepEqual(Object.keys(document.paths ?? {}), [
+      "/api/v1/assemblies",
       "/api/v1/assembly-runs",
       "/api/v1/assembly-runs/{assemblyRunId}/diagnostics",
       "/api/v1/datasets/preflight",
+      "/api/v1/fixed-forms",
+      "/api/v1/fixed-forms/{formId}",
       "/api/v1/fixed-rehearsal-blueprints",
       "/api/v1/fixed-rehearsals",
       "/api/v1/fixed-rehearsals/{rehearsalId}",

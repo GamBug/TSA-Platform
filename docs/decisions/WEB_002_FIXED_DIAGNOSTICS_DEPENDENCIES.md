@@ -1,5 +1,12 @@
 # WEB-002 remaining fixed-run diagnostics dependencies
 
+Updated2026-10-26: B9.1 local staff sealing and safe metadata now implemented with
+[recorded scoped go-ahead](OPEN_DECISIONS.md#web-002-b91--scoped-owner-go-ahead2026-10-26)
+and [actual verification](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
+B7 form-linked exclusions preserve its reference-only boundary. B8 still creates
+no form. Fixed STUDENT assignment/delivery remains a separate next scope. Prior
+proposal-only paragraphs below are history, not current missing staff sealing.
+
 2026-10-24, source review at3251362 and B6 implementation c158d57.
 Updated2026-10-25: the additive fixed manifest/reference/replay prerequisite is
 implemented and independently reviewed in [B7.1](WEB_002_B7_FIXED_REFERENCE_DECISION.md),

@@ -327,6 +327,39 @@ separate milestone. Current rights/human review/publication and real12/6/12 star
 inventory remain external acceptance requirements.
 [Executed checks and limitations](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md).
 
+### Seal and inspect a fixed form (B9.1)
+
+Use a fresh disposable `demo:staff:review` run if B8 quarantine already removed
+stock. Its automatic setup provides four technically eligible original synthetic
+MATH questions. No database patch or manual API call is required. The retained
+workspace exposes stored metadata but does not enable new sealing by default.
+
+1. Sign in as **Synthetic exam manager (EXAM_MANAGER)**. Choose **Seal a fixed
+   form**, select the supported MATH4 blueprint and keep the60-minute window.
+2. Choose **Review seal confirmation**. Inspect the version/hash, domain/count/
+   duration, window and real-form warning. Cancel/Escape does nothing. Open it
+   again and choose **Seal fixed form** explicitly.
+3. Read the historical SEALED receipt, form/run IDs, hashes and server times. The
+   operation creates an immutable form and creates no student attempt, assignment
+   history, score or delivery. A lost acknowledgement is uncertain; **Retry the
+   same seal request** keeps its original body/key and cannot create a duplicate.
+4. Choose **Sealed fixed forms** explicitly. Open **View safe metadata** for that
+   exact form. Historical receipt and freshly observed stored availability are
+   separate. Neither revalidates current rights or permits student access.
+5. Reload, reopen the staff workspace and discover the same form in the list.
+   Reload does not seal again. Read failures offer a GET-only retry; no replacement
+   form is silently created. Only the latest20 records appear, with an older-record
+   notice when applicable.
+6. To show a current restriction, use the existing manager quarantine demonstration
+   on eligible synthetic stock, then return as EXAM_MANAGER. The original seal
+   remains immutable; its freshly observed availability may show withdrawal, and
+   a new seal request can truthfully report shortage. Do not treat the old receipt
+   as proof of current delivery or legal rights.
+
+The current student catalog still offers personal practice/review only. Fixed
+student delivery, scheduling edits, real-content approval and publication controls
+are outside B9. [Executed sealing checks and limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
+
 ## Reproduce verification
 
 From the installed repository root:

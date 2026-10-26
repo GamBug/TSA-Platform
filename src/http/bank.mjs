@@ -1,3 +1,4 @@
+import { createFixedFormSealingService } from '../modules/bank/fixed-form-sealing.mjs';
 import { createFixedStockRehearsalService } from '../modules/bank/fixed-stock-rehearsals.mjs';
 import { randomUUID } from 'node:crypto';
 import { isIP } from 'node:net';
@@ -110,6 +111,7 @@ function publicError(error) {
     ]);
     const code = aliases.get(error.code) ?? error.code;
     const allowedCodes = new Set([
+      'INSUFFICIENT_ELIGIBLE_INVENTORY', 'SEARCH_EXHAUSTED',
       'VALIDATION_ERROR', 'UNAUTHENTICATED', 'FORBIDDEN', 'CSRF_FAILED', 'NOT_FOUND',
       'IDEMPOTENCY_CONFLICT', 'REVISION_CONFLICT',
       'CONCURRENT_MODIFICATION', 'CONSTRAINT_CONFLICT', 'RIGHTS_BLOCKED', 'PAYLOAD_TOO_LARGE',
@@ -131,6 +133,8 @@ function publicError(error) {
 }
 
 const ERROR_MESSAGES = Object.freeze({
+  INSUFFICIENT_ELIGIBLE_INVENTORY: 'Current eligible inventory cannot satisfy this blueprint',
+  SEARCH_EXHAUSTED: 'The bounded search ended without establishing feasibility',
   MALFORMED_JSON: 'Request body is not valid JSON',
   NOT_FOUND: 'Resource not found',
   PAYLOAD_TOO_LARGE: 'Request body is too large',
@@ -172,7 +176,7 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false, enableFixedSealing = false, enableFixedSealMetadata = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
@@ -184,6 +188,9 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
   if (typeof enableDatasetPreflight !== 'boolean') throw new TypeError('Private dataset preflight opt-in must be boolean');
   if (typeof enableFixedDiagnostics !== 'boolean') throw new TypeError('Fixed diagnostics opt-in must be boolean');
   if (typeof enableFixedStockRehearsal !== 'boolean') throw new TypeError('Fixed stock opt-in must be boolean');
+  if (typeof enableFixedSealing !== 'boolean' || typeof enableFixedSealMetadata !== 'boolean') throw new TypeError('Fixed sealing opt-ins must be boolean');
+  const fixedSeals = enableFixedSealing || enableFixedSealMetadata
+    ? await createFixedFormSealingService({bankPool, identityService, enableCreation: enableFixedSealing}) : null;
   const fixedStock = enableFixedStockRehearsal ? await createFixedStockRehearsalService({ bankPool, identityService }) : null;
   const fixedDiagnostics = enableFixedDiagnostics ? await createFixedDiagnosticsService({ bankPool, identityService }) : null;
   const datasetPreflight = enableDatasetPreflight ? await createStaffDatasetPreflightService({ bankPool, identityService }) : null;
@@ -202,6 +209,25 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
       if (!requestIsTrusted(request, trusted)) return errorResponse(403, 'FORBIDDEN', requestId);
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
+      if (fixedSeals && (url.pathname === '/api/v1/assemblies' || url.pathname === '/api/v1/fixed-forms'
+          || /^\/api\/v1\/fixed-forms\/[^/]+$/.test(url.pathname))) {
+        const command = method === 'POST' && url.pathname === '/api/v1/assemblies';
+        if (!command && (method !== 'GET' || url.pathname === '/api/v1/assemblies')) return errorResponse(404, 'NOT_FOUND', requestId);
+        const principal = await identityService.authenticate(request);
+        if (!principal) return errorResponse(401, 'UNAUTHENTICATED', requestId);
+        if (!principal.roles?.includes('EXAM_MANAGER') || !identityService.mayPerform(principal, 'exam.assembly.write')) return errorResponse(403, 'FORBIDDEN', requestId);
+        if (url.search) return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        if (command) {
+          const verified = await identityService.validateMutation(request);
+          if (!verified) return errorResponse(403, 'CSRF_FAILED', requestId);
+          const result = await fixedSeals.create(verified, await readJson(request), request.headers.get('idempotency-key'));
+          return jsonResponse(result.status, result.body, requestId);
+        }
+        if (request.body !== null || request.headers.has('transfer-encoding')
+          || (request.headers.has('content-length') && request.headers.get('content-length') !== '0')) return errorResponse(422, 'VALIDATION_ERROR', requestId);
+        const value = url.pathname === '/api/v1/fixed-forms' ? await fixedSeals.list(principal) : await fixedSeals.read(principal, url.pathname.split('/')[4]);
+        return jsonResponse(200, value, requestId);
+      }
       if (fixedStock && (url.pathname === '/api/v1/fixed-rehearsal-blueprints'
           || url.pathname === '/api/v1/fixed-rehearsals' || /^\/api\/v1\/fixed-rehearsals\/[^/]+$/.test(url.pathname))) {
         const command = method === 'POST' && url.pathname === '/api/v1/fixed-rehearsals';

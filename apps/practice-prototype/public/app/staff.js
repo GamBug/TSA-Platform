@@ -98,6 +98,23 @@ const FIXED_REHEARSAL_FAILURE_CODES = Object.freeze([
   'CONSTRAINT_CONFLICT', 'INSUFFICIENT_ELIGIBLE_INVENTORY', 'SEARCH_EXHAUSTED',
 ]);
 const FIXED_REHEARSAL_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
+const FIXED_SEAL_RECEIPT_KEYS = Object.freeze([
+  'schemaVersion', 'assemblyRunId', 'formId', 'blueprintVersionId', 'blueprintHash', 'mode', 'reuseMode',
+  'seed', 'manifestHash', 'formHash', 'state', 'capturedAt', 'sealedAt', 'availableFrom', 'availableUntil',
+  'requiredThrough', 'currentEligibility', 'studentDeliverySupported',
+]);
+const FIXED_FORM_ITEM_KEYS = Object.freeze([
+  ...FIXED_SEAL_RECEIPT_KEYS, 'domain', 'questionCount', 'durationSeconds',
+]);
+const FIXED_FORM_LIST_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'limit', 'truncated', 'items',
+]);
+const FIXED_FORM_DETAIL_KEYS = Object.freeze([
+  'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'form', 'availability',
+]);
+const FIXED_FORM_AVAILABILITY_KEYS = Object.freeze([
+  'revision', 'availableFrom', 'availableUntil', 'withdrawnAt',
+]);
 const REVIEW_HISTORY_KEYS = Object.freeze([
   'schemaVersion', 'environment', 'accessBasis', 'observedAt', 'version',
   'workflowState', 'qualification', 'publicationEligibility', 'limit', 'truncated', 'reviews',
@@ -274,6 +291,110 @@ function fixedRehearsalBlueprintListSupportsResponse(list) {
     versionIds.add(item.blueprintVersionId);
     return true;
   });
+}
+
+function fixedSealReceiptSupportsResponse(receipt, { blueprint = null, windowMinutes = null } = {}) {
+  if (!hasExactKeys(receipt, FIXED_SEAL_RECEIPT_KEYS)
+    || receipt.schemaVersion !== 'staff-fixed-seal-receipt/1'
+    || typeof receipt.assemblyRunId !== 'string' || !STAFF_UUID_PATTERN.test(receipt.assemblyRunId)
+    || typeof receipt.formId !== 'string' || !STAFF_UUID_PATTERN.test(receipt.formId)
+    || typeof receipt.blueprintVersionId !== 'string' || !STAFF_UUID_PATTERN.test(receipt.blueprintVersionId)
+    || typeof receipt.blueprintHash !== 'string' || !STAFF_HASH_PATTERN.test(receipt.blueprintHash)
+    || receipt.mode !== 'PUBLISHED_FIXED' || receipt.reuseMode !== 'FIXED_AS_PUBLISHED'
+    || !Number.isSafeInteger(receipt.seed) || receipt.seed < 0 || receipt.seed > 0xffff_ffff
+    || typeof receipt.manifestHash !== 'string' || !STAFF_HASH_PATTERN.test(receipt.manifestHash)
+    || typeof receipt.formHash !== 'string' || !STAFF_HASH_PATTERN.test(receipt.formHash)
+    || receipt.state !== 'SEALED'
+    || utcInstantMicros6(receipt.capturedAt) === null
+    || utcInstantMicros6(receipt.sealedAt) === null
+    || utcInstantMicros6(receipt.availableFrom) === null
+    || utcInstantMicros6(receipt.availableUntil) === null
+    || utcInstantMicros6(receipt.requiredThrough) === null
+    || receipt.currentEligibility !== 'NOT_REVALIDATED'
+    || receipt.studentDeliverySupported !== false
+    || !boundedJsonResponse(receipt)) return false;
+
+  const capturedAt = utcInstantMicros6(receipt.capturedAt);
+  const sealedAt = utcInstantMicros6(receipt.sealedAt);
+  const availableFrom = utcInstantMicros6(receipt.availableFrom);
+  const availableUntil = utcInstantMicros6(receipt.availableUntil);
+  const requiredThrough = utcInstantMicros6(receipt.requiredThrough);
+  if (capturedAt > sealedAt || sealedAt >= availableUntil || availableFrom !== capturedAt) return false;
+  if (blueprint && (receipt.blueprintVersionId !== blueprint.blueprintVersionId
+    || receipt.blueprintHash !== blueprint.contentHash)) return false;
+  if (windowMinutes !== null && (!Number.isSafeInteger(windowMinutes) || windowMinutes < 1 || windowMinutes > 1440)) return false;
+  const expectedAvailableUntil = capturedAt + BigInt(windowMinutes ?? 1) * 60_000_000n;
+  if (windowMinutes !== null && availableUntil !== expectedAvailableUntil) return false;
+  if (blueprint) {
+    const durationSeconds = blueprint.durationSeconds;
+    if (!Number.isSafeInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 21_600
+      || requiredThrough !== availableUntil + 600_000_000n + BigInt(durationSeconds) * 1_000_000n) return false;
+  }
+  return true;
+}
+
+function fixedFormItemSupportsResponse(item) {
+  if (!hasExactKeys(item, FIXED_FORM_ITEM_KEYS)
+    || !FIXED_REHEARSAL_SECTIONS.includes(item.domain)
+    || !Number.isSafeInteger(item.questionCount)
+    || item.questionCount !== (item.domain === 'READING' ? 2 : 4)
+    || !Number.isSafeInteger(item.durationSeconds) || item.durationSeconds < 1 || item.durationSeconds > 21_600) return false;
+  const receipt = Object.fromEntries(FIXED_SEAL_RECEIPT_KEYS.map((key) => [key, item[key]]));
+  if (!fixedSealReceiptSupportsResponse(receipt)) return false;
+  const capturedAt = utcInstantMicros6(item.capturedAt);
+  const availableUntil = utcInstantMicros6(item.availableUntil);
+  const requiredThrough = utcInstantMicros6(item.requiredThrough);
+  const windowMicros = availableUntil - capturedAt;
+  return windowMicros >= 60_000_000n && windowMicros <= 86_400_000_000n
+    && windowMicros % 60_000_000n === 0n
+    && requiredThrough === availableUntil + 600_000_000n + BigInt(item.durationSeconds) * 1_000_000n;
+}
+
+function fixedFormListSupportsResponse(list) {
+  if (!hasExactKeys(list, FIXED_FORM_LIST_KEYS)
+    || list.schemaVersion !== 'staff-fixed-forms/1'
+    || list.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || list.accessBasis !== 'EXAM_MANAGER'
+    || utcInstantMicros6(list.observedAt) === null
+    || list.limit !== 20 || typeof list.truncated !== 'boolean'
+    || !Array.isArray(list.items) || list.items.length > 20
+    || (list.truncated && list.items.length !== 20)
+    || !boundedJsonResponse(list)) return false;
+  const formIds = new Set();
+  const observedAt = utcInstantMicros6(list.observedAt);
+  let previousSealedAt = null;
+  let previousFormId = '';
+  for (const item of list.items) {
+    if (!fixedFormItemSupportsResponse(item) || formIds.has(item.formId)) return false;
+    const sealedAt = utcInstantMicros6(item.sealedAt);
+    if (sealedAt > observedAt || (previousSealedAt !== null
+      && (previousSealedAt < sealedAt || (previousSealedAt === sealedAt && previousFormId <= item.formId)))) return false;
+    formIds.add(item.formId);
+    previousSealedAt = sealedAt;
+    previousFormId = item.formId;
+  }
+  return true;
+}
+
+function fixedFormDetailSupportsResponse(detail, expectedFormId) {
+  if (!hasExactKeys(detail, FIXED_FORM_DETAIL_KEYS)
+    || detail.schemaVersion !== 'staff-fixed-form/1'
+    || detail.environment !== 'LOCAL_SYNTHETIC_ONLY'
+    || detail.accessBasis !== 'EXAM_MANAGER'
+    || utcInstantMicros6(detail.observedAt) === null
+    || !fixedFormItemSupportsResponse(detail.form)
+    || detail.form.formId !== expectedFormId
+    || utcInstantMicros6(detail.observedAt) < utcInstantMicros6(detail.form.sealedAt)
+    || !hasExactKeys(detail.availability, FIXED_FORM_AVAILABILITY_KEYS)
+    || !Number.isSafeInteger(detail.availability.revision) || detail.availability.revision < 1
+    || utcInstantMicros6(detail.availability.availableFrom) === null
+    || utcInstantMicros6(detail.availability.availableUntil) === null
+    || !(detail.availability.withdrawnAt === null || utcInstantMicros6(detail.availability.withdrawnAt) !== null)
+    || utcInstantMicros6(detail.availability.availableFrom) >= utcInstantMicros6(detail.availability.availableUntil)
+    || (detail.availability.withdrawnAt !== null
+      && utcInstantMicros6(detail.availability.withdrawnAt) > utcInstantMicros6(detail.observedAt))
+    || !boundedJsonResponse(detail)) return false;
+  return true;
 }
 
 function fixedRehearsalReceiptSupportsResponse(receipt, { blueprint = null, listItem = null } = {}) {
@@ -1252,6 +1373,15 @@ export async function openStaffWorkspace(container, onBack) {
     examRehearsalStatus: null,
     examRehearsalConfirmation: null,
     examRehearsalDialog: null,
+    fixedFormsRequestId: 0,
+    fixedFormsView: null,
+    fixedSealRequestId: 0,
+    fixedSealIntent: null,
+    fixedSealStatus: null,
+    fixedSealConfirmation: null,
+    fixedSealDialog: null,
+    fixedSealSelectedBlueprintId: '',
+    fixedSealWindowMinutes: '60',
     bankRehearsalRequestId: 0,
     bankRehearsalView: null,
     reviewHistoryRequestId: 0,
@@ -1627,8 +1757,17 @@ export async function openStaffWorkspace(container, onBack) {
     if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
   }
 
+  function closeFixedSealConfirmation({ restoreFocus = false } = {}) {
+    const confirmation = state.fixedSealConfirmation;
+    state.fixedSealConfirmation = null;
+    if (state.fixedSealDialog?.open) state.fixedSealDialog.close();
+    confirmation?.triggerElement?.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && confirmation?.triggerElement?.isConnected) confirmation.triggerElement.focus();
+  }
+
   function clearPrivateReviewView({ restoreFocus = false, preserveHandoff = false, preserveDisposition = false, preservePreflight = false } = {}) {
     const previousViews = [
+      state.fixedFormsView,
       state.examBlueprintView,
       state.bankRehearsalView,
       state.fixedRunView,
@@ -1637,6 +1776,14 @@ export async function openStaffWorkspace(container, onBack) {
     ];
     const previous = previousViews.find(Boolean);
     if (!preservePreflight) clearDatasetPreflight();
+    state.fixedFormsRequestId += 1;
+    state.fixedFormsView = null;
+    state.fixedSealRequestId += 1;
+    state.fixedSealIntent = null;
+    state.fixedSealStatus = null;
+    state.fixedSealSelectedBlueprintId = '';
+    state.fixedSealWindowMinutes = '60';
+    closeFixedSealConfirmation();
     state.fixedRunRequestId += 1;
     state.fixedRunView = null;
     state.examBlueprintRequestId += 1;
@@ -2079,6 +2226,378 @@ export async function openStaffWorkspace(container, onBack) {
     if (view?.kind === 'bank-rehearsal-detail') return loadBankRehearsalDetail(view.item, view.rowTriggerElement, view.listSnapshot);
   }
 
+  function fixedSealCommandLocked() {
+    return ['pending', 'uncertain'].includes(state.fixedSealStatus?.stage);
+  }
+
+  async function loadFixedSealBlueprints(triggerElement = container.querySelector('[data-testid="staff-fixed-seal-blueprints-open"]')) {
+    if (!isWorkspaceActive() || !state.principal?.roles?.includes('EXAM_MANAGER') || fixedSealCommandLocked()) return;
+    if (state.fixedFormsView?.kind === 'fixed-seal-blueprints' && state.fixedFormsView.status === 'loading') return;
+    clearPrivateReviewView();
+    state.fixedSealSelectedBlueprintId = '';
+    state.fixedSealWindowMinutes = '60';
+    const requestId = ++state.fixedFormsRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.fixedFormsView = {
+      kind: 'fixed-seal-blueprints', status: 'loading', triggerElement, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.fixedFormsRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.principal?.roles?.includes('EXAM_MANAGER')
+      && state.fixedFormsView?.kind === 'fixed-seal-blueprints'
+      && state.fixedFormsView.status === 'loading';
+    try {
+      const list = await request('/api/v1/fixed-rehearsal-blueprints');
+      if (!isCurrent()) return;
+      if (!fixedRehearsalBlueprintListSupportsResponse(list)) {
+        throw new Error('The server returned an invalid supported-blueprint list.');
+      }
+      state.fixedFormsView = { ...state.fixedFormsView, status: 'loaded', list };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.fixedFormsView = {
+        ...state.fixedFormsView, status: 'error', error: fixedRehearsalErrorSummary(error),
+      };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  async function loadFixedFormsList(triggerElement = container.querySelector('[data-testid="staff-fixed-forms-open"]')) {
+    if (!isWorkspaceActive() || !state.principal?.roles?.includes('EXAM_MANAGER') || fixedSealCommandLocked()) return;
+    if (state.fixedFormsView?.kind === 'fixed-forms' && state.fixedFormsView.status === 'loading') return;
+    clearPrivateReviewView();
+    const requestId = ++state.fixedFormsRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.fixedFormsView = { kind: 'fixed-forms', status: 'loading', triggerElement, identityEpoch, principal: requestPrincipal };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.fixedFormsRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.principal?.roles?.includes('EXAM_MANAGER')
+      && state.fixedFormsView?.kind === 'fixed-forms'
+      && state.fixedFormsView.status === 'loading';
+    try {
+      const list = await request('/api/v1/fixed-forms');
+      if (!isCurrent()) return;
+      if (!fixedFormListSupportsResponse(list)) throw new Error('The server returned invalid sealed-form metadata.');
+      state.fixedFormsView = { ...state.fixedFormsView, status: 'loaded', list };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.fixedFormsView = { ...state.fixedFormsView, status: 'error', error: fixedRehearsalErrorSummary(error) };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  async function loadFixedFormDetail(item, rowTriggerElement, listSnapshot = state.fixedFormsView) {
+    if (!isWorkspaceActive() || !state.principal?.roles?.includes('EXAM_MANAGER')
+      || !fixedFormItemSupportsResponse(item) || !listSnapshot || listSnapshot.kind !== 'fixed-forms'
+      || listSnapshot.status !== 'loaded'
+      || !listSnapshot.list?.items?.some((candidate) => candidate.formId === item.formId
+        && FIXED_FORM_ITEM_KEYS.every((key) => candidate[key] === item[key]))) return;
+    const retainedList = listSnapshot;
+    const triggerElement = retainedList.triggerElement;
+    clearPrivateReviewView();
+    const requestId = ++state.fixedFormsRequestId;
+    const identityEpoch = state.identityEpoch;
+    const requestPrincipal = principalKey(state.principal);
+    state.fixedFormsView = {
+      kind: 'fixed-form-detail', status: 'loading', item, triggerElement, rowTriggerElement,
+      listSnapshot: retainedList, identityEpoch, principal: requestPrincipal,
+    };
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    rowTriggerElement?.setAttribute('aria-expanded', 'true');
+    renderReviewPanel({ focusTitle: true });
+    const isCurrent = () => isWorkspaceActive()
+      && requestId === state.fixedFormsRequestId
+      && identityEpoch === state.identityEpoch
+      && requestPrincipal === principalKey(state.principal)
+      && state.principal?.roles?.includes('EXAM_MANAGER')
+      && state.fixedFormsView?.kind === 'fixed-form-detail'
+      && state.fixedFormsView.item?.formId === item.formId;
+    try {
+      const detail = await request(`/api/v1/fixed-forms/${encodeURIComponent(item.formId)}`);
+      if (!isCurrent()) return;
+      if (!fixedFormDetailSupportsResponse(detail, item.formId)
+        || !FIXED_FORM_ITEM_KEYS.every((key) => detail.form[key] === item[key])) {
+        throw new Error('The server returned invalid metadata for the selected sealed form.');
+      }
+      state.fixedFormsView = { ...state.fixedFormsView, status: 'loaded', detail };
+      renderReviewPanel({ focusTitle: true });
+    } catch (error) {
+      if (!isCurrent()) return;
+      state.fixedFormsView = { ...state.fixedFormsView, status: 'error', error: fixedRehearsalErrorSummary(error) };
+      renderReviewPanel({ focusTitle: true });
+    }
+  }
+
+  function returnToFixedFormsList(view = state.fixedFormsView) {
+    if (!isWorkspaceActive() || state.fixedFormsView !== view || view?.kind !== 'fixed-form-detail'
+      || view.listSnapshot?.kind !== 'fixed-forms' || view.listSnapshot.status !== 'loaded') return;
+    state.fixedFormsRequestId += 1;
+    state.fixedFormsView = view.listSnapshot;
+    view.triggerElement?.setAttribute('aria-expanded', 'true');
+    view.rowTriggerElement?.setAttribute('aria-expanded', 'false');
+    renderReviewPanel();
+    [...container.querySelectorAll('[data-testid="staff-fixed-form-detail-open"]')]
+      .find((element) => element.dataset.formId === view.item.formId)?.focus();
+  }
+
+  function retryFixedFormsView(view = state.fixedFormsView) {
+    if (view?.kind === 'fixed-seal-blueprints') return loadFixedSealBlueprints(view.triggerElement);
+    if (view?.kind === 'fixed-forms') return loadFixedFormsList(view.triggerElement);
+    if (view?.kind === 'fixed-form-detail') return loadFixedFormDetail(view.item, view.rowTriggerElement, view.listSnapshot);
+  }
+
+  function fixedSealAttemptIsCurrent(intent, requestId) {
+    const view = state.fixedFormsView;
+    return isWorkspaceActive()
+      && requestId === state.fixedSealRequestId
+      && state.fixedSealIntent === intent
+      && state.identityEpoch === intent.identityEpoch
+      && principalKey(state.principal) === intent.principal
+      && state.principal?.roles?.includes('EXAM_MANAGER')
+      && view?.kind === 'fixed-seal-blueprints' && view.status === 'loaded'
+      && state.fixedSealSelectedBlueprintId === intent.blueprintVersionId
+      && state.fixedSealWindowMinutes === String(intent.body.windowMinutes)
+      && view.list.items.some((item) => item.blueprintVersionId === intent.blueprintVersionId
+        && item.contentHash === intent.blueprintHash);
+  }
+
+  function fixedSealErrorSummary(error) {
+    if (error?.code === 'RECEIPT_MISMATCH') return 'The response did not match the selected blueprint and window.';
+    if (error?.uncertain) return 'The network response was lost. The server may have stored the command.';
+    if (Number.isInteger(error?.status)) return `The server returned HTTP ${error.status}${error.code ? ` (${error.code})` : ''}.`;
+    return error?.message ?? 'The request could not be completed.';
+  }
+
+  async function sendFixedSeal(intent, requestId) {
+    if (!fixedSealAttemptIsCurrent(intent, requestId)
+      || state.fixedSealStatus?.intent !== intent
+      || !['pending', 'uncertain'].includes(state.fixedSealStatus.stage)) return;
+    state.fixedSealStatus = { stage: 'pending', intent };
+    updateFixedSealCommandStatus({ focus: true });
+    try {
+      const receipt = await request('/api/v1/assemblies', {
+        method: 'POST', body: intent.body, csrf: true, idempotencyKey: intent.key,
+      });
+      if (!fixedSealAttemptIsCurrent(intent, requestId)) return;
+      if (!fixedSealReceiptSupportsResponse(receipt, { blueprint: intent.blueprint, windowMinutes: intent.body.windowMinutes }) || receipt.seed !== (intent.body.seed ?? 42)) {
+        const mismatch = new Error('The server did not return a receipt for the exact selected blueprint and window.');
+        mismatch.uncertain = true;
+        mismatch.code = 'RECEIPT_MISMATCH';
+        throw mismatch;
+      }
+      state.fixedSealStatus = { stage: 'acknowledged', intent, receipt };
+      updateFixedSealCommandStatus({ focus: true });
+    } catch (error) {
+      if (!fixedSealAttemptIsCurrent(intent, requestId)) return;
+      const uncertain = error?.uncertain === true || error?.status === 503;
+      state.fixedSealStatus = uncertain
+        ? { stage: 'uncertain', intent, message: fixedSealErrorSummary(error) }
+        : { stage: 'rejected', intent, code: error?.code ?? 'REQUEST_FAILED', message: fixedSealErrorSummary(error) };
+      updateFixedSealCommandStatus({ focus: true });
+    }
+  }
+
+  function clearFixedSealCommand() {
+    state.fixedSealRequestId += 1;
+    state.fixedSealIntent = null;
+    state.fixedSealStatus = null;
+    closeFixedSealConfirmation();
+    updateFixedSealCommandStatus();
+  }
+
+  function updateFixedSealCommandStatus({ focus = false } = {}) {
+    updateFixedSealFormControls();
+    const host = container.querySelector('[data-testid="staff-fixed-seal-command-host"]');
+    if (host) host.replaceChildren(renderFixedSealCommandStatus(state.fixedSealStatus));
+    updateFixedSealNavigationControls();
+    if (focus) host?.querySelector('[data-testid="staff-fixed-seal-status"]')?.focus();
+  }
+
+  function updateFixedSealFormControls() {
+    const locked = fixedSealCommandLocked();
+    const form = container.querySelector('[data-testid="staff-fixed-seal-form"]');
+    if (!form) return;
+    const blueprintSelect = form.querySelector('[data-testid="staff-fixed-seal-blueprint-select"]');
+    const windowInput = form.querySelector('[data-testid="staff-fixed-seal-window-minutes"]');
+    const submit = form.querySelector('[data-testid="staff-fixed-seal-open"]');
+    if (blueprintSelect) blueprintSelect.disabled = locked;
+    if (windowInput) windowInput.disabled = locked;
+    if (submit) submit.disabled = locked || !blueprintSelect?.value;
+  }
+
+  function updateFixedSealNavigationControls() {
+    const disabled = fixedSealCommandLocked();
+    for (const testId of ['staff-fixed-seal-blueprints-open', 'staff-fixed-forms-open', 'staff-fixed-rehearsal-blueprints-open']) {
+      const trigger = container.querySelector(`[data-testid="${testId}"]`);
+      if (trigger) trigger.disabled = disabled;
+    }
+  }
+
+  function renderFixedSealCommandStatus(status) {
+    const error = status && ['rejected', 'uncertain'].includes(status.stage);
+    const panel = node('section', `staff-fixed-seal-command${error ? ' is-error' : ''}`);
+    panel.setAttribute('aria-label', 'Fixed-form seal request status');
+    const message = node('p', error ? 'notice-panel' : 'staff-fixed-seal-message');
+    message.dataset.testid = 'staff-fixed-seal-status';
+    message.dataset.stage = status?.stage ?? 'idle';
+    message.setAttribute('role', error ? 'alert' : 'status');
+    message.setAttribute('aria-live', error ? 'assertive' : 'polite');
+    message.tabIndex = -1;
+    if (!status) {
+      message.textContent = 'No fixed-form seal request has been sent. Select an exact blueprint and window, then confirm explicitly.';
+    } else if (status.stage === 'pending') {
+      message.textContent = `Sending an explicit fixed-form seal request for blueprint ${status.intent.blueprintVersionId} and a ${status.intent.body.windowMinutes}-minute window.`;
+    } else if (status.stage === 'uncertain') {
+      message.textContent = `It is unknown whether the server stored the seal for blueprint ${status.intent.blueprintVersionId}. Retry uses the same request body and idempotency key. ${status.message}`;
+    } else if (status.stage === 'rejected') {
+      message.textContent = `The server did not confirm the fixed-form seal (${status.code}): ${status.message} No automatic retry was sent.`;
+    } else if (status.stage === 'acknowledged') {
+      message.textContent = `The server acknowledged new fixed form ${status.receipt.formId}. This is a historical seal receipt; sealed-form metadata has not been reloaded.`;
+      for (const key of ['assemblyRunId', 'formId', 'blueprintVersionId', 'mode', 'reuseMode', 'seed', 'state', 'currentEligibility', 'studentDeliverySupported']) {
+        message.dataset[key] = String(status.receipt[key]);
+      }
+    }
+    panel.append(message);
+    if (status?.stage === 'acknowledged') {
+      const metadata = node('dl', 'staff-review-metadata staff-fixed-seal-receipt');
+      for (const [label, key] of [
+        ['Assembly run ID', 'assemblyRunId'], ['Form ID', 'formId'], ['Blueprint version ID', 'blueprintVersionId'],
+        ['Blueprint hash', 'blueprintHash'], ['Mode', 'mode'], ['Reuse mode', 'reuseMode'], ['Effective seed', 'seed'],
+        ['Manifest hash', 'manifestHash'], ['Form hash', 'formHash'], ['Historical state', 'state'],
+        ['Captured at', 'capturedAt'], ['Sealed at', 'sealedAt'], ['Historical available from', 'availableFrom'],
+        ['Historical available until', 'availableUntil'], ['Rights horizon recorded through', 'requiredThrough'],
+        ['Current eligibility', 'currentEligibility'], ['Student delivery supported', 'studentDeliverySupported'],
+      ]) appendMetadataPair(metadata, label, status.receipt[key]);
+      panel.append(metadata, node('p', 'staff-fixed-seal-warning', 'This is a new immutable local synthetic form. It creates no student attempt, assignment, score, or delivery. The receipt does not establish current eligibility, lawful rights, qualified human review, publication eligibility, or student access. A separate explicit GET is required to inspect stored sealed-form metadata.'));
+    }
+    if (status?.stage === 'uncertain') {
+      panel.append(button('Retry the same seal request', 'staff-fixed-seal-retry', async () => {
+        if (state.fixedSealStatus?.stage !== 'uncertain' || state.fixedSealIntent !== status.intent) return;
+        await sendFixedSeal(status.intent, state.fixedSealRequestId);
+      }));
+    }
+    return panel;
+  }
+
+  function openFixedSealConfirmation(triggerElement, form) {
+    if (!isWorkspaceActive() || fixedSealCommandLocked() || state.fixedSealConfirmation
+      || !state.principal?.roles?.includes('EXAM_MANAGER')
+      || state.fixedFormsView?.kind !== 'fixed-seal-blueprints' || state.fixedFormsView.status !== 'loaded') return;
+    const blueprint = state.fixedFormsView.list.items.find((item) => item.blueprintVersionId === state.fixedSealSelectedBlueprintId);
+    const windowInput = form.querySelector('[data-testid="staff-fixed-seal-window-minutes"]');
+    const windowMinutes = Number(state.fixedSealWindowMinutes);
+    if (!blueprint || !Number.isSafeInteger(windowMinutes) || windowMinutes < 1 || windowMinutes > 1440) {
+      windowInput?.setCustomValidity('Enter a whole number of minutes from 1 to 1440.');
+      form.reportValidity();
+      return;
+    }
+    windowInput?.setCustomValidity('');
+    state.fixedSealWindowMinutes = String(windowMinutes);
+    if (windowInput) windowInput.value = state.fixedSealWindowMinutes;
+    const dialog = state.fixedSealDialog;
+    if (!dialog || dialog.open) return;
+    const confirmation = Object.freeze({
+      blueprint, blueprintVersionId: blueprint.blueprintVersionId, blueprintHash: blueprint.contentHash,
+      windowMinutes, identityEpoch: state.identityEpoch, principal: principalKey(state.principal), triggerElement,
+    });
+    state.fixedSealConfirmation = confirmation;
+    triggerElement?.setAttribute('aria-expanded', 'true');
+    dialog.querySelector('[data-testid="staff-fixed-seal-dialog-blueprint-name"]').textContent = blueprint.name;
+    dialog.querySelector('[data-testid="staff-fixed-seal-dialog-blueprint-id"]').textContent = blueprint.blueprintVersionId;
+    dialog.querySelector('[data-testid="staff-fixed-seal-dialog-blueprint-hash"]').textContent = blueprint.contentHash;
+    dialog.querySelector('[data-testid="staff-fixed-seal-dialog-profile"]').textContent = `${blueprint.section} · ${blueprint.questionCount} questions · ${blueprint.durationSeconds} seconds`;
+    dialog.querySelector('[data-testid="staff-fixed-seal-dialog-window"]').textContent = `${windowMinutes} minutes`;
+    dialog.showModal();
+    dialog.querySelector('[data-testid="staff-fixed-seal-cancel"]').focus();
+  }
+
+  async function confirmFixedSeal() {
+    const confirmation = state.fixedSealConfirmation;
+    const dialog = state.fixedSealDialog;
+    const view = state.fixedFormsView;
+    const currentBlueprint = view?.list?.items?.find((item) => item.blueprintVersionId === confirmation?.blueprintVersionId);
+    if (!confirmation || !dialog || view?.kind !== 'fixed-seal-blueprints' || view.status !== 'loaded'
+      || confirmation.identityEpoch !== state.identityEpoch
+      || confirmation.principal !== principalKey(state.principal)
+      || !state.principal?.roles?.includes('EXAM_MANAGER')
+      || currentBlueprint !== confirmation.blueprint
+      || currentBlueprint.contentHash !== confirmation.blueprintHash
+      || state.fixedSealSelectedBlueprintId !== confirmation.blueprintVersionId
+      || state.fixedSealWindowMinutes !== String(confirmation.windowMinutes)) {
+      closeFixedSealConfirmation({ restoreFocus: true });
+      return;
+    }
+    const body = Object.freeze({
+      mode: 'PUBLISHED_FIXED', blueprintVersionId: confirmation.blueprintVersionId,
+      blueprintHash: confirmation.blueprintHash, windowMinutes: confirmation.windowMinutes,
+    });
+    const intent = Object.freeze({
+      path: '/api/v1/assemblies', body, key: crypto.randomUUID(), blueprint: confirmation.blueprint,
+      blueprintVersionId: confirmation.blueprintVersionId, blueprintHash: confirmation.blueprintHash,
+      identityEpoch: confirmation.identityEpoch, principal: confirmation.principal,
+    });
+    const requestId = ++state.fixedSealRequestId;
+    state.fixedSealIntent = intent;
+    state.fixedSealStatus = { stage: 'pending', intent };
+    closeFixedSealConfirmation();
+    updateFixedSealCommandStatus({ focus: true });
+    await sendFixedSeal(intent, requestId);
+  }
+
+  function createFixedSealDialog() {
+    const dialog = node('dialog', 'staff-fixed-seal-dialog');
+    dialog.id = 'staff-fixed-seal-dialog';
+    dialog.dataset.testid = 'staff-fixed-seal-dialog';
+    dialog.setAttribute('aria-labelledby', 'staff-fixed-seal-dialog-title');
+    dialog.setAttribute('aria-describedby', 'staff-fixed-seal-dialog-description staff-fixed-seal-dialog-warning');
+    const title = node('h2', '', 'Seal a new fixed form?');
+    title.id = 'staff-fixed-seal-dialog-title';
+    const description = node('p', 'staff-fixed-seal-dialog-description', 'The server will create one new immutable fixed form from the selected supported blueprint and record the selected availability window.');
+    description.id = 'staff-fixed-seal-dialog-description';
+    const metadata = node('dl', 'staff-fixed-seal-dialog-metadata');
+    for (const [label, testId] of [
+      ['Blueprint name', 'staff-fixed-seal-dialog-blueprint-name'],
+      ['Blueprint version ID', 'staff-fixed-seal-dialog-blueprint-id'],
+      ['Blueprint hash', 'staff-fixed-seal-dialog-blueprint-hash'],
+      ['Domain, question count, and duration', 'staff-fixed-seal-dialog-profile'],
+      ['Availability window', 'staff-fixed-seal-dialog-window'],
+    ]) {
+      metadata.append(node('dt', '', label));
+      const value = node('dd');
+      value.dataset.testid = testId;
+      metadata.append(value);
+    }
+    const warning = node('p', 'staff-fixed-seal-warning', 'Confirming creates a real new local fixed form. No student attempt or delivery is supported by this feature. This synthetic action is not human content approval or a rights attestation. No student receives this form through this operation.');
+    warning.id = 'staff-fixed-seal-dialog-warning';
+    const actions = node('div', 'staff-fixed-seal-dialog-actions');
+    actions.append(
+      button('Seal fixed form', 'staff-fixed-seal-confirm', async () => { await confirmFixedSeal(); }),
+      button('Cancel', 'staff-fixed-seal-cancel', () => closeFixedSealConfirmation({ restoreFocus: true }), 'button secondary'),
+    );
+    dialog.append(title, description, metadata, warning, actions);
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeFixedSealConfirmation({ restoreFocus: true });
+    });
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) closeFixedSealConfirmation({ restoreFocus: true });
+    });
+    state.fixedSealDialog = dialog;
+    return dialog;
+  }
+
   function updateExamRehearsalCommandStatus({ focus = false } = {}) {
     updateExamRehearsalFormControls();
     const host = container.querySelector('[data-testid="staff-fixed-rehearsal-command-host"]');
@@ -2158,6 +2677,201 @@ export async function openStaffWorkspace(container, onBack) {
       }, 'button secondary'));
     }
     return panel;
+  }
+
+  function renderFixedSealBlueprintForm(view) {
+    const content = node('div', 'staff-fixed-seal-content');
+    content.append(node('p', 'staff-fixed-seal-warning', 'This action can create a real new immutable fixed form from current eligible local synthetic Bank stock. It creates no student attempt, assignment history, or score. The seal does not establish lawful rights, qualified human review, publication eligibility, or student-delivery support. Seed is omitted so the server uses its configured default of 42.'));
+    if (view.list.truncated) content.append(node('p', 'staff-fixed-seal-note', 'Showing at most the 20 newest supported blueprints.'));
+    if (view.list.items.length === 0) {
+      content.append(node('p', 'staff-empty staff-fixed-seal-empty', 'No supported one-domain blueprint is available for a new fixed form.'));
+      const commandHost = node('div');
+      commandHost.dataset.testid = 'staff-fixed-seal-command-host';
+      commandHost.append(renderFixedSealCommandStatus(state.fixedSealStatus));
+      content.append(commandHost);
+      return content;
+    }
+
+    const form = node('form', 'staff-fixed-seal-form');
+    form.dataset.testid = 'staff-fixed-seal-form';
+    const fieldset = node('fieldset', 'staff-fixed-seal-fields');
+    fieldset.append(node('legend', '', 'Select the exact blueprint and availability window'));
+    const blueprintField = node('div', 'staff-field');
+    const blueprintLabel = node('label', '', 'Supported blueprint version');
+    const blueprintSelect = node('select', 'staff-input');
+    blueprintSelect.id = 'staff-fixed-seal-blueprint-select';
+    blueprintSelect.dataset.testid = 'staff-fixed-seal-blueprint-select';
+    blueprintSelect.required = true;
+    const emptyOption = node('option', '', 'Select one exact version');
+    emptyOption.value = '';
+    blueprintSelect.append(emptyOption);
+    for (const blueprint of view.list.items) {
+      const option = node('option', '', `${blueprint.name} · ${blueprint.section} · ${blueprint.questionCount} questions · ${blueprint.durationSeconds} seconds · ${blueprint.blueprintVersionId}`);
+      option.value = blueprint.blueprintVersionId;
+      blueprintSelect.append(option);
+    }
+    blueprintSelect.value = state.fixedSealSelectedBlueprintId;
+    blueprintLabel.htmlFor = blueprintSelect.id;
+    blueprintSelect.setAttribute('aria-describedby', 'staff-fixed-seal-blueprint-help');
+    blueprintField.append(blueprintLabel, blueprintSelect);
+    const blueprintHelp = node('p', 'staff-form-help', 'The server returns metadata only. The confirmation pins the exact version ID and hash before a new form is requested.');
+    blueprintHelp.id = 'staff-fixed-seal-blueprint-help';
+    blueprintField.append(blueprintHelp);
+    fieldset.append(blueprintField);
+
+    const selectedSummary = node('dl', 'staff-review-metadata staff-fixed-seal-selected');
+    selectedSummary.dataset.testid = 'staff-fixed-seal-selected-blueprint';
+    const updateSelectedSummary = () => {
+      selectedSummary.replaceChildren();
+      const selected = view.list.items.find((item) => item.blueprintVersionId === blueprintSelect.value);
+      if (!selected) {
+        appendMetadataPair(selectedSummary, 'Selected blueprint', 'None');
+        return;
+      }
+      appendMetadataPair(selectedSummary, 'Blueprint version ID', selected.blueprintVersionId);
+      appendMetadataPair(selectedSummary, 'Blueprint hash', selected.contentHash);
+      appendMetadataPair(selectedSummary, 'Domain and question count', `${selected.section} · ${selected.questionCount}`);
+      appendMetadataPair(selectedSummary, 'Domain duration', `${selected.durationSeconds} seconds`);
+    };
+    updateSelectedSummary();
+    blueprintSelect.addEventListener('change', () => {
+      if (fixedSealCommandLocked()) {
+        blueprintSelect.value = state.fixedSealSelectedBlueprintId;
+        return;
+      }
+      state.fixedSealSelectedBlueprintId = blueprintSelect.value;
+      clearFixedSealCommand();
+      updateSelectedSummary();
+    });
+
+    const windowField = node('div', 'staff-field');
+    const windowLabel = node('label', '', 'Availability window (minutes)');
+    const windowInput = node('input', 'staff-input');
+    windowInput.id = 'staff-fixed-seal-window-minutes';
+    windowInput.dataset.testid = 'staff-fixed-seal-window-minutes';
+    windowInput.type = 'number';
+    windowInput.min = '1';
+    windowInput.max = '1440';
+    windowInput.step = '1';
+    windowInput.required = true;
+    windowInput.value = state.fixedSealWindowMinutes;
+    windowInput.autocomplete = 'off';
+    windowInput.setAttribute('aria-describedby', 'staff-fixed-seal-window-help');
+    windowLabel.htmlFor = windowInput.id;
+    const windowHelp = node('p', 'staff-form-help', 'Enter a whole number from 1 to 1440. The server records capture time and calculates the stored availability and rights horizon.');
+    windowHelp.id = 'staff-fixed-seal-window-help';
+    windowInput.addEventListener('input', () => {
+      if (fixedSealCommandLocked()) {
+        windowInput.value = state.fixedSealWindowMinutes;
+        return;
+      }
+      if (state.fixedSealWindowMinutes === windowInput.value) return;
+      state.fixedSealWindowMinutes = windowInput.value;
+      windowInput.setCustomValidity('');
+      clearFixedSealCommand();
+    });
+    windowField.append(windowLabel, windowInput, windowHelp);
+    fieldset.append(windowField, selectedSummary);
+    form.append(fieldset);
+    const actions = node('div', 'staff-fixed-seal-actions');
+    const submit = node('button', 'button', 'Review seal confirmation');
+    submit.type = 'submit';
+    submit.dataset.testid = 'staff-fixed-seal-open';
+    submit.disabled = !blueprintSelect.value;
+    submit.setAttribute('aria-controls', 'staff-fixed-seal-dialog');
+    submit.setAttribute('aria-expanded', 'false');
+    actions.append(submit);
+    form.append(actions);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (fixedSealCommandLocked()) return;
+      if (!form.reportValidity()) return;
+      openFixedSealConfirmation(submit, form);
+    });
+    content.append(form);
+    const commandHost = node('div');
+    commandHost.dataset.testid = 'staff-fixed-seal-command-host';
+    commandHost.append(renderFixedSealCommandStatus(state.fixedSealStatus));
+    content.append(commandHost);
+    updateFixedSealFormControls();
+    updateFixedSealNavigationControls();
+    return content;
+  }
+
+  function renderFixedFormsList(list, openForm) {
+    const content = node('div', 'staff-fixed-forms-content');
+    content.append(node('p', 'staff-fixed-forms-warning', 'This explicit metadata read lists actual local synthetic fixed forms. Historical seals and current stored availability metadata do not establish current eligibility, lawful rights, human approval, publication eligibility, or student-delivery support.'));
+    content.append(node('p', 'staff-fixed-forms-observation', `The server observed this list at ${list.observedAt}.`));
+    if (list.truncated) content.append(node('p', 'staff-fixed-forms-note', 'Showing the 20 newest supported sealed forms; older records exist.'));
+    if (list.items.length === 0) {
+      content.append(node('p', 'staff-empty staff-fixed-forms-empty', 'No supported sealed fixed forms were found.'));
+      return content;
+    }
+    const region = node('div', 'staff-fixed-forms-table-wrap');
+    region.tabIndex = 0;
+    region.setAttribute('role', 'region');
+    region.setAttribute('aria-label', 'Sealed fixed-form metadata');
+    const table = node('table', 'staff-fixed-forms-table');
+    table.append(node('caption', '', 'The 20 newest sealed fixed forms'));
+    const head = node('thead');
+    const headerRow = node('tr');
+    for (const label of ['Form ID', 'Domain', 'Questions', 'Duration', 'Blueprint version', 'Sealed at', 'Historical window ends', 'Action']) {
+      const cell = node('th', '', label);
+      cell.scope = 'col';
+      headerRow.append(cell);
+    }
+    head.append(headerRow);
+    table.append(head);
+    const body = node('tbody');
+    for (const item of list.items) {
+      const row = node('tr');
+      row.dataset.formId = item.formId;
+      for (const value of [item.formId, item.domain, String(item.questionCount), `${item.durationSeconds} seconds`, item.blueprintVersionId, item.sealedAt, item.availableUntil]) {
+        row.append(node('td', '', value));
+      }
+      const actionCell = node('td');
+      const trigger = button('View safe metadata', 'staff-fixed-form-detail-open', async () => openForm(item, trigger), 'button secondary small');
+      trigger.dataset.formId = item.formId;
+      trigger.setAttribute('aria-label', `View safe metadata for fixed form ${item.formId}`);
+      trigger.setAttribute('aria-expanded', 'false');
+      actionCell.append(trigger);
+      row.append(actionCell);
+      body.append(row);
+    }
+    table.append(body);
+    region.append(table);
+    content.append(region);
+    return content;
+  }
+
+  function renderFixedFormDetail(detail) {
+    const content = node('div', 'staff-fixed-form-detail-content');
+    const item = detail.form;
+    content.append(node('p', 'staff-fixed-forms-warning', 'Historical seal fields and the separately observed availability row are metadata snapshots. Neither is a rights review, human approval, publication decision, current eligibility recheck, or student-delivery authorization.'));
+    const receipt = node('section', 'staff-fixed-form-receipt');
+    receipt.append(node('h3', '', 'Historical seal receipt'));
+    const metadata = node('dl', 'staff-review-metadata');
+    for (const [label, key] of [
+      ['Form ID', 'formId'], ['Assembly run ID', 'assemblyRunId'], ['Blueprint version ID', 'blueprintVersionId'],
+      ['Blueprint hash', 'blueprintHash'], ['Domain', 'domain'], ['Question count', 'questionCount'],
+      ['Domain duration', 'durationSeconds'], ['Mode', 'mode'], ['Reuse mode', 'reuseMode'], ['Seed', 'seed'],
+      ['Manifest hash', 'manifestHash'], ['Form hash', 'formHash'], ['Historical state', 'state'],
+      ['Captured at', 'capturedAt'], ['Sealed at', 'sealedAt'], ['Historical available from', 'availableFrom'],
+      ['Historical available until', 'availableUntil'], ['Required-through horizon recorded', 'requiredThrough'],
+      ['Eligibility at seal receipt', 'currentEligibility'], ['Student delivery supported', 'studentDeliverySupported'],
+    ]) appendMetadataPair(metadata, label, item[key]);
+    receipt.append(metadata);
+    const availability = node('section', 'staff-fixed-form-availability');
+    availability.append(node('h3', '', 'Separately observed stored availability metadata'));
+    const currentMetadata = node('dl', 'staff-review-metadata');
+    appendMetadataPair(currentMetadata, 'Observed at', detail.observedAt);
+    appendMetadataPair(currentMetadata, 'Availability revision', detail.availability.revision);
+    appendMetadataPair(currentMetadata, 'Stored available from', detail.availability.availableFrom);
+    appendMetadataPair(currentMetadata, 'Stored available until', detail.availability.availableUntil);
+    appendMetadataPair(currentMetadata, 'Stored withdrawn at', detail.availability.withdrawnAt ?? 'No withdrawal timestamp recorded');
+    availability.append(currentMetadata);
+    content.append(receipt, availability);
+    return content;
   }
 
   function renderExamBlueprintForm(view) {
@@ -2739,7 +3453,7 @@ export async function openStaffWorkspace(container, onBack) {
     if (!isWorkspaceActive()) return;
     const host = container.querySelector('[data-testid="staff-review-host"]');
     if (!host) return;
-    const view = state.datasetPreflightView ?? state.examBlueprintView ?? state.bankRehearsalView
+    const view = state.fixedFormsView ?? state.datasetPreflightView ?? state.examBlueprintView ?? state.bankRehearsalView
       ?? state.fixedRunView ?? state.reviewHistoryView ?? state.evidenceView ?? state.reviewView;
     host.replaceChildren();
     host.hidden = !view;
@@ -2749,14 +3463,19 @@ export async function openStaffWorkspace(container, onBack) {
     const isHistory = view.kind === 'history';
     const isEvidence = view.kind === 'evidence';
     const isExamBlueprints = view.kind === 'exam-blueprints';
+    const isFixedSealBlueprints = view.kind === 'fixed-seal-blueprints';
+    const isSealedForms = view.kind === 'fixed-forms';
+    const isSealedFormDetail = view.kind === 'fixed-form-detail';
+    const isFixedForms = isFixedSealBlueprints || isSealedForms || isSealedFormDetail;
     const isBankRehearsals = view.kind === 'bank-rehearsals';
     const isBankRehearsalDetail = view.kind === 'bank-rehearsal-detail';
     const isBankRehearsal = isBankRehearsals || isBankRehearsalDetail;
     const isFixedRunList = view.kind === 'fixed-runs';
     const isFixedRunDetail = view.kind === 'fixed-detail';
     const isFixedRun = isFixedRunList || isFixedRunDetail;
-    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}${isFixedRun ? ' staff-fixed-reference-panel' : ''}${isExamBlueprints ? ' staff-exam-rehearsal-panel' : ''}${isBankRehearsal ? ' staff-bank-rehearsal-panel' : ''}`);
-    panel.dataset.testid = isFixedRunDetail ? 'staff-fixed-detail' : isFixedRunList ? 'staff-fixed-list'
+    const panel = node('section', `staff-card staff-review-context${isEvidence ? ' staff-review-evidence-panel' : ''}${isHistory ? ' staff-review-history-panel' : ''}${isPreflight ? ' staff-dataset-preflight-panel' : ''}${isFixedRun ? ' staff-fixed-reference-panel' : ''}${isExamBlueprints ? ' staff-exam-rehearsal-panel' : ''}${isFixedForms ? ' staff-fixed-forms-panel' : ''}${isBankRehearsal ? ' staff-bank-rehearsal-panel' : ''}`);
+    panel.dataset.testid = isSealedFormDetail ? 'staff-fixed-form-detail' : isSealedForms ? 'staff-fixed-forms-list'
+      : isFixedSealBlueprints ? 'staff-fixed-seal-blueprints' : isFixedRunDetail ? 'staff-fixed-detail' : isFixedRunList ? 'staff-fixed-list'
       : isBankRehearsalDetail ? 'staff-bank-rehearsal-detail' : isBankRehearsals ? 'staff-bank-rehearsals'
         : isExamBlueprints ? 'staff-fixed-rehearsal-blueprints' : isPreflight ? 'staff-preflight-report'
           : isHistory ? 'staff-review-history' : isEvidence ? 'staff-review-evidence' : 'staff-review-context';
@@ -2825,26 +3544,34 @@ export async function openStaffWorkspace(container, onBack) {
     }
     const titleId = isFixedRunDetail ? 'staff-fixed-detail-title' : isFixedRunList ? 'staff-fixed-list-title'
       : isBankRehearsalDetail ? 'staff-bank-rehearsal-detail-title' : isBankRehearsals ? 'staff-bank-rehearsals-title'
-        : isExamBlueprints ? 'staff-fixed-rehearsal-blueprints-title' : isPreflight ? 'staff-preflight-title'
+        : isFixedSealBlueprints ? 'staff-fixed-seal-title' : isSealedFormDetail ? 'staff-fixed-form-detail-title'
+          : isSealedForms ? 'staff-fixed-forms-title' : isExamBlueprints ? 'staff-fixed-rehearsal-blueprints-title' : isPreflight ? 'staff-preflight-title'
           : isHistory ? 'staff-review-history-title' : isEvidence ? 'staff-review-evidence-title' : 'staff-review-title';
     panel.setAttribute('aria-labelledby', titleId);
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        if (fixedSealCommandLocked()) {
+          container.querySelector('[data-testid="staff-fixed-seal-status"]')?.focus();
+          return;
+        }
         clearPrivateReviewView({ restoreFocus: true });
       }
     });
     const titleText = view.status === 'loading'
-      ? (isExamBlueprints ? 'Loading supported blueprints…' : isBankRehearsals ? 'Loading eligible-stock rehearsal history…'
+      ? (isFixedSealBlueprints ? 'Loading supported blueprints for a new fixed form…' : isSealedForms ? 'Loading sealed fixed forms…'
+        : isSealedFormDetail ? 'Loading safe metadata for the selected fixed form…' : isExamBlueprints ? 'Loading supported blueprints…' : isBankRehearsals ? 'Loading eligible-stock rehearsal history…'
         : isBankRehearsalDetail ? 'Loading stock rehearsal diagnostics…' : isFixedRunList ? 'Loading fixed assembly results…'
           : isFixedRunDetail ? 'Đang phát lại chẩn đoán lần chạy…' : isPreflight ? 'Đang tạo báo cáo tập phiên bản…'
             : isHistory ? 'Đang tải lịch sử rà soát…' : isEvidence ? 'Đang tải bằng chứng được ghi nhận…' : 'Đang tải nội dung riêng…')
       : view.status === 'error'
-        ? (isExamBlueprints ? 'Could not load the supported blueprint list' : isBankRehearsals ? 'Could not load eligible-stock rehearsal history'
+        ? (isFixedSealBlueprints ? 'Could not load blueprints for fixed-form sealing' : isSealedForms ? 'Could not load sealed fixed forms'
+          : isSealedFormDetail ? 'Could not load the selected fixed form metadata' : isExamBlueprints ? 'Could not load the supported blueprint list' : isBankRehearsals ? 'Could not load eligible-stock rehearsal history'
           : isBankRehearsalDetail ? 'Could not load stock rehearsal diagnostics' : isFixedRunList ? 'Could not load fixed assembly results'
             : isFixedRunDetail ? 'Không thể tải chẩn đoán lần chạy' : isPreflight ? 'Không thể tạo báo cáo tập phiên bản'
               : isHistory ? 'Không thể tải lịch sử rà soát' : isEvidence ? 'Không thể tải bằng chứng quyền' : 'Không thể tải nội dung riêng')
-        : (isExamBlueprints ? 'Supported stock-rehearsal blueprints' : isBankRehearsals ? 'Eligible-stock rehearsal history'
+        : (isFixedSealBlueprints ? 'Seal a fixed form' : isSealedForms ? 'Sealed fixed forms'
+          : isSealedFormDetail ? 'Sealed fixed-form metadata' : isExamBlueprints ? 'Supported stock-rehearsal blueprints' : isBankRehearsals ? 'Eligible-stock rehearsal history'
           : isBankRehearsalDetail ? 'Replay-verified stock rehearsal diagnostics' : isFixedRunList ? 'Recorded fixed assembly results'
             : isFixedRunDetail ? 'Chẩn đoán lần chạy cố định đã phát lại' : isPreflight ? 'Báo cáo kiểm tra đồ thị chuẩn tắc'
               : isHistory ? 'Lịch sử rà soát được ghi nhận' : isEvidence ? 'Bằng chứng quyền được ghi nhận' : 'Kiểm tra phiên bản riêng');
@@ -2853,9 +3580,10 @@ export async function openStaffWorkspace(container, onBack) {
     heading.tabIndex = -1;
     const actions = node('div', 'staff-header-actions');
     if (view.status === 'error') {
-      actions.append(button(isExamBlueprints ? 'Reload blueprints' : isBankRehearsal ? 'Reload rehearsal history' : isFixedRun ? 'Reload results' : isPreflight ? 'Run a new check' : isHistory ? 'Reload review history' : isEvidence ? 'Retry evidence load' : 'Retry this version',
-        isExamBlueprints ? 'staff-fixed-rehearsal-blueprints-retry' : isBankRehearsal ? 'staff-bank-rehearsals-retry' : isFixedRun ? 'staff-fixed-retry' : isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
-          if (isExamBlueprints) await loadExamBlueprints(view.triggerElement);
+      actions.append(button(isFixedSealBlueprints ? 'Reload blueprints' : isSealedForms ? 'Retry sealed forms' : isSealedFormDetail ? 'Retry fixed-form metadata' : isExamBlueprints ? 'Reload blueprints' : isBankRehearsal ? 'Reload rehearsal history' : isFixedRun ? 'Reload results' : isPreflight ? 'Run a new check' : isHistory ? 'Reload review history' : isEvidence ? 'Retry evidence load' : 'Retry this version',
+        isFixedSealBlueprints ? 'staff-fixed-seal-blueprints-retry' : isSealedForms ? 'staff-fixed-forms-retry' : isSealedFormDetail ? 'staff-fixed-form-retry' : isExamBlueprints ? 'staff-fixed-rehearsal-blueprints-retry' : isBankRehearsal ? 'staff-bank-rehearsals-retry' : isFixedRun ? 'staff-fixed-retry' : isHistory ? 'staff-review-history-reload' : isEvidence ? 'staff-review-evidence-retry' : 'staff-review-retry', async () => {
+          if (isFixedForms) await retryFixedFormsView(view);
+          else if (isExamBlueprints) await loadExamBlueprints(view.triggerElement);
           else if (isBankRehearsal) await retryBankRehearsalView(view);
           else if (isFixedRun) await retryFixedRunView(view);
           else if (isPreflight) await runDatasetPreflight(state.datasetPreflightControls?.run);
@@ -2868,6 +3596,11 @@ export async function openStaffWorkspace(container, onBack) {
           else await loadReviewContext(view.versionId, view.triggerElement);
         }, 'button secondary'));
     }
+    if (isSealedFormDetail) {
+      actions.append(button('Back to sealed fixed forms', 'staff-fixed-form-close', () => {
+        returnToFixedFormsList(view);
+      }, 'button secondary'));
+    }
     if (isBankRehearsalDetail) {
       actions.append(button('Back to rehearsal history', 'staff-bank-rehearsal-back', () => {
         returnToBankRehearsalList(view);
@@ -2878,7 +3611,7 @@ export async function openStaffWorkspace(container, onBack) {
         returnToFixedRunList(view);
       }, 'button secondary'));
     }
-    if (!isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
+    if (!isFixedForms && !isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && handoffEligible(view)) {
       const handoff = button('Chuyển bản nháp vào hàng chờ rà soát', 'handoff-open', async () => {
         openHandoffConfirmation(handoff);
       }, 'button secondary');
@@ -2886,7 +3619,7 @@ export async function openStaffWorkspace(container, onBack) {
       handoff.setAttribute('aria-controls', 'handoff-dialog');
       actions.append(handoff);
     }
-    if (!isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
+    if (!isFixedForms && !isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('reject', view)) {
       const reject = button('Từ chối phiên bản đang chờ rà soát', 'disposition-reject-open', async () => {
         openDispositionDialog('reject', reject);
       }, 'button secondary');
@@ -2894,7 +3627,7 @@ export async function openStaffWorkspace(container, onBack) {
       reject.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(reject);
     }
-    if (!isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
+    if (!isFixedForms && !isExamBlueprints && !isBankRehearsal && !isFixedRun && !isPreflight && !isEvidence && !isHistory && dispositionEligible('quarantine', view)) {
       const quarantine = button('Cách ly phiên bản', 'disposition-quarantine-open', async () => {
         openDispositionDialog('quarantine', quarantine);
       }, 'button secondary');
@@ -2902,22 +3635,32 @@ export async function openStaffWorkspace(container, onBack) {
       quarantine.setAttribute('aria-controls', 'disposition-dialog');
       actions.append(quarantine);
     }
-    actions.append(button(isExamBlueprints ? 'Close blueprints' : isBankRehearsal ? 'Close rehearsal history' : isFixedRun ? 'Close results' : isPreflight ? 'Close report' : isHistory ? 'Close review history' : isEvidence ? 'Close rights evidence' : 'Close private content',
-      isExamBlueprints ? 'staff-fixed-rehearsal-close' : isBankRehearsal ? 'staff-bank-rehearsals-close' : isFixedRun ? 'staff-fixed-close' : isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+    actions.append(button(isFixedSealBlueprints ? 'Close seal form' : isSealedForms ? 'Close sealed forms' : isSealedFormDetail ? 'Close fixed-form metadata' : isExamBlueprints ? 'Close blueprints' : isBankRehearsal ? 'Close rehearsal history' : isFixedRun ? 'Close results' : isPreflight ? 'Close report' : isHistory ? 'Close review history' : isEvidence ? 'Close rights evidence' : 'Close private content',
+      isFixedSealBlueprints ? 'staff-fixed-seal-close' : isSealedForms ? 'staff-fixed-forms-close' : isSealedFormDetail ? 'staff-fixed-detail-close' : isExamBlueprints ? 'staff-fixed-rehearsal-close' : isBankRehearsal ? 'staff-bank-rehearsals-close' : isFixedRun ? 'staff-fixed-close' : isPreflight ? 'staff-preflight-close' : isHistory ? 'staff-review-history-close' : isEvidence ? 'staff-review-evidence-close' : 'staff-review-close', () => {
+        if (fixedSealCommandLocked()) {
+          container.querySelector('[data-testid="staff-fixed-seal-status"]')?.focus();
+          return;
+        }
         clearPrivateReviewView({ restoreFocus: true });
       }, 'button secondary'));
     panel.append(heading, actions);
 
     if (view.status === 'loading') {
-      const status = node('p', 'notice-panel', isExamBlueprints
-        ? 'Requesting supported blueprint metadata from the server…'
+      const status = node('p', 'notice-panel', isFixedSealBlueprints
+        ? 'Requesting supported blueprint metadata for fixed-form sealing…'
+        : isSealedForms ? 'Requesting sealed fixed-form metadata from the server…'
+          : isSealedFormDetail ? 'Requesting safe metadata for the selected form ID…'
+            : isExamBlueprints ? 'Requesting supported blueprint metadata from the server…'
         : isBankRehearsals ? 'Requesting eligible-stock rehearsal history from the server…'
           : isBankRehearsalDetail ? 'Requesting diagnostics for the selected rehearsal ID…'
             : isFixedRunList
         ? 'Đang yêu cầu danh sách lần chạy tham chiếu cố định từ máy chủ…'
         : isFixedRunDetail ? 'Đang yêu cầu chẩn đoán đã phát lại cho đúng lần chạy đã chọn…'
           : isHistory ? 'Đang yêu cầu lịch sử cho đúng phiên bản đã chọn từ máy chủ…' : 'Đang yêu cầu đúng phiên bản đã chọn từ máy chủ…');
-      if (isExamBlueprints) {
+      if (isFixedForms) {
+        status.dataset.testid = isFixedSealBlueprints ? 'staff-fixed-seal-status' : 'staff-fixed-forms-status';
+        status.dataset.stage = isFixedSealBlueprints ? 'blueprints-loading' : isSealedForms ? 'list-loading' : 'detail-loading';
+      } else if (isExamBlueprints) {
         status.dataset.testid = 'staff-fixed-rehearsal-blueprints-status';
         status.dataset.stage = 'blueprints-loading';
       } else if (isBankRehearsal) {
@@ -2935,7 +3678,10 @@ export async function openStaffWorkspace(container, onBack) {
       panel.append(status);
     } else if (view.status === 'error') {
       const status = node('p', 'notice-panel', view.error);
-      if (isExamBlueprints) {
+      if (isFixedForms) {
+        status.dataset.testid = isFixedSealBlueprints ? 'staff-fixed-seal-status' : 'staff-fixed-forms-status';
+        status.dataset.stage = isFixedSealBlueprints ? 'blueprints-error' : isSealedForms ? 'list-error' : 'detail-error';
+      } else if (isExamBlueprints) {
         status.dataset.testid = 'staff-fixed-rehearsal-blueprints-status';
         status.dataset.stage = 'blueprints-error';
       } else if (isBankRehearsal) {
@@ -2952,7 +3698,40 @@ export async function openStaffWorkspace(container, onBack) {
       status.setAttribute('aria-live', 'assertive');
       panel.append(status);
     } else {
-      if (isExamBlueprints) {
+      if (isFixedSealBlueprints) {
+        const empty = view.list.items.length === 0;
+        const status = node('p', 'notice-panel', empty
+          ? 'No supported blueprint is available for a new fixed form.'
+          : `Loaded ${view.list.items.length} supported blueprint records for an explicit fixed-form request.`);
+        status.dataset.testid = 'staff-fixed-seal-blueprints-status';
+        status.dataset.stage = empty ? 'blueprints-empty' : 'blueprints-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.append(status, renderFixedSealBlueprintForm(view));
+      } else if (isSealedForms) {
+        const empty = view.list.items.length === 0;
+        const status = node('p', 'notice-panel', empty
+          ? 'No supported sealed fixed forms were found.'
+          : `Loaded ${view.list.items.length} sealed fixed-form metadata records.`);
+        status.dataset.testid = 'staff-fixed-forms-status';
+        status.dataset.stage = empty ? 'list-empty' : 'list-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.dataset.observedAt = view.list.observedAt;
+        panel.dataset.formCount = String(view.list.items.length);
+        panel.dataset.truncated = String(view.list.truncated);
+        panel.append(status, renderFixedFormsList(view.list, (item, trigger) => loadFixedFormDetail(item, trigger, view)));
+      } else if (isSealedFormDetail) {
+        const status = node('p', 'notice-panel', 'The server returned historical receipt fields and separately observed stored availability metadata. Neither revalidates rights or student access.');
+        status.dataset.testid = 'staff-fixed-forms-status';
+        status.dataset.stage = 'detail-loaded';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        panel.dataset.formId = view.detail.form.formId;
+        panel.dataset.observedAt = view.detail.observedAt;
+        panel.dataset.availabilityRevision = String(view.detail.availability.revision);
+        panel.append(status, renderFixedFormDetail(view.detail));
+      } else if (isExamBlueprints) {
         const empty = view.list.items.length === 0;
         const status = node('p', 'notice-panel', empty
           ? 'No supported blueprint is available for rehearsal.'
@@ -3002,6 +3781,10 @@ export async function openStaffWorkspace(container, onBack) {
       }
     }
     host.append(panel);
+    if (isFixedSealBlueprints && view.status === 'loaded') {
+      updateFixedSealFormControls();
+      updateFixedSealNavigationControls();
+    }
     if (isExamBlueprints && view.status === 'loaded') updateExamRehearsalCommandStatus();
     renderHandoffPanel();
     renderDispositionPanel();
@@ -3709,7 +4492,7 @@ export async function openStaffWorkspace(container, onBack) {
     const headingText = node('div');
     headingText.append(node('p', 'eyebrow', 'BẢN NHÁP TRÊN POSTGRESQL CỤC BỘ'));
     headingText.append(node('h1', '', state.principal.roles.includes('AUTHOR') ? 'Soạn câu hỏi thử nghiệm.'
-      : state.principal.roles.includes('EXAM_MANAGER') ? 'Fixed stock rehearsal.' : 'Theo dõi câu hỏi thử nghiệm.'));
+      : state.principal.roles.includes('EXAM_MANAGER') ? 'Fixed exam workspace.' : 'Theo dõi câu hỏi thử nghiệm.'));
     headingText.append(node('p', '', `Vai trò hiện tại: ${state.principal.roles.join(', ')}. Phiên tổng hợp ${state.principal.actorKey} được kiểm tra ở máy chủ.`));
     const actions = node('div', 'staff-header-actions');
     if (state.principal.roles.includes('EXAM_MANAGER')) {
@@ -3720,6 +4503,20 @@ export async function openStaffWorkspace(container, onBack) {
       blueprintLoad.setAttribute('aria-controls', 'staff-review-host');
       blueprintLoad.setAttribute('aria-expanded', 'false');
       actions.append(blueprintLoad);
+      let fixedSealOpen;
+      fixedSealOpen = button('Seal a fixed form', 'staff-fixed-seal-blueprints-open', async () => {
+        await loadFixedSealBlueprints(fixedSealOpen);
+      }, 'button secondary');
+      fixedSealOpen.setAttribute('aria-controls', 'staff-review-host');
+      fixedSealOpen.setAttribute('aria-expanded', 'false');
+      actions.append(fixedSealOpen);
+      let fixedFormsOpen;
+      fixedFormsOpen = button('Sealed fixed forms', 'staff-fixed-forms-open', async () => {
+        await loadFixedFormsList(fixedFormsOpen);
+      }, 'button secondary');
+      fixedFormsOpen.setAttribute('aria-controls', 'staff-review-host');
+      fixedFormsOpen.setAttribute('aria-expanded', 'false');
+      actions.append(fixedFormsOpen);
     }
     if (state.principal.roles.includes('BANK_MANAGER')) {
       let fixedRuns;
@@ -3786,7 +4583,7 @@ export async function openStaffWorkspace(container, onBack) {
     heading.append(headingText, actions);
     shell.append(heading);
     const note = node('p', 'repeat-alert', state.principal.roles.includes('EXAM_MANAGER')
-      ? 'LOCAL_SYNTHETIC_ONLY uses synthetic data. EXAM_MANAGER can explicitly load supported blueprint metadata and request a stock rehearsal. The receipt is historical; current eligibility is not revalidated. No form, attempt, or score is created. This role cannot view drafts, private questions, rights evidence, or review history. The synthetic account is not a qualified reviewer. No approval or publication action is available.'
+      ? 'LOCAL_SYNTHETIC_ONLY uses synthetic data. Stock rehearsal remains a separate no-form capture. A distinct explicit action can request one new fixed form, and a separate GET reads sealed-form metadata. Receipts and availability metadata do not establish current rights, qualified human review, publication eligibility, or student-delivery support. No student delivery, approval, or publication action is available.'
       : 'Môi trường LOCAL_SYNTHETIC_ONLY chỉ dùng dữ liệu tổng hợp. Danh sách chỉ tải metadata; nội dung riêng và lịch sử rà soát chỉ được yêu cầu khi bạn chọn đúng phiên bản. BANK_MANAGER có thể chủ động kiểm tra đồ thị chuẩn tắc của các phiên bản được chọn; báo cáo không xác nhận tồn kho đủ điều kiện, quyền hiện tại, rà soát của con người hay khả năng lắp đề. Lịch sử rà soát chỉ mở cho BANK_MANAGER và chỉ hiển thị quyết định đã lưu. Chỉ có bàn giao bản nháp, từ chối tổng hợp và cách ly theo vai trò hiện tại, sau khi xác nhận rõ ràng. Không có thao tác phê duyệt, thay đổi quyền hoặc xuất bản. Tài khoản REVIEWER tổng hợp không đại diện cho người rà soát độc lập đủ điều kiện.');
     shell.append(note);
 
@@ -3795,11 +4592,13 @@ export async function openStaffWorkspace(container, onBack) {
       if (state.principal.roles.includes('EXAM_MANAGER')) {
         denied.append(node('h2', '', 'Rehearse fixed stock against a pinned blueprint.'));
         denied.append(node('p', 'staff-private-notice', 'Supported blueprint metadata loads only after an explicit request. Each rehearsal requires confirmation of the version ID, hash, and window. The receipt does not create an exam or read private question content.'));
+        denied.append(node('h2', '', 'Create and inspect fixed forms.'));
+        denied.append(node('p', 'staff-private-notice', 'Sealing creates a real new local fixed form after explicit confirmation. The sealed-forms list and each selected detail are separate explicit metadata reads. These controls do not deliver a form to students, attest rights, or record qualified human approval.'));
         const reviewHost = node('div');
         reviewHost.id = 'staff-review-host';
         reviewHost.dataset.testid = 'staff-review-host';
         reviewHost.hidden = true;
-        denied.append(reviewHost, createExamRehearsalDialog());
+        denied.append(reviewHost, createExamRehearsalDialog(), createFixedSealDialog());
       } else if (state.canReadList) {
         denied.append(node('h2', '', 'Kiểm tra phiên bản theo quyền hiện tại.'), node('p', '', 'Vai trò này không tạo bản nháp hoặc mở mẫu tác giả. Máy chủ kiểm tra quyền và trạng thái quy trình trước khi cung cấp nội dung riêng. Thao tác từ chối hoặc cách ly chỉ xuất hiện sau khi mở phiên bản đủ điều kiện. Không có thao tác phê duyệt, quản lý quyền hoặc xuất bản ở đây.'));
         denied.append(button('Tải danh sách', 'staff-refresh-denied', async () => {

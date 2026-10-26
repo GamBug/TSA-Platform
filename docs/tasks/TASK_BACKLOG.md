@@ -759,6 +759,20 @@ Reconciliation acceptance (LO-01/03, HI-01/03, MD-05): show the independent doma
 
 ## WEB-002 — Minimal staff review interface
 
+2026-10-26 **B9.1 LOCAL FIXED SEALING — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, base752516f.
+Owner replied “next.” directly to the specific whole-B9.1 local-implementation
+question; [scoped context/disposition](../decisions/OPEN_DECISIONS.md#web-002-b91--scoped-owner-go-ahead2026-10-26).
+Root SQL/backend/HTTP/fixtures/browser/integration/shared records. Disjoint native
+Luna/XHigh private DTO and staff UI reservations follow; no student delivery or
+rights/publication UI. Preserve frozen public/personal/B7/B8 contracts and owner
+AGENTS/research. Independent Sol6.1/Medium final read-only review required. Exact
+[proposal/acceptance](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md), existing
+source-only design review completed. Root focused12/fullBank161/contracts161/
+assembly63/Chrome50/Firefox18/defaultdomains78/type/build/drift/import PASS; native
+writers DTO5/upgrade+races5/B032 PASS, independent focused core7+races4/upgrade1/
+DTO5/Chrome50 PASS, no unresolved findings. Clean reproduction pending.
+[Exact runtime evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
+
 2026-10-26 **STAFF SESSION BINDING — IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**, based4929a0. Root owns
 staff.js, existing staff Chrome/Firefox verification and coordinated records.
 Inspect/reproduce whether B3/B4/B8 confirmed commands can use a replacement session

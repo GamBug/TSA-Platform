@@ -112,6 +112,20 @@ verbatim untrusted private text and may contain pasted sensitive material. No
 redaction promise. No B1–B4/student/root/released change or new grant/migration/
 approval command. [Executed evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
 
+### B9.1 local fixed sealing addendum —2026-10-26
+
+[Specific owner response/context](../decisions/OPEN_DECISIONS.md#web-002-b91--scoped-owner-go-ahead2026-10-26)
+permits the independently reviewed local B9 proposal. Additive private staff schemas
+register POST /assemblies and GET /fixed-forms[/formId] under /api/v1 for current
+EXAM_MANAGER plus exam.assembly.write. Exact blueprint/hash/window/optional seed,
+server capture/horizon, immutable receipt, safe bounded metadata and current stored
+availability follow the [proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md).
+Errors match body/header request IDs; success has only a fresh HTTP header and
+byte-stable replay body. No public/student/released or personal manifest change,
+raw table grant, candidate impersonation or student fixed delivery. B7 references
+exclude form-linked runs; B8 no-form rehearsals remain separate.
+[Runtime evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
+
 ### Delegated B4.1 negative-disposition addendum — 2026-10-24
 
 [Recorded authority](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24)

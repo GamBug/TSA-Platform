@@ -1634,6 +1634,47 @@ try {
   report.checks.push('Existing staff confirmation is bound to its authenticated session: actual same-actor logout/login rotation before confirm sends zero commands; dispatch rotation fails real CSRF403, clears private state, and explicit recovery reads only');
   report.checks.push('Replacement authenticated session survives local cleanup; held older real session success and controlled503 cannot clear a newer explicitly reloaded workspace; recovery creates no command');
 
+  // Restore exactly one synthetic eligible identity after B8's deliberate removal.
+  await reviewFixture.fixture.createQuestion(stockSource,'browser-b9-stock-restoration');
+  const sealCounts=async()=>Object.fromEntries(await Promise.all(['tsa.forms','tsa.attempts','tsa.student_question_history','tsa_private.fixed_form_seals'].map(async table=>[table,(await reviewFixture.fixture.pool.query(`SELECT count(*)::integer AS n FROM ${table}`)).rows[0].n])));
+  const beforeSeal=await sealCounts();
+  await evaluate(`(()=>{const original=window.fetch;window.__b9={calls:[],lose:false,failDetail:false};window.fetch=async(input,init={})=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(window.__b9.failDetail&&url.pathname.startsWith('/api/v1/fixed-forms/')){window.__b9.failDetail=false;return new Response(JSON.stringify({error:{code:'TEMPORARILY_UNAVAILABLE'}}),{status:503,headers:{'content-type':'application/json'}});}const response=await original(input,init);if(url.pathname==='/api/v1/assemblies'||url.pathname.startsWith('/api/v1/fixed-forms')){const call={path:url.pathname,method:init.method??'GET',body:init.body??null,key:new Headers(init.headers).get('idempotency-key'),status:response.status,response:await response.clone().json()};window.__b9.calls.push(call);if(window.__b9.lose&&call.method==='POST'&&call.status===201){window.__b9.lose=false;throw new TypeError('Synthetic lost fixed-seal acknowledgement after commit');}}return response;};return true})()`);
+  await click('staff-fixed-forms-open');await waitFor(`${query('staff-fixed-forms-status')}?.dataset.stage==='list-empty'`,'B9 explicit empty discovery');
+  await click('staff-fixed-seal-blueprints-open');await waitFor(`Boolean(${query('staff-fixed-seal-blueprint-select')})`,'B9 seal supported blueprint configuration');
+  await evaluate(`${query('staff-fixed-seal-blueprint-select')}.value=${JSON.stringify(stockBlueprint.versionId)};${query('staff-fixed-seal-blueprint-select')}.dispatchEvent(new Event('change',{bubbles:true}))`);
+  await click('staff-fixed-seal-open');await waitFor(`${query('staff-fixed-seal-dialog')}?.open`,'B9 native real-form confirmation');
+  assert.equal(await evaluate('document.activeElement.dataset.testid'),'staff-fixed-seal-cancel');
+  await click('staff-fixed-seal-cancel');await click('staff-fixed-seal-open');await pressKey('Escape','Escape',27);
+  assert.equal(await evaluate('document.activeElement.dataset.testid'),'staff-fixed-seal-open');
+  assert.equal(await evaluate("window.__b9.calls.filter(c=>c.method==='POST').length"),0,'cancel and Escape send no seal command');
+  await command('Emulation.setDeviceMetricsOverride',{width:375,height:812,deviceScaleFactor:1,mobile:true});
+  await click('staff-fixed-seal-open');await noHorizontalOverflow();await screenshot('staff-fixed-seal-confirm-mobile');
+  await evaluate('window.__b9.lose=true');await click('staff-fixed-seal-confirm');await waitFor(`${query('staff-fixed-seal-status')}?.dataset.stage==='uncertain'`,'B9 lost committed seal acknowledgement stays uncertain');
+  const committed=await sealCounts();assert.equal(committed['tsa.forms'],beforeSeal['tsa.forms']+1);assert.equal(committed['tsa_private.fixed_form_seals'],beforeSeal['tsa_private.fixed_form_seals']+1);
+  assert.equal(committed['tsa.attempts'],beforeSeal['tsa.attempts']);assert.equal(committed['tsa.student_question_history'],beforeSeal['tsa.student_question_history']);
+  await noHorizontalOverflow();await screenshot('staff-fixed-seal-uncertain-mobile');
+  await click('staff-fixed-seal-retry');await waitFor(`${query('staff-fixed-seal-status')}?.dataset.stage==='acknowledged'`,'B9 explicit exact historical receipt replay');
+  const sealCalls=await evaluate("window.__b9.calls.filter(c=>c.method==='POST')");assert.equal(sealCalls.length,2);assert.equal(sealCalls[0].key,sealCalls[1].key);assert.equal(sealCalls[0].body,sealCalls[1].body);assert.deepEqual(sealCalls[0].response,sealCalls[1].response);
+  const sealReceipt=sealCalls[1].response;assert.equal(sealReceipt.state,'SEALED');assert.equal(sealReceipt.studentDeliverySupported,false);assert.deepEqual(await sealCounts(),committed);
+  assert.equal(await evaluate("window.__b9.calls.filter(c=>c.method==='GET').length"),1,'successful seal does not automatically read or claim current metadata');
+  await noHorizontalOverflow();await screenshot('staff-fixed-seal-receipt-mobile');
+  await click('staff-fixed-seal-open');await waitFor(`${query('staff-fixed-seal-dialog')}?.open`,'same configuration permits a new explicit confirmation');await click('staff-fixed-seal-cancel');
+  await click('staff-fixed-forms-open');await waitFor(`${query('staff-fixed-forms-status')}?.dataset.stage==='list-loaded'`,'B9 discover committed seal explicitly');
+  await evaluate('window.__b9.failDetail=true');
+  await evaluate(`document.querySelector('[data-testid="staff-fixed-form-detail-open"][data-form-id="${sealReceipt.formId}"]').click()`);
+  await waitFor(`${query('staff-fixed-forms-status')}?.dataset.stage==='detail-error'`,'B9 controlled metadata read failure stays an error');
+  await click('staff-fixed-form-retry');
+  await waitFor(`${query('staff-fixed-forms-status')}?.dataset.stage==='detail-loaded'`,'B9 explicit safe detail');
+  assert.equal(await evaluate(`${query('staff-fixed-form-detail')}.textContent.includes('NOT_REVALIDATED')`),true);
+  const detail=await evaluate("window.__b9.calls.filter(c=>c.path.startsWith('/api/v1/fixed-forms/')).at(-1).response");assert.equal(detail.form.formId,sealReceipt.formId);assert.equal(detail.availability.revision,1);
+  for(const q of [...stockQuestions])assert.equal(JSON.stringify(detail).includes(q.versionId),false,'fixed staff metadata contains no candidate version pins');
+  await noHorizontalOverflow();await screenshot('staff-fixed-seal-detail-mobile');
+  await command('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await screenshot('staff-fixed-seal-detail-desktop');
+  await command('Page.reload');await waitFor(`Boolean(${query('staff-open')})`,'B9 fresh document after seal');await click('staff-open');await waitFor(`Boolean(${query('staff-fixed-forms-open')})`,'B9 metadata discovery after reload');await click('staff-fixed-forms-open');await waitFor(`${query('staff-fixed-forms-status')}?.dataset.stage==='list-loaded'`,'B9 persisted seal after reload without creation');
+  assert.equal(await evaluate(`Boolean(document.querySelector('[data-testid="staff-fixed-form-detail-open"][data-form-id="${sealReceipt.formId}"]'))`),true);assert.deepEqual(await sealCounts(),committed);
+  report.checks.push('B9 real explicit seal: native cancel/Escape0POST and mobile confirmation; committed lost201 stays uncertain and exact body/key retry replays one immutable form with no student attempt/history');
+  report.checks.push('B9 separate explicit metadata list/detail uses safe historical receipt plus current stored availability, survives fresh reload without POST; same configuration can open a fresh cancelled intent and desktop/mobile fit');
+
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });
   await waitFor(`Boolean(${query('staff-open')})`, 'mock-only landing');

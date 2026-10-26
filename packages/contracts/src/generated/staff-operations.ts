@@ -1,4 +1,4 @@
-// Generated from the private staff runtime route registry; OpenAPI SHA-256: 20e23fdb7e92bb0cd359aba9cdc0a6e00854939d5a3db937babe590104c0a543; do not edit.
+// Generated from the private staff runtime route registry; OpenAPI SHA-256: c22a70af790264663a0c3c5fb4aba90f7d5977139b35c282978e624fc26d60c1; do not edit.
 import type { StaffOperationMap } from "../staff-routes.ts";
 
 export type StaffOperations = {
@@ -8,6 +8,9 @@ export type StaffOperations = {
   readonly "staffCreateFixedRehearsal": StaffOperationMap["staffCreateFixedRehearsal"];
   readonly "staffFixedRehearsals": StaffOperationMap["staffFixedRehearsals"];
   readonly "staffFixedRehearsalDiagnostic": StaffOperationMap["staffFixedRehearsalDiagnostic"];
+  readonly "staffCreateFixedSeal": StaffOperationMap["staffCreateFixedSeal"];
+  readonly "staffFixedForms": StaffOperationMap["staffFixedForms"];
+  readonly "staffFixedForm": StaffOperationMap["staffFixedForm"];
   readonly "staffReviewContext": StaffOperationMap["staffReviewContext"];
   readonly "staffReviewEvidence": StaffOperationMap["staffReviewEvidence"];
   readonly "staffReviewHistory": StaffOperationMap["staffReviewHistory"];
@@ -23,6 +26,9 @@ export const StaffOperationPaths = {
   "staffCreateFixedRehearsal": { method: "POST", path: "/api/v1/fixed-rehearsals" },
   "staffFixedRehearsals": { method: "GET", path: "/api/v1/fixed-rehearsals" },
   "staffFixedRehearsalDiagnostic": { method: "GET", path: "/api/v1/fixed-rehearsals/{rehearsalId}" },
+  "staffCreateFixedSeal": { method: "POST", path: "/api/v1/assemblies" },
+  "staffFixedForms": { method: "GET", path: "/api/v1/fixed-forms" },
+  "staffFixedForm": { method: "GET", path: "/api/v1/fixed-forms/{formId}" },
   "staffReviewContext": { method: "GET", path: "/api/v1/question-versions/{versionId}/review-context" },
   "staffReviewEvidence": { method: "GET", path: "/api/v1/question-versions/{versionId}/review-evidence" },
   "staffReviewHistory": { method: "GET", path: "/api/v1/question-versions/{versionId}/review-history" },

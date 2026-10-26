@@ -160,3 +160,12 @@ The action reads current state and never resends a command; unacknowledged comma
 remain unconfirmed. Check that the new account is clear after explicit recovery
 and that a fresh confirmation is needed. Automated Chrome/Firefox checks do not
 fill qualified-human outcome fields. No human outcome has been recorded.
+
+## B9 fixed-form sealing — MANUAL_CHECK_PENDING
+
+In the disposable staff demo assess blueprint/window labels, native exact pin and
+real-form/no-delivery confirmation, initial Cancel focus and Escape restoration,
+uncertain same-request retry, historical receipt versus explicit metadata discovery,
+read-only error recovery, list/detail tables and current stored availability. Check
+qualified AT/native zoom/mobile focus visibility and session clearing. Engineering
+Chrome375/Firefox actual500 captures do not fill qualified human outcomes.

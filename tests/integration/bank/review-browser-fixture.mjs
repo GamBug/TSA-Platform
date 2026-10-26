@@ -92,7 +92,7 @@ export async function createReviewBrowserFixture({ includeEligibleFixedStock = f
     const identity = await createLocalSyntheticIdentityService(fixture.harness.authPool, { env });
     handlers = { identity,
       auth: await createLocalAuthHandler({ pool: fixture.harness.authPool, env }),
-      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true }),
+      bank: await createBankHandler({ bankPool: fixture.bankPool, identityService: identity, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealing: true, enableFixedSealMetadata: true }),
     };
     return { origin, questions, close, fixture, identity, template, fixedRuns, eligibleStock, evidenceText: SYNTHETIC_REVIEW_EVIDENCE };
   } catch (error) {

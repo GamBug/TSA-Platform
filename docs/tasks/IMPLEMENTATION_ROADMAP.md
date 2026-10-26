@@ -1,5 +1,13 @@
 # Implementation roadmap
 
+Current B9.1,2026-10-26: local fixed sealing/private EXAM metadata implemented under
+recorded specific owner go-ahead. Current eligible stock/immutable snapshots/rights
+horizon, no attempts/history or fixed student delivery. Root focused12/Bank161/
+contracts161/assembly63/Chrome50/Firefox18/defaultdomains78 PASS; independent source/
+core7+races4/upgrade1/DTO5/Chrome50 no unresolved finding. Clean reproduction pending.
+[Evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Historical
+proposal paragraphs below are superseded only in this exact scope.
+
 Current existing staff-session repair,2026-10-26: actual old-confirmation defect
 reproduced and fixed through nonce/epoch/refresh fencing and GET-only recovery.
 Root Chrome48/Firefox17/B032/local15/import/docs PASS, independent final source/

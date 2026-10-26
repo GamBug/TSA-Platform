@@ -4,7 +4,7 @@ Updated2026-10-26 for the separately scoped explicit personal-review increment.
 
 Accountable orchestrator root Codex; feat/track-b-data-auth. This is a current
 navigation and evidence reconciliation, not full Technical MVP or production
-acceptance. Bounded student presentation is complete; B1–B8 staff capabilities are
+acceptance. Bounded student presentation is complete; B1–B9 staff capabilities are
 implemented within their recorded decisions. [Supervisor walkthrough](../guides/TRACK_B_SUPERVISOR_DEMO.md).
 Owner G1/G2/G3 dispositions remain accepted in their recorded scopes; they do not
 supply lawful content, qualified human review or formal accessibility evidence.
@@ -41,9 +41,10 @@ are original synthetic test machinery, never accepted real inventory.
 | Canonical import preflight | Pinned read-only graph diagnostics/selection; not eligible inventory or assembly feasibility. [B6](WEB_002_B6_RUNTIME_VERIFICATION.md) |
 | Fixed reference diagnostics | Genuine synthetic solver inputs/stored replay; no personal manifests/table SELECT. [B7](WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md) |
 | Eligible Bank rehearsal | EXAM captures pinned real technically eligible synthetic stock using DB time/rights horizon; BANK audited aggregate replay; historical NOT_REVALIDATED, no forms/attempts/sealing. Actual success→quarantine→new shortage. [B8](WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md) |
+| Local fixed form sealing | Explicit current EXAM_MANAGER seal of current eligible synthetic stock, immutable new form/private snapshots, safe EXAM metadata, no student assignment/delivery. Actual upgrade/roles/replay/rights/version/quarantine races and browsers pass. [B9 evidence](WEB_002_B9_FIXED_SEALING_VERIFICATION.md). |
 
 These staff capabilities are AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in their exact
-records. Staff approval/publication, real qualified review and fixed student delivery
+records. Question approval/publication, real qualified review and fixed student delivery
 are not implied. B8 no-form warnings and role separation remain part of the product.
 
 ## Scenario reconciliation
@@ -69,7 +70,7 @@ are separate bounded additions; counts are not a completion percentage.
 |---|---|
 | Lawful accepted starter stock | HUMAN_APPROVAL_REQUIRED / BLOCKED for real publication:12 MATH,6 READING,12 SCIENCE with question-specific provenance/use rights and named qualified independent content review. [Owner content handoff](../guides/TRACK_B_CONTENT_HANDOFF.md) |
 | Accessibility | MANUAL_CHECK_PENDING: actual qualified screen-reader/native200% zoom/usability record and disposition. [Existing review packet](../quality/STUDENT_MANUAL_ACCESSIBILITY_CHECK.md). Automated focus/reflow is not formal conformance. |
-| Fixed sealing/shorter profiles | NOT_EXECUTED: future separately scoped service/API/privilege/product work. A concrete [B9.1 sealing/metadata proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md) is prepared, not approved or implemented. Do not alias personal manifests or silently add profiles, public forms or student fixed delivery. Explicit personal review is implemented in the separately linked scope. |
+| Fixed sealing/shorter profiles | NOT_EXECUTED: future separately scoped service/API/privilege/product work. B9.1 local staff sealing/metadata is implemented under its recorded go-ahead; [evidence](WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Do not alias personal manifests or silently add profiles, public forms or student fixed delivery. Explicit personal review is implemented in the separately linked scope. |
 | Performance/operations/production | NOT_EXECUTED/outside presentation scope: agreed load target, observed load/hosted identity/operational acceptance. Local PG recovery evidence is not production readiness. No deployment authorization. |
 | Dependency security | SEC-001 patched observed Zod advisory; current dated audit0, exact graph/integrity and compatibility evidence. No complete supply-chain/security guarantee. |
 
@@ -108,3 +109,8 @@ runtime operations remain unapproved/unimplemented.
 Staff session-binding source checkpoint5c397b0 clean no-hardlink reproduction:
 locked install/build/Chrome48/Firefox17/docs/import PASS, final clone Git empty.
 This repairs existing session behavior; it adds no B9 sealing authority.
+
+B9.1 is now implemented and independently reviewed in its separate local scope:
+root focused12/fullBank161/contracts161/assembly63/Chrome50/Firefox18/defaultdomains78
+PASS. Fixed student assignment/delivery remains excluded. Earlier proposal-only
+statements in the dated historical updates above are superseded for staff sealing.

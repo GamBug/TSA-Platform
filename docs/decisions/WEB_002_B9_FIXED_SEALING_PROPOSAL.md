@@ -1,5 +1,13 @@
 # WEB-002 B9.1 — fixed-form sealing and staff metadata proposal
 
+Current update2026-10-26: the owner's immediate “next.” response to the explicit
+whole-B9 local-implementation question is recorded as
+[scoped go-ahead](OPEN_DECISIONS.md#web-002-b91--scoped-owner-go-ahead2026-10-26).
+The proposal at752516f was implemented without student fixed delivery; actual
+[verification/review](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md) is separate.
+The original reviewed proposal/status below is preserved as historical scope,
+not a current missing-authorization claim or human-content acceptance.
+
 2026-10-26, source basecb09027. PROPOSED / HUMAN_APPROVAL_REQUIRED for the new
 privileged contract; NOT_IMPLEMENTED / NOT_EXECUTED. Root authored this concrete
 next-scope proposal under the standing engineering mission. The mission explicitly

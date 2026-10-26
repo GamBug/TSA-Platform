@@ -12,6 +12,10 @@ import {
   StaffFixedRehearsalReceiptSchema,
   StaffFixedRehearsalListSchema,
   StaffFixedRehearsalDiagnosticSchema,
+  StaffFixedSealRequestSchema,
+  StaffFixedSealReceiptSchema,
+  StaffFixedFormListSchema,
+  StaffFixedFormDetailSchema,
   StaffDatasetPreflightRequestSchema,
   StaffDatasetPreflightSchema,
   StaffQuarantineRequestSchema,
@@ -54,6 +58,10 @@ export const StaffFixedAssemblyDiagnosticPathParamsSchema = z
 
 export const StaffFixedRehearsalDiagnosticPathParamsSchema = z
   .object({ rehearsalId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
+  .strict();
+
+export const StaffFixedFormPathParamsSchema = z
+  .object({ formId: z.string().regex(UUID_PATTERN, "Expected a lowercase UUID") })
   .strict();
 
 const IdempotencyKeySchema = z.string().regex(/^[\x21-\x7e]{1,128}$/, "Expected 1–128 visible ASCII characters");
@@ -182,6 +190,32 @@ export const StaffSubmitReviewValidationResponseSchema = z.union([
   StaffSubmitReviewConstraintConflictResponseSchema,
 ]);
 
+const staffFixedSealSolverErrorResponse = <Code extends string>(code: Code) =>
+  z
+    .object({
+      error: z
+        .object({
+          code: z.literal(code),
+          message: z.string().trim().min(1).max(1_024),
+          requestId: z.string().min(1).max(256),
+          details: emptyDetails,
+        })
+        .strict(),
+    })
+    .strict();
+
+export const StaffFixedSealInsufficientInventoryResponseSchema = staffFixedSealSolverErrorResponse(
+  "INSUFFICIENT_ELIGIBLE_INVENTORY",
+);
+export const StaffFixedSealConstraintConflictResponseSchema = staffFixedSealSolverErrorResponse("CONSTRAINT_CONFLICT");
+export const StaffFixedSealSearchExhaustedResponseSchema = staffFixedSealSolverErrorResponse("SEARCH_EXHAUSTED");
+export const StaffFixedSealValidationResponseSchema = z.union([
+  StaffSubmitReviewValidationErrorResponseSchema,
+  StaffFixedSealInsufficientInventoryResponseSchema,
+  StaffFixedSealConstraintConflictResponseSchema,
+  StaffFixedSealSearchExhaustedResponseSchema,
+]);
+
 const json = (schema: z.ZodType, description: string) => ({
   contentType: "application/json" as const,
   schema,
@@ -280,6 +314,53 @@ export const staffRouteRegistry = {
       404: json(StaffNotFoundResponseSchema, "Rehearsal is missing or outside the current manager scope"),
       422: json(StaffValidationErrorResponseSchema, "Malformed path or unexpected query/body"),
       503: json(StaffTemporarilyUnavailableResponseSchema, "Stored rehearsal diagnostic or replay verification is unavailable"),
+    },
+  },
+  staffCreateFixedSeal: {
+    method: "POST",
+    path: "/api/v1/assemblies",
+    summary: "Seal one new fixed form from current eligible synthetic stock",
+    description: "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission, the trusted same-origin staff session, a CSRF token, and an idempotency key. The strict JSON body pins one exact supported one-domain blueprint and capture window; omitted seed stays omitted in the parsed body and the server uses seed 42. The body is limited to 1 MiB. Success returns the immutable historical seal receipt only; it creates no student attempt, assignment, score, release, or student-delivery capability.",
+    headers: StaffSubmitReviewRequestHeadersSchema,
+    body: StaffFixedSealRequestSchema,
+    responses: {
+      201: json(StaffFixedSealReceiptSchema, "Historical receipt for the committed fixed-form seal"),
+      400: json(StaffSubmitReviewMalformedJsonResponseSchema, "Request body is not valid JSON"),
+      401: json(StaffSubmitReviewUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffSubmitReviewCsrfOrForbiddenResponseSchema, "CSRF validation failed or current principal lacks EXAM_MANAGER or exam.assembly.write permission"),
+      404: json(StaffSubmitReviewNotFoundResponseSchema, "Pinned blueprint version is missing or not visible"),
+      409: json(StaffSubmitReviewConflictResponseSchema, "Blueprint pin, idempotency key, or concurrent stock snapshot conflicts"),
+      413: json(StaffSubmitReviewPayloadTooLargeResponseSchema, "Request body exceeds the 1 MiB limit"),
+      422: json(StaffFixedSealValidationResponseSchema, "Request is invalid or bounded assembly reports one typed solver outcome"),
+      503: json(StaffSubmitReviewTemporarilyUnavailableResponseSchema, "Stock capture or receipt state is unavailable or uncertain"),
+    },
+  },
+  staffFixedForms: {
+    method: "GET",
+    path: "/api/v1/fixed-forms",
+    summary: "List the latest sealed fixed-form metadata",
+    description: "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission. Accepts no query, request body, or request headers; it returns at most twenty safe fixed-form metadata rows and does not revalidate historical eligibility, rights, or student-delivery capability.",
+    responses: {
+      200: json(StaffFixedFormListSchema, "Newest-first bounded metadata for sealed fixed forms"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks EXAM_MANAGER or exam.assembly.write permission"),
+      422: json(StaffValidationErrorResponseSchema, "Unexpected query or request body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored fixed-form metadata is unavailable"),
+    },
+  },
+  staffFixedForm: {
+    method: "GET",
+    path: "/api/v1/fixed-forms/{formId}",
+    summary: "Read safe metadata and fresh availability for one sealed fixed form",
+    description: "Requires a current EXAM_MANAGER principal with the existing exam.assembly.write permission. Accepts no query, request body, or request headers. Returns one exact stored fixed-form projection with fresh availability metadata; unknown, personal, reference-only, rehearsal-only, and unsupported legacy forms are not exposed.",
+    params: StaffFixedFormPathParamsSchema,
+    responses: {
+      200: json(StaffFixedFormDetailSchema, "Safe metadata for one exact sealed fixed form"),
+      401: json(StaffUnauthenticatedResponseSchema, "No authenticated session"),
+      403: json(StaffForbiddenResponseSchema, "Current principal lacks EXAM_MANAGER or exam.assembly.write permission"),
+      404: json(StaffNotFoundResponseSchema, "Form is unknown or outside the supported fixed-seal scope"),
+      422: json(StaffValidationErrorResponseSchema, "Malformed path or unexpected query/body"),
+      503: json(StaffTemporarilyUnavailableResponseSchema, "Stored fixed-form detail is unavailable"),
     },
   },
   staffReviewContext: {

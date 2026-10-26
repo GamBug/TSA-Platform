@@ -1186,3 +1186,48 @@ body.review-active { overflow: hidden; background: #fff; }
   .review-mode-dialog-actions { flex-direction: column-reverse; }
   .review-mode-dialog-actions .button { width: 100%; }
 }
+
+/* Fixed-form sealing and safe metadata are a separate EXAM_MANAGER surface from rehearsal. */
+.staff-fixed-forms-panel, .staff-fixed-seal-content, .staff-fixed-forms-content, .staff-fixed-form-detail-content { min-width: 0; max-width: 100%; }
+.staff-fixed-seal-warning, .staff-fixed-forms-warning { margin: 16px 0; padding: 13px 15px; border-left: 3px solid #bd8730; border-radius: 0 8px 8px 0; color: #614914; background: var(--amber-soft); line-height: 1.6; overflow-wrap: anywhere; }
+.staff-fixed-seal-note, .staff-fixed-forms-note, .staff-fixed-forms-observation { margin: 12px 0; line-height: 1.55; overflow-wrap: anywhere; }
+.staff-fixed-seal-empty, .staff-fixed-forms-empty { margin: 16px 0; }
+.staff-fixed-seal-fields { min-width: 0; margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 10px; }
+.staff-fixed-seal-fields legend { padding: 0 6px; font-weight: 750; }
+.staff-fixed-seal-fields .staff-field { margin: 10px 0; }
+.staff-fixed-seal-selected { margin: 14px 0; }
+.staff-fixed-seal-actions, .staff-fixed-seal-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.staff-fixed-seal-command { margin: 18px 0 0; padding: 14px 16px; border: 1px solid #cfd7f2; border-radius: 10px; background: #f8f9ff; }
+.staff-fixed-seal-command.is-error { border-color: #e5b7b7; background: #fff8f8; }
+.staff-fixed-seal-command > [data-testid="staff-fixed-seal-status"] { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.staff-fixed-seal-command [data-testid="staff-fixed-seal-status"]:focus { outline: 3px solid #f0a64f; outline-offset: 3px; }
+.staff-fixed-seal-command .staff-review-metadata { margin-top: 14px; }
+.staff-fixed-forms-table-wrap { max-width: 100%; margin: 14px 0; overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
+.staff-fixed-forms-table-wrap:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+.staff-fixed-forms-table { width: 100%; min-width: 900px; border-collapse: collapse; text-align: left; }
+.staff-fixed-forms-table caption { padding: .7em .9em; font-weight: 700; color: #334155; background: #f8fafc; text-align: left; }
+.staff-fixed-forms-table th, .staff-fixed-forms-table td { min-width: 5em; padding: .6em .8em; border-top: 1px solid #cbd5e1; overflow-wrap: anywhere; vertical-align: top; }
+.staff-fixed-forms-table th { color: #1e293b; background: #eef2f7; }
+.staff-fixed-forms-table tbody tr:nth-child(even) { background: #f8fafc; }
+.staff-fixed-forms-table .button { max-width: 100%; }
+.staff-fixed-form-receipt, .staff-fixed-form-availability { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); }
+.staff-fixed-form-receipt h3, .staff-fixed-form-availability h3 { margin: 0 0 12px; font-size: 1rem; }
+.staff-fixed-form-receipt .staff-review-metadata, .staff-fixed-form-availability .staff-review-metadata { margin: 0; }
+.staff-fixed-seal-dialog { width: min(680px, calc(100% - 32px)); max-height: min(92vh, 820px); overflow-y: auto; padding: 26px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow); }
+.staff-fixed-seal-dialog::backdrop { background: rgba(16, 24, 40, .62); }
+.staff-fixed-seal-dialog h2 { margin-bottom: 12px; font-size: clamp(1.25rem, 4vw, 1.7rem); line-height: 1.2; }
+.staff-fixed-seal-dialog-description { margin-bottom: 14px; color: var(--muted); line-height: 1.6; }
+.staff-fixed-seal-dialog-metadata { display: grid; min-width: 0; grid-template-columns: minmax(0, 180px) minmax(0, 1fr); gap: 7px 14px; margin: 14px 0; line-height: 1.5; }
+.staff-fixed-seal-dialog-metadata dt { color: var(--muted); font-weight: 700; }
+.staff-fixed-seal-dialog-metadata dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+@media (max-width: 680px) {
+  .staff-fixed-seal-warning, .staff-fixed-forms-warning { padding: 11px 12px; }
+  .staff-fixed-forms-table { min-width: 760px; }
+  .staff-fixed-form-receipt, .staff-fixed-form-availability { padding: 11px 12px; }
+  .staff-fixed-form-receipt .staff-review-metadata, .staff-fixed-form-availability .staff-review-metadata,
+  .staff-fixed-seal-dialog-metadata { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .staff-fixed-form-receipt dd, .staff-fixed-form-availability dd, .staff-fixed-seal-dialog-metadata dd { margin-bottom: 8px; }
+  .staff-fixed-seal-actions, .staff-fixed-seal-dialog-actions { flex-direction: column-reverse; }
+  .staff-fixed-seal-actions .button, .staff-fixed-seal-dialog-actions .button { width: 100%; }
+  .staff-fixed-seal-dialog { padding: 20px; }
+}
