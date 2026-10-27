@@ -1,3 +1,40 @@
+# Handoff — WEB-004 reachable student history
+
+- Date/role:2026-10-27 Asia/Bangkok, root/current Codex accountable integrator.
+- Branch/base:feat/track-b-data-auth,7211ef3. Local milestone `fix(student): make
+  saved history reachable and recover failed refreshes`; exact reviewed source
+  hashes/commands in [evidence](../reviews/WEB_004_HISTORY_VERIFICATION.md).
+- IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scopes.
+  Root selected observed hidden-after10 gap under standing owner choice authority.
+  Owner AGENTS.md/untracked research preserved/excluded. No server contract, SDK,
+  SQL, role, score, release, clock or reuse-policy change.
+
+Dedicated red-compatible readable history section shows dates/mode/state, exact
+displayed/loaded count, next10 reveal with first-new-action focus, explicit refresh
+loading and cached-data error/retry. Only history region changes, preserving focus,
+scroll and persistent navigation. Identity/latest-request fences protect out-of-order
+responses; account reset clears expanded rows/loading/reveal state.
+
+Native Luna/XHigh read-only discovery and disjoint helper/state-test writer actually
+executed. Root main/styles/shared-short hook/docs; all reservations now released.
+Root initial Chrome/Firefox short10groups30captures and Chrome201responses PASS,
+domains78/B011/26/B034/build/boundaries/docs/whitespace PASS. State14/14 PASS.
+Separate native Sol6.1/Medium final-source source/static/B034/Chrome10/31/202API
+responses/Firefox10/31 review no unresolved findings. Both engines prove16 genuine
+owned attempts after12 explicit synthetic SDK review setups, exact older GET/result,
+original first history preserved, failed GET retains rows/explicit GET-only retry,
+actual A→B rows/reveal reset and0px desktop/narrow header movement. Root/reviewer
+inspected actual375/500 history/error captures; earlier helper screenshot/oracle
+revisions are distinguished from final results in evidence.
+
+Next: clean-checkout reproduce this current UI source (not yet run at this source
+checkpoint), then return to concrete ready acceptance gaps. Automatic supervisor
+launchers remain unchanged; guide documents the history controls. Qualified manual
+screen-reader/usability/contrast and lawful12/6/12 reviewed stock remain external
+human inputs, not supplied by engineering delegation. No Safari/full backend-wide/
+new staff browser/performance/production acceptance claim. No push/remote merge/
+deploy, paidAPI/Astra/live inference or unauthorized real content.
+
 # Handoff — WEB-004 red accents and stable navigation
 
 - Date/role:2026-10-27 Asia/Bangkok; root/current Codex accountable integrator.

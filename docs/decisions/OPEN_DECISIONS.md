@@ -29,6 +29,14 @@ human accessibility/content/production acceptance. Existing prohibitions remain.
 
 ## Track B engineering-choice delegation — 2026-10-24
 
+Current selection2026-10-27: after owner “next.” following7211ef3, root selected
+the observed student-history reachability gap (silently hidden rows after10) and
+read-failure recovery. Existing owned paginated GET already supplies every row;
+only frontend state/layout and focused existing-runner verification change. No
+new API/privilege/reuse/scoring/timing policy. Implemented and independently
+reviewed in [recorded scopes](../reviews/WEB_004_HISTORY_VERIFICATION.md). This is
+root's delegated engineering choice, not a new human acceptance attestation.
+
 - Delegating identity: human repository owner. Exact latest instruction:
   “next. now any choice is yours! no need to ask me anymore.”
 - Disposition: root may select and execute the next bounded Track B engineering

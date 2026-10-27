@@ -13,18 +13,43 @@ function deferred() {
   return { promise, resolve, reject };
 }
 for (const outcome of ['success', 'authentication failure']) test(`late history ${outcome} cannot overwrite or clear a newer identity`, async () => {
-  const state = { identityGeneration: 1, history: [{ attemptId: 'candidate-a' }], historyStatus: '' };
-  const gate = deferred(); let renders = 0, errorHandlers = 0;
-  const refresh = new Function('state', 'api', 'persistentMode', 'app', 'renderCatalog', 'handlePersistentError',
-    `return (${match[0]});`)(state, { loadHistory: () => gate.promise }, true,
-    { querySelector: () => ({}) }, () => { renders++; }, () => { errorHandlers++; return true; });
+  const state = { identityGeneration: 1, historyRequestGeneration: 0, history: [{ attemptId: 'candidate-a' }], historyStatus: '', historyLoading: false };
+  const gate = deferred(); let updates = 0, errorHandlers = 0;
+  const refresh = new Function('state', 'api', 'persistentMode', 'updatePersistentHistory', 'handlePersistentError',
+    `return (${match[0]});`)(state, { loadHistory: () => gate.promise }, true, () => { updates++; }, () => { errorHandlers++; return true; });
   const pending = refresh();
   state.identityGeneration += 1;
   const current = [{ attemptId: 'candidate-b' }]; state.history = current;
   if (outcome === 'success') gate.resolve([{ attemptId: 'candidate-a', score: { percentage: '100.00' } }]);
   else gate.reject(Object.assign(new Error('Old session ended'), { code: 'UNAUTHENTICATED', status: 401 }));
   await pending;
-  assert.equal(state.history, current); assert.equal(renders, 0); assert.equal(errorHandlers, 0);
+  assert.equal(state.history, current); assert.equal(updates, 1, 'only the immediate loading state was rendered'); assert.equal(errorHandlers, 0);
+});
+
+for (const staleOutcome of ['success', 'read failure']) test(`a newer same-session history refresh wins a late ${staleOutcome}`, async () => {
+  const requests = [deferred(), deferred()];
+  const state = { identityGeneration: 7, historyRequestGeneration: 0,
+    history: [{ attemptId: 'already-visible' }], historyStatus: '', historyLoading: false };
+  let request = 0, updates = 0, errorHandlers = 0;
+  const refresh = new Function('state', 'api', 'persistentMode', 'updatePersistentHistory', 'handlePersistentError',
+    `return (${match[0]});`)(state, { loadHistory: () => requests[request++].promise }, true,
+    () => { updates++; }, () => { errorHandlers++; return false; });
+  const stale = refresh();
+  const current = refresh();
+  assert.equal(state.historyRequestGeneration, 2);
+  const newest = [{ attemptId: 'newest-same-owner' }];
+  requests[1].resolve(newest);
+  await current;
+  assert.equal(state.history, newest);
+  assert.equal(state.historyLoading, false);
+  if (staleOutcome === 'success') requests[0].resolve([{ attemptId: 'stale-same-owner' }]);
+  else requests[0].reject(Object.assign(new Error('Old history page failed'), { code: 'TEMPORARILY_UNAVAILABLE', status: 503 }));
+  await stale;
+  assert.equal(state.history, newest, 'late response does not replace current history');
+  assert.equal(state.historyStatus, '', 'late failure cannot replace the current success state');
+  assert.equal(state.historyLoading, false);
+  assert.equal(updates, 3, 'only the two loading states and newest response updated the view');
+  assert.equal(errorHandlers, 0, 'stale failures do not trigger auth/error handling');
 });
 
 function uiCallback(name, bindings) {

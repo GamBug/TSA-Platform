@@ -95,6 +95,9 @@ const state = {
   identityGeneration: 0,
   history: [],
   historyStatus: "",
+  historyVisibleCount: 10,
+  historyLoading: false,
+  historyRequestGeneration: 0,
   attempt: null,
   review: null,
   resumeNotice: "",
@@ -628,6 +631,9 @@ function resetPersistentIdentity() {
   state.conflictRecovery = null;
   state.history = [];
   state.historyStatus = "";
+  state.historyVisibleCount = 10;
+  state.historyLoading = false;
+  state.historyRequestGeneration = 0;
   state.fixedForms = [];
 }
 
@@ -967,19 +973,99 @@ function renderCatalogWithMessage(message) {
 async function refreshPersistentHistory() {
   const identityGeneration = state.identityGeneration;
   if (!persistentMode) return;
+  const requestGeneration = ++state.historyRequestGeneration;
+  state.historyLoading = true;
+  state.historyStatus = "";
+  updatePersistentHistory();
   try {
     const history = await api.loadHistory();
-    if (identityGeneration !== state.identityGeneration) return;
+    if (identityGeneration !== state.identityGeneration || requestGeneration !== state.historyRequestGeneration) return;
     state.history = history;
     state.historyStatus = "";
-    if (app.querySelector("[data-testid='persistent-history']")) renderCatalog();
+    state.historyLoading = false;
+    updatePersistentHistory();
   } catch (error) {
-    if (identityGeneration !== state.identityGeneration) return;
+    if (identityGeneration !== state.identityGeneration || requestGeneration !== state.historyRequestGeneration) return;
+    state.historyLoading = false;
     if (handlePersistentError(error)) return;
-    state.historyStatus = "Lịch sử chưa tải được. Các bài hiện có vẫn được lưu trên máy chủ.";
-    const historyStatus = app.querySelector("[data-testid='history-status']");
-    if (historyStatus) historyStatus.textContent = state.historyStatus;
-    else if (app.querySelector("[data-testid='persistent-history']")) renderCatalog();
+    state.historyStatus = state.history.length
+      ? "Chưa đọc lại được lịch sử. Các bài dưới đây là dữ liệu đã tải trước đó; hãy thử lại."
+      : "Lịch sử chưa tải được. Các bài hiện có vẫn được lưu trên máy chủ; hãy thử lại.";
+    updatePersistentHistory();
+  }
+}
+
+function renderPersistentHistory() {
+  const history = element("section", "persistent-history");
+  history.dataset.testid = "persistent-history";
+  history.setAttribute("aria-labelledby", "history-title");
+  history.setAttribute("aria-busy", String(state.historyLoading));
+  const heading = element("div", "history-heading");
+  const title = element("h2", "", "Lịch sử bài luyện tập");
+  title.id = "history-title";
+  const refresh = actionButton("Đọc lại lịch sử", "history-refresh", () => {
+    if (!state.historyLoading && !state.busy && !fixedSelectionLocked() && !hasUnacknowledgedChanges()) void refreshPersistentHistory();
+  }, "button secondary small");
+  refresh.disabled = state.busy || fixedSelectionLocked();
+  // Keep the focused refresh action reachable while its read is in flight.
+  refresh.setAttribute("aria-disabled", String(state.historyLoading || refresh.disabled));
+  heading.append(title, refresh);
+  const status = element("p", "history-status", state.historyLoading
+    ? "Đang đọc lịch sử từ máy chủ…"
+    : state.historyStatus || (state.history.length ? "" : "Chưa có bài đã lưu cho hồ sơ này."));
+  status.dataset.testid = "history-status";
+  status.setAttribute("role", "status");
+  history.append(heading, status);
+  if (state.history.length) {
+    const visible = Math.min(state.historyVisibleCount, state.history.length);
+    const range = element("p", "history-range", `Đang hiển thị ${visible} / ${state.history.length} bài đã tải.`);
+    range.dataset.testid = "history-range";
+    const entries = element("div", "persistent-history-list");
+    for (const record of state.history.slice(0, visible)) {
+      const row = element("article", "persistent-history-item");
+      const summary = element("div", "history-item-summary");
+      summary.append(element("h3", "", `${domainNames[record.domain] || record.domain} · ${attemptStateNames[record.state] || "Chưa đọc được trạng thái"}`));
+      appendPracticeModeLabel(summary, record);
+      appendPersonalProfileLabel(summary, record);
+      const timestamp = record.closedAt || record.startedAt;
+      if (timestamp) summary.append(element("p", "history-item-time", `${record.closedAt ? "Khép lại" : "Bắt đầu"} ${formatAdmissionTime(timestamp)}`));
+      if (record.score && record.state === "GRADED") {
+        summary.append(element("p", "history-item-score", `${record.score.correctCount}/${record.score.totalCount} · ${record.score.percentage}% · luyện tập không chính thức`));
+      } else if (record.state === "SUBMITTED" || record.state === "EXPIRED") {
+        summary.append(element("p", "history-item-score", "Đang chờ trạng thái chấm"));
+      }
+      const openRecord = actionButton("Đọc bài đã lưu", `history-${record.attemptId}`, () => openPersistentHistoryAttempt(record.attemptId), "button secondary small");
+      openRecord.disabled = fixedSelectionLocked() || state.busy;
+      row.append(summary, openRecord);
+      entries.append(row);
+    }
+    history.append(range, entries);
+    if (visible < state.history.length) {
+      const more = actionButton("Xem các bài cũ hơn", "history-more", () => {
+        const firstNewId = state.history[visible]?.attemptId;
+        state.historyVisibleCount = visible + 10;
+        updatePersistentHistory();
+        const firstNew = firstNewId && app.querySelector(`[data-testid="history-${firstNewId}"]`);
+        firstNew?.focus({ preventScroll: true });
+        firstNew?.scrollIntoView({ block: "nearest", behavior: "instant" });
+        announce(`Đã hiển thị ${Math.min(state.historyVisibleCount, state.history.length)} trong ${state.history.length} bài đã tải.`);
+      }, "button secondary small");
+      more.disabled = fixedSelectionLocked() || state.busy;
+      history.append(more);
+    }
+  }
+  return history;
+}
+
+function updatePersistentHistory() {
+  const current = app.querySelector('[data-testid="persistent-history"]');
+  if (!current) return;
+  const focusedId = current.contains(document.activeElement) ? document.activeElement.dataset.testid : null;
+  const replacement = renderPersistentHistory();
+  current.replaceWith(replacement);
+  if (focusedId) {
+    const restored = [...replacement.querySelectorAll("[data-testid]")].find(node => node.dataset.testid === focusedId);
+    if (restored && !restored.disabled) restored.focus({ preventScroll: true });
   }
 }
 
@@ -2464,39 +2550,7 @@ function renderCatalog() {
   } else {
     fragment.append(panel);
   }
-  if (persistentMode) {
-    const history = element("section", "staff-callout persistent-history");
-    history.dataset.testid = "persistent-history";
-    history.append(element("h2", "", "Lịch sử bài luyện tập"));
-    if (state.historyStatus) {
-      const status = element("p", "", state.historyStatus);
-      status.dataset.testid = "history-status";
-      history.append(status);
-    } else if (state.history.length === 0) {
-      history.append(element("p", "", "Chưa có bài đã lưu cho hồ sơ này."));
-    } else {
-      const status = element("p", "", `${state.history.length} bài trong lịch sử tài khoản.`);
-      status.dataset.testid = "history-status";
-      const entries = element("div", "persistent-history-list");
-      for (const record of state.history.slice(0, 10)) {
-        const row = element("article", "persistent-history-item");
-        row.append(element("strong", "", `${domainNames[record.domain] || record.domain} · ${attemptStateNames[record.state] || "Chưa đọc được trạng thái"}`));
-        appendPracticeModeLabel(row, record);
-        appendPersonalProfileLabel(row, record);
-        if (record.score && record.state === "GRADED") {
-          row.append(element("span", "", `${record.score.correctCount}/${record.score.totalCount} · ${record.score.percentage}% · luyện tập không chính thức`));
-        } else if (record.state === "SUBMITTED" || record.state === "EXPIRED") {
-          row.append(element("span", "", "Đang chờ trạng thái chấm"));
-        }
-        const openRecord = actionButton("Đọc bài đã lưu", `history-${record.attemptId}`, () => openPersistentHistoryAttempt(record.attemptId), "button secondary small");
-        openRecord.disabled = fixedSelectionLocked() || state.busy;
-        row.append(openRecord);
-        entries.append(row);
-      }
-      history.append(status, entries);
-    }
-    fragment.append(history);
-  }
+  if (persistentMode) fragment.append(renderPersistentHistory());
   fragment.append(element("p", "demo-disclaimer catalog-disclaimer", persistentMode
     ? "Đây là luyện tập không chính thức trên dịch vụ PostgreSQL cục bộ bằng hồ sơ tổng hợp. Không khẳng định tương đương cách chấm chính thức."
     : "Đây là bản demo cục bộ với bốn vị trí kiểm thử; một số câu lặp lại và kết quả không phải điểm TSA chính thức."));

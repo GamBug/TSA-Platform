@@ -1,5 +1,14 @@
 # Implementation roadmap
 
+Current WEB-004 history supplement,2026-10-27: root-selected UI gap beyond10 history
+entries closed using existing owned GET; readable dates, progressive reveal/focus,
+truthful cached-data retry and request/session fencing. Root initial two-engine
+10/30, domains78/B011/26/B034/build/boundaries/docs PASS; separate native Sol6.1/
+Medium final-source Chrome10/31/202responses and Firefox10/31 no findings, all16
+genuine entries accessible/first history unchanged/account state cleared/header
+maxdelta0. [Evidence/limits](../reviews/WEB_004_HISTORY_VERIFICATION.md). No API,
+SQL, scoring, clock or reuse-policy change; manual AT and lawful stock remain human.
+
 Current WEB-004 supplement,2026-10-27: owner-requested red primary accents, solid
 hero/logo and stable navigation implemented. Browse header now persists outside
 route columns; reserved scrollbar space, common local fonts and explicit responsive

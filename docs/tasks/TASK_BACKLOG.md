@@ -1621,6 +1621,26 @@ Historical parent card below remains a planning record, not the current blocker.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-27 **REACHABLE STUDENT HISTORY — IMPLEMENTED / AUTOMATED_PASS /
+INDEPENDENTLY_REVIEWED in recorded scopes**, base7211ef3.
+Root-selected under standing engineering-choice authority: current UI advertises
+all loaded history but silently slices at10 without an older-entry action. Add
+accessible progressive reveal, truthful loading/error/retry and readable history
+layout using existing owned history GET only; no route/schema/SQL/policy change.
+Root/current Codex owns main.js/styles.css/browser integration/shared records.
+Recommended Sol6.1/High for session-safe UI integration; current Codex fallback.
+Native Luna/XHigh discovery confirms the gap; separate Luna/XHigh bounded helper/
+state-test writer and Sol6.1/Medium read-only reviewer actually executed. All16
+genuine owned attempts reachable; exact older GET/result, first-assignment history,
+failed-read snapshot/retry and actual account-clear assertions pass. Root Chrome/
+Firefox10groups30captures (initial helper), final independent Chrome10/31/202API
+responses and Firefox10/31 PASS; current app stable throughout. Header refresh max
+delta0, narrow375/500 no overflow; root domains78/B011/26/B034/build/boundaries/docs
+PASS, state14/14. No unresolved independent finding.
+[Exact commands/review/limits](../reviews/WEB_004_HISTORY_VERIFICATION.md).
+Reservations released; owner AGENTS.md/untracked research excluded. Qualified
+manual accessibility/lawful real stock remain human dependencies.
+
 2026-10-27 **UI STABILITY / RED ACCENTS — IMPLEMENTED / AUTOMATED_PASS /
 INDEPENDENTLY_REVIEWED in recorded scopes**, base8657598.
 Owner explicitly requested red as the main color, fewer gradients, and root-cause

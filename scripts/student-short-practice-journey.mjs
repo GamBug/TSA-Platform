@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { beginHeaderStability, assertHeaderStable } from './browse-header-stability.mjs';
+import { runHistoryJourney } from './student-history-journey.mjs';
 
 /** Existing real student UI, with explicit short-profile recovery and no fallback. */
 export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixture,capture,report,reload,viewport,escape,narrowWidth=375}) {
@@ -95,6 +96,7 @@ export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixt
  const history=await evaluate("fetch('/api/v1/attempts?limit=100').then(r=>r.json())");assert.equal(history.items.length,4);assert.ok(history.items.every(row=>row.state==='GRADED'&&row.score.percentage==='100.00'));
  assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.student_question_history')).rows[0].n,12);
  await capture('short-four-attempt-history');report.shortDomains=outcomes;
+ await runHistoryJourney({evaluate,click,query,waitFor,fixture,capture,report,viewport,narrowWidth});
  // Prepare in A, then rotate the actual local session externally before dispatch.
  const selected=shorts[0];
  await evaluate(`document.querySelector('[data-testid="short-practice-open"][data-blueprint-version-id="${selected.blueprintVersionId}"]').click()`);
@@ -106,6 +108,8 @@ export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixt
  assert.equal(await evaluate('window.__shortCrossSessionCreates'),0,'A intent never creates a B attempt');
  await capture('short-session-intent-fenced');
  await click('persistent-login-studentB');await waitFor(`Boolean(${query('catalog-panel')})`,'explicit replacement candidate login');
+ assert.equal(await evaluate("document.querySelectorAll('.persistent-history-item').length"),0,'replacement candidate never sees the expanded prior history');
+ assert.equal(await evaluate(`Boolean(${query('history-more')})`),false,'prior candidate reveal state is cleared');
  // A real authenticated API request models another request arriving while this UI is stale.
  const external=await evaluate(`fetch('/api/v1/attempts',{method:'POST',headers:{'content-type':'application/json','x-csrf-token':document.cookie.split('; ').find(s=>s.startsWith('tsa_local_csrf=')).slice('tsa_local_csrf='.length),'idempotency-key':crypto.randomUUID()},body:JSON.stringify({blueprintVersionId:${JSON.stringify(selected.blueprintVersionId)}})}).then(async response=>({status:response.status,body:await response.json()}))`);
  assert.equal(external.status,201);assert.equal(external.body.state,'CREATED');

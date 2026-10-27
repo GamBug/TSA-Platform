@@ -38,6 +38,12 @@ The deadline continues while disconnected. Do not pause or change a sealed clock
 while explaining the interface. If a save fails, use its explicit retry/reload and
 wait for acknowledgement before continuing.
 
+History shows the displayed/loaded count, domain state and server-provided dates.
+Use **Đọc lại lịch sử** to refresh it; a failed read retains the loaded rows with an
+explicit cached-data message. If more than10 attempts exist, **Xem các bài cũ hơn**
+reveals the next entries and focuses the first newly available action. Opening an
+older row reads that owned attempt and its currently released result.
+
 ## Show truthful shortage and a shorter choice
 
 Request full Mathematics again. Only two unseen questions remain in this small
