@@ -1,7 +1,7 @@
 # Handoff — WEB-004 reachable student history
 
 - Date/role:2026-10-27 Asia/Bangkok, root/current Codex accountable integrator.
-- Branch/base:feat/track-b-data-auth,7211ef3. Local milestone `fix(student): make
+- Branch/base:feat/track-b-data-auth,sourcee7b9e5d from7211ef3. Local milestone `fix(student): make
   saved history reachable and recover failed refreshes`; exact reviewed source
   hashes/commands in [evidence](../reviews/WEB_004_HISTORY_VERIFICATION.md).
 - IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scopes.
@@ -27,8 +27,13 @@ actual A→B rows/reveal reset and0px desktop/narrow header movement. Root/revie
 inspected actual375/500 history/error captures; earlier helper screenshot/oracle
 revisions are distinguished from final results in evidence.
 
-Next: clean-checkout reproduce this current UI source (not yet run at this source
-checkpoint), then return to concrete ready acceptance gaps. Automatic supervisor
+Root clean no-hardlink e7b9e5d at `/tmp/tsa-history-clean-85thennp`: locked install/
+build/B034/Chrome10/31/201responses/Firefox10/31/B011/26/boundaries/docs PASS;
+final clone Git empty. No retries, patches or manual SQL/API setup; automatic
+fixture/browser cleanup completed. Root reproduction only, no independent clean
+claim. This also reproduces the preceding red/header shell; app hashes unchanged.
+
+Next: supervisor walkthrough and concrete ready acceptance gaps. Automatic supervisor
 launchers remain unchanged; guide documents the history controls. Qualified manual
 screen-reader/usability/contrast and lawful12/6/12 reviewed stock remain external
 human inputs, not supplied by engineering delegation. No Safari/full backend-wide/

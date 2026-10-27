@@ -8,6 +8,9 @@ Medium final-source Chrome10/31/202responses and Firefox10/31 no findings, all16
 genuine entries accessible/first history unchanged/account state cleared/header
 maxdelta0. [Evidence/limits](../reviews/WEB_004_HISTORY_VERIFICATION.md). No API,
 SQL, scoring, clock or reuse-policy change; manual AT and lawful stock remain human.
+Clean no-hardlink e7b9e5d locked install/build/B034/Chrome10/31/201responses/Firefox
+10/31/B011/26/boundaries/docs PASS, clone Git empty. Automatic cleanup, no retry or
+manual setup; root reproduction only, final reviewed app hashes unchanged.
 
 Current WEB-004 supplement,2026-10-27: owner-requested red primary accents, solid
 hero/logo and stable navigation implemented. Browse header now persists outside

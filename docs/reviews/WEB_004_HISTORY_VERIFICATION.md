@@ -81,7 +81,35 @@ Reviewed application SHA256:
 
 Qualified accessibility/manual AT/usability remains **MANUAL_CHECK_PENDING**;
 lawful independently reviewed real starter stock is **HUMAN_APPROVAL_REQUIRED**.
-No performance/production acceptance. Safari and a fresh checkout of this source
-are **NOT_EXECUTED** at this checkpoint. No new independent backend-wide suite,
+No performance/production acceptance. Safari is **NOT_EXECUTED**. The initial
+fresh-checkout gap is closed below. No new independent backend-wide suite,
 staff browser run or qualified human evidence is claimed. All writers released
 their reservations; no remote push/merge/deployment or paid/live model dependency.
+
+## Clean-checkout reproduction — e7b9e5d
+
+Root cloned exact source `e7b9e5d` using `git clone --no-hardlinks` to
+`/tmp/tsa-history-clean-85thennp`. No owner edits, existing node_modules, database,
+browser profile or local patches were copied. Executed2026-10-27, all exit0:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:b0
+STUDENT_ARTIFACT_DIR=/tmp/tsa-history-clean-evidence/chrome npm run test:student:short
+STUDENT_FIREFOX_ARTIFACT_DIR=/tmp/tsa-history-clean-evidence/firefox npm run test:student:short:firefox
+B0_BROWSER=/snap/bin/chromium B0_ARTIFACT_DIR=/tmp/tsa-history-clean-evidence/b0 npm run test:b0:browser
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain=v1
+```
+
+Observed B034/34, Chrome10groups31captures201validatedresponses, Firefox10/31,
+B011/26, build/boundaries/docs PASS. Both real history runs show16 attempts,
+firstHistoryPreserved and GET-only retry, exact older result and actor-clear checks.
+Installation reported zero known vulnerabilities at execution. Final clone Git
+output was empty; automatic owned fixture/browser teardown completed, without
+retry or manual SQL/API setup. Logs `/tmp/tsa-history-clean-*.log`, browser evidence
+under the paths above are local/uncommitted. This also reproduces the preceding
+red/header shell source, not just the new history section. No independent clean
+run or production-readiness claim. App hashes remain identical to review.

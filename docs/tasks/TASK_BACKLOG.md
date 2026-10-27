@@ -1638,6 +1638,8 @@ responses and Firefox10/31 PASS; current app stable throughout. Header refresh m
 delta0, narrow375/500 no overflow; root domains78/B011/26/B034/build/boundaries/docs
 PASS, state14/14. No unresolved independent finding.
 [Exact commands/review/limits](../reviews/WEB_004_HISTORY_VERIFICATION.md).
+Clean no-hardlink e7b9e5d install/build/B034/Chrome10/31/201responses/Firefox10/31/
+B011/26/boundaries/docs PASS, final clone Git empty; no retry or manual setup.
 Reservations released; owner AGENTS.md/untracked research excluded. Qualified
 manual accessibility/lawful real stock remain human dependencies.
 
