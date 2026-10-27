@@ -4,6 +4,16 @@ Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions
 
 ## Track B product-completion execution — 2026-10-23
 
+Current UI supplement,2026-10-27: human owner explicitly requested “main color is
+red, less gradient” and “Fix header/navbar layout shifts and UI jitter during route
+navigation”, investigating scrollbar width, container sizes, transitions, fonts
+and remounts while preserving the existing design and responsiveness. The owner
+also explicitly renewed subagent use. Root selected a bounded frontend shell/theme
+repair and existing-browser verification under that authority; no frozen backend,
+scoring, timing, rights or role change. Implemented and independently reviewed in
+[recorded scopes](../reviews/WEB_004_HEADER_STABILITY_VERIFICATION.md); this is not
+human accessibility/content/production acceptance. Existing prohibitions remain.
+
 - Approval identity: human repository owner; date 2026-10-23, Asia/Bangkok.
 - Durable evidence: current owner mission, “AUTONOMOUS TRACK B PRODUCT COMPLETION”:
   “The human owner has authorized autonomous engineering execution within the

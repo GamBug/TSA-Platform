@@ -4,9 +4,43 @@ import { openStaffWorkspace } from "./staff.js";
 import { renderMath } from "./math.js";
 
 const app = document.querySelector("#app");
+const productHeader = document.querySelector("#product-header");
 const announcements = document.querySelector("#announcements");
 const persistentMode = new URLSearchParams(window.location.search).get("student") === "postgres";
+productHeader.dataset.persistent = String(persistentMode);
 const api = persistentMode ? createPersistentApi() : demoApi;
+
+// Browse navigation belongs to the product shell, independent of route content.
+// Keep its nodes and listeners; reconcile only state and conditional destinations.
+function updateProductHeader(content) {
+  const next = [...(content.children ?? [])].find(node => node.matches("header.topbar"));
+  productHeader.hidden = !next;
+  if (!next) return;
+  next.remove();
+  const current = productHeader.firstElementChild;
+  if (!current) {
+    productHeader.append(next);
+    return;
+  }
+  const navigation = current.querySelector("nav");
+  const nextNavigation = next.querySelector("nav");
+  for (const button of navigation.querySelectorAll("button")) {
+    if (![...nextNavigation.children].some(node => node.dataset.testid === button.dataset.testid)) button.remove();
+  }
+  for (const button of [...nextNavigation.children]) {
+    const retained = [...navigation.children].find(node => node.dataset.testid === button.dataset.testid);
+    if (!retained) navigation.append(button);
+    else {
+      retained.disabled = button.disabled;
+      retained.className = button.className;
+    }
+  }
+  // A navigation action closes the mobile disclosure without rebuilding it.
+  navigation.classList.remove("is-open");
+  const menu = current.querySelector('[data-testid="menu-toggle"]');
+  menu.setAttribute("aria-expanded", "false");
+  menu.textContent = "Mở menu";
+}
 
 function replaceApp(content, { examMode = false, resultMode = false, reviewMode = false, catalogMode = false, introMode = false } = {}) {
   if (persistentMode && !catalogMode && (state.reviewOffer || state.reviewIntent || state.reviewDialog)) clearReviewFlow();
@@ -29,6 +63,7 @@ function replaceApp(content, { examMode = false, resultMode = false, reviewMode 
   app.classList.toggle("intro-mode", introMode);
   document.body.classList.toggle("exam-active", examMode);
   document.body.classList.toggle("review-active", reviewMode);
+  updateProductHeader(content);
   app.replaceChildren(content);
   if (!examMode && !reviewMode) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   if (persistentMode) {
@@ -45,6 +80,7 @@ function replaceApp(content, { examMode = false, resultMode = false, reviewMode 
 }
 
 function openStaff() {
+  productHeader.hidden = true;
   for (const mode of ["exam-mode", "result-mode", "review-mode", "catalog-mode", "intro-mode"]) app.classList.remove(mode);
   document.body.classList.remove("exam-active", "review-active");
   openStaffWorkspace(app, renderLanding);
@@ -3797,6 +3833,12 @@ async function initializePersistent() {
 }
 
 async function initialize() {
+  // Resolve the local header faces before its first paint. Font failure leaves
+  // the system fallback usable; subsequent routes reuse the same font and nodes.
+  await Promise.allSettled([
+    document.fonts.load('700 14px "Be Vietnam Pro"', "TSA PRACTICE Trang đầu Bài luyện tập Đăng xuất Kết quả luyện tập Mở menu Đóng menu"),
+    document.fonts.load('400 12px "Be Vietnam Pro"', "Phòng luyện tập tư duy"),
+  ]);
   if (persistentMode) {
     await initializePersistent();
     return;

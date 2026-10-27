@@ -1,3 +1,41 @@
+# Handoff — WEB-004 red accents and stable navigation
+
+- Date/role:2026-10-27 Asia/Bangkok; root/current Codex accountable integrator.
+- Branch/base:feat/track-b-data-auth,8657598. Local milestone `fix(ui): stabilize
+  persistent navigation and use red accents`; exact source hashes/commands in
+  [verification](../reviews/WEB_004_HEADER_STABILITY_VERIFICATION.md).
+- IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in exact scopes. Owner
+  explicitly requested this visual/stability work and subagent use; no backend
+  policy/rights/role/timing change. Owner AGENTS.md/research preserved/excluded.
+
+Product header now owns consistent geometry outside route content, retaining its
+actual logo/nav/menu nodes and live-state listeners. Root gutter/local font loading
+and body/main flex layout remove scrollbar/font/column/height discrepancies. Mobile
+grid rows and reserved translated-menu width anchor the logo; authenticated tablet
+menu prevents independently reproduced681/768px overflow. Solid red hero/logo and
+red primary accents replace gradients/purple, ambient blobs/hover lifts removed.
+Existing grids/content bounds and focused exam/review controls remain.
+
+Native Luna/XHigh owns only new shared measurement helper/B0 additions; root app,
+shared PostgreSQL journey integration and records. Builder Chrome11/26 PASS.
+Root short Chrome8/26/110responses and Firefox8/26 PASS: eight fresh/graded header
+cases at1280/1024/768/375Chrome oractual500Firefox, allidentitiestrue/maxdelta0.
+Root staff50/34, keyboard6/6/22responses/18AX/83focus/0failures, B032/build/import/
+syntax/docs/whitespace PASS. Earlier domains78 and ordinary Firefox4/4 passed before
+final responsive refinement; final two-engine short/full flows supplement them.
+Separate native Sol6.1/Medium actual read-only review final no findings: real PG
+login/Reading/submit/grade at ten widths320–1280, B011/26, Firefox8/26 and static
+checks PASS; screenshots inspected/owned resources cleaned up. No self-review
+substitution. No production/qualified accessibility claim. All reservations released.
+
+Current requested UI work is complete; supervisor sequence and automatic launchers
+remain available. Next acceptance inputs: qualified manual screen-reader/usability/
+contrast evidence and lawful12/6/12 reviewed inventory. Preserve those as human
+dependencies; select further technical work only from a concrete observed gap.
+Safari/new clean clone NOT_EXECUTED for this visual change. Earlier failed probes
+and repaired oracles are detailed in evidence, not counted as passes. No push,
+remote merge/deploy, paidAPI/Astra/live inference or unauthorized real content.
+
 # Handoff — B11.1 explicit shorter personal practice
 
 - Date/role:2026-10-26 Asia/Bangkok, root/current Codex accountable integrator.

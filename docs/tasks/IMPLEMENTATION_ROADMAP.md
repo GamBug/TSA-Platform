@@ -1,5 +1,16 @@
 # Implementation roadmap
 
+Current WEB-004 supplement,2026-10-27: owner-requested red primary accents, solid
+hero/logo and stable navigation implemented. Browse header now persists outside
+route columns; reserved scrollbar space, common local fonts and explicit responsive
+rows fix observed jumps and actual PG tablet overflow. Builder B011/26; root two
+engine short8/26 each, staff50/34, keyboard6/6, B032/build/boundaries/docs PASS.
+Separate native Sol6.1/Medium independent realPG tenwidths/B011/26/Firefox8/26
+review no remaining findings. [Exact evidence/limits](../reviews/WEB_004_HEADER_STABILITY_VERIFICATION.md).
+No API/SQL/scoring/timing changes. Qualified accessibility and lawful reviewed
+inventory remain external; earlier scoped historical proposal references below do
+not supersede the implemented B11 disposition recorded above those histories.
+
 Current B11.1,2026-10-26: renewed owner choice authority selected optional local
 personalNEW_ONLY Math2/180+Science2/180, now implemented and independently reviewed.
 Original4/2/4 Mvp guard/public artifacts/solver/fixed predicates unchanged. Root

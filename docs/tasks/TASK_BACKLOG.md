@@ -1621,6 +1621,26 @@ Historical parent card below remains a planning record, not the current blocker.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-27 **UI STABILITY / RED ACCENTS — IMPLEMENTED / AUTOMATED_PASS /
+INDEPENDENTLY_REVIEWED in recorded scopes**, base8657598.
+Owner explicitly requested red as the main color, fewer gradients, and root-cause
+header/navbar stability during navigation while preserving responsive layouts.
+Root/current Codex owns public main.js/styles.css/index.html, PostgreSQL shared
+journey integration and coordinated records. Recommended Sol6.1/High for shell
+integration; actual current Codex implements. Native Luna/XHigh owns only shared
+browser measurements/B0 runner; separate native Sol6.1/Medium read-only review
+completed, no unresolved findings after actual681/768px PG overflow repair.
+Persistent header nodes/geometry, reserved gutter, local font readiness and mobile
+menu rows now remain stable; red solid accents replace gradients and hover lifts.
+Builder B011/26; root PG short Chrome8/26/110responses and Firefox8/26 (eight
+fresh/graded geometry cases each, allmaxdelta0), staff50/34, keyboard6/6/22responses/
+18AX/83focus/0failures, B032/build/boundaries/docs PASS. Independent realPG at ten
+widths320–1280 and B011/26/Firefox8/26/static checks PASS. Original card/content
+grids and dedicated exam/review controls preserved, no API/scoring/timing change.
+[Exact commands/repairs/review/limits](../reviews/WEB_004_HEADER_STABILITY_VERIFICATION.md).
+Reservations released; owner AGENTS.md/untracked research excluded. Qualified manual
+accessibility, lawful stock and production acceptance remain distinct.
+
 2026-10-26 **NATIVE FIREFOX200% ZOOM — AUTOMATED_PASS / INDEPENDENTLY_REVIEWED**,
 base1432c71. Root/current Codex sole implementer; existing Firefox runner and package
 alias, accessibility packet/guide/evidence/coordinated records only. No application,

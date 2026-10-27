@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { beginHeaderStability, assertHeaderStable } from './browse-header-stability.mjs';
 
 /** Existing real student UI, with explicit short-profile recovery and no fallback. */
 export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixture,capture,report,reload,viewport,escape,narrowWidth=375}) {
@@ -7,6 +8,27 @@ export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixt
  assert.equal(catalog.items.length,5);assert.equal(shorts.length,2);assert.ok(shorts.every(row=>row.reviewAllowed===false));
  await waitFor("document.querySelectorAll('[data-testid=short-practice-card]').length===2",'two explicit short profiles');
  assert.match(await evaluate(`${query('catalog-count')}.textContent`),/3/);
+ // Exercise the authenticated header too: its longer disclosure and conditional
+ // result destination have different min-content requirements from the mock demo.
+ async function checkHeader(width, phase) {
+  await viewport(width,900);
+  await evaluate('window.scrollTo(0,0)');
+  await beginHeaderStability(evaluate);
+  await evaluate(`${query('nav-home')}.click()`);
+  await waitFor(`Boolean(${query('catalog-open')})`,'header home route');
+  await evaluate(`${query('catalog-open')}.click()`);
+  await waitFor(`Boolean(${query('catalog-panel')})`,'header catalog route');
+  await evaluate(`${query('exam-intro')}.click()`);
+  await waitFor(`Boolean(${query('intro-back')})`,'header detail route');
+  await evaluate(`${query('intro-back')}.click()`);
+  await waitFor(`Boolean(${query('catalog-panel')})`,'header detail return');
+  report.headerStability ??= {};
+  report.headerStability[`${phase}-${width}`]=await assertHeaderStable(evaluate,`authenticated ${phase} ${width}px`);
+  assert.ok(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+1'),'authenticated header never overflows the document');
+  assert.equal(await evaluate('document.activeElement.tagName'),'H1','route return focuses its heading');
+  await capture(`header-${phase}-${width}`);
+ }
+ for(const width of [1280,1024,768,narrowWidth])await checkHeader(width,'fresh');
  await viewport(1280,900);await capture('short-catalog-desktop');
  await viewport(narrowWidth,900);await evaluate("document.querySelector('[data-testid=short-practice-card]').scrollIntoView({block:'start'})");await capture('short-catalog-narrow');
  const outcomes=[];
@@ -34,6 +56,7 @@ export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixt
   let history=await evaluate("fetch('/api/v1/attempts?limit=100').then(r=>r.json())");
   const active=history.items.find(row=>row.state==='IN_PROGRESS');assert.ok(active);const fullView=await view(active.attemptId);
   assert.equal(fullView.sections[0].count,4);await fill(fullView);await finish(short.domain,'full');
+  if(index===0){for(const width of [1280,1024,768,narrowWidth])await checkHeader(width,'graded');}
   const before=(await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.attempts')).rows[0].n;
   await evaluate(`${fullButton}.click()`);await waitFor(`Boolean(${query('short-practice-offer')})`,'real full shortage offers explicit short profile');
   assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.attempts')).rows[0].n,before,'shortage does not allocate a fallback');
@@ -101,7 +124,8 @@ export async function runShortPracticeJourney({evaluate,click,query,waitFor,fixt
  assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.student_question_history WHERE user_id=$1',[fixture.principals.studentA.userId])).rows[0].n,12);
  assert.equal((await fixture.pool.query('SELECT count(*)::integer AS n FROM tsa.student_question_history WHERE user_id=$1',[fixture.principals.studentB.userId])).rows[0].n,2);
 
- report.checks.push('B11 exact full4/2/4 defaults and two separate2/180 short catalog choices remain3 domains with short review disabled',
+ report.checks.push('Authenticated header nodes and per-frame geometry survive home/catalog/detail routes at desktop/tablet/narrow widths before and after a real graded result; no document overflow',
+  'B11 exact full4/2/4 defaults and two separate2/180 short catalog choices remain3 domains with short review disabled',
   'B11 real full unseen shortage creates no fallback; short native confirmation/Escape/focus sends no POST until explicit choice',
   'B11 committed lost short receipt retries exact body/key; post-receipt GET failure recovers through GET only before explicit Start',
   'B11 CREATED reload keeps duration/profile unknown rather than borrowing full metadata; saved reload preserves2answers and180second server clocks',
