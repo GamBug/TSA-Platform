@@ -43,6 +43,7 @@ function updateProductHeader(content) {
 }
 
 function replaceApp(content, { examMode = false, resultMode = false, reviewMode = false, catalogMode = false, introMode = false } = {}) {
+  cancelSavedAttemptRead();
   if (persistentMode && !catalogMode && (state.reviewOffer || state.reviewIntent || state.reviewDialog)) clearReviewFlow();
   if (persistentMode && !catalogMode && state.fixedDialog) closeFixedConsent(state.fixedDialog, false);
   if (persistentMode && !catalogMode && state.shortDialog) closeShortConsent(state.shortDialog, false);
@@ -80,6 +81,7 @@ function replaceApp(content, { examMode = false, resultMode = false, reviewMode 
 }
 
 function openStaff() {
+  cancelSavedAttemptRead();
   productHeader.hidden = true;
   for (const mode of ["exam-mode", "result-mode", "review-mode", "catalog-mode", "intro-mode"]) app.classList.remove(mode);
   document.body.classList.remove("exam-active", "review-active");
@@ -98,6 +100,7 @@ const state = {
   historyVisibleCount: 10,
   historyLoading: false,
   historyRequestGeneration: 0,
+  savedAttemptRead: null,
   attempt: null,
   review: null,
   resumeNotice: "",
@@ -624,6 +627,7 @@ function tick() {
 }
 
 function resetPersistentIdentity() {
+  cancelSavedAttemptRead();
   state.identityGeneration += 1;
   clearReviewFlow();
   clearShortFlow();
@@ -929,39 +933,133 @@ function renderPersistentBlocked(message) {
 }
 
 async function resumePersistentAttempt() {
-  const identityGeneration = state.identityGeneration;
   if (!persistentMode || state.busy || !state.attempt) return;
-  const attemptId = state.attempt.attemptId;
-  state.busy = true;
-  try {
-    const data = await readExpectedAttempt(attemptId, state.attempt);
-    if (identityGeneration !== state.identityGeneration) return;
-    state.busy = false;
-    state.resumeNotice = "Đã đọc lại trạng thái đã lưu từ PostgreSQL cục bộ";
-    acceptAttempt(data.attempt);
-  } catch (error) {
-    if (identityGeneration !== state.identityGeneration) return;
-    state.busy = false;
-    if (handlePersistentError(error)) return;
-    showMessage(error.message || "Chưa đọc lại được trạng thái bài luyện tập.");
-  }
+  await readPersistentSavedAttempt(state.attempt.attemptId, state.attempt, "resume");
 }
 
 async function openPersistentHistoryAttempt(attemptId) {
-  const identityGeneration = state.identityGeneration;
   if (!persistentMode || state.busy || fixedSelectionLocked() || hasUnacknowledgedChanges()) return;
+  const record = state.history.find(item => item.attemptId === attemptId);
+  if (!record) return;
+  await readPersistentSavedAttempt(attemptId, record, "history");
+}
+
+function savedAttemptReadIsCurrent(read) {
+  return state.savedAttemptRead === read && read.identityGeneration === state.identityGeneration;
+}
+
+function cancelSavedAttemptRead() {
+  if (state.savedAttemptRead?.phase === "loading") state.busy = false;
+  state.savedAttemptRead = null;
+}
+
+async function readPersistentSavedAttempt(attemptId, record, source) {
+  if (!persistentMode || state.busy || fixedSelectionLocked() || hasUnacknowledgedChanges()) return;
+  const read = { attemptId, record, source, phase: "loading", message: "Đang đọc bài đã lưu từ máy chủ…", identityGeneration: state.identityGeneration };
+  state.savedAttemptRead = read;
   state.busy = true;
+  updateSavedAttemptRead();
+  announce(read.message);
   try {
-    const record = state.history.find((item) => item.attemptId === attemptId);
     const data = await readExpectedAttempt(attemptId, record);
-    if (identityGeneration !== state.identityGeneration) return;
+    if (!savedAttemptReadIsCurrent(read)) return;
+    state.savedAttemptRead = null;
     state.busy = false;
-    state.resumeNotice = "Đã tải trạng thái bài từ lịch sử PostgreSQL cục bộ";
+    state.resumeNotice = source === "resume"
+      ? "Đã đọc lại trạng thái đã lưu từ PostgreSQL cục bộ"
+      : "Đã tải trạng thái bài từ lịch sử PostgreSQL cục bộ";
     acceptAttempt(data.attempt);
   } catch (error) {
-    if (identityGeneration !== state.identityGeneration) return;
+    if (!savedAttemptReadIsCurrent(read)) return;
     state.busy = false;
-    if (!handlePersistentError(error)) renderCatalogWithMessage(error.message || "Không mở được bài đã lưu.");
+    if (handlePersistentError(error)) return;
+    read.phase = "error";
+    read.message = `${error.message || "Chưa đọc được bài đã lưu."} Chưa mở bài. Hãy thử đọc lại.`;
+    updateSavedAttemptRead();
+    announce(read.message);
+  }
+}
+
+function savedAttemptReadFor(record, source) {
+  const read = state.savedAttemptRead;
+  return read?.attemptId === record?.attemptId && read.source === source ? read : null;
+}
+
+function renderSavedAttemptReadStatus(record, source) {
+  const read = savedAttemptReadFor(record, source);
+  if (!read) return null;
+  const panel = element("div", `saved-read-feedback${read.phase === "error" ? " is-error" : ""}`);
+  const status = element("p", "", read.message);
+  status.id = "saved-read-status";
+  status.dataset.testid = "saved-read-status";
+  status.setAttribute("role", read.phase === "error" ? "alert" : "status");
+  panel.append(status);
+  if (read.phase === "loading") {
+    panel.append(actionButton("Hủy chờ đọc", "saved-read-cancel", () => {
+      if (!savedAttemptReadIsCurrent(read)) return;
+      cancelSavedAttemptRead();
+      updateSavedAttemptRead();
+      const testId = source === "resume" ? "persistent-resume" : `history-${record.attemptId}`;
+      const action = app.querySelector(`[data-testid="${testId}"]`);
+      action?.focus({ preventScroll: true });
+      action?.scrollIntoView({ block: "nearest", behavior: "instant" });
+      announce("Đã ngừng chờ mở bài.");
+    }, "button secondary small"));
+  }
+  return panel;
+}
+
+function configureSavedAttemptReadButton(button, record, source) {
+  const read = savedAttemptReadFor(record, source);
+  if (read?.phase === "loading") {
+    button.disabled = false;
+    button.setAttribute("aria-disabled", "true");
+  } else if (read?.phase === "error") button.textContent = "Thử đọc lại";
+  if (read) button.setAttribute("aria-describedby", "saved-read-status");
+}
+
+function renderPersistentCurrentAttempt() {
+  const current = element("section", "persistent-current-attempt");
+  current.dataset.testid = "persistent-current-attempt";
+  const title = state.attempt.state === "GRADED" ? "Kết quả đã sẵn sàng" : ["SUBMITTED", "EXPIRED"].includes(state.attempt.state)
+    ? "Bài đã gửi; trạng thái chấm được lưu" : "Bài đã lưu cho hồ sơ này";
+  current.append(element("h2", "", title));
+  current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · ${attemptStateNames[state.attempt.state] || "Chưa đọc được trạng thái"}${state.attempt.gradingStatus ? ` · ${gradingStateNames[state.attempt.gradingStatus] || "Chưa đọc được trạng thái chấm"}` : ""}`));
+  appendPracticeModeLabel(current, state.attempt);
+  appendPersonalProfileLabel(current, state.attempt);
+  const resume = actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary");
+  resume.disabled = fixedSelectionLocked() || state.busy;
+  configureSavedAttemptReadButton(resume, state.attempt, "resume");
+  current.append(resume);
+  const status = renderSavedAttemptReadStatus(state.attempt, "resume");
+  if (status) current.append(status);
+  return current;
+}
+
+function updateSavedAttemptRead() {
+  const read = state.savedAttemptRead;
+  const actionId = read && (read.source === "resume" ? "persistent-resume" : `history-${read.attemptId}`);
+  const focusedId = document.activeElement?.dataset?.testid;
+  const focusedRect = document.activeElement?.getBoundingClientRect();
+  const hadVisibleReadFocus = actionId && (focusedId === actionId || focusedId === "saved-read-cancel")
+    && focusedRect?.height > 0 && focusedRect.bottom > 0 && focusedRect.top < window.innerHeight;
+  updatePersistentHistory();
+  const current = app.querySelector('[data-testid="persistent-current-attempt"]');
+  if (current && state.attempt) {
+    const focused = current.contains(document.activeElement) ? document.activeElement.dataset.testid : null;
+    const replacement = renderPersistentCurrentAttempt();
+    current.replaceWith(replacement);
+    if (focused) {
+      const restored = [...replacement.querySelectorAll("[data-testid]")].find(node => node.dataset.testid === focused);
+      if (restored && !restored.disabled) restored.focus({ preventScroll: true });
+    }
+  }
+  if (hadVisibleReadFocus && state.savedAttemptRead === read) {
+    const action = app.querySelector(`[data-testid="${actionId}"]`);
+    action?.focus({ preventScroll: true });
+    // Feedback may grow a row clicked at the viewport edge. Keep both the action
+    // and its context visible without rebuilding or returning to the catalog top.
+    action?.closest(".persistent-history-item, .persistent-current-attempt")?.scrollIntoView({ block: "nearest", behavior: "instant" });
   }
 }
 
@@ -1036,6 +1134,9 @@ function renderPersistentHistory() {
       }
       const openRecord = actionButton("Đọc bài đã lưu", `history-${record.attemptId}`, () => openPersistentHistoryAttempt(record.attemptId), "button secondary small");
       openRecord.disabled = fixedSelectionLocked() || state.busy;
+      configureSavedAttemptReadButton(openRecord, record, "history");
+      const readStatus = renderSavedAttemptReadStatus(record, "history");
+      if (readStatus) summary.append(readStatus);
       row.append(summary, openRecord);
       entries.append(row);
     }
@@ -1078,6 +1179,7 @@ function resumeNotice() {
 }
 
 function header(exam = false) {
+  cancelSavedAttemptRead();
   const topbar = element("header", `topbar${exam ? " exam-topbar" : ""}`);
   const brand = element("div", "brand");
   brand.append(element("span", "brand-mark", "T"));
@@ -2535,18 +2637,7 @@ function renderCatalog() {
   panel.append(filters, grid);
   if (persistentMode) panel.append(renderFixedFormsSection());
   if (persistentMode && state.attempt && !state.reviewIntent) {
-    const current = element("section", "staff-callout persistent-current-attempt");
-    current.dataset.testid = "persistent-current-attempt";
-    const currentTitle = state.attempt.state === "GRADED" ? "Kết quả đã sẵn sàng" : ["SUBMITTED", "EXPIRED"].includes(state.attempt.state)
-      ? "Bài đã gửi; trạng thái chấm được lưu" : "Bài đã lưu cho hồ sơ này";
-    current.append(element("h2", "", currentTitle));
-    current.append(element("p", "", `${domainName({ domain: state.attempt.domain })} · ${attemptStateNames[state.attempt.state] || "Chưa đọc được trạng thái"}${state.attempt.gradingStatus ? ` · ${gradingStateNames[state.attempt.gradingStatus] || "Chưa đọc được trạng thái chấm"}` : ""}`));
-    appendPracticeModeLabel(current, state.attempt);
-    appendPersonalProfileLabel(current, state.attempt);
-    const resume = actionButton(state.attempt.state === "GRADED" ? "Mở kết quả" : "Đọc lại bài đã lưu", "persistent-resume", resumePersistentAttempt, "button secondary");
-    resume.disabled = fixedSelectionLocked() || state.busy;
-    current.append(resume);
-    fragment.append(panel, current);
+    fragment.append(panel, renderPersistentCurrentAttempt());
   } else {
     fragment.append(panel);
   }
@@ -3829,6 +3920,7 @@ async function loginPersistentCandidate(actorKey) {
 }
 
 async function logoutPersistentCandidate() {
+  cancelSavedAttemptRead();
   if (state.busy && state.reviewIntent === null) return;
   resetPersistentIdentity();
   const identityGeneration = state.identityGeneration;

@@ -1,3 +1,43 @@
+# Handoff — WEB-004 saved-attempt read recovery
+
+- Date/role:2026-10-27 Asia/Bangkok, root/current Codex accountable integrator.
+- Branch/base:feat/track-b-data-auth,73114bd. Local milestone `fix(student): keep
+  saved-attempt reads visible and recoverable`; exact reviewed hashes/commands in
+  [evidence](../reviews/WEB_004_SAVED_READ_RECOVERY_VERIFICATION.md).
+- IMPLEMENTED / AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in recorded scopes.
+  Root selected observed missing pending feedback/history-error top jump under
+  standing engineering-choice delegation. Owner AGENTS.md/research preserved/
+  excluded. No API/SDK/SQL/role/reuse/score/clock/startup/dependency change.
+
+Shared exact-target history/current-card read state now exposes local pending,
+error/retry and cancel-wait. Only local regions update; all cached rows, target
+validation/release rules and focus remain. Cancel/navigation/logout/identity object
+fences discard late completion and preserve later-operation busy ownership. Focused
+row/card uses nearest local scroll so feedback/retry stays visible without returning
+to catalog top; deliberate scrolling away is respected. Cancel is logical waiting
+cancellation, not a promise to abort an already-dispatched server GET.
+
+Actual native Luna/XHigh read-only discovery and bounded existing test writer;
+root application/integration/records. Separate native Sol6.1/Medium read-only final
+source/static/B038/Chrome10checks37captures213APIresponses/Firefox10/37 PASS, no
+unresolved findings. Root same final two-engine results, state18/B038/build/import/
+syntax/docs/whitespace PASS; earlier domains78/B011/26 regressions PASS. Actual
+Firefox P2 offscreen action/status found by independent screenshots/probe (814px
+viewport, status894–915/retry801–842), repaired and covered by real viewport checks.
+Both engines prove held GET pending/error, exact GET-only retry/no mutations,
+current-card and older-row focus, local cancel and real late success after home
+navigation, retained16 rows/first history and parent A→B isolation. Preliminary
+passes/oracle repairs are distinguished from final evidence. Root/reviewer inspected
+final desktop/narrow captures. All reservations released; private artifacts local.
+
+Next: supervisor walkthrough and next concrete authorized acceptance gap. Manual
+qualified AT/usability/contrast and lawful12/6/12 reviewed real inventory remain
+human inputs. New clean checkout/Safari/staff/full backend-wide reruns NOT_EXECUTED
+for this bounded change; prior e7b9e5d clean proof is historical. No human/performance/
+production acceptance, push/remote merge/deploy, paidAPI/Astra/live inference or
+unauthorized real content claim. Automatic launchers remain unchanged; concise
+supervisor guide now explains saved-read controls.
+
 # Handoff — WEB-004 reachable student history
 
 - Date/role:2026-10-27 Asia/Bangkok, root/current Codex accountable integrator.

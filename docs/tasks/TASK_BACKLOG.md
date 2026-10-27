@@ -1621,6 +1621,26 @@ Historical parent card below remains a planning record, not the current blocker.
 
 ## WEB-004 — Attempt delivery, save state and released-result UX
 
+2026-10-27 **SAVED-ATTEMPT READ RECOVERY — IMPLEMENTED / AUTOMATED_PASS /
+INDEPENDENTLY_REVIEWED in recorded scopes**, base73114bd.
+Root-selected concrete gap: targeted history/resume GET has no pending feedback;
+transient failure rebuilds catalog and jumps away from the selected older row.
+Add local pending/error/retry/cancel state, retain focus/scroll/header, fence late
+GETs after navigation or identity change. Existing owned GET/validation only; no
+API/SDK/SQL/exam clock/scoring/reuse change. Root/current Codex owns main/styles,
+integration and coordinated records; recommended Sol6.1/High for async lifecycle
+integration, current Codex fallback. Native Luna/XHigh read-only scout confirms
+source gap; native Luna/XHigh test writer and separate Sol6.1/Medium read-only
+reviewer actually executed. Root final Chrome10groups37captures213APIresponses/
+Firefox10/37 and state18/B038/build/boundaries/docs PASS; prior domains78/B011/26
+regressions pass. Independent final Chrome10/37/213 and Firefox10/37/static no
+unresolved findings. Actual Firefox P2 offscreen retry/feedback repaired with local
+nearest scroll and real viewport assertions. Selected-row/current-card loading,
+retry/cancel, GET-only recovery, focus/context and late-navigation/identity/busy
+fences verified. [Exact evidence/limits](../reviews/WEB_004_SAVED_READ_RECOVERY_VERIFICATION.md).
+Reservations released; owner AGENTS.md/untracked research excluded. No qualified
+human accessibility/content/production acceptance.
+
 2026-10-27 **REACHABLE STUDENT HISTORY — IMPLEMENTED / AUTOMATED_PASS /
 INDEPENDENTLY_REVIEWED in recorded scopes**, base7211ef3.
 Root-selected under standing engineering-choice authority: current UI advertises

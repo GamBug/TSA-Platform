@@ -1,5 +1,15 @@
 # Implementation roadmap
 
+Current WEB-004 saved-read supplement,2026-10-27: local pending/error/retry/cancel
+for history/current-attempt reads preserves context and fences late navigation/
+identity completion. Independent Firefox offscreen P2 repaired; actual focused
+controls/feedback visible with nearest local scroll. Root and separate native
+Sol6.1/Medium final Chrome10/37/213responses/Firefox10/37 PASS, state18/B038/build/
+boundaries/docs PASS; no unresolved review finding. Native Luna/XHigh bounded test
+writer. [Evidence/limits](../reviews/WEB_004_SAVED_READ_RECOVERY_VERIFICATION.md).
+No server contract/SDK/clock/scoring/reuse change. Human accessibility and lawful
+stock remain external; previous clean checkout is historical, not new-source proof.
+
 Current WEB-004 history supplement,2026-10-27: root-selected UI gap beyond10 history
 entries closed using existing owned GET; readable dates, progressive reveal/focus,
 truthful cached-data retry and request/session fencing. Root initial two-engine

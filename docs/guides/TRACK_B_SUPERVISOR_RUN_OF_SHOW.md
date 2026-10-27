@@ -44,6 +44,11 @@ explicit cached-data message. If more than10 attempts exist, **Xem các bài cũ
 reveals the next entries and focuses the first newly available action. Opening an
 older row reads that owned attempt and its currently released result.
 
+Opening a saved attempt shows loading beside the selected row or current-attempt
+card. If reading fails, **Thử đọc lại** retries that same attempt. **Hủy chờ đọc**
+stops waiting in the UI; navigating away also prevents a late response from opening
+the old selection. These actions do not create, start or submit a replacement.
+
 ## Show truthful shortage and a shorter choice
 
 Request full Mathematics again. Only two unseen questions remain in this small

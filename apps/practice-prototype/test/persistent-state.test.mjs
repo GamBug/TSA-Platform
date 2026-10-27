@@ -58,6 +58,120 @@ function uiCallback(name, bindings) {
   return new Function(...Object.keys(bindings), `return (${callback[0]});`)(...Object.values(bindings));
 }
 
+function savedAttemptReadHarness() {
+  const state = { identityGeneration: 1, savedAttemptRead: null, busy: false,
+    attempt: { attemptId: 'current-owner-attempt', state: 'IN_PROGRESS' } };
+  const calls = { updates: 0, accepted: [], errors: [], announcements: [] };
+  const requests = [];
+  const savedAttemptReadIsCurrent = uiCallback('savedAttemptReadIsCurrent', { state });
+  const cancelSavedAttemptRead = uiCallback('cancelSavedAttemptRead', { state });
+  const readPersistentSavedAttempt = uiCallback('readPersistentSavedAttempt', {
+    persistentMode: true,
+    state,
+    fixedSelectionLocked: () => false,
+    hasUnacknowledgedChanges: () => false,
+    readExpectedAttempt(attemptId, record) {
+      const request = deferred();
+      requests.push({ attemptId, record, request });
+      return request.promise;
+    },
+    updateSavedAttemptRead() { calls.updates++; },
+    announce(message) { calls.announcements.push(message); },
+    savedAttemptReadIsCurrent,
+    acceptAttempt(attempt) { calls.accepted.push(attempt); state.attempt = attempt; },
+    handlePersistentError(error) { calls.errors.push(error); return false; },
+  });
+  return { state, calls, requests, readPersistentSavedAttempt, cancelSavedAttemptRead };
+}
+
+test('cancelled saved-attempt read cannot apply a late success', async () => {
+  const h = savedAttemptReadHarness();
+  const record = { attemptId: 'selected-history-attempt' };
+  const pending = h.readPersistentSavedAttempt(record.attemptId, record, 'history');
+  assert.equal(h.state.busy, true);
+  assert.equal(h.state.savedAttemptRead.phase, 'loading');
+  assert.equal(h.requests.length, 1);
+
+  h.cancelSavedAttemptRead();
+  assert.equal(h.state.busy, false);
+  assert.equal(h.state.savedAttemptRead, null);
+  const updatesAfterCancel = h.calls.updates;
+  h.requests[0].request.resolve({ attempt: { attemptId: record.attemptId, state: 'GRADED' } });
+  await pending;
+
+  assert.equal(h.state.attempt.attemptId, 'current-owner-attempt');
+  assert.equal(h.state.busy, false);
+  assert.equal(h.state.savedAttemptRead, null);
+  assert.equal(h.calls.updates, updatesAfterCancel, 'cancelled completion does not rerender a stale saved-read state');
+  assert.deepEqual(h.calls.accepted, []);
+  assert.deepEqual(h.calls.errors, []);
+});
+
+test('saved-attempt response from an older identity cannot replace the new owner attempt', async () => {
+  const h = savedAttemptReadHarness();
+  const record = { attemptId: 'owner-a-attempt' };
+  const pending = h.readPersistentSavedAttempt(record.attemptId, record, 'history');
+  h.state.identityGeneration++;
+  h.state.savedAttemptRead = null;
+  h.state.busy = false;
+  const ownerBAttempt = { attemptId: 'owner-b-attempt', state: 'IN_PROGRESS' };
+  h.state.attempt = ownerBAttempt;
+  const updatesAfterIdentityChange = h.calls.updates;
+  h.requests[0].request.resolve({ attempt: { attemptId: record.attemptId, state: 'GRADED' } });
+  await pending;
+
+  assert.equal(h.state.attempt, ownerBAttempt);
+  assert.equal(h.state.busy, false);
+  assert.equal(h.state.savedAttemptRead, null);
+  assert.equal(h.calls.updates, updatesAfterIdentityChange, 'old identity completion does not update the new owner view');
+  assert.deepEqual(h.calls.accepted, []);
+  assert.deepEqual(h.calls.errors, []);
+});
+
+test('cancelled saved-attempt response cannot clear a newer read busy state', async () => {
+  const h = savedAttemptReadHarness();
+  const oldRecord = { attemptId: 'old-history-attempt' };
+  const stale = h.readPersistentSavedAttempt(oldRecord.attemptId, oldRecord, 'history');
+  h.cancelSavedAttemptRead();
+  const newRecord = { attemptId: 'new-history-attempt' };
+  const current = h.readPersistentSavedAttempt(newRecord.attemptId, newRecord, 'history');
+  const currentRead = h.state.savedAttemptRead;
+  assert.equal(h.state.busy, true);
+  assert.equal(currentRead.attemptId, newRecord.attemptId);
+
+  h.requests[0].request.resolve({ attempt: { attemptId: oldRecord.attemptId, state: 'GRADED' } });
+  await stale;
+  assert.equal(h.state.savedAttemptRead, currentRead);
+  assert.equal(h.state.busy, true, 'late completion cannot clear the active read lock');
+  assert.deepEqual(h.calls.accepted, []);
+
+  const newest = { attemptId: newRecord.attemptId, state: 'GRADED' };
+  h.requests[1].request.resolve({ attempt: newest });
+  await current;
+  assert.equal(h.state.busy, false);
+  assert.equal(h.state.savedAttemptRead, null);
+  assert.deepEqual(h.calls.accepted, [newest]);
+});
+
+test('recoverable saved-attempt read failure remains retryable local state', async () => {
+  const h = savedAttemptReadHarness();
+  const record = { attemptId: 'selected-history-attempt' };
+  const pending = h.readPersistentSavedAttempt(record.attemptId, record, 'history');
+  h.requests[0].request.reject(Object.assign(new Error('Temporary read failure'), {
+    code: 'TEMPORARILY_UNAVAILABLE', status: 503,
+  }));
+  await pending;
+
+  assert.equal(h.state.busy, false);
+  assert.equal(h.state.savedAttemptRead.phase, 'error');
+  assert.equal(h.state.savedAttemptRead.record, record);
+  assert.equal(h.state.savedAttemptRead.source, 'history');
+  assert.match(h.state.savedAttemptRead.message, /Chưa mở bài.*thử đọc lại/);
+  assert.equal(h.calls.updates, 2, 'loading and local error states update the saved attempt surface');
+  assert.equal(h.calls.errors.length, 1);
+  assert.deepEqual(h.calls.accepted, []);
+});
+
 function closedSaveHarness({ kind = 'single', read, save } = {}) {
   const state = { identityGeneration: 1, attempt: { attemptId: 'owned', state: 'IN_PROGRESS' }, busy: false,
     savingSlotId: null, pendingAnswer: null,

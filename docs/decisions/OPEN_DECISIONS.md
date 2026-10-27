@@ -29,6 +29,13 @@ human accessibility/content/production acceptance. Existing prohibitions remain.
 
 ## Track B engineering-choice delegation — 2026-10-24
 
+Current selection2026-10-27 after owner “next” following73114bd: root selected
+observed saved-attempt pending/error recovery gaps. History and current-card GET
+now use local loading/retry/cancel with navigation/identity fences, retaining the
+unchanged owned-target/release validation. No new route, privilege, clock, score,
+reuse or server policy. [Implemented verification/review/limits](../reviews/WEB_004_SAVED_READ_RECOVERY_VERIFICATION.md).
+This remains a delegated engineering choice, not qualified human acceptance.
+
 Current selection2026-10-27: after owner “next.” following7211ef3, root selected
 the observed student-history reachability gap (silently hidden rows after10) and
 read-failure recovery. Existing owned paginated GET already supplies every row;

@@ -1384,3 +1384,18 @@ body.review-active { overflow: hidden; background: #fff; }
   .history-heading, .persistent-history-item { align-items: stretch; flex-direction: column; gap: 12px; }
   .persistent-history .button { width: 100%; }
 }
+
+/* Targeted saved-attempt reads keep feedback next to the selected action. */
+.persistent-current-attempt { display: grid; justify-items: start; gap: 12px; width: 100%; max-width: 1024px; margin: 18px auto 0; padding: 22px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 16px; background: var(--surface); }
+.persistent-current-attempt h2 { margin: 0; font-size: 1.15rem; line-height: 1.4; }
+.persistent-current-attempt > p { margin: 0; color: var(--muted); font-size: .85rem; line-height: 1.6; }
+.saved-read-feedback { max-width: 100%; margin-top: 10px; padding: 12px 14px; border-left: 3px solid var(--line); border-radius: 0 8px 8px 0; color: var(--ink); background: var(--surface-muted); }
+.saved-read-feedback.is-error { border-left-color: var(--danger); background: var(--brand-soft); }
+.saved-read-feedback p { margin: 0; font-size: .83rem; line-height: 1.6; overflow-wrap: anywhere; }
+.saved-read-feedback .button { margin-top: 10px; }
+.persistent-current-attempt > .saved-read-feedback { width: 100%; margin: 0; }
+.persistent-history-item [aria-disabled="true"], .persistent-current-attempt [aria-disabled="true"] { cursor: wait; opacity: .65; }
+@media (max-width: 680px) {
+  .persistent-current-attempt { justify-items: stretch; padding: 16px; }
+  .persistent-current-attempt .button { width: 100%; }
+}
