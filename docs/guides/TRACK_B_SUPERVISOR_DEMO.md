@@ -78,6 +78,40 @@ persistent student client; `/` alone selects the separately labelled mock client
    can exhaust this tiny NEW_ONLY inventory. That shortage is intentional; the
    application does not silently repeat questions or switch reuse policies.
 
+## Full 100-question simulation
+
+Use the separate disposable full-simulation profile from the same installed checkout:
+
+```sh
+NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:simulation
+```
+
+Open `http://127.0.0.1:3234/?student=postgres-v3`. The demo uses port 3234 by default;
+`STUDENT_FIXTURE_PORT` can explicitly configure the port. Choose **Student A**, then
+**Start full simulation**. The inventory contains 100 original synthetic questions
+and inspected synthetic images; its technical fixture approvals do not approve corpus content.
+
+- Mathematics has 40 questions and 60 minutes, Reading 20 questions and 30 minutes,
+  and Science 40 questions and 60 minutes. Only the open section's server clock runs.
+- Choose a section tab to open or resume it. Previously unopened questions and assets
+  remain hidden until that section opens. A section with exhausted time stays readable
+  with disabled answer controls. Closed sections do not consume time while offline.
+- Wait for **Answer saved** before changing sections. An uncertain save offers an exact
+  retry and blocks navigation. **Reload saved state** reconciles acknowledged answers.
+- Reloading resumes the same attempt. The open clock continues while disconnected;
+  the expiry worker closes that section when its budget runs out. Other budgets remain
+  paused, and the attempt expires when all three are exhausted.
+- **Submit all sections** confirms closure of the entire attempt, including unopened
+  sections. Results show correct answers for each section and out of 100 in total,
+  labeled unofficial practice. Unanswered questions count as incorrect.
+
+Ctrl+C stops the owned server and deletes its temporary database and images. The v3
+simulation route is opt-in; ordinary v1/v2 practice remains available through its existing profiles.
+
+Run `npm run test:simulation`, `npm run test:student:simulation`, and
+`npm run test:student:simulation:firefox` for contract, database, runtime and real-browser
+checks. Browser evidence is written under `/tmp/tsa-simulation-<engine>-evidence/`.
+
 ### Optional explicit review practice
 
 Keep the same disposable student launcher running. After completing a domain,

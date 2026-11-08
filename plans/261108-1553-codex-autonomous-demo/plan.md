@@ -1,8 +1,13 @@
 # Codex autonomous run: university demo
 
-Status: CP1 complete; ready for CP2 and CP3. Created 2026-11-08 (Asia/Bangkok).
+Status: CP2 complete; ready for CP3. Created 2026-11-08 (Asia/Bangkok).
 Authority: owner decisions recorded 2026-11-07 at the top of `docs/decisions/OPEN_DECISIONS.md`.
 Background: `plans/reports/review-261107-2114-tsa-product-readiness-gap.md`.
+
+CP2 session authorization, owner, 2026-11-08: “I give u full access bro... do anything
+to complete CP2!” This supersedes the dependency read restriction and two-repair stop
+limit for CP2. The checkpoint's feature scope, local-only delivery, publication gates,
+and prohibition on paid APIs, pushes, merges and history rewrites remain in force.
 
 ## Outcome
 
@@ -24,7 +29,7 @@ Codex updates the Status column. Run one checkpoint per Codex session or goal.
 |---|---|---|---|
 | CP0 Safe baseline | [cp0-safe-baseline.md](cp0-safe-baseline.md) | — | DONE: six baseline commits; required suites pass |
 | CP1 Lean docs | [cp1-lean-docs.md](cp1-lean-docs.md) | CP0 | DONE: compact navigation, verbatim archives and docs checks verified |
-| CP2 Full simulation | [cp2-full-simulation.md](cp2-full-simulation.md) | CP1 | TODO |
+| CP2 Full simulation | [cp2-full-simulation.md](cp2-full-simulation.md) | CP1 | DONE: migration, clocks, privacy, scoring and both browser journeys verified; [report](../reports/codex-261108-2238-cp2.md) |
 | CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | TODO |
 | CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | TODO |
 | CP5 Science ingestion | [cp5-science-ingestion.md](cp5-science-ingestion.md) | CP3 + owner-supplied Science files | TODO |

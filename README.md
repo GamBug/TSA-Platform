@@ -21,6 +21,11 @@ This runs actual persistent attempt/save/grading services with isolated syntheti
 content and development authentication. Ctrl+C deletes this temporary database.
 It does not provide approved real content or production authentication.
 
+For one 100-question simulation with separate 60/30/60-minute section clocks, run
+`NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:simulation`.
+Open `http://127.0.0.1:3234/?student=postgres-v3`; see the
+[full simulation walkthrough](docs/guides/TRACK_B_SUPERVISOR_DEMO.md#full-100-question-simulation).
+
 ## Start here
 
 - New contributors: [AGENTS.md](AGENTS.md), then [agent onboarding](docs/agents/AGENT_ONBOARDING.md).
