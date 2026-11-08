@@ -39,3 +39,7 @@ temp/
 
 # Persistent synthetic-only local PostgreSQL data
 .local/
+
+# Private corpus source and derived working data
+/TSA_Example_Questions/
+/data/research/
