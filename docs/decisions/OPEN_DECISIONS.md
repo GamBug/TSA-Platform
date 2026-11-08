@@ -1,5 +1,253 @@
 # Architectural decisions and open questions
 
+## University-demo product direction — 2026-11-07
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-07.
+The owner directed AI agents to record these decisions. Planning context:
+[readiness review](../../plans/reports/review-261107-2114-tsa-product-readiness-gap.md).
+These decisions set direction only. They do not implement anything, and the frozen contracts stay
+as they are until versioned additions are reviewed.
+
+1. **Target.** The target is a university project demo. The architecture must stay able to grow
+   into a full product, so the existing boundaries remain: versioned contracts, the Bank as the
+   only content source, and no live AI during exam creation, delivery or grading. Hosting and
+   production auth are optional for the demo.
+2. **Corpus rights (owner-asserted).** The owner states that the source of `TSA_Example_Questions/`
+   allows use for non-profit purposes. Status: **REQUIRES_VERIFICATION**. The grantor identity,
+   date, channel and written evidence have not yet been recorded. Before any corpus-derived item is
+   published, private evidence must be stored and referenced here. Conditions: the site stays
+   non-profit (no ads, no paid tier), it credits the source, and it makes no HUST affiliation
+   claim. The owner will also supply cropped Science-section items. Those items need the same
+   rights record.
+3. **Review capacity.** The owner is the single human approver, assisted by AI agents. Student
+   helpers are optional. The existing invariant stays: an author never approves their own version
+   (QUESTION_SCHEMA workflow). Corpus items are authored by a source-import account and AI drafts
+   by an AI-drafter account, and the owner approves both. This amends the MVP_SCOPE requirement for
+   "two different humans" for this demo only. AI checks such as an independent blind solve are
+   triage evidence and are never approval.
+4. **Score display.** Show the number of correct answers per section and in total, using the
+   existing binary practice scoring. It is labelled unofficial practice. A different scoring model
+   may come later as a new versioned scoring policy.
+5. **Full simulation timing.** Each section has its own timer (60/30/60 minutes, 40/20/40
+   questions), and students may go back to earlier sections. Selected reconciliation: a
+   server-authoritative per-section time budget that runs only while that section is open
+   ("chess clock"). Returning to a section resumes its remaining budget. A section whose budget is
+   exhausted becomes read-only, and the attempt ends when every budget is exhausted or the student
+   submits. This is a product choice, not a claim about official HUST rules. It needs a versioned
+   multi-section attempt design with review before implementation.
+
+## Track B modernization local execution authority — 2026-11-06
+
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok. Durable evidence: the owner supplied the full Track B Development & UX/UI Modernization mission and then replied “full permission. work non-stop.” Scope covers local compatible backend/frontend implementation, dependency use, disposable database verification and bounded supported delegation. It excludes force-push, merge, publication/deployment, production databases, unrelated deletion, history rewrites, paid external services and silent breaking contracts. [Execution contract](../../plans/261106-1019-track-b-modernization/plan.md).
+
+This authorizes additive topic-practice interfaces alongside existing APIs; existing attempt ownership, eligibility, grading, disclosure and immutable taxonomy/history remain stable. It does not grant content rights, qualified human approval or official HUST affiliation. Existing independent-section architecture remains authoritative; entry cards must describe actual configured offerings rather than imply a combined official examination.
+
+## RECOVERY-028 owner authorization to resume local engineering — 2026-11-05
+
+Approval identity: human project owner in this Codex conversation. Evidence: the
+owner replied **“full permission. work non-stop.”** directly after the blocked
+recovery report identified the three concrete reviewed engineering proposals.
+Recorded November 5, 2026, Asia/Bangkok. This changes the earlier unanswered
+engineering disposition; historical PROPOSED/pending records below describe their
+earlier state, not the current local implementation authority.
+
+Scope: autonomous zero-cost local implementation and verification of the reviewed
+manual DRAFT transport, media delivery and Factory planner proposals. Root selects
+manual transport first and the proposal's storage-compatible Bank EXTERNAL import
+classification: it records transport across the Factory/Bank boundary, while
+immutable evidence records actual AI authorship and unverified rights. It is not
+an assertion of third-party authorship, ownership or publication permission.
+
+The approved design revisions are:
+
+- [Manual transport](RECOVERY_MANUAL_TRANSPORT_PROPOSAL_2026_11_04.md),
+  SHA256 `e3568eaaa881fb96d147672a4807db82cb3bc68476d09ca97f64f69407cd5f0a`.
+- [Media delivery](RECOVERY_MEDIA_DELIVERY_PROPOSAL_2026_11_02.md),
+  SHA256 `c5037fe2fa535364ef16e5edf4a4358bbc7d9a196c0fb07f4a2ae9126b3e6d9b`.
+- [Factory planner](RECOVERY_FACTORY_PLANNER_PROPOSAL_2026_11_02.md),
+  SHA256 `926dad0105c8618ec9cc09ac6f94fb100d10d941e416a9fc6f4cbf29c43e7f55`.
+
+Do not edit those reviewed proposal bytes to manufacture a new approved revision.
+Implementation records and follow-up decisions belong in the current task/plan.
+Manual intake is private DRAFT only, disabled by default, using one explicit
+registered mapping and a separately pinned immutable activation snapshot. Snapshot
+hash/scope must be recorded before actual activation; general permission alone is
+not a supplied activation file or a human content decision.
+
+Human scientific/content/rights/accessibility review, lawful publication,
+production deployment, paid LLM API use, and original-repository commit/push/merge
+are outside this local engineering authorization. Their actual evidence and gates
+remain required. [Execution plan](../../plans/261105-2120-recovery028-manual-draft-transport/plan.md).
+
+## RECOVERY-028 private activation proposal — 2026-11-05
+
+Status: PROPOSED, not activated. Local engineering is authorized and implemented;
+this entry requests the concrete target registration and snapshot required by the
+accepted design. A backed-up read-only inspection of the retained local Bank found
+one Math taxonomy, zero Reading taxonomies, and the existing synthetic AUTHOR.
+No taxonomy/user or original draft was changed by inspection.
+
+The [exact proposed taxonomy](reading-manual-taxonomy-proposal-2026-11-05.json)
+registers one Reading domain and its READING_REASONING skill, with fresh registered
+IDs and no users. Its definition hash is
+`sha256:ea797c6a47598412c9b3dfc5da0da1cbdb5244dfad60274d803a05b117d05616`,
+computed over the canonical definition excluding the definitionHash field.
+Version ID: `12cb164d-ca9d-47cc-b881-0cbf450bffad`.
+
+The exact private proposed package/mapping/activation receipt lives under
+`.local/question-factory/heat-island-transport-proposal-2026-11-05/` (owner-only).
+It contains the existing ten final drafts and original bound critic/source
+evidence. This is a truthful unregistered proposal, not a successful Bank import.
+
+- Manifest hash: `sha256:c8df8d2ef03594e2b5f107283d3bd89e3f3f56f781e9a807f67fc567ca9d4cfb`.
+- Mapping hash: `sha256:a4a4e37e5f1f61185940a1c7d4a6066b431b708a65a7bdfbb16600e0a36576ff`.
+- Activation hash: `sha256:e339008d472787c578d9d36f3cb29c539bdc830e61103b4d70ee0c6658a11b49`.
+- Configuration scope hash: `sha256:e17710c8847ffc54bfceeda4d6b78866d167faebbc558783828002e62c9ea9e7`.
+- Fixed configuration location:
+  `.local/manual-import/reading-v4-2026-11-05/`; no active configuration installed.
+- Activation expires November 9, 2026, 18:00 UTC+7. Expiry needs a newly approved
+  snapshot, never an automatic time extension.
+
+Requested local action: after a fresh backup, register only this exact taxonomy,
+install the exact approved mapping/snapshot at the pinned private location,
+authenticate the existing synthetic author and import the ten-question unit as
+DRAFT; verify exact replay/zero eligibility and then stop/retire the coordinator.
+No new users, human rights/content approval, publication or paid API is included.
+Approval identity/date/evidence for this specific snapshot: ABSENT. Its pending
+state does not revoke authorization to continue other reviewed local engineering.
+
+## RECOVERY-019 concrete manual-only DRAFT transport — 2026-11-04
+
+[Reviewed proposal](RECOVERY_MANUAL_TRANSPORT_PROPOSAL_2026_11_04.md), final
+SHAe3568eaaa881fb96d147672a4807db82cb3bc68476d09ca97f64f69407cd5f0a,
+[four actual design findings/corrections](../reviews/RECOVERY_MANUAL_TRANSPORT_DESIGN_2026_11_04.md).
+Preparation complete, PROPOSED only. Strict manual v3/private DRAFT/mapping/raw
+evidence and local activation/stopdrain semantics require owner disposition,
+including the explicit Bank EXTERNAL import-classification interpretation.
+No parser/runtime/DB/grant implementation, actualimport or newapproval inferred.
+Separate media/planner and human/production gates remain independent.
+
+Root requested a specific asynchronous owner disposition of this final reviewed
+manual-only local design on2026-11-04. No answer is recorded; a preselected UI
+option or elapsed time is not approval. Earlier media/planner questions are not
+resent. Pending implementation must not start from general continuation alone.
+
+## RECOVERY-018 existing internal draft revision — 2026-11-04
+
+Current automatic continuation selects revision of the same ten drafts under the
+recorded INT003 internal AI-authored source/manual-chat authority. Source and
+historical evidence remain unchanged; no new source/capture/provider/publication
+scope. [Actual revision, two fresh blind AI critiques and metadata checks](../reviews/RECOVERY_MANUAL_DRAFT_REVISION_2026_11_04.md)
+do not provide human approval, calibrated cognition, scientific/rights verification
+or adoption of the manual transport proposal. DRAFT/human0/Bank0/API0, null usage,
+internal-only permission and BLOCKED_CONTRACT remain. No architecture change.
+
+## RECOVERY-015–017 continued existing-contract repairs — 2026-11-04
+
+Owner requests automatic continuous work. Root repairs reproduced SDK ordering/
+confirmed-denial cache races and wires existing offline tests into the existing
+workflow. Actual independent reviews and scoped evidence are in current backlog
+cards; no server/schema/grant/auth-policy or new architecture choice. Final client
+20/B049/student45/Chrome78 and offline77/checker6 local results do not supply
+qualified human content/AT, hosted CI/production acceptance or disposition of
+pending media/planner proposals. No paid API, commit, push or deployment.
+
+## RECOVERY-012/013 existing-boundary verification — 2026-11-04
+
+Owner reports “the usage already reset” and requests “continue.” Root implements
+test-only private-value HTTP coverage and dedicated Factory LOGIN/live-grading-
+lease isolation under existing autonomous local security scope. Actual independent
+reviews and [privacy](../reviews/RECOVERY_STUDENT_PRIVACY_2026_11_04.md)/
+[Factory capability](../reviews/RECOVERY_FACTORY_ISOLATION_2026_11_04.md) evidence
+are recorded. No application contracts, database grants or proposed media/planner
+architecture approved or changed. Normal subscription work resumed; historical
+usageLimited telemetry does not imply a newly observed quota exhaustion.
+
+## RECOVERY-011 accepted-contract continuation — 2026-11-04
+
+Owner resumed the autonomous recovery goal and said “continue.” Root composed
+generic provider-free export and actual DRAFT import verification under existing
+generation/Factory2/Bank contracts. [Implementation and actual independent review](../reviews/RECOVERY_GENERIC_EXPORT_2026_11_04.md)
+record focused11/combinedAI73PASS. No new DB schema, grant, provider or architecture
+choice. Media/planner proposals and human content/accessibility/production gates
+remain pending; continuation is not their specific disposition. A worker reached
+subscription usage limit; root took over without a paid or alternate-provider
+workaround. Goal controller later reports usageLimited, not objective complete.
+
+## RECOVERY-010 accepted-contract continuation — 2026-11-02
+
+Owner said “next” after the blocked checkpoint. Root selected an additional
+existing-contract task: generic bounded generation-response validation using
+unchanged G1 schemas, with actual independent review and focused22/combinedAI63
+PASS. [Evidence](../reviews/RECOVERY_GENERATION_RESPONSE_2026_11_02.md).
+No architecture/storage/grant/provider choice is made. This continuation is not
+recorded as literal approval of either pending media or Factory proposal; those
+specific dispositions and human/production inputs remain absent.
+
+## RECOVERY-009 Factory planner/reservation design — 2026-11-02
+
+[Concrete proposal](RECOVERY_FACTORY_PLANNER_PROPOSAL_2026_11_02.md), final hash
+926dad0105c8618ec9cc09ac6f94fb100d10d941e416a9fc6f4cbf29c43e7f55, independently
+reviewed by actual planner_final_review with no final material finding;
+[finding dispositions](../reviews/RECOVERY_FACTORY_DESIGN_REVIEW_2026_11_02.md).
+PROPOSED only: config/inventory/plan shapes, new durable Factory rows, checked
+commands and explicit privilege cutover need owner architecture disposition.
+Existing job kinds/grants were inspected, not invented or changed. No architecture,
+operating budget/capacity, source rights, live provider or production approval
+recorded. Media proposal disposition remains separately pending. No runtime
+implementation may infer approval from this document or review.
+
+Root has now requested a specific asynchronous owner disposition for zero-cost
+local fixture implementation only. No response is recorded. This request does
+not include live providers, paid calls, real-content approval or deployment.
+
+## RECOVERY-008 provider-free fixture prerequisite selection — 2026-11-02
+
+Root selects a generic deterministic fake-generation adapter under the owner's
+recorded autonomous local engineering authority. Existing G1 GenerationRequest,
+ProviderResult and ProviderError contracts plus the specified adapter operations
+are unchanged. The adapter uses explicit in-memory fixture cases, no external
+provider/process/network/persistence and no publication authority. This is an
+implementation prerequisite, not a new Factory wire/schema/storage decision or
+approval of ADR-005/008. It does not supersede INT-003 manual-only authoring.
+Root owns coordination and test script; navigation owns the module/tests;
+baseline_scout independently reviews after release. No human/content acceptance,
+paid API, real-provider comparison or full AI-001/FACTORY-002 completion inferred.
+
+## RECOVERY-005 inspected-image delivery proposal — 2026-11-02
+
+[Reviewed proposed scope](RECOVERY_MEDIA_DELIVERY_PROPOSAL_2026_11_02.md) preserves
+the existing frozen media GET but requires a new inspection profile/private local
+store/guard migration. Root requested explicit owner architecture disposition via
+an asynchronous question; no answer/approval is recorded yet. Independent
+baseline_scout review of final c5037fe2fa535364ef16e5edf4a4358bbc7d9a196c0fb07f4a2ae9126b3e6d9
+found no blocking mismatch after root/reviewer corrections. This is document
+review, not runtime security acceptance. Pin immutable asset/decoder inspection
+metadata in any authorized implementation card. Existing text-only profile and
+blanket asset guard remain; other independent recovery work may continue.
+
+## Autonomous recovery execution authority — 2026-11-02
+
+- Approval identity: human repository owner; date 2026-11-02 Asia/Bangkok.
+- Durable evidence: owner instruction following AUDIT-001: “full permission. Now
+  work automatic, do the things you think is the best for the project” and
+  “remember use subagents wisely. This just Codex Plus plan, work wisely.”
+- Root selects recovery-plan RP-01 baseline reproduction and status reconciliation
+  first, then concrete actionable engineering gaps. Focused subagents authorized.
+  Subscription usage exhaustion is not measurable by this agent; no quota claim.
+- Existing private-content/human-review/production gates and no paid LLM API calls
+  remain. No captured-source extraction, publication or deployment inferred.
+
+INT-003 continuation2026-10-27: [manual-only choice, AI-authored source/internal-use
+authorization and PROPOSED transport delta](INT_003_MANUAL_LLM_STAGING.md).
+Ten actual current-Codex questions are DRAFT in private staging; no provider API
+call, fabricated usage, OWNED rights promotion or human/publication approval.
+
+Scoped owner assignment2026-10-27: [offline Reading Factory experiment](READING_FACTORY_EXPERIMENT_2026_10_27.md).
+Root accountable; additive default-false local20/1800 profile and existing canonical
+draft/review/Bank/student boundaries. No frozen contract change, paid API, human
+content approval, push, merge or deployment authorization.
+
 Status as of 2026-10-17: all eight ADRs below remain PROPOSED as whole decisions; ADR-004 H1, H2, H3, the MVP Start TTL and non-retroactive ordinary admission-schedule edits have separate, scoped HUMAN OWNER approvals. Independent review by Antigravity is documented in [ARCHITECTURE_REVIEW_001](../reviews/ARCHITECTURE_REVIEW_001.md); Codex's disposition and changes are in [REVIEW_RESOLUTION_001](../reviews/REVIEW_RESOLUTION_001.md). Neither review is owner approval. Phase 02.75 remains documentation-only by default; the scoped G0 implementation authorization below is the explicit owner authorization for development work and does not authorize paid LLM API calls, production readiness or unresolved ADR changes.
 
 ## Track B product-completion execution — 2026-10-23
@@ -888,3 +1136,10 @@ reference catalog/card and detail PNGs after local images were excluded.
 in ignored research storage. This resolves the visual checkpoint for compatible
 catalog/detail changes; it does not authorize new reference attempts, copied
 history/branding/assets, fabricated inventory or any contract change.
+
+## INT-003-R — scoped offline capture research,2026-10-28
+
+Human owner explicitly authorized the current offline parser/analysis task and
+separate Reading20 diagnosis. [Scope/evidence/impact](INT_003_CAPTURE_RESEARCH_SCOPE.md).
+This does not approve broader ADR-005/008, source rights, external upload, Bank
+import, publication or training. No shared contracts or student runtime changed.

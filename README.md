@@ -9,6 +9,8 @@ G1 is accepted; G2/G3 are owner accepted. Track B has verified local PostgreSQL 
 For the presentation sequence, use the [one-page supervisor walkthrough](docs/guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md).
 Follow the [supervisor demo guide](docs/guides/TRACK_B_SUPERVISOR_DEMO.md) for a
 complete three-domain walkthrough, pinned prerequisites, startup and teardown.
+Topic selection and the keyboard shortcut guide are documented in the
+[Track B topic practice guide](docs/guides/TRACK_B_TOPIC_PRACTICE.md).
 From an installed checkout:
 
 ```sh
@@ -29,9 +31,9 @@ It does not provide approved real content or production authentication.
 - Delivery: [roadmap](docs/tasks/IMPLEMENTATION_ROADMAP.md), [authoritative backlog](docs/tasks/TASK_BACKLOG.md), [test strategy](docs/quality/TEST_STRATEGY.md).
 - Evidence: [research assessment](docs/research/RESEARCH_ASSESSMENT.md); the [original research](docs/research/TSA_DEEP_RESEARCH.md) is preserved as received.
 
-The proposed first slice is a small, legally usable, human-reviewed question bank → assembled practice exam → timed attempt → persisted answers → practice score and explanations. Default assembly is personalized and excludes prior stable identities/equivalents for that student. The [Question Factory](docs/specifications/QUESTION_FACTORY_SPEC.md) is an independent early research/production track, never a live examination dependency; see [reuse policy](docs/specifications/QUESTION_REUSE_POLICY.md).
+The product goal is a small, legally usable, human-reviewed question bank → assembled practice exam → timed attempt → persisted answers → practice score and explanations. The local PostgreSQL demonstration already implements this journey with original synthetic fixtures; it does not provide lawful accepted inventory. Default assembly is personalized and excludes prior stable identities/equivalents for that student. The [Question Factory](docs/specifications/QUESTION_FACTORY_SPEC.md) remains an independent research and production track, never a live examination dependency; see [reuse policy](docs/specifications/QUESTION_REUSE_POLICY.md).
 
-For the retained local staff and student stack, run
+For the retained local staff workspace and persistent student website, run
 `NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true LOCAL_STUDENT_ENABLED=true npm run dev:track-b`.
 Open the printed student URL. A fresh workspace has an empty catalog; it does not
 promote synthetic drafts. For a disposable engineering-only exam journey, use the
@@ -111,9 +113,10 @@ private Unix socket, without a TCP listener; no system database is modified.
 Production/unknown runtime modes refuse startup. Do not enter personal data.
 
 This is synthetic-only development authentication, not production login. Source
-rights remain UNKNOWN; creating a draft does not approve or publish it. The exam
-journey remains the separately labeled in-memory B0.1 mock. No real attempt,
-allocation or scoring integration is claimed. Focused checks:
+rights remain UNKNOWN; creating a draft does not approve or publish it. The
+student exam journey uses the separately enabled PostgreSQL services and isolated
+synthetic fixtures described below; it is distinct from the in-memory B0 mock.
+Focused staff-workspace checks:
 
 ```bash
 npm run test:local
@@ -139,9 +142,12 @@ npm run build
 npm run test:bank
 ```
 
-These test relational integrity, immutable snapshots, transaction/concurrency
-mechanisms and synthetic-only authorization. They do not establish deployed
-security or implemented allocation, exam, scoring and publication services.
+These commands cover relational integrity, immutable snapshots, transaction and
+concurrency mechanisms, and synthetic-only authorization in their recorded
+scopes. Allocation, attempt delivery, scoring and released review have separate
+integration and browser suites below and in the linked run guide. Local evidence
+does not establish deployed security, qualified content review or production
+readiness.
 See [scope and prerequisites](tests/integration/database/approved-invariants/README.md).
 No database download or dependency installation is performed.
 
@@ -161,7 +167,7 @@ npm run contracts:consumer-check
 npm run docs:check
 ```
 
-`build` emits JavaScript and declarations from the shared contracts into the ignored `packages/contracts/dist` directory. `test:built` runs the emitted JavaScript with ordinary Node.js, checking runtime schema acceptance and rejection plus an exported deterministic helper. This smoke test covers only the package's emitted runtime modules; it does not establish an endpoint, client SDK, browser bundle, service integration or release readiness.
+`build` emits JavaScript and declarations from the shared contracts into the ignored `packages/contracts/dist` directory. `test:built` runs the emitted JavaScript with ordinary Node.js, checking runtime schema acceptance and rejection plus an exported deterministic helper. This smoke test covers only the package's emitted runtime modules; it does not by itself establish endpoint behavior, the browser client, service integration or release readiness. Those have separate scoped checks below and in the task evidence records.
 
 `test:consumers` checks independent synthetic producer/consumer JSON transport,
 strict emitted declarations, and the Stage 4B identity, Factory v2, assembly and
@@ -186,11 +192,11 @@ coordinated change, then rerun verification. The student artifact retains the 18
 legacy public component schemas and adds eight operations; released review is a
 separate one-operation document. `contracts:consumer-check` enforces a static
 import policy over `test/fixtures/stage4b/student-consumer`, including local escape,
-private root/type imports and computed loaders. New application consumer roots
-must be registered before integration; there is no application/browser bundle to
-validate yet. This source policy is not a JavaScript sandbox or proof of production
-security. Hosted CI, database/publication concurrency and live-provider evidence
-remain outside these local shared-contract checks.
+private root/type imports and computed loaders. Application consumer boundaries
+have a separate registered check. This source policy is not a JavaScript sandbox,
+a complete browser-bundle audit or proof of production security. Hosted CI,
+database/publication concurrency and live-provider evidence remain outside these
+local shared-contract checks.
 
 ## PostgreSQL student engineering demo
 

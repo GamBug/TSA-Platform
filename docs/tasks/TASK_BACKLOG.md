@@ -1,5 +1,955 @@
 # Task backlog
 
+## TRACK-B-MODERNIZATION — Topic practice and student experience
+
+- Status: IN_PROGRESS; core implementation integrated and scoped verification/review complete, 2026-11-06. Media/keyboard continuation updated2026-11-07; [current evidence](../../plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). Current Codex controller accountable; explicit owner mission authorizes local implementation, compatible migrations, testing and bounded delegation. No commit/deploy/production/paid API authority.
+- [Implementation, executed checks and remaining scope](../../plans/reports/implementation-261106-1827-track-b-modernization.md). New owner-supplied corpus inspected read-only:600files,20shared Reading passages, numeric/text/matching and answer-bearing/cropped capture gaps; no import. [Inspection](../../plans/reports/research-261106-1827-tsa-example-questions.md).
+- [Outcome, ownership and acceptance](../../plans/261106-1019-track-b-modernization/plan.md); [reconnaissance and baseline](../../plans/reports/reconnaissance-261106-1019-track-b-modernization.md).
+- Controller owns entry/topic frontend, staff taxonomy selectors, integration and shared records. Native backend/exam workers own assigned slices. Independent read-only review follows integration.
+- Recommendation: current Codex/current available model with high reasoning where available; independent supported reviewer through existing subscriptions. No assumed quotas. Preserve unrelated recovery work and frozen lifecycle/disclosure contracts.
+
+## RECOVERY-029 — Implement the reviewed local inspected-image path
+
+- Status: IN_PROGRESS, 2026-11-05; root accountable integrator. Current owner
+  authority explicitly covers the reviewed media design. This proceeds while the
+  separate exact manual registration/snapshot question is pending.
+- [Outcome, constraints, phases, deadlines and acceptance](../../plans/261105-2242-recovery029-media-delivery/plan.md).
+  Frozen attemptAsset route/DTO, additive separate profile, private content-addressed
+  store and current owner/section/release/rights checks; feature off by default.
+  No production/content-rights/human review, capture, paid API or commits.
+- Root owns dependencies, SQL027/ACL review, shared Bank/attempt/HTTP integration,
+  tests and coordination. Delegates receive disjoint decoder/storage paths.
+  Actual SQL function/role review precedes execution; back up every database
+  before changes, including empty disposable baseline before migration.
+- Recommendation: existing Codex/current available model/high if selectable for
+  SQL/authorization; bounded native decoder builder and independent reviewer.
+  Existing subscriptions only; no quota assumption.
+- Read-only scout completed: frozen contract exists but HTTP/service asset method
+  is absent; SQL008 remains text-only; no later override; next migration027.
+  Full asset ACL details still to inspect. Exact Sharp0.35.5 selected from official
+  metadata/docs for full decode. No media code/dependency change at assignment.
+
+## RECOVERY-028 — Implement reviewed private manual DRAFT transport
+
+- Status: IN_PROGRESS; engineering COMPLETE / exact pilot activation PENDING;
+  root accountable implementer/integrator, 2026-11-05.
+  The owner's latest explicit full-permission reply to the concrete blocked
+  proposals authorizes local zero-cost engineering; see the current
+  [authority record](../decisions/OPEN_DECISIONS.md).
+- Outcome/constraints/acceptance/deadlines: [execution plan](../../plans/261105-2120-recovery028-manual-draft-transport/plan.md).
+  Preserve reviewed design bytes, v1/v2, question/1, historical drafts and human/
+  rights/publication/production gates. New v3 intake stays private DRAFT, disabled
+  by default, no SQL/grants/provider/paid API changes or original commits.
+- Reserved scope: new internal transport/parser/preparation and focused tests;
+  Bank import persistence, namespace/replay, private attribution/review readers,
+  activation coordinator, owning docs and exact private evidence. Delegate file
+  ownership is disjoint; root owns shared records. Back up existing DB before
+  any real data/schema operation; use disposable PostgreSQL for integration.
+- Recommendation: existing Codex/current available model/high if selectable for
+  graph/mapping/transaction integration; bounded native builder plus separate
+  read-only reviewer. Existing subscriptions only; no quota assumption.
+- Outcome: strict internal v3 parser/preparation, shared persistence/private
+  readers, registered mapping and durable single-connection coordinator implemented.
+  Actual independent review closed all findings and reran contract7/config5 PASS.
+  Root final command28/combined v2-v3-review74/contracts168/AI78/emitted2+12 PASS;
+  build/type/drift/boundaries/docs/whitespace PASS. See
+  [execution evidence](../../plans/reports/implementation-261105-2205-manual-draft-transport.md).
+- Retained Bank inspected read-only after a stopped64,051,200-byte physical backup:
+  existing synthetic author present, Reading taxonomy0. Exact separate
+  [registration/activation proposal](../decisions/OPEN_DECISIONS.md#recovery-028-private-activation-proposal--2026-11-05)
+  and private package/mapping/snapshot pins are prepared. A specific asynchronous
+  owner question is pending; do not resend it or infer approval from elapsed time.
+  No actual pilot import, taxonomy/user registration or human approval occurred.
+  Other authorized local media/planner engineering may continue meanwhile.
+
+## Recovery execution gate — 2026-11-05
+
+BLOCKED on unchanged external inputs after three consecutive goal audits. The
+completed RECOVERY001–027 scopes remain completed; the parent recovery objective
+is not achieved. Existing source/archive/test evidence is preserved. Actual
+independent plan audit found no additional unblocked requirement.
+
+The remaining critical path requires specific owner dispositions of the reviewed
+manual transport/media/planner proposals, qualified rights/content/accessibility
+evidence, and release/pilot operational inputs. See the
+[decision authority](../decisions/OPEN_DECISIONS.md) and
+[current continuation record](../agents/LAST_HANDOFF.md). No pending question is
+resent and no approval is inferred from a general continuation. No new source,
+tests, dependency or production action is assigned by this gate record.
+
+## RECOVERY-027 — Learn and verify the installed AgentKit operating route
+
+- Status: COMPLETED, 2026-11-05; root accountable under the owner's explicit
+  request to inspect the newly added AgentKit hooks and use the pack proficiently.
+- Scope/ownership: root read-only installed skill/CLI/hook metadata and syntax
+  checks; one stateful report under plans/reports and coordinated state/handoff.
+  Preserve project/user configuration, installed scripts, licensing/auth state,
+  model settings and existing accepted recovery plan. No paid LLM API calls.
+- Acceptance: use actual installed skill instructions and live CLI help/contracts;
+  distinguish declared registration/syntax from runtime execution and skipped
+  health checks. Record the selected workflow, native delegation rules and
+  safe read-only commands without copying secrets or the full skill catalog.
+  Keep original project approval/production gates and scope unchanged.
+- Recommendation: existing Codex/current available model/medium if selectable for
+  bounded local tooling inspection; no delegate needed. Native available roles
+  remain the delegation authority, with one writer/disjoint ownership and explicit
+  cwd/timezone/English context. No quota/model availability assumption.
+- Report: plans/reports/tooling-261105-1508-agentkit-hooks.md. No new product plan,
+  global installation/repair, config migration or hook execution experiment.
+- Outcome: [operating report](../../plans/reports/tooling-261105-1508-agentkit-hooks.md).
+  AK3.0.0/Engineer0.2.0 local native destinations inspected; actual Codex global
+  hooks25bindings/18scripts/8events, all18syntax checks PASS. Selected doctor
+  reports3ok/0fail/2skip; skips are not full integrity/execution proof. CLI agent
+  inventory empty while native runtime roles available; use live native tools.
+  No config/installed script/provider/auth modification or secret disclosure.
+  Root docs/report-target/whitespace checks PASS, report below800lines; no
+  application rerun needed for read-only tooling inspection. Ownership released.
+
+## RECOVERY-026 — Date the current locked-dependency advisory review
+
+- Status: COMPLETED, 2026-11-05; root sole read-only auditor. RP-07 calls for a
+  dated dependency review; RECOVERY024 explicitly used offline/no-audit install,
+  so that success did not provide a current advisory result.
+- Scope/ownership: root unchanged package/lock hash comparison against the frozen
+  checkpoint, native npm advisory query/private receipt, and minimal owning
+  evidence/plan/state/handoff updates. Dependency-only audit, no private content,
+  credential search, version updates, source changes, paid API or release action.
+- Acceptance: record exact command, actual exit/status and dated severity counts;
+  distinguish advisory snapshot from general security or release acceptance.
+  Preserve package/lock bytes. Diagnose any finding/failure before remediation;
+  no automatic audit fix or dependency-pin changes.
+- Recommendation: existing Codex/current available model/medium if selectable for
+  one bounded dependency query and evidence receipt; no subagent needed. If a
+  concrete remediation follows, use a separately scoped implementer and actual
+  independent reviewer. Existing subscriptions only; no quota assumption.
+- Timing: current run, RP-07 preparation before November25 18:00 UTC+7.
+- Outcome: `npm audit --json`, 2026-11-05 04:49 UTC, exit0; zero known findings
+  across25 reported dependencies, every severity0. Package/lock hashes match
+  RECOVERY024 checkpoint before/after; receipt/raw output retained privately.
+  [Dated evidence](../reviews/RECOVERY_CURRENT_SOURCE_REPRODUCTION_2026_11_05.md).
+  No fixes/installs/version changes; advisory snapshot only, no full security or
+  release acceptance. No independent reviewer assigned to this read-only query.
+
+## RECOVERY-025 — Accept existing synthetic text fixtures when tracked
+
+- Status: COMPLETED, 2026-11-05; root sole implementer. RECOVERY024's fully
+  indexed isolated source stops at checker tests:4PASS/2FAIL because the three
+  existing synthetic Reading `.txt` fixtures are rejected as unsupported tracked
+  artifacts. Their original untracked status hid this integration failure.
+- Scope/ownership: root embedded checker in TEST_STRATEGY.md, focused checker
+  regression and evidence/shared records; independent reviewer read-only. Do not
+  edit fixture content, research, app/runtime, schema, dependency pins or original
+  Git index. The failed checkpoint/logs remain preserved; RECOVERY024 continues
+  after a new current-source checkpoint includes the repair.
+- Contract: original synthetic parser inputs required by existing offline tests
+  are valid source artifacts. Add only the exact existing three fixture paths;
+  retain generic `.txt` rejection, unrelated/nested/captured-text denials,
+  private/research discovery exclusions, symlink refusal and protected hashes.
+  No broader content-source/rights acceptance or architecture change.
+- Acceptance: targeted virtual tracked-Git regression fails before repair and
+  passes after; unknown text files and approved-path symlinks still fail without
+  reading targets. Existing checker suite/docs checks pass. Independently review
+  the narrow allowance, then keep all selected files indexed in the fresh-copy
+  verification; do not hide the failure by leaving legitimate fixtures untracked.
+- Recommendation: existing Codex/current root/high if selectable for bounded
+  artifact-policy repair; configured Sol/medium read-only reviewer for unintended
+  admission or test weakening. No builder required for two small files; existing
+  subscription fallback, no paid API or quota/availability assumption.
+- Timing: current run, before RECOVERY024 resumes and RP-07 preparation closes.
+- Repair: root regression6PASS/1FAIL before, root/independent7PASS after;
+  actual reviewer no material findings. [Evidence](../reviews/RECOVERY_TRACKED_FIXTURES_2026_11_05.md).
+  Source fixture bytes unchanged, generic text rejection retained. New fully
+  indexed RECOVERY024 checkpoint passes checker7 and all17fresh stages; final
+  independent source/evidence review has no material findings. Failed checkpoint
+  retained; no original index change. Root final docs/whitespace checks PASS;
+  coordinated records integrated and implementation/review ownership released.
+
+## RECOVERY-024 — Reproduce the current engineering source checkpoint
+
+- Status: COMPLETED, 2026-11-05; root accountable verifier/artifact owner.
+  The dated RECOVERY004 portable copy predates RECOVERY008–023 and its temporary
+  source directory is absent. RP-07 needs a reproducible candidate manifest;
+  earlier copy results cannot establish portability of the later SDK/Factory work.
+- Ownership: root only private source archive/manifest/logs, isolated temporary
+  copy and coordinated evidence/plan/map/state/handoff. Independent read-only
+  reviewer checks selection/isolation/results if assigned. No application, tests,
+  dependency pins, schema, research, commits, push, merge or deployment changes.
+- Acceptance: freeze selected tracked and authored untracked engineering files,
+  required root manifests and docs with exact hashes; refuse symlinks/nonregular
+  inputs and exclude data/private captures/dotenv/original Git/dependencies/dist.
+  Retain a private source-only archive outside the copy. Install unchanged locked
+  dependencies offline with scripts disabled; create only a fresh temporary Git
+  index for existing checker tests, with no commit/origin or original metadata.
+- Verification: fresh build/type/contracts/emitted/consumer/B0/offline/checker
+  tests; affected realPG Reading/upgrade/student/critical privacy/Factory-isolation
+  selections and one actual domain browser journey from the isolated copy.
+  Capture each command/status separately, stop on a real failure, compare source
+  bytes after execution, inspect dependency symlink isolation and owned-process
+  cleanup. New-copy checks prove portability of this checkpoint, not hosted CI,
+  clean released commit, full critical-matrix/human/production acceptance.
+- Recommendation: existing Codex/current available model/high if selectable for
+  source isolation and command evidence; configured Sol/medium read-only review
+  for omitted/included artifacts and provenance. One operator, sequential tests,
+  no builder or paid API; subscription fallback without quota assumptions.
+- Timing: current run, RP-07 preparation before November 25 18:00 UTC+7. This
+  does not bring forward or silently accept its human/operational deliverables.
+- Attempt1: 514-source private archive/manifest under `.local/recovery/source-
+  2026-11-05-tJb2Cf/`; independent isolation/hash/tar/dependency checks PASS.
+  First9stages PASS, checker4PASS/2FAIL; runner stopped beforePG/browser.
+  Actual synthetic `.txt` fixture support defect moved to RECOVERY025; failed
+  source/logs preserved, original index untouched. [Executed evidence](../reviews/RECOVERY_CURRENT_SOURCE_REPRODUCTION_2026_11_05.md).
+- Final repaired checkpoint: private `.local/recovery/source-2026-11-05-OlByfp/`,
+  516sourcefiles/8,164,321bytes. All17fresh stages PASS: contracts161/emitted2/
+  consumers12/B049/offline84/checker7/Factory-upgrade5/student45/privacy2/
+  FactoryLOGIN1; build/type/drift/boundaries/docs and Chrome156domains78responses/
+  8captures/100%each PASS. No test skips. Actual independent reviewer verifies
+  allsource/archive/log hashes, no unsafe copies/omissions/hardlinks and five
+  internal dependency links; final no material findings, not full rerun.
+  Sourcecopy retired after native84158exit0; botharchives/manifests/logs retained.
+  Final coordinator docs update after freeze; runtime/test/checker bytes stable.
+  No released ref/hosted CI/human/fullRP07/production acceptance. Root final
+  docs/whitespace integration and ownership release recorded in handoff.
+
+## RECOVERY-023 — Reproduce current staff browser acceptance
+
+- Status: COMPLETED, 2026-11-05; root sole operator/accountable verifier.
+  RP-02 explicitly requires fresh student and staff browser results. Recovery
+  records contain fresh student/service evidence but no staff browser execution;
+  source-only staff triage did not satisfy this acceptance item.
+- Ownership: root new stateful evidence and coordinated plan/map/state/handoff;
+  only run-owned temporary browser artifacts/profiles/databases. Existing staff
+  harnesses/source remain unchanged unless a reproduced defect is separately
+  scoped. No new framework, dependency, architecture, real content or production.
+- Acceptance: execute existing Chromium Track B staff workspace and Firefox staff
+  journeys sequentially against disposable synthetic PostgreSQL; inspect exact
+  reports, errors, supported roles/commands, selected screenshots and cleanup.
+  Distinguish broad Chromium B1–B9 scope from narrower Firefox staff scope.
+  Failures remain recorded and diagnosed; no qualified human acceptance implied.
+- Verification: existing `test:track-b:browser`, then `test:staff:firefox`, each
+  with a separate temporary artifact directory; installed browsers only. Check
+  no owned processes remain, record source/runtime identity and docs/whitespace.
+  No unchanged application suites rerun solely to increase pass counts.
+- Recommendation: existing Codex/current model/high if selectable for browser
+  diagnosis and evidence inspection; no delegate needed for sequential existing
+  checks. If a concrete repair follows, configured reviewer/medium independently
+  reviews it. Subscription fallback only, no paid API or availability/quota claim.
+- Timing: current run; RP-02 deadline November 6 18:00 UTC+7.
+- Outcome: [executed staff browser evidence](../reviews/RECOVERY_STAFF_BROWSER_2026_11_05.md).
+  Chromium156 exit0/50recorded checks/34captures; Firefox156 exit0/18checks
+  (4student+14staff)/42captures. Firefox requested450px clamped500px, documented
+  honestly; Chromium selected mobile views actual375px. Root inspected both
+  reports/three captures; no failure or source change. Native sessions ended,
+  no owned browser/test process remains. Independent review NOT PERFORMED for
+  this rerun; no human accessibility/content/full acceptance inference. Root
+  docs/tracked-diff/direct-new-file whitespace PASS; preserved historical warning
+  and anchors NOT_CHECKED. Plan/map/state/handoff integrated; all reservations
+  released. No extra application suite justified by unchanged runtime source.
+
+## RECOVERY-022 — Compare offline Reading generation paths through Bank and exams
+
+- Status: COMPLETED, 2026-11-05; root accountable within existing recovery and
+  Reading fixture authority. RECOVERY021 review removed a false planner gate for
+  J; discovery found direct deterministic generation and configured local command
+  provider paths, but no comparative Bank-to-exam execution in the current tests.
+- Contract: TEST_STRATEGY scenario J requires comparative contract/evaluation
+  fixtures, unchanged canonical publication/exam behavior and no provider request
+  from student operations. This task supplies bounded local fixture evidence;
+  it does not claim vendor/model quality, production adapters or full Track A.
+- Ownership: root existing Factory/exam fixture generator seam and evidence/
+  coordinated records; narrow writer only new provider replacement integration
+  test; read-only independent reviewer. No runtime/SQL/grant/contract/provider
+  implementation, paid API, new dependencies or human publication changes.
+- Acceptance: both existing generation paths complete actual canonical DRAFT
+  import/replay/gated synthetic publication, two bundles, HTTP save/submit/grade/
+  release using the unchanged runtime. Compare semantic question/key/outcome
+  projections while retaining distinct truthful run/critic metadata. Prove the
+  command path was called, raw evidence preceded results, and student operations
+  do not call it after generation. Keep ordinary publication denial and initial
+  unselectable-DRAFT controls; deterministic cleanup/time bounds required.
+- Verification: narrow new test first, affected existing Reading suite after
+  the test-helper change, bounded isolated fault control if practical, existing
+  consumer/docs/whitespace checks and independent review. No unchanged browser
+  rerun or new test framework needed for this integration-only proof.
+- Recommendation: existing Codex/current root/high if selectable for fixture
+  integration; configured Luna/xhigh narrow test writer; configured Sol/medium
+  independent reviewer for provenance and publication-boundary claims. Available
+  subscription fallback only, no paid model API or quota assumption.
+- Timing: current run; bounded RP-02/J evidence due November 6 18:00 UTC+7.
+- Outcome: [actual comparison and checks](../reviews/RECOVERY_PROVIDER_REPLACEMENT_2026_11_05.md).
+  Writer/independent focused1 PASS each; root affectedReading21 PASS, no skips;
+  two isolated fallback/coupling faults detected with workspace hashes unchanged;
+  consumer boundaries PASS. Both actual20-question journeys preserve DRAFT/
+  ordinary403/synthetic-publication gates, semantic passages/keys and releases.
+  Exactly4 local command calls, raw-before-result captured in memory, no extra
+  tracked provider calls during student operations. No vendor/G1/model-quality
+  or full TrackA acceptance. Independent final review: no material findings.
+  Root docs/whitespace/direct-new-file checks PASS; checker anchors remain
+  NOT_CHECKED and preserved historical whitespace warning remains. All edit/review
+  reservations released, coordinated plan/state/handoff integrated. No full J/
+  TrackA/MVP acceptance inferred from this bounded Reading comparison.
+
+## RECOVERY-021 — Reconcile recovery acceptance evidence and next dependencies
+
+- Status: COMPLETED, 2026-11-05; root accountable under existing recovery
+  documentation authority. Previous turn completed RECOVERY020; this turn fixes
+  stale missing-evidence claims in the owning RP-02 acceptance map.
+- Audience/outcome: owner and successor agents can identify the latest bounded
+  evidence and actual next dependencies without treating automation as acceptance.
+- Ownership: root acceptance map, dated plan and coordinated state/handoff/card;
+  independent reviewer read-only. No new product code, tests, architecture,
+  research, approval route or acceptance threshold changes.
+- Acceptance: replace obsolete affected Q-01–Q-16 and A–J evidence statements
+  where recovery records supply newer proof; retain exact evidence dates/scope,
+  explicit unexecuted cases and human/owner gates. Link actual test owners and
+  independently check changed claims. Existing docs/whitespace checks only;
+  no unchanged runtime rerun solely for documentation.
+- Recommendation: existing Codex/current available model/high if selectable for
+  cross-record reconciliation; configured Sol/medium read-only reviewer to detect
+  overclaiming. Fallback available subscription model; no paid API or quota claim.
+- Timing: current run, RP-02 evidence-map deadline November 6 18:00 UTC+7.
+- Review: actual operation_review_final source-record/path/whitespace comparison;
+  P2 draft incorrectly gated J on planner approval. Corrected to limit that
+  dependency to affected scheduler/executor/reservation work; J comparative
+  fixtures are a separately actionable investigation in existing contracts.
+  Final no material findings. No application tests rerun for this docs task.
+- Validation: root `npm run docs:check` and `git diff --check` PASS; direct
+  untracked-map whitespace and retention of all16Q/all10scenario rows PASS.
+  `/tmp/tsa-recovery021-docs.log`; checker anchors remain NOT_CHECKED. Reviewed
+  map links to bounded evidence and actual next dependencies; full RP-02/MVP
+  acceptance remains open. All edit/review reservations released.
+
+## RECOVERY-020 — Bind complete student operations to the initiating identity
+
+- Status: COMPLETED, 2026-11-05; started 2026-11-04, root accountable after resume from accidental
+  Esc interruption. Prior turn made substantial progress RECOVERY015–019; this is
+  a newly reproduced existing-contract defect, not a no-progress gate audit.
+- Evidence: current SDK read can resolve IN_PROGRESS after logout begins between
+  inner request guard and outer continuation. More consequentially, swapping A's
+  cookie to B after the session response lets startDemo create/start B's attempt
+  from A's initiated action. Server auth still applies; intent crosses identities.
+- Ownership: root SDK persistent-api.js, real transport/domain integration, existing
+  offline CI test selection, evidence/
+  shared records; assigned narrow test writer only new critical operation-fence
+  test; separate read-only reviewer. Preserve existing/inherited edits and exact
+  contracts, no main.js/server/DB/grant/schema or architecture changes.
+- Acceptance: outer read/review/cache and chained allocation/start/resume flows
+  retain identity generation+nonce after each await; writes use initiating CSRF.
+  Valid first login/session establishment remains supported. Stale operations
+  cannot clear new identity, return old private data or create/start for new one.
+  Unit negative controls and actualPG cross-cookie no-write proofs, affected
+  regressions and independent review. Architecture questions remain pending.
+- Recommendation: existing Codex/current root model/high if selectable for async
+  operation ownership; narrow configured Luna/xhigh test writer; independent
+  configured reviewer/medium to challenge same-cookie/microtask/consent ordering.
+  No paid API or model/quota availability assumption.
+- Timing: current resumed run, RP-02/05 concrete defect repair by Nov6 18:00 UTC+7.
+- Outcome: [repair and executed evidence](../reviews/RECOVERY_OPERATION_IDENTITY_2026_11_05.md).
+  Root offline84/B049/student45/realtransport2/domain3/boundaries PASS;
+  Chrome149 domain78responses/8captures PASS. Actual independent reviewer18+7
+  and final7 recheck PASS, no material findings. Existing consent-test second
+  scenario now explicitly reestablishes A after invalidation; original server403
+  CSRF/onePOST/zeroattempt assertions retained. CI includes both client files.
+  No public contract/server/DB/architecture change; remaining human/owner gates
+  unchanged. Completed before Nov6 deadline; root integrates final records.
+
+## RECOVERY-019 — Concrete manual-output DRAFT transport proposal
+
+- Status: COMPLETED for documentation preparation only, 2026-11-04; root accountable.
+  Existing rough INT003 proposal names nullusage/internalrights blockers but does
+  not pin a complete reviewable transport/mapping/storage/compatibility design.
+- Ownership: root new docs/decisions/RECOVERY_MANUAL_TRANSPORT_PROPOSAL_2026_11_04.md
+  and evidence/shared records; response_review read-only source mapping discovery
+  then independent proposal review. Existing approved contracts/code/DB/private
+  drafts/research stay unchanged; no implementation or approval inferred.
+- Acceptance: concrete bounded manual-run/permission/evidence shapes, immutable
+  raw binding, registered identity/taxonomy mappings, truthful currentDB impact,
+  atomic DRAFT/replay/conflict semantics and no current-rights/human/publication
+  grant; exact old-reader migration/failure/recovery tests and approval scope.
+- Recommendation: existing Codex/current root model/high if selectable for
+  compatibility/provenance design; separate read-only reviewer/medium for schema/
+  privilege mismatches. No paidAPI or assumed model/quota availability.
+- Timing: current continuous documentation run; preparation before RP-06 Nov20
+  18:00 UTC+7, owner disposition remains required before implementation.
+- Outcome: [concrete proposal](../decisions/RECOVERY_MANUAL_TRANSPORT_PROPOSAL_2026_11_04.md),
+  [actual independent review/dispositions](../reviews/RECOVERY_MANUAL_TRANSPORT_DESIGN_2026_11_04.md).
+  FourP2design issues corrected/reviewed; final no materialfindings, SHAe3568eaa.
+  Existingstimulus-validator in-memoryprobe supports guardcompatibility correction.
+  No v3runtime/parser/SQL/provider execution, actualimport or architectureapproval.
+  Proposal remainsPROPOSED; all edit/review reservations released.
+
+## RECOVERY-018 — Revise existing internal Reading drafts against recorded critique
+
+- Status: COMPLETED in private internal-revision scope, 2026-11-04; root accountable under existing internal manual
+  authoring authority plus current autonomous continuation. Revise the same ten
+  drafts; do not create a new source or expand publication/capture/provider scope.
+- Ownership: root new private append-only revision directory under .local/question-
+  factory, generated response/declarations/revision notes, manual operator guide
+  and task evidence/records.
+  Existing source/request/old generations/critic evidence immutable. Separate fresh
+  blinded AI critic reads only new critic prompt, not keys or prior critiques.
+- Acceptance: address heat05 M2 flag and9 weak-distractor cautions with source-bound
+  distractors and substantive reasoning; exact source/evidence hashes/offsets and
+  4:3:3/all10/types verified via existing manual intake. Actual blind critique and
+  unresolved flags retained. DRAFT/human0/usage null/unverified/API0/Bank0; preserve
+  internal-only rights and current canonical-import block. No science/rights or
+  cognitive calibration/human approval claims.
+- Recommendation: current Codex subscription/root model/high if selectable for
+  Vietnamese evidence-bound revision; fresh independent Codex reviewer/current
+  available model for blinded answers/ambiguity/cognition critique, explicitly AI
+  rather than a qualified human. No paid API or assumed model availability.
+- Timing: current continuous run, improves RP-06 handoff before Nov20 18:00 UTC+7;
+  human review and transport proposal remain independent prerequisites.
+- Outcome: [actual authoring/critique/metadata evidence](../reviews/RECOVERY_MANUAL_DRAFT_REVISION_2026_11_04.md).
+  Same10drafts revised, originalsource/history preserved. Firstfresh AIcritic10key
+  agreements/heat07cognitionflag/2cautions; after targeted05/07revision, secondfresh
+  AIcritic10key/cognitionagreements/0flags/0cautions, provisionaltextjudgment only.
+  Existing intake10deterministicPASS/manual26PASS; actual independent metadata/
+  hashes/permissions/bindings/gates PASS. Final private owner HTML ready. Human0/
+  Bank0/API0/nullusage/internalrights/BLOCKED_CONTRACT unchanged. All reservations
+  released; no application/contract/architecture/scientific or human acceptance.
+
+## RECOVERY-017 — Wire existing offline regressions into local CI configuration
+
+- Status: COMPLETED in local workflow scope, 2026-11-04; root accountable. Existing workflow executes
+  contracts/B0/docs check but omits new offline AI/client and checker-mutation
+  regressions. This is missing CI wiring, not an observed hosted-run failure.
+- Ownership: root .github/workflows/contracts.yml only implementation, task
+  evidence/shared records; response_review read-only final review. No application,
+  lock/dependency, runner, permission, action-version or event-trigger changes.
+- Acceptance: existing build precedes offline tests; include provider-free AI and
+  fixed-client boundary tests plus test:docs, retain all existing checks/read-only
+  workflow permissions. Run exact commands locally. No PG/browser/provider job,
+  live/paid API, push or hosted execution/acceptance inferred.
+- Recommendation: existing Codex/current root model/normal reasoning if selectable
+  for small workflow glue; independent current reviewer/medium for command scope
+  and provider/network assumptions. No paid API or new CI service architecture.
+- Timing: current continuous run, RP-02/07 preparation before Nov6 18:00 UTC+7.
+- Outcome: [actual verification/review](../reviews/RECOVERY_OFFLINE_CI_2026_11_04.md).
+  Root/reviewer offline77PASS and checker6PASS, reviewer installedYAMLparse/
+  whitespacePASS, no findings. Existing triggers/permissions/runner/actions stable;
+  no provider/DB/browser prerequisites added. No hosted CI/push/commit claim.
+  All reservations released; broader release/architecture/human gates remain.
+
+## RECOVERY-016 — Fence stale responses after confirmed authentication denial
+
+- Status: COMPLETED in bounded SDK identity scope, 2026-11-04; root accountable, sequential ownership transfer
+  from completed RECOVERY015. Reviewer reproduced held authenticated GET resolving
+  and repopulating cache after401 with unchanged cookie; subsequent PUT dispatched.
+  This is SDK state resurrection, not a server authorization bypass.
+- Ownership: root persistent-api.js, its unit tests and transport integration test,
+  evidence/shared records; response_review independent read-only review. No other
+  writer, main.js/server/DB/schema/grant changes. Preserve inherited edits.
+- Acceptance: confirmed401/403 and explicitly unauthenticated/noncandidate session
+  observations advance identity fence and clear private/pending client state;
+  earlier reads/saves cannot commit or dispatch from resurrected cache. Old denials
+  cannot erase a newer identity. Actual revoked session keeps cookie unchanged in
+  regression. Preserve retry/auth/origin/release contracts and RECOVERY015 ordering.
+- Recommendation: existing Codex/current root model/high if selectable for identity
+  epochs; separate reviewer/medium if selectable for denial versus stale-response
+  ordering. No paid API/provider or new production identity architecture.
+- Timing: current continuous run; combined final affected checks before Nov6
+  18:00 UTC+7, contributes to RP-02/05 rather than full human MVP acceptance.
+- Outcome: [actual verification/review](../reviews/RECOVERY_AUTH_DENIAL_FENCE_2026_11_04.md).
+  Root/reviewer focused20PASS, final combinedB049/student45/boundariesPASS;
+  Chrome149 three-domain78responses/8captures/100%eachPASS. Real session revoked
+  viaHTTP with cookie unchanged, oldGET fenced/noextraPUT/reloginrecoversrev3.
+  Pre-repair newtestfails; no reviewer findings. No server/authpolicy/schema/
+  architecture changes, user-gesture or production/human acceptance. All edit
+  reservations released; continuous root execution moves to next existing gap.
+
+## RECOVERY-015 — Prevent delayed reads overwriting acknowledged client state
+
+- Status: COMPLETED in bounded SDK ordering scope, 2026-11-04; root accountable under autonomous existing
+  student-client repair scope. Actual read-only reviewer reproduced held rev0GET
+  overwriting successful rev1save; nextsave incorrectly sends rev0 and conflicts.
+- Ownership: root apps/practice-prototype/public/app/persistent-api.js,
+  corresponding persistent-api unit test and student-runtime/transport integration
+  test, evidence/shared records. response_review read-only independent review.
+  Preserve inherited main.js and all unrelated changes; no server/DB/schema edits.
+- Acceptance: barrier-controlled old GET cannot erase a later acknowledged save
+  or resurrect an already submitted attempt. RealPG next save uses correct revision;
+  owner/identity/mode/release checks remain, rejected reads cannot fall back to
+  cached private data. Cache results remain mutation-isolated. No timing/reuse/
+  scoring/publication/architecture changes or human acceptance inferred.
+- Recommendation: existing Codex/current root model/high if selectable for async
+  ordering and cache ownership; separate reviewer/medium if selectable to challenge
+  stale-response and denied-read cases. No paid API or model/quota assumption.
+- Timing: current continuous run, RP-02/05 defect repair before Nov6 18:00 UTC+7.
+- Outcome: [implementation/review evidence](../reviews/RECOVERY_CLIENT_CACHE_ORDERING_2026_11_04.md).
+  Root/reviewer focused13PASS, fixedidentity4PASS; prior broader B045/student45/
+  Chrome78responsesPASS, before final delayedsubmit guard. Reviewer P2 firstrepair
+  discarding newer closure fixed; final no findings. Four new failures against
+  original client proved regression oracles. No server/DB/contract changes. Root
+  releases this task; same-file ownership transfers to separately scoped auth
+  denial fencing RECOVERY-016, with combined final broader rerun planned there.
+
+## RECOVERY-014 — Include authored untracked documents in verification
+
+- Status: COMPLETED in bounded authored-document scope, 2026-11-04; root accountable under inherited-project
+  recovery authority. Actual read-only reviewer reproduced tracked-only omission:
+  27 authored untracked documents/155 outgoing links were outside docs:check.
+- Ownership: root embedded checker/prose in docs/quality/TEST_STRATEGY.md,
+  new tests/quality/docs-check.test.mjs, package script and evidence/shared records;
+  response_review read-only final review. Research and historical review input
+  bytes stay immutable; no other files are assigned for repair.
+- Acceptance: tracked checks/pinned input hashes remain; add nonignored untracked
+  Markdown only in named authored-doc directories; report discovery counts and
+  anchor-check limitation. Broken-link/fence/whitespace/task mutations in new
+  documents fail. Do not crawl private data, unassigned research or generated
+  output; Git failure fallback stays bounded and read-only. No runtime changes.
+- Recommendation: existing Codex subscription/current root model/high if
+  selectable for filesystem/Git verification boundaries; separate current reviewer/
+  medium if selectable for false-negative and private-path probes. No paid API.
+- Timing: current continuation, contributes to RP-01/02 by Nov6 18:00 UTC+7.
+- Outcome: [executed evidence and actual review](../reviews/RECOVERY_DOCUMENT_DISCOVERY_2026_11_04.md).
+  Root/independent focused6PASS; root/reviewer docs176=149tracked+27untracked,
+  1048links/0errors before this new evidence file. Skipped155 outgoing links now
+  checked; no current broken file target found. Read-only mutation probes catch
+  missing links/fences/whitespace/taskrefs/hash changes and refuse private/research/
+  generated/symlink scope. Anchor and fallback limitations explicit; no findings,
+  runtime/research changes or broader acceptance. All reservations released.
+
+## RECOVERY-013 — Factory LOGIN isolation from a live grading lease
+
+- Status: COMPLETED in bounded Factory capability scope, 2026-11-04; root accountable under autonomous local
+  security verification scope. Actual reviewer identified missing dedicated-login
+  worker-function/live-lease test; no privilege failure has been observed.
+- Ownership: root only tests/integration/grading/worker.test.mjs addition and
+  task evidence/shared records; response_review read-only final review. Preserve
+  all existing tests and unrelated edits. No runtime/SQL/contract/grant changes.
+- Acceptance: real worker holds a live populated lease; ordinary LOGIN granted
+  only tsa_factory knows exact job/executor/token but cannot invoke claim/load/
+  finish/fail, read students/attempts/answers/private secrets or approve/publish.
+  Expected SQLSTATE42501 and exact application state unchanged; legitimate worker
+  then grades once. Existing Factory job visibility/update remains supported.
+- Recommendation: existing subscription Codex/current root model/high if
+  selectable for ACL/RLS transaction assertions; separate read-only reviewer/
+  medium if selectable to check permission-error versus empty-RLS oracles. No
+  paid API or new proposed Factory privilege cutover implementation.
+- Timing: current continuation, contributes to RP-02 Nov6 18:00 UTC+7 deadline.
+- Outcome: [executed evidence and actual review](../reviews/RECOVERY_FACTORY_ISOLATION_2026_11_04.md).
+  Root/independent focused1PASS; fullgrading24PASS.30SQLSTATE42501 denials in2
+  role contexts; all68applicationtables unchanged, grading row RLS-hidden, own
+  Factory job/source positive controls pass. Same live lease grades successfully
+  afterward. No reviewer findings/observed privilege flaw; no runtime/schema/grant
+  changes or fullFactory/production acceptance. All edit reservations released.
+
+## RECOVERY-012 — Integrated student private-data leakage regression
+
+- Status: COMPLETED in bounded automated privacy scope, 2026-11-04; root accountable under renewed
+  autonomous local engineering authority after owner reports subscription reset.
+- Scope: existing composed local student runtime with disposable PostgreSQL;
+  private explanation canaries, internal identity/hash checks and strict response
+  schemas across catalog/history, attempt lifecycle, errors and release gates.
+  Reuse existing public-asset boundary coverage; media404 means denial only.
+- Ownership: root tests/critical/student-leakage.test.mjs and optional isolated
+  oracle helper, test-only mixed/domain fixture canary option, package script and
+  task evidence/shared records. response_review read-only discovery/final review.
+  Preserve inherited changes; no other writer owns these new edits.
+- Acceptance: canaries truly persisted and visible only in owner released review;
+  raw response and decoded JSON leaf/header scans detect nested/encoded leaks;
+  created/active/submitted/graded ordinary views, catalog/history and foreign,
+  unauthenticated/role/CSRF/origin/validation/error routes scanned; oracle fault
+  controls fail on leaks without printing secret values. No runtime/schema/grant
+  change or human/full-Q08/media/production acceptance inferred.
+- Recommendation: existing Codex/current root model, high if selectable for
+  cross-route security oracles; separate current read-only reviewer/medium if
+  selectable to challenge false-negative coverage. No paid API or quota bypass.
+- Timing: complete this bounded regression and durable review evidence during
+  current continuation; contributes to RP-02 deadline2026-11-06 18:00 UTC+7.
+- Outcome: [actual evidence and review](../reviews/RECOVERY_STUDENT_PRIVACY_2026_11_04.md).
+  Root/independent2PASS with156 actual responses/53 internal values,3domains/types
+  and3owner releases. Static4/student44PASS. Reviewer P2 encoded-marker false
+  negative repaired with adversarial controls; no remaining concrete findings.
+  Real429/410/503 and both body limits covered. No application leak observed,
+  runtime/schema/grant change or full-Q08/human/media/production acceptance.
+  Implementation reservations released; reviewer now read-only next-gap discovery.
+
+## RECOVERY-011 — Generic provider-free canonical export and DRAFT import proof
+
+- Status: COMPLETED in provider-free fixture/DRAFT scope, 2026-11-04; root accountable.
+- Scope: compose existing fake adapter, response inspector, reference/content/hash
+  helpers and Factory v2 into a generic offline fixture entrypoint, then prove actual
+  DRAFT import/replay/rollback through existing Bank service. All three domains/
+  interactions and shared stimulus supported; no Reading20-only shortcut.
+- Ownership: generic_export_builder only tools/question-factory/generic-fixture.mjs,
+  tests/ai/generic-fixture-factory.test.mjs and reusable test fixture helper;
+  root CLI, focused PG integration, package/guide/evidence/shared records; separate
+  read-only response_review after implementation. Other files remain reserved
+  only to their existing owners; preserve inherited uncommitted changes.
+- Acceptance: actual generated bytes bound to trusted synthetic context and matched
+  request; safe closed references, recomputed identities/fingerprints, canonical
+  existing-v2 output, truthful machine evidence and no qualified-human claim;
+  private atomic no-overwrite CLI output; realPG draft-only repeated import and
+  changed-key conflict, invalid-unit no writes, unapproved stock remains excluded.
+- Contracts stable: G1 generation/question/Factory2/Bank API; no config/planner/
+  reservation schema, database/grant change, provider or paid call. Pending media/
+  Factory architecture questions unchanged. Full parent milestones incomplete.
+- Recommendation: inherited available Codex subscription/high if selectable for
+  strict graph/export glue and root integration; independent read-only reviewer.
+  No model/quota availability assumed and no paid API.
+- Execution interruption: generic_export_builder hit an actual subscription usage
+  limit before writing its owned files. Root confirmed no partial generic files
+  existed and takes sole implementation ownership; no alternate paid provider or
+  quota workaround selected. Root completed all implementation; the available
+  read-only response_review independently reviewed and ran the final suite.
+- Outcome: [guide](../guides/GENERIC_FIXTURE_FACTORY.md),
+  [executed evidence and review](../reviews/RECOVERY_GENERIC_EXPORT_2026_11_04.md).
+  Root/independent focused11PASS; combinedAI73PASS; import boundaries/syntaxPASS.
+  RealPG13DRAFT versions across all9 domain/type combinations and shared units;
+  exact replay/conflict/late rollback verified, selectable0/rights rows0. Actual
+  private CLI9813bytes. Independent P2 interrupted-final-file finding repaired
+  with synced temporary/atomic no-replace publication and actual SIGKILL/race
+  tests. No remaining reviewer findings. Reservations released; no broader
+  Bank/browser/power-loss tests, qualified-human or full parent acceptance.
+
+## RECOVERY-010 — Generic generation-response schema boundary
+
+- Status: COMPLETED in structural-response scope, 2026-11-02; root accountable implementer after owner “next”.
+- Scope: provider-neutral, in-memory inspection of bounded response bytes using
+  existing GenerationRequest/ProviderResult/QuestionVersion contracts. Check exact
+  complete counts, usage budgets, request/domain/taxonomy/skill/cognition binding
+  and unique identities; reject whole response on failure. No import/publication,
+  provider, storage, SQL, contract or architecture change. Media/Factory proposals
+  remain pending; “next” supplies continuation, not a fabricated approval quote.
+- Ownership: root new src/modules/generation/response-validation.mjs, focused test,
+  test:generation script/guide/evidence and shared records. Independent read-only
+  reviewer after implementation; no parallel writer assigned.
+- Acceptance: malformed/oversized UTF-8/JSON, budget/count/metadata drift, unknown
+  cost/truncation/refusal, duplicate IDs, atomic rejection and safe diagnostics;
+  accepted candidates labelled structural-only with remaining checks explicit.
+- Recommendation: current available Codex subscription model/high if selectable
+  for bounded egress validation; separate read-only reviewer for semantic/budget
+  failure cases. No paid API. Full AI-001/002/Factory milestones remain incomplete.
+- Outcome: [implementation/review evidence](../reviews/RECOVERY_GENERATION_RESPONSE_2026_11_02.md),
+  [usage](../guides/GENERATION_RESPONSE_VALIDATION.md). Root/independent generation22
+  PASS; combinedAI63PASS, public import boundaries/syntax/new-filewhitespacePASS.
+  No reviewer findings. No partial data or zero-cost assumption on rejected output;
+  accepted data structural-only, not safe/rights/answer/human approved. All edit
+  reservations released; no provider/DB/schema/architecture changes.
+
+## RECOVERY-009 — Factory planner and atomic reservation design
+
+- Status: COMPLETED for documentation preparation only, 2026-11-02; root accountable.
+- Prerequisite evidence: RECOVERY-008 supplies generic fake-adapter execution over
+  accepted G1 contracts. FACTORY-002 config/inventory/plan/reservation and durable
+  Factory tables are still proposed and absent from migrations; no runtime schema
+  or budget ledger may be silently invented from those descriptions.
+- Ownership: navigation only new
+  docs/decisions/RECOVERY_FACTORY_PLANNER_PROPOSAL_2026_11_02.md; baseline_scout
+  independent read-only review; root evidence/shared coordination records.
+- Acceptance: concrete bounded config/inventory/plan shapes, overlap/bundle-aware
+  deterministic candidate accounting, manual/schedule replay identity, atomic
+  per-call budget/fencing/uncertain-charge rules, existing job-kind/privilege
+  migration impact and negative/race/upgrade acceptance. No implementation/approval.
+- Recommendation: existing Codex inherited model/high if selectable for planning
+  arithmetic/transaction design; independent read-only reviewer. No paid API.
+- Continuation: prior navigation/baseline_scout handles are no longer live; root
+  takes sole proposal-edit ownership, preserving their persisted draft. Actual
+  new read-only planner_final_review reviewed hash25f5581a and found two P2 design
+  ambiguities: skip unfillable ranked cells and unify active schedule identity for
+  operator-triggered period runs. Fix/re-review required; no runtime failure claimed.
+- Verified source correction: migration002 and job-dispatch/1 already include
+  factory_produce_unit plus Factory-specific SELECT/UPDATE RLS/grants. Existing
+  implemented claim/finish worker functions are grading-specific; do not invent
+  a new job kind or claim Factory jobs are absent from the schema.
+- Outcome: [reviewed proposal](../decisions/RECOVERY_FACTORY_PLANNER_PROPOSAL_2026_11_02.md)
+  and [actual review dispositions](../reviews/RECOVERY_FACTORY_DESIGN_REVIEW_2026_11_02.md),
+  final SHA926dad0105c8618ec9cc09ac6f94fb100d10d941e416a9fc6f4cbf29c43e7f55.
+  Independent planner_final_review final no material findings after fixes;13local
+  links/anchors/directwhitespace/hash checks PASS. No runtime/DB tests or schema
+  implementation. Proposal still needs owner architecture disposition and concrete
+  operational inputs. All edit/review reservations released; parent tasks incomplete.
+
+## RECOVERY-008 — Provider-free generic generation adapter prerequisite
+
+- Status: COMPLETED in generic fixture-adapter scope, 2026-11-02; root accountable under current autonomous local
+  engineering scope. Read-only scope audit identified this missing AI-001 fixture
+  slice without media, paid-provider, storage or canonical schema changes.
+- Ownership: navigation worker only src/modules/generation/fake-adapter.mjs and
+  tests/ai/fake-generation-adapter.test.mjs; baseline_scout independent read-only
+  review after release; root coordination/evidence. Preserve all inherited changes.
+- Contract: existing G1 GenerationRequest/ProviderResult/ProviderError and adapter
+  generate(request,approvedSourcePayload,cancellationSignal)/capabilities operations.
+  Deterministic scripted fixtures, in-memory only; no dispatch, persistence, rights
+  attestation or publication. Existing manual-only INT-003 preference is unchanged.
+- Acceptance: strict request/result validation, exact source matching, truthful
+  fixture provenance/zero real usage, safe typed error cases, cancellation without
+  inventing a CANCELLED provider enum, mutation/replay isolation, focused tests and
+  independent review. Fake candidates remain untrusted data for downstream validators.
+- Parent scope: advances only AI-001's fixture adapter prerequisite; full durable
+  generation, two authorized real adapters/evaluation and FACTORY-002 configuration/
+  inventory/atomic-reservation contracts remain incomplete. No narrower completion
+  substituted for those requirements.
+- Recommendation: existing Codex inherited model/high if selectable for strict
+  contract/fixture isolation; separate read-only reviewer. No quota assumptions or
+  paid API; no architecture approval inferred for absent planner/storage contracts.
+- Outcome: [actual implementation, review and limits](../reviews/RECOVERY_GENERATION_FIXTURE_2026_11_02.md),
+  [usage](../guides/FAKE_GENERATION_ADAPTER.md). Worker/root/independent focused10PASS;
+  root combinedAI51PASS and public import boundariesPASS. Draft metadata/bound
+  findings corrected before final review. Reviewer accepted plain-object key-list
+  allocation caveat for local fixtures only. No live provider or persistence; full
+  parent milestones incomplete. All reservations released.
+
+## RECOVERY-007 — Existing second-engine and accessibility automation
+
+- Status: COMPLETED in existing automated scope, 2026-11-02; root accountable, navigation verifier.
+- Scope/ownership: /tmp/tsa-recovery-browser-* evidence only; existing Firefox
+  default/native200% and Chromium keyboard journeys with actual saved outputs.
+  No new test/runtime changes or downloads without concrete failure scope.
+- Acceptance: exact commands/versions/results and limitations; any failure triaged
+  before claims. Automation does not supply qualified human AT/usability acceptance.
+- Recommendation: inherited existing-subscription Codex verifier for repeatable
+  browser evidence; independent reviewer only if concrete repairs arise. No paid API.
+- Outcome: [exact commands and observed evidence](../reviews/RECOVERY_BROWSER_ACCEPTANCE_2026_11_02.md).
+  Firefox156default4/4captures/native200%6/8PASS; Chrome156keyboard6/6captures,
+  22responses/83focus/18AX/0focusfailPASS. Root report/env/capture inspection, no
+  independent full rerun or qualified-human/conformance acceptance. No code changes.
+  All temporary evidence reservations released.
+
+## RECOVERY-006 — Remaining service acceptance execution
+
+- Status: COMPLETED in executed service scope, 2026-11-02; root sole implementer/verifier.
+- Scope: run existing database/auth/local, attempts/directory and grading/results/
+  recovery suites not covered by RECOVERY-001's fresh runs, then map actual
+  observed outcomes to Q-01–Q-16 evidence. No new tests without a concrete failure.
+- Ownership: root /tmp/tsa-recovery-services-* logs and task evidence/shared records;
+  other workers retain their separate documentation ownership. No runtime edits.
+- Acceptance: exact commands/environment/counts/failures/skips retained, actionable
+  failures investigated and bounded fixes separately assigned; no full-release claim.
+- Recommendation: root inherited subscription Codex/high if available for lifecycle
+  oracle/failure triage; independent review of concrete changes if any. No paid API.
+- Outcome: [fresh commands and limits](../reviews/RECOVERY_SERVICE_ACCEPTANCE_2026_11_02.md).
+  Database/auth/local57, attempts/directory37 and grading/results/recovery46 tests
+  PASS/no skips; no concrete failure or code change. Root execution, not independent
+  full-oracle review or Q/A–J release acceptance. All verifier reservations released.
+
+## RECOVERY-005 — Image delivery boundary and migration proposal
+
+- Status: COMPLETED for documentation preparation, 2026-11-02; root accountable.
+- Evidence: frozen routes/1 already declares attemptAsset, but approved local
+  text-math-table/1 validation rejects asset-bearing graphs and migration008 denies
+  every asset-bearing form. A route handler alone cannot safely enable images.
+- Scope: concrete PROPOSED storage/validation/DB-guard impact and migration analysis,
+  preserving old profiles/contracts/history; no runtime weakening, no media grants.
+- Ownership: navigation worker only new
+  docs/decisions/RECOVERY_MEDIA_DELIVERY_PROPOSAL_2026_11_02.md; baseline_scout
+  independent read-only review; root coordination records. No parallel runtime work.
+- Acceptance: exact existing route/state/purpose/rights mapping, immutable bounded
+  storage, separate inspection profile, expand-only migration and race/negative
+  tests; real approval scope distinguished from engineering preparation.
+- Recommendation: existing Codex inherited model/high if available for cross-layer
+  privacy design; separate read-only review. No assumed availability/paid API.
+- Outcome: [reviewed proposal](../decisions/RECOVERY_MEDIA_DELIVERY_PROPOSAL_2026_11_02.md),
+  SHA c5037fe2fa535364ef16e5edf4a4358bbc7d9a196c0fb07f4a2ae9126b3e6d9.
+  Root/reviewer findings corrected; independent baseline_scout final no blocking
+  mismatch. No implementation/architecture approval claimed. An asynchronous
+  specific owner disposition request is pending; independent work may continue.
+  Remaining implementation detail: immutable asset-hash/decoder inspection record
+  shape must be pinned before coding. All proposal writer reservations released.
+
+## RECOVERY-004 — Isolated portable working-tree reproduction
+
+- Status: COMPLETED within portable-snapshot scope, 2026-11-02; root accountable, navigation worker executes.
+- Scope/ownership: private /tmp/tsa-recovery-portable-* only; copy engineering
+  source bytes without hardlinks, excluding private data/research, ignored artifacts,
+  original node_modules/dist and Git metadata. Root owns durable evidence/records.
+- Acceptance: fresh locked install, build/emitted/consumer and focused PG/browser
+  reproduction from copied source, exact manifest/commands/limits. This is a portable
+  working-tree snapshot, not a Git clean checkout or commit approval.
+- Recommendation: inherited existing-subscription Codex worker for bounded
+  reproducibility; separate source/evidence review if needed. No paid API.
+- Outcome: [exact evidence/limitations](../reviews/RECOVERY_PORTABLE_REPRODUCTION_2026_11_02.md).
+  314 regular copied files; root hash/isolation check PASS. Fresh offline locked
+  install/build/emitted/consumers/upgrade/Factory/Chrome domains passed in worker
+  scope; saved rerun logs prove build/upgrade1/domains78responses Chrome156.
+  Initial unsaved outputs not reconstructed. No clean Git clone/full-suite claim;
+  no complete independent reproduction. All reservations released.
+
+## RECOVERY-003 — Populated Reading experiment migration preservation
+
+- Status: COMPLETED, 2026-11-02; root accountable under autonomous recovery scope.
+- Goal: inspect existing025→026 upgrade coverage, then add a missing real-PG
+  preservation regression using genuine pre026 fixture state. This is not a
+  production migration claim or permission to change migration026.
+- Ownership: navigation worker only new
+  tests/integration/assembly/reading-experiment-upgrade.test.mjs; root shared
+  records/evidence; reviewer read-only after implementation. Existing code preserved.
+- Acceptance: migrate only026 over populated025; exact retained application/security
+  state, empty new private registration and replay/idempotency checks; focused/full
+  relevant checks plus independent oracle review. Report omissions explicitly.
+- Recommendation: inherited subscription Codex worker/high if available for DB
+  snapshot/oracle work; separate read-only review. No paid API or quota assumption.
+- Outcome: [exact verification and limits](../reviews/RECOVERY_READING_UPGRADE_2026_11_02.md).
+  Genuine IN_PROGRESS/GRADED/queued SUBMITTED data, existing application/security
+  snapshots preserved; registry empty/private/default-off, replay inert, queued
+  grading succeeds. Worker/root/independent focused1PASS; root assembly85PASS.
+  Independent review no concrete defect; new helper ACL coverage limit recorded.
+  Test-only change; all reservations released. RECOVERY-004 reproduction follows.
+
+## RECOVERY-001 — Reproduce inherited baseline and reconcile navigation
+
+- Status: COMPLETED in bounded inherited-working-tree scope, 2026-11-02. RP-01 execution under the owner's current
+  explicit autonomous-work and subagent instruction. Root Codex is accountable.
+- Starting reference: `feat/track-b-data-auth` / `a70861a`; inherited dirty tree
+  preserved, including AUDIT-001 documentation. Scope: existing local synthetic
+  baseline, concrete failures, provenance manifest, README/current navigation.
+- Ownership: root owns task evidence and shared records; `navigation` worker owns
+  README only; `baseline_scout` is read-only. Other paths remain unreserved until
+  a concrete repair is identified. Frozen contracts and human approval gates stay.
+- Acceptance: reproducible build/contracts/PG/browser commands with actual results,
+  inherited-change manifest, truthful current navigation and recorded review.
+- Recommendation: existing Codex subscription/current inherited model for root;
+  focused worker for README and read-only explorer for environment discovery.
+  Separate read-only reviewer after changes. No assumed quota or paid API calls.
+- Outcome: [fresh baseline and review](../reviews/RECOVERY_BASELINE_2026_11_02.md),
+  [33-file engineering snapshot](../reviews/RECOVERY_RUNTIME_SNAPSHOT_2026_11_02.json),
+  [Q/A–J evidence map](../reviews/RECOVERY_ACCEPTANCE_MATRIX_2026_11_02.md).
+  Fixed three migration026 receipt expectations and explicit opt-in Chromium test
+  startup on sandbox-restricted hosts. Contracts161/assembly84/student44/Bank161/
+  Factory19/critical9/consumers12 PASS; Chrome149 domains78responses and Reading20
+  complete journey PASS. Read-only baseline_scout review found no actionable issues;
+  source/docs only, no independent PG/browser rerun. No clean-clone/full MVP claim.
+  All baseline reservations released; README/current guide reconciled. Historical
+  backlog cards remain historical; full status normalization is not claimed.
+
+## RECOVERY-002 — Broaden first-party public-asset privacy regression
+
+- Status: COMPLETED, 2026-11-02. Root accountable under autonomous recovery scope.
+- Evidence: read-only discovery found no exposure, but current static sentinel
+  checks omit persistent-api.js/math.js and the second fixture explanation.
+- Ownership: navigation worker only apps/practice-prototype/test/server.test.mjs;
+  root evidence/shared records, baseline_scout read-only review. No server/runtime,
+  dependency, contract or private source changes. No claim of exhaustive Q-08.
+- Acceptance: all first-party HTML/CSS/app-script public paths checked for both
+  private explanation sentinels; explicit tool/research paths denied; focused and
+  existing B0 suite pass; independent review recorded.
+- Recommendation: inherited existing-subscription Codex worker for bounded
+  regression, separate read-only agent for oracle/privacy review; no paid API.
+- Outcome: [exact evidence and limitations](../reviews/RECOVERY_PUBLIC_ASSET_PRIVACY_2026_11_02.md).
+  Nine public paths/two explanation canaries and named tool/research route denials;
+  original assertions preserved after root finding. Worker/final independent4/4,
+  rootB038/38/docs/whitespace PASS. Independent final review no remaining finding;
+  initial review missed removed assertions and explicitly acknowledged correction.
+  All reservations released. No runtime change or full-Q08 acceptance.
+
+## AUDIT-001 — Inherited-project audit and dated recovery plan
+
+- Status: COMPLETED, documentation audit and proposed schedule only, 2026-11-02.
+- Assignment: human owner requested current structure/progress inspection and a
+  concrete deadline plan. Accountable implementer: current Codex root, sole agent.
+- Starting state: `feat/track-b-data-auth` / `a70861a`; 13 modified tracked paths
+  and 17 untracked entries. Prior code, research and document changes preserved.
+- Scope/ownership: new [audit and recovery plan](RECOVERY_PLAN_2026_11_02.md),
+  additive backlog/state/latest-handoff updates only. Ownership released.
+- Outcome: structure and milestone evidence reconciled in the audit; stale current
+  summaries identified for follow-up, not silently treated as resolved. Proposed
+  Nov 4 baseline, Nov 6 acceptance matrix, Nov 11 content, Nov 12 manual
+  accessibility, Nov 18 MVP closure, Nov 20 bounded AI disposition, Nov 25 candidate
+  checks and Nov 27 local candidate/handoff. Human gates remain conditional;
+  full Track A and public deployment have no completion commitment.
+- Verification: docs/typecheck/contract drift checks PASS; B0 five passing
+  test-file entries, scoring one passing test-file entry, offline Reading41/41.
+  Full PG/browser/load/manual AT NOT RUN; no new independent review.
+- Recommended next task: RP-01 baseline/provenance/navigation reconciliation by
+  2026-11-04 18:00 Asia/Bangkok, proposed/unassigned. Recommended implementing
+  platform/model/reasoning: existing Codex subscription, gpt-6.1-sol/high if
+  available, for inherited diff and evidence reconciliation; fallback available
+  subscription Codex model. Separate gpt-6.1-sol/medium read-only review proposed,
+  not assigned/performed. No paid API calls or delegation authorized by this card.
+
+## INT-003-R — Offline operator capture research
+
+2026-10-28 single-question browser-capture continuation: the user authorized one
+Question 1 verification and deferred any full extraction. Accountable implementer:
+Codex root/current session; independent review NOT PERFORMED. The pinned Chromium
+AT-SPI page exposed the question indicator, title, eight passage paragraphs,
+question and four options. One UTF-8 record and checkpoint were written to the
+user-requested `data/research/reading_questions.txt` and
+`data/research/reading_questions.progress.json`; both are untracked, and the text
+file is mode0600. The source access was asserted by the user; reuse, publication
+and training rights are unverified. The private ignored helper is limited at its
+CLI to `--verify-one`; navigation is disabled pending a further explicit command.
+Its guarded keyboard path refuses an inactive window, and its question-number
+parser recognizes the displayed progress indicator. Exact UTF-8 readback,
+checkpoint, inactive-window guard and disabled navigation entry point passed;
+visual comparison beyond the operator's screenshot description was not performed.
+The broader representative operator pilot remains IN_PROGRESS. Recommendation for
+any continuation: existing Codex subscription, gpt-6.1-terra with high reasoning if
+available, for browser-state and content-integrity checks; fallback to an available
+Codex model. This recommendation neither assigns nor records an independent review.
+
+- Status: IMPLEMENTED / AUTOMATED_PASS for synthetic tooling; actual operator
+  pilot acceptance IN_PROGRESS,2026-10-28. Accountable implementer: root/current Codex.
+- Authority: owner current task explicitly authorizes offline parser/analysis, private
+  operator-supplied captures, focused tests and separate Reading20 launcher diagnosis.
+- Ownership released after verification: tools/reading-research/**, tests/ai/reading-research.test.mjs,
+  docs/guides/READING_CAPTURE_RESEARCH.md, task-specific decision/evidence and
+  additive shared state/handoff updates. Existing owner/INT-003 changes preserved.
+- Contracts: research metadata only; no Bank import, provider, runtime, contract,
+  dependency or publication changes. No commit/push/merge/deploy.
+- Recommendation: existing Codex subscription/current session model, high reasoning
+  if selectable, for deterministic parser and privacy boundary work; fallback is
+  an available subscription Codex model. Availability/quota not assumed. Independent
+  reviewer unassigned; recommendation does not authorize delegation.
+- Acceptance: byte-preserving provenance, ambiguity flags, private structural reports,
+  taxonomy/generation guide, synthetic tests and operator pilot before larger batches.
+  The earlier offline pilot received no operator samples; broader sample review
+  remains pending despite the separate one-question capture above.
+- Evidence: [verification](../reviews/INT_003_CAPTURE_RESEARCH_VERIFICATION.md),
+  [operator guide](../guides/READING_CAPTURE_RESEARCH.md). Research15/15 and combined
+  manual/offline41/41 PASS; synthetic pilot3captures/4questions,1repeated group,
+  no representative pattern claim. B0 handler persistent path404; existing guarded
+  labelled demo is the smallest safe exposure. No runtime/package changes.
+  Independent review NOT_PERFORMED; the earlier synthetic verification included
+  no third-party samples or publication.
+
+## INT-003 — Offline Reading Factory experimental slice
+
+Continuation2026-10-27: root owns only offline ten-question manual-chat export,
+intake/private review, directly relevant tests and task records. Owner selected
+manual chat only (no Ollama call) after installed model discovery, and explicitly
+authorized a new AI-authored internal pilot passage about urban heat/green space,
+with source provenance and no copyright/science/publication certification. Existing
+owner and prior INT-003 changes preserved. No new UI/refactor/full regressions.
+Actual outcome:10 current-Codex-authored questions, intended4:3:3, on an original
+985-whitespace-segment source. Deterministic10/10; separate blinded critic agrees
+with10 keys but retains1 cognition flag and9 distractor-quality cautions. Human0.
+Private `review-owner/review.html` under `.local/question-factory/heat-island-session`.
+[Content outcomes](../reviews/INT_003_FIRST_MANUAL_LLM_BATCH.md) are separate from
+software checks (manual9+offline17 PASS26). No provider inference, canonical Bank
+import or eligible stock. Unknown usage/internal-only rights fail existing v2;
+[versioned proposal](../decisions/INT_003_MANUAL_LLM_STAGING.md) is unapproved.
+All current reservations released; next action is owner content review/disposition.
+
+- Status: IMPLEMENTED / AUTOMATED_PASS for the bounded fixture slice2026-10-27;
+  live generation / human content approval remain NOT_PERFORMED, so broader
+  integration acceptance remains IN_PROGRESS. Accountable implementer root/Codex.
+- Owner assignment: current task; [scope/impact/authority](../decisions/READING_FACTORY_EXPERIMENT_2026_10_27.md).
+  AI-001/002, FACTORY-001 and INT-001 full production milestones remain separate.
+- Deliverable: one20-question/1800-second experimental reading journey, two
+  all-or-none10-member bundles, exact M1:M2:M3 quotas8:6:6, offline generator and
+  deterministic checks, canonical DRAFT import and existing staff review/student UI.
+- Ownership: root `tools/question-factory/**`, `tests/ai/**`, package scripts and
+  shared records; `reading_discovery` additive profile/runtime/SQL026 and focused
+  assembly tests; `factory_discovery` new disposable factory-bank-exam tests and
+  demo/browser scripts. Root completed final browser/label repairs after worker
+  usage limit. All reservations released; owner AGENTS/research preserved.
+- Recommendation: Codex gpt-6.1-sol/High for integration if available under the
+  existing subscription, otherwise current available Codex model/reasoning;
+  bounded inherited subagents for implementation. Actual separate native
+  tsa_reviewer/Sol6.1/Medium reviewed core and launcher; final browser/UI repairs
+  are root-only after reviewer usage limit. No paid LLM calls.
+- Verification: strict schema/quota/key/evidence/IDs/exact duplicates, near-match
+  flags only, run/import replay/conflict, unapproved blocking, shortage, NEW_ONLY,
+  bundle preservation, student answer protection/save/submit/released result.
+  [Executed evidence and limits](../reviews/READING_FACTORY_EXPERIMENT_VERIFICATION.md):
+  focused19, canonical import+integration16, assembly/student/directory137,
+  contracts/consumers/B038/build/type/drift/boundaries/docs PASS; actual Chrome156
+  full20 save/reload/submit100%/all20 explanations and five captures PASS.
+  [Operator/run guide](../guides/READING_FACTORY_EXPERIMENT.md). Real provider/data
+  configuration, qualified human approval and60 approved questions remain absent.
+
 ## FOUND-006 — Phase 02.75 product architecture refinement
 
 - Objective/scope: independent scheduled factory, shared reusable bank and strict personalized assembly; reconcile affected docs without implementation.
@@ -1115,6 +2065,14 @@ Reconciliation acceptance (HI-05): render only server-authorized section deficit
 
 ## TEST-001 — Integrated pilot release evidence
 
+Current reconciliation2026-11-02: the local synthetic integrated implementation
+exists; the historical blanket integrated-implementation blocker below is stale.
+RECOVERY-001/003/004/006 add fresh current-tree/service/browser/portable evidence.
+Full pilot acceptance remains incomplete for scoped human content/accessibility,
+agreed load/operational/identity/privacy inputs and full required scenario evidence.
+No task-wide COMPLETED state, real-pilot authorization or independent full review
+is inferred from these bounded passes.
+
 - Objective/scope: verify critical invariants across modules and regressions; do not substitute for per-task tests.
 - Prerequisites: WEB-001/002, EXAM-002, SCORE-001; operational checks coordinate OPS-001. Files: tests/e2e/**, tests/security/**, tests/load/**, docs/quality/release evidence (future task-owned file).
 - Deliverables: reproducible integration matrix and defects with severity. Acceptance: all critical invariants covered and passing on target versions; unresolved launch blockers explicit; independent review recorded.
@@ -1229,6 +2187,18 @@ Reconciliation acceptance (MD-04/05/LO-02): review replay retention floors toget
 - Priority P2; complexity L; risks: content volume, unsupported official assumptions. Status: DRAFT. Suggested implementer: domain/full-stack engineer; review: SME plus independent contract reviewer. Actual assignee: none.
 
 ## AI-001 — Provider-neutral draft generation
+
+Current fixture prerequisite2026-11-02: RECOVERY-008 assigns a provider-free
+generic fake adapter over accepted G1 schemas to navigation, root accountable,
+with separate read-only review. This does not assign/complete the full durable
+jobs/provenance/real-adapter scope. See current card for files/acceptance/results.
+
+Current reconciliation2026-11-02: G1/shared contracts are accepted and are not
+outstanding blockers. INT-003 supplies bounded offline/manual Reading tooling,
+not this card's full durable jobs/two authorized adapters/provenance acceptance.
+The historical G1 blocker below is superseded; full AI-001 remains incomplete and
+unassigned. Live inference still needs its actual provider/data/budget authority;
+paid LLM API calls remain prohibited. Start only a separately scoped next batch.
 
 Phase 02.75 acceptance: standalone entry point runs with fixture contracts/fake provider without web/OIDC/bank deployment; exports versioned draft packages with reproducible source/model/prompt evidence. FACTORY-001 owns production schedule/batch tables; BANK-001 owns canonical import receipts. No duplicate generation_jobs queue.
 
@@ -1405,6 +2375,12 @@ Implementation reservations released; coordinator retains shared-record integrat
 
 ## FACTORY-002 — Frozen batch planner and cost-cap persistence
 
+Current reconciliation2026-11-02: G1 is accepted, so the historical G1 blocker
+below no longer applies. The remaining prerequisites are accepted AI-001 fixture
+interfaces and a specifically assigned bounded planning/config scope. INT-003
+Reading tools do not establish the 500-candidate/capacity/budget-reservation
+planner acceptance. Full card remains PROPOSED/unassigned.
+
 - Objective: implement the bounded, provider-free planning half of FACTORY-001 as a separate Track A unit.
 - Prerequisites: G1, AI-001 fixture contract, owner-approved synthetic/rights-cleared config; live schedule/budget remains separately authorized.
 - Input specifications: QUESTION_FACTORY_SPEC planning/config/lifecycle sections, AI pipeline contract, FOUND-002 generated fixtures, ADR-005/008.
@@ -1414,6 +2390,11 @@ Implementation reservations released; coordinator retains shared-record integrat
 - Required verification: fixture tests for overlapping quotas, bundle limits, zero deficit, missing rights, capacity/budget cap and duplicate schedule/manual identity. Suggested agent capability: MEDIUM (Terra). Risk: High — cost and privacy. Status: PROPOSED, blocked on G1 and assigned fixture scope.
 
 ## FACTORY-003 — Resumable executor, restricted export and recovery
+
+Current reconciliation2026-11-02: G1 is accepted; the historical G1 blocker below
+is superseded. FACTORY-002 and AI-001 adapter/recovery acceptance, actual scope
+assignment, and any live-dispatch authorizations remain. No production scheduler
+or full checkpoint recovery is inferred from the offline Reading experiment.
 
 - Objective: implement the provider-dispatch/recovery half of FACTORY-001 against the frozen planner and canonical package contract.
 - Prerequisites: FACTORY-002 accepted, AI-001 adapters accepted, G1; live dispatch additionally requires ADR-FACTORY and ADR-OPS approval plus budget/provider/review authorization.
@@ -2035,6 +3016,12 @@ available with Sol fallback, separate Sol6.1/Medium independent engineering revi
 - Required verification: two-connection barriers rather than sleeps; controlled clock; HTTP/bundle scans; independently reviewed test cases and observed command/runtime results. Suggested agent capability: HIGH (Sol). Risk: High — false confidence in critical controls. Status: IN_PROGRESS for bounded seeded lifecycle groundwork; full critical harness/integrated acceptance remains outstanding. G3 is OWNER_ACCEPTED; it is no longer a missing owner gate. Actual accountable implementer: Codex Sol6.1; separate read-only Sol6.1/Medium engineering review. Current writer reservations released.
 
 ## INT-002 — Factory package import boundary proof
+
+Current reconciliation2026-11-02: owner G2/G3 dispositions are accepted in their
+recorded scopes; historical missing-G2 references below do not revoke them.
+Canonical import and the synthetic INT-003 flow have executed evidence, while
+this full proof still needs its remaining Factory prerequisites and actual
+qualified human publication subset. No real-content acceptance is inferred.
 
 - Objective: verify the narrow bridge independently of full exam UI: factory package receipt semantics, all-or-none import and draft-only publication boundary.
 - Prerequisites: FACTORY-003, BANK-001 ingestion evidence, BANK-002 acceptance, G2 controlled publication readiness, and a human reviewer for the publication subset. This proof supplies the controlled-import evidence required before G3 can pass; INT-001 starts only after G3.

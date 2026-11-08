@@ -2,6 +2,8 @@
 
 For a concise presentation sequence, use the [one-page run of show](TRACK_B_SUPERVISOR_RUN_OF_SHOW.md). This guide contains setup and optional engineering/staff details.
 
+For taxonomy selection and the modern exam controls, see the [topic practice guide](TRACK_B_TOPIC_PRACTICE.md).
+
 Current engineering acceptance and remaining human inputs: [dated acceptance map](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
 
 This guide demonstrates an unofficial TSA practice website using real local
@@ -13,7 +15,7 @@ readiness. No paid service or model runs during practice.
 ## Prepare and start
 
 Use Linux as an ordinary user with Node **24.18.0**, npm **11.16.0**, and installed
-PostgreSQL **18.6** binaries (`initdb`, `postgres`, `pg_ctl`, `psql`). The disposable
+PostgreSQL **18.6** binaries (`initdb`, `postgres`, `pg_ctl`, `psql`, `pg_dump`, `pg_dumpall`, `pg_restore`). The disposable
 fixture verifies this PostgreSQL version. `PG_BIN` may select the binary directory,
 for example `/usr/lib/postgresql/18/bin`. PostgreSQL must be able to create private
 Unix sockets and child processes. No system database or TCP database listener is
@@ -33,6 +35,13 @@ installation all application assets, fonts and math rendering are served locally
 No browser extension, API key, personal account or external authentication is
 required. Chromium or Firefox is sufficient for the interactive demonstration.
 Automated checks additionally need installed Chromium and Firefox/geckodriver.
+
+The student Chromium harness accepts `STUDENT_BROWSER=/absolute/path/to/chrome`.
+On hosts where Chromium cannot use its sandbox, an isolated synthetic test can
+explicitly set `STUDENT_BROWSER_NO_SANDBOX=true`; the default keeps the sandbox.
+For example, run `STUDENT_BROWSER=/absolute/path/to/chrome
+STUDENT_BROWSER_NO_SANDBOX=true npm run test:student:domains` on one shell line.
+Only use that opt-in for the disposable local synthetic fixture.
 
 Open the exact printed `http://127.0.0.1:<port>/?student=postgres` URL. The port is
 chosen automatically. Keep the terminal running. The URL query selects the

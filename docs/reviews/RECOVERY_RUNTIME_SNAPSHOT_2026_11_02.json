@@ -1,0 +1,139 @@
+{
+  "date": "2026-11-02",
+  "base": "a70861a",
+  "scope": "Modified and untracked engineering files only; excludes private data, ignored files and documentation. Not a full checkout or approval record.",
+  "files": [
+    {
+      "path": "apps/practice-prototype/public/app/main.js",
+      "sha256": "82741a0d1ed620e1c0a963666ec3d3818604cb8d3be76c5a4f9073787223ad97"
+    },
+    {
+      "path": "db/migrations/026_reading_experiment_profile.sql",
+      "sha256": "805801955607ff40544384dce3062386a1e282dd4285f60c2a8577574629ff4e"
+    },
+    {
+      "path": "package.json",
+      "sha256": "d75fc23705279d5b9f580b9aa574a50863ff0ae97786ea198bbbbc8d23c1a86e"
+    },
+    {
+      "path": "scripts/start-reading-factory-demo.mjs",
+      "sha256": "8c9bdbd3c78044fb91e032824aba65673f66cc7c3c4fae00a2765c38fff7ad6b"
+    },
+    {
+      "path": "scripts/verify-reading-factory-browser.mjs",
+      "sha256": "663541a4829d99f3884850d984c1f34cfe60f22862de7c879eb3de78bf941bab"
+    },
+    {
+      "path": "scripts/verify-student-browser.mjs",
+      "sha256": "715769f00a4c69f513fcb2639525eb696488fe943b106f23c6c1504375fb2a1d"
+    },
+    {
+      "path": "src/http/attempts.mjs",
+      "sha256": "5d032164d7623536c3c5d99fd7ead434c958caa0ac39b08965e5c3db50c2c4e0"
+    },
+    {
+      "path": "src/local/student.mjs",
+      "sha256": "b87a876dc0cb47726c04f53a959358b924b74a5f7ea2f7a682892795e533a00d"
+    },
+    {
+      "path": "src/modules/assembly/allocation.mjs",
+      "sha256": "f0b536211e6ee6f541ed0fa673384dd145efc85ec0cad0478e3a7e6412fc26a8"
+    },
+    {
+      "path": "src/modules/assembly/practice-profiles.mjs",
+      "sha256": "c6f314ad167f5b4c8efdbb3238b7236429f731fdc4feccaf8d317d9e741aed63"
+    },
+    {
+      "path": "src/modules/attempts/directory.mjs",
+      "sha256": "51315b57a2f656811ecc26543791a13346cc53891d81a5c372ac60ce70a605cb"
+    },
+    {
+      "path": "src/modules/attempts/service.mjs",
+      "sha256": "ff18fe04e75d4ace7916f5dd7e43541ea2895a96fc85278404f535d969f4fee9"
+    },
+    {
+      "path": "tests/ai/fixtures/reading-captures/multiple.txt",
+      "sha256": "244787b914473fe41f109a02d652e19aea9408d5844d81f61700bf0c07aa7dc8"
+    },
+    {
+      "path": "tests/ai/fixtures/reading-captures/single.txt",
+      "sha256": "ea823c9fe5356bad5b772972877170930a6a0b8529b2f0349bd635092c5383ee"
+    },
+    {
+      "path": "tests/ai/fixtures/reading-captures/truth-ambiguous.txt",
+      "sha256": "28f5a43b9cceed2a09429411b12ce1dcfa91d3bb2fa60b4139b5d5c35c630e09"
+    },
+    {
+      "path": "tests/ai/manual-reading.test.mjs",
+      "sha256": "19fb52d035ded4fc3869e46f31a8aa99cd64fb13f706deb41e885bccedb3606a"
+    },
+    {
+      "path": "tests/ai/provider-command-fixture.mjs",
+      "sha256": "8f466d279f83c23540de5f128c2b06c2951bca2294d9cf328bc5ca64bff78657"
+    },
+    {
+      "path": "tests/ai/reading-factory.test.mjs",
+      "sha256": "2172bffdd28fcb82f4496639efae603281038084bd4aa07821fcdd25b3743d66"
+    },
+    {
+      "path": "tests/ai/reading-research.test.mjs",
+      "sha256": "cd2619ec5e73ae6bf59d10712354b45de489d14dde7532433cd38629e3b27c17"
+    },
+    {
+      "path": "tests/integration/assembly/reading-experiment.test.mjs",
+      "sha256": "4f7676933f84f793631d538c7a949575ba8c751127a00a167103f56266d89d96"
+    },
+    {
+      "path": "tests/integration/bank/bank.test.mjs",
+      "sha256": "b12082948e1275c30aeefe041b7864378ee146129380a28b13f310087cde83b7"
+    },
+    {
+      "path": "tests/integration/bank/equivalence-history.test.mjs",
+      "sha256": "2541012929f01122bee65c43a7d5fdd7dd08179d9371ace5e8d1a077980393e2"
+    },
+    {
+      "path": "tests/integration/bank/publication-boundary.test.mjs",
+      "sha256": "e784d3f68a504e018d6d34a1d344e7cbf9ae38738ba1c4f3953aee4ddef65dca"
+    },
+    {
+      "path": "tests/integration/factory-bank-exam/fixture.mjs",
+      "sha256": "96f4fa00a0fbb1faad3a7aaaa8eb001dcfc702dd1b215076dea5e0f3d08de984"
+    },
+    {
+      "path": "tests/integration/factory-bank-exam/reading-factory-exam.test.mjs",
+      "sha256": "9aefa529ef05f71b9c409a632ceec72e58659dedeb1f3846073f7326692caf03"
+    },
+    {
+      "path": "tools/question-factory/cli.mjs",
+      "sha256": "23b0d4cd267b6691823da403c229e2c3469cc1cf30e0a31bf597b55010ea27b4"
+    },
+    {
+      "path": "tools/question-factory/manual.mjs",
+      "sha256": "62ae32d09af2c5a9fc50daa7fb411ab4f06e4109fca8c9312ed16992e21153f1"
+    },
+    {
+      "path": "tools/question-factory/providers.mjs",
+      "sha256": "1e014c1aa83469b82d4c4db3401e633d849509c352975bfb8719d5cfaa866036"
+    },
+    {
+      "path": "tools/question-factory/reading.mjs",
+      "sha256": "4c7bead9027105cfcdfff4aa3b592d47e178a0a0f4113b790ebdaa9d8178603f"
+    },
+    {
+      "path": "tools/reading-research/cli.mjs",
+      "sha256": "98e9e08e50d308f8526a115aef1afe9df6d137c38b921f01092d8afcc189125b"
+    },
+    {
+      "path": "tools/reading-research/parser.mjs",
+      "sha256": "199f612ae3c880f535e13762f240168e46e38fc2c3061f76c1b8a398dc08f3c7"
+    },
+    {
+      "path": "tools/reading-research/report.mjs",
+      "sha256": "14a1545062553a02f89b69790a12d1db52bccf1adac15bc031b7665a2c8fbc56"
+    },
+    {
+      "path": "tools/reading-research/synthetic-manifest.json",
+      "sha256": "8c3e394673a81ebe1c6dd9504d16ce040876fadfdc82eabe5840ea2b74f89ca2"
+    }
+  ]
+}

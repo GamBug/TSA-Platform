@@ -24,6 +24,13 @@ The Factory submits work only from its frozen inventory plan and may pause or co
 
 ## Provider-neutral contract
 
+Current local implementation2026-11-02: RECOVERY-008 adds a generic deterministic
+fake adapter over these unchanged G1 request/result/error contracts. See
+[usage and limits](../guides/FAKE_GENERATION_ADAPTER.md) and
+[executed evidence](../reviews/RECOVERY_GENERATION_FIXTURE_2026_11_02.md).
+It makes no provider call, durable run/reservation, import or publication, and
+does not complete AI-001 or real-model comparative evaluation.
+
 ```typescript
 type GenerationRequest = {
   specificationVersion:"generation/1"; requestId:string;
