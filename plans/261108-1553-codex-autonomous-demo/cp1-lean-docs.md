@@ -7,7 +7,15 @@ Goal: an agent can start with less than 20 KB of navigation. History is preserve
 `docs/agents/PROJECT_STATE.md`, `docs/agents/LAST_HANDOFF.md`, `docs/tasks/TASK_BACKLOG.md`,
 `docs/agents/AGENT_ONBOARDING.md`, `docs/agents/ORCHESTRATION_PROTOCOL.md` (§1 read-list only),
 new files under `docs/archive/`, and links that break as a result.
-Not allowed: `AGENTS.md` content rules, specifications, decisions, research, code.
+Not allowed: `AGENTS.md` content rules, specifications, decisions, research, application code.
+
+Owner resumption on 2026-11-08: “complete CP1,” following the reported validator
+blocker, authorizes necessary repairs to the embedded checker and its owning prose in
+`docs/quality/TEST_STRATEGY.md` and regressions in `tests/quality/docs-check.test.mjs`.
+Keep archive and research bytes unchanged. Validate archived links in their original
+source context and resolve task IDs from both backlog versions. Admit only the exact
+existing config/evidence artifacts; preserve inherited research whitespace and temporary
+evidence references through explicit hash-pinned warnings, not general exemptions.
 
 ## Steps
 1. Move the current full PROJECT_STATE, LAST_HANDOFF and TASK_BACKLOG verbatim to
@@ -27,4 +35,5 @@ Not allowed: `AGENTS.md` content rules, specifications, decisions, research, cod
 - `wc -c` of AGENTS.md + PROJECT_STATE + LAST_HANDOFF + the backlog is under 20 KB in total.
 - `npm run docs:check && npm run test:docs` pass.
 - No content deleted from Git history; the archive files are byte-identical to the pre-move
-  versions (compare with `git show HEAD:<path> | sha256sum`).
+  versions (compare with `git show HEAD:<path> | sha256sum` before committing;
+  the preserved pre-move reference for this run is `dd30bc9`).

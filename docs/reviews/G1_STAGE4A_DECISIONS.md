@@ -42,7 +42,7 @@ they are not silently added as G1 exit criteria.
 
 Question: accept the currently documented and tested taxonomy and close the
 bounded FOUND-007 reconciliation, without approving ADR-004/007 as a whole?
-Sources: [FOUND-007](../tasks/TASK_BACKLOG.md#found-007--resolve-attempt-shortage-and-error-response-contract-consistency),
+Sources: [FOUND-007](../archive/2026-11-08/TASK_BACKLOG.md#found-007--resolve-attempt-shortage-and-error-response-contract-consistency),
 [API contracts](../architecture/API_CONTRACTS.md), existing error-response tests.
 
 - **A, recommended:** retain HTTP 422 `INSUFFICIENT_ELIGIBLE_INVENTORY` and

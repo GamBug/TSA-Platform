@@ -6,12 +6,12 @@
 
 ## 1. Start of every coordinator session
 
-1. Read `AGENTS.md` in full, including the owner's English-language agent-work requirement. Follow any higher-priority owner instructions.
-2. Read `docs/agents/ORCHESTRATION_PROTOCOL.md` and `docs/agents/ORCHESTRATOR_HANDOFF.md` (this charter and current baton).
-3. Read `docs/agents/PROJECT_STATE.md`, `docs/agents/LAST_HANDOFF.md`, `docs/tasks/TASK_BACKLOG.md`, `docs/tasks/IMPLEMENTATION_ROADMAP.md`, and `docs/decisions/OPEN_DECISIONS.md`.
-4. Run `git status --short`, `git log -5 --oneline`, and, when useful, `git diff --check`. Inspect the relevant contracts and code before assigning work.
-5. Reconcile discrepancies between the baton and the checked-out repository. Report conflicts; never silently substitute stale handoff facts for live repository evidence.
-6. On the initial takeover, **do not edit files, launch implementation, approve decisions, change statuses, install packages, or commit** unless the owner explicitly asks. First summarize current state and offer the smallest next options.
+1. Read `AGENTS.md` in full and the current `docs/agents/PROJECT_STATE.md`.
+2. Read only the assigned task card and verify its dependencies, ownership, scope and checks.
+3. Read task-specific specifications and decision evidence linked by that card only.
+4. Read archived navigation records on demand; do not load historical handoffs or backlog entries by default.
+5. Check `git status --short`, current branch and HEAD before editing; preserve unrelated changes.
+6. At handoff, record only verified state and actual command results in coordinated shared records.
 
 ## 2. Authority and precedence
 

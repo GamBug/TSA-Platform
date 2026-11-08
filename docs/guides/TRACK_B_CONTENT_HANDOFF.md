@@ -4,7 +4,7 @@
 attestation, a request to approve routine engineering, or evidence that content
 has been accepted. The synthetic demonstration remains usable while these inputs
 are missing. [Supervisor guide](TRACK_B_SUPERVISOR_DEMO.md),
-[DATA-002](../tasks/TASK_BACKLOG.md#data-002--lawful-starter-dataset),
+[DATA-002](../archive/2026-11-08/TASK_BACKLOG.md#data-002--lawful-starter-dataset),
 [canonical preflight scope](../decisions/WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md).
 
 ## Inputs still requiring real people/evidence

@@ -16,7 +16,7 @@ IN_PROGRESS until explicit owner disposition. No downstream implementation began
 
 ## Scope and exact existing criteria
 
-Sources: current [FOUND-002 card](../tasks/TASK_BACKLOG.md#found-002--application-and-contract-foundation),
+Sources: current [FOUND-002 card](../archive/2026-11-08/TASK_BACKLOG.md#found-002--application-and-contract-foundation),
 [G1 gate](../tasks/IMPLEMENTATION_ROADMAP.md#shared-planning-prerequisites-and-gates),
 scoped [D1–D6 approval](../decisions/OPEN_DECISIONS.md#d1d6-scoped-contract-approval--stage-4b--2026-10-19),
 and relevant question, Factory, assembly, reuse and API specifications. Proposed

@@ -13,13 +13,16 @@ const strategy = readFileSync(path.join(root, 'docs/quality/TEST_STRATEGY.md'), 
 const blocks = [...strategy.matchAll(/^```javascript\n([\s\S]*?)^```$/gm)];
 assert.equal(blocks.length, 1, 'the npm/sed entrypoint must select exactly one checker');
 const checker = blocks[0][1];
-const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
 const authored = ['agents', 'architecture', 'decisions', 'guides', 'quality', 'reviews', 'specifications', 'tasks'].map((name) => `docs/${name}`);
+const archiveFiles = ['docs/archive/2026-11-08/PROJECT_STATE.md','docs/archive/2026-11-08/LAST_HANDOFF.md','docs/archive/2026-11-08/TASK_BACKLOG.md'];
+const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
+const baselineUntracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z', '--', ...authored, ...archiveFiles], { cwd: root, encoding: 'utf8' })
+  .split('\0').filter((filename) => filename.endsWith('.md') && (authored.some((directory) => filename.startsWith(`${directory}/`)) || archiveFiles.includes(filename)));
 const probe = 'docs/guides/__docs_checker_probe__.md';
 
 /** Execute the actual embedded checker with read-only virtual mutations. No
  * probe file is written to the workspace, private folders or pinned inputs. */
-function run({ entries = {}, untracked = [], gitFails = false, trackedExtra = [] } = {}) {
+function run({ entries = {}, untracked = [], gitFails = false, trackedExtra = [], missing = [] } = {}) {
   const virtual = new Map(), reads = [], walks = [], gitCalls = [];
   for (const [filename, value] of Object.entries(entries)) {
     const absolute = path.resolve(root, filename);
@@ -29,11 +32,12 @@ function run({ entries = {}, untracked = [], gitFails = false, trackedExtra = []
     }
   }
   const absolute = (name) => path.resolve(root, name);
+  const missingPaths = new Set(missing.map(absolute));
   const dirent = (name, kind) => ({ name, isDirectory: () => kind === 'directory',
     isFile: () => kind === 'file', isSymbolicLink: () => kind === 'symlink' });
   const fakeFs = {
     ...realFs,
-    existsSync(filename) { return virtual.has(absolute(filename)) || existsSync(absolute(filename)); },
+    existsSync(filename) { const resolved = absolute(filename); return virtual.has(resolved) || (!missingPaths.has(resolved) && existsSync(resolved)); },
     lstatSync(filename) {
       const entry = virtual.get(absolute(filename));
       return entry ? dirent(path.basename(filename), entry.type) : lstatSync(absolute(filename));
@@ -68,7 +72,7 @@ function run({ entries = {}, untracked = [], gitFails = false, trackedExtra = []
       if (name === 'child_process') return { execFileSync(command, args) {
         assert.equal(command, 'git'); gitCalls.push([...args]);
         if (gitFails) throw new Error('Synthetic unavailable Git');
-        return `${(args.includes('--others') ? untracked : [...tracked, ...trackedExtra]).join('\0')}\0`;
+        return `${(args.includes('--others') ? [...baselineUntracked,...untracked] : [...tracked, ...trackedExtra]).join('\0')}\0`;
       } };
       throw new Error('Unexpected checker dependency');
     },
@@ -86,10 +90,34 @@ test('Git discovery adds authored untracked Markdown and keeps tracked-artifact 
   assert.equal(result.output.links, baseline.output.links + 1);
   assert.equal(result.reads.filter((filename) => filename === probe).length, 1, 'deduplicated discovery');
   assert.equal(result.output.anchors, 'NOT_CHECKED');
-  assert.deepEqual(result.gitCalls[1], ['ls-files', '--others', '--exclude-standard', '-z', '--', ...authored]);
+  assert.deepEqual(result.gitCalls[1], ['ls-files', '--others', '--exclude-standard', '-z', '--', ...authored, ...archiveFiles]);
   const artifact = run({ entries: { 'unapproved.bin': 'synthetic' }, trackedExtra: ['unapproved.bin'] });
   assert.equal(artifact.exitCode, 1);
   assert.ok(artifact.output.errors.some((error) => error.includes('Unsupported tracked artifacts')));
+});
+
+test('archived document links resolve from their original locations and broken history links fail', () => {
+  const archive = 'docs/archive/2026-11-08/PROJECT_STATE.md';
+  const valid = run({ entries: { [archive]: '[Decision](../decisions/OPEN_DECISIONS.md)\n' } });
+  assert.equal(valid.exitCode, 0);
+  const broken = run({ entries: { [archive]: '[Missing](./__absent_archive_target__.md)\n' } });
+  assert.equal(broken.exitCode, 1);
+  assert.ok(broken.output.errors.includes(`Broken link: ${archive} -> ./__absent_archive_target__.md`));
+});
+
+test('active and archived task registries resolve historical IDs and reject unknown or duplicate IDs', () => {
+  const active = 'docs/tasks/TASK_BACKLOG.md', archive = 'docs/archive/2026-11-08/TASK_BACKLOG.md';
+  const registered = run({ entries: {
+    [archive]: `${readFileSync(path.join(root, archive), 'utf8')}\n## AI-998 Historical fixture\n`,
+    [probe]: 'AI-998\n',
+  }, untracked: [probe] });
+  assert.equal(registered.exitCode, 0);
+  const unknown = run({ entries: { [probe]: 'AI-999\n' }, untracked: [probe] });
+  assert.equal(unknown.exitCode, 1);
+  assert.ok(unknown.output.errors.some((error) => error.startsWith(`Unknown task: AI-999 in ${probe}`)));
+  const duplicate = run({ entries: { [active]: `${readFileSync(path.join(root, active), 'utf8')}\n## AI-001 Duplicate fixture\n` } });
+  assert.equal(duplicate.exitCode, 1);
+  assert.ok(duplicate.output.errors.includes('Duplicate task ID across active and archived registries'));
 });
 
 test('original synthetic text fixtures are supported when tracked without admitting other text artifacts', () => {
@@ -128,13 +156,14 @@ test('new authored document mutations fail links, fences, whitespace and task-re
 });
 
 test('Git scope excludes private, generated and unassigned research inputs', () => {
+  const baseline = run();
   const skipped = ['data/private.md', 'docs/research/__unassigned_probe__.md',
     'docs/guides/tmp/private.md', 'docs/reviews/node_modules/dependency.md', 'docs/guides/private.json'];
   const entries = Object.fromEntries(skipped.map((name) => [name, '[Broken](./absent)\n']));
   const result = run({ entries, untracked: skipped });
   assert.equal(result.exitCode, 0);
   assert.ok(skipped.every((filename) => !result.reads.includes(filename)));
-  assert.equal(result.output.untrackedMarkdown, 0);
+  assert.equal(result.output.untrackedMarkdown, baseline.output.untrackedMarkdown);
 });
 
 test('Git-unavailable fallback remains bounded, checks authored mutations and reports reduced coverage', () => {
@@ -152,6 +181,19 @@ test('Git-unavailable fallback remains bounded, checks authored mutations and re
   assert.equal(result.reads.includes('docs/research/__unassigned_probe__.md'), false);
   assert.equal(result.reads.includes('docs/guides/tmp/ignored.md'), false);
   assert.ok(result.walks.every((dirname) => authored.some((allowed) => dirname === allowed || dirname.startsWith(`${allowed}/`))));
+});
+
+test('Git-unavailable fallback retains archive registry and original-base link checks', () => {
+  const result = run({ gitFails: true, entries: {
+    'docs/archive/2026-11-08/TASK_BACKLOG.md': `${readFileSync(path.join(root, 'docs/archive/2026-11-08/TASK_BACKLOG.md'), 'utf8')}\n## AI-998 Historical fixture\n`,
+    'docs/archive/2026-11-08/LAST_HANDOFF.md': '[Missing](./__fallback_missing__.md)\n',
+    [probe]: 'AI-998\n',
+  } });
+  assert.equal(result.exitCode, 1);
+  assert.ok(result.reads.includes('docs/archive/2026-11-08/TASK_BACKLOG.md'));
+  assert.ok(result.reads.includes('docs/archive/2026-11-08/LAST_HANDOFF.md'));
+  assert.ok(result.output.errors.includes('Broken link: docs/archive/2026-11-08/LAST_HANDOFF.md -> ./__fallback_missing__.md'));
+  assert.equal(result.output.errors.some((error) => error.startsWith('Unknown task: AI-998')), false);
 });
 
 test('discovery refuses symlink files and ancestors without reading their targets', () => {
@@ -172,6 +214,29 @@ test('discovery refuses symlink files and ancestors without reading their target
   }
 });
 
+test('archive symlink ancestors are rejected without reading archive targets', () => {
+  const archives = ['docs/archive/2026-11-08/PROJECT_STATE.md','docs/archive/2026-11-08/LAST_HANDOFF.md','docs/archive/2026-11-08/TASK_BACKLOG.md'];
+  for (const gitFails of [false, true]) {
+    const result = run({ gitFails, entries: { 'docs/archive': { type: 'symlink' } } });
+    assert.equal(result.exitCode, 1);
+    assert.ok(archives.every((filename) => !result.reads.includes(filename)));
+    assert.ok(result.output.errors.some((error) => /unsafe/i.test(error)));
+  }
+});
+
+test('only the exact demo agent config and capture PNG names are approved artifacts', () => {
+  const approved = ['.codex/agents/tsa_light_builder.toml', ...[
+    'image-enlarged-mobile','image-exam-desktop','image-exam-mobile','image-firefox-released-review',
+    'topic-catalog-desktop','topic-catalog-firefox-narrow','topic-exam-desktop','topic-exam-mobile',
+  ].map((name) => `plans/reports/track-b-modernization-evidence/${name}.png`)];
+  assert.equal(run({ trackedExtra: approved }).exitCode, 0);
+  for (const filename of ['.codex/agents/unapproved.toml','plans/reports/track-b-modernization-evidence/neighbor.png']) {
+    const denied = run({ entries: { [filename]: 'Synthetic unsupported artifact\n' }, trackedExtra: [filename] });
+    assert.equal(denied.exitCode, 1);
+    assert.ok(denied.output.errors.some((error) => error.startsWith('Unsupported tracked artifacts:') && error.includes(filename)));
+  }
+});
+
 test('pinned research/review changes still fail verification', () => {
   for (const [filename, expected] of [
     ['docs/research/TSA_DEEP_RESEARCH.md', 'Research changed'],
@@ -181,4 +246,21 @@ test('pinned research/review changes still fail verification', () => {
     assert.equal(result.exitCode, 1);
     assert.ok(result.output.errors.includes(expected));
   }
+});
+
+test('inherited whitespace is allowed only for the exact pinned Vietnamese research bytes', () => {
+  const baseline = run();
+  assert.equal(baseline.exitCode, 0);
+  assert.ok(baseline.output.warnings.includes('Preserved input whitespace: docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md'));
+  assert.equal(baseline.output.warnings.filter((warning) => warning.startsWith('Preserved pinned evidence link: docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md')).length, 4);
+  const mutated = run({ entries: { 'docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md': 'Changed research bytes\ntrailing space \n' } });
+  assert.equal(mutated.exitCode, 1);
+  assert.ok(mutated.output.errors.includes('Trailing whitespace: docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md'));
+  const missingEvidence = '/tmp/tsa-vn-exams-research-20261020/public-tests-headless.png';
+  const changedLink = run({ entries: { 'docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md': `[Evidence](${missingEvidence})\n` }, missing: [missingEvidence] });
+  assert.equal(changedLink.exitCode, 1);
+  assert.ok(changedLink.output.errors.some((error) => error.includes('Broken link: docs/research/VN_EXAMS_UI_GAP_ANALYSIS.md')));
+  const ordinary = run({ entries: { [probe]: `[Evidence](${missingEvidence})\n` }, untracked: [probe], missing: [missingEvidence] });
+  assert.equal(ordinary.exitCode, 1);
+  assert.ok(ordinary.output.errors.some((error) => error.includes(`Broken link: ${probe}`)));
 });
