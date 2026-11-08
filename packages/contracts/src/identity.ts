@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { BlockSchema, QuestionVersionSchema, type QuestionVersion } from "./index.ts";
+import { BlockSchema } from "./index.ts";
+import { SupportedQuestionVersionSchema, type SupportedQuestionVersion as QuestionVersion } from "./question-v2.ts";
 
 export type ReferenceKind = "taxonomy" | "question" | "stimulus" | "asset" | "provenance" | "evidence" | "source";
 export type ReferenceKey = { kind: ReferenceKind; id: string };
@@ -233,7 +234,7 @@ function questionRoots(question: QuestionVersion): ReferenceKey[] {
 }
 
 function parseQuestion(input: unknown): QuestionVersion {
-  return QuestionVersionSchema.parse(copyJson(input));
+  return SupportedQuestionVersionSchema.parse(copyJson(input));
 }
 
 function validateGraph(questionInput: unknown, suppliedNodes: unknown): ValidatedGraph {
@@ -351,7 +352,7 @@ export function computeQuestionIdentity(questionInput: unknown, referenceInput: 
   const validated = validateGraph(questionInput, referenceInput);
   const references = validated.closure.map(({ kind, id, contentHash }) => ({ kind, id, contentHash }));
   const bytes = canonicalize({
-    canonicalizationVersion: "identity/1",
+    canonicalizationVersion: validated.question.schemaVersion === "question/2" ? "identity/2" : "identity/1",
     question: questionProjection(validated.question),
     references,
   });
@@ -394,6 +395,7 @@ function fingerprintInteraction(interaction: QuestionVersion["interaction"], nod
       statements: interaction.statements.map(({ id: _id, content }) => ({ content: fingerprintBlocks(content, nodes) })),
     };
   }
+  if (interaction.type === "NUMERIC_RESPONSE") return { type: interaction.type, format: interaction.format, label: normalizeHumanStrings(interaction.label) };
   const options = interaction.options.map(({ id: _id, content }) => ({ content: fingerprintBlocks(content, nodes) }));
   if (interaction.type === "SINGLE_CHOICE") return { type: interaction.type, options };
   return {
@@ -419,7 +421,7 @@ export function computeDuplicateFingerprint(questionInput: unknown, referenceInp
   const interaction = fingerprintInteraction(validated.question.interaction, validated.nodes);
   const normalizedStimulus = stimulus === null ? null : normalizeHumanStrings(stimulus);
   const bytes = canonicalize({
-    fingerprintVersion: "fingerprint/1",
+    fingerprintVersion: validated.question.schemaVersion === "question/2" ? "fingerprint/2" : "fingerprint/1",
     content: normalizeHumanStrings(content),
     interaction: normalizeHumanStrings(interaction),
     stimulus: normalizedStimulus,

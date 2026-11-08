@@ -16,6 +16,9 @@ import {
   TemporarilyUnavailableResponseSchema,
 } from "./routes.ts";
 
+import { AttemptViewV2Schema } from "./student-v2.ts";
+import { AuthorizedReleasedReviewV2Schema } from "./released-review-v2.ts";
+
 const AccessGuardSchema = z.object({
   attemptId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
   ownerId: z.string().min(1),
@@ -123,9 +126,10 @@ function projectBlock(value: unknown): unknown {
   throw new TypeError("Unknown content block");
 }
 
-function projectInteraction(value: unknown): unknown {
+function projectInteraction(value: unknown, numeric = false): unknown {
   const source = objectRecord(value);
   const type = readOwn(source, "type");
+  if (numeric && type === "NUMERIC_RESPONSE") return pick(value, ["type", "label", "format"]);
   if (type === "SINGLE_CHOICE") return { ...pick(value, ["type"]), options: projectOptions(readOwn(source, "options")) };
   if (type === "MULTIPLE_CHOICE") {
     return {
@@ -149,9 +153,10 @@ function projectOptions(value: unknown): unknown[] {
   return value.map((option) => ({ ...pick(option, ["id"]), content: projectBlocks(readOwn(objectRecord(option), "content")) }));
 }
 
-function projectResponse(value: unknown): unknown {
+function projectResponse(value: unknown, numeric = false): unknown {
   const source = objectRecord(value);
   const type = readOwn(source, "type");
+  if (numeric && type === "NUMERIC_RESPONSE") return pick(value, ["type", "value"]);
   if (type === "SINGLE_CHOICE") return pick(value, ["type", "optionId"]);
   if (type === "MULTIPLE_CHOICE") return pick(value, ["type", "optionIds"]);
   if (type === "TRUE_FALSE_GROUP") {
@@ -162,7 +167,7 @@ function projectResponse(value: unknown): unknown {
   throw new TypeError("Unknown response type");
 }
 
-function projectStudentSlot(value: unknown): unknown {
+function projectStudentSlot(value: unknown, numeric = false): unknown {
   const source = objectRecord(value);
   const stimulus = readOwn(source, "stimulus");
   return {
@@ -172,11 +177,11 @@ function projectStudentSlot(value: unknown): unknown {
       ...pick(stimulus, ["id"]),
       content: projectBlocks(readOwn(objectRecord(stimulus), "content")),
     },
-    interaction: projectInteraction(readOwn(source, "interaction")),
+    interaction: projectInteraction(readOwn(source, "interaction"), numeric),
   };
 }
 
-function projectAttemptView(value: unknown): unknown {
+function projectAttemptView(value: unknown, numeric = false): unknown {
   const source = objectRecord(value);
   const sections = readOwn(source, "sections");
   const slots = readOwn(source, "slots");
@@ -185,16 +190,16 @@ function projectAttemptView(value: unknown): unknown {
   return {
     ...pick(value, ["attemptId", "state", "formId", "domain", "formMode", "reuseMode", "reusePolicyVersion", "serverNow", "startBefore", "startedAt", "deadlineAt", "activeSectionId"]),
     sections: sections.map((section) => pick(section, ["sectionId", "section", "startsAt", "endsAt", "count"])),
-    slots: slots.map(projectStudentSlot),
+    slots: slots.map(slot => projectStudentSlot(slot, numeric)),
     answers: answers.map((answer) => ({
       ...pick(answer, ["slotId", "revision", "savedAt"]),
-      value: projectResponse(readOwn(objectRecord(answer), "value")),
+      value: projectResponse(readOwn(objectRecord(answer), "value"), numeric),
     })),
     closure: pick(readOwn(source, "closure"), ["attemptId", "state", "terminalReason", "cancellationReason", "closedAt", "gradingStatus"]),
   };
 }
 
-function validateDeliveredAnswerReferences(view: z.infer<typeof AttemptViewSchema>): void {
+function validateDeliveredAnswerReferences(view: z.infer<typeof AttemptViewSchema> | z.infer<typeof AttemptViewV2Schema>): void {
   const slots = new Map(view.slots.map((slot) => [slot.slotId, slot]));
   for (const answer of view.answers) {
     const slot = slots.get(answer.slotId);
@@ -213,6 +218,8 @@ function validateDeliveredAnswerReferences(view: z.infer<typeof AttemptViewSchem
       if (new Set(selectedIds).size !== selectedIds.length || selectedIds.some((id) => !optionIds.has(id))) {
         throw new TypeError("Answer refers to an undelivered option");
       }
+    } else if (interaction.type === "NUMERIC_RESPONSE") {
+      if (answer.value.type !== "NUMERIC_RESPONSE") throw new TypeError("Answer type does not match interaction");
     } else {
       if (answer.value.type !== "TRUE_FALSE_GROUP") throw new TypeError("Answer type does not match interaction");
       const statementIds = new Set(interaction.statements.map((statement) => statement.id));
@@ -224,9 +231,10 @@ function validateDeliveredAnswerReferences(view: z.infer<typeof AttemptViewSchem
   }
 }
 
-function projectAnswerKey(value: unknown): unknown {
+function projectAnswerKey(value: unknown, numeric = false): unknown {
   const source = objectRecord(value);
   const type = readOwn(source, "type");
+  if (numeric && type === "NUMERIC_RESPONSE") return pick(value, ["type", "value"]);
   if (type === "SINGLE_CHOICE") return pick(value, ["type", "optionId"]);
   if (type === "MULTIPLE_CHOICE") return pick(value, ["type", "optionIds"]);
   if (type === "TRUE_FALSE_GROUP") {
@@ -236,7 +244,7 @@ function projectAnswerKey(value: unknown): unknown {
   throw new TypeError("Unknown answer-key type");
 }
 
-function projectReleasedReview(value: unknown): unknown {
+function projectReleasedReview(value: unknown, numeric = false): unknown {
   const source = objectRecord(value);
   const sections = readOwn(source, "sections");
   const items = readOwn(source, "items");
@@ -249,9 +257,9 @@ function projectReleasedReview(value: unknown): unknown {
       const response = readOwn(itemSource, "response");
       return {
         ...pick(item, ["slotId", "earned"]),
-        response: response === null ? null : projectResponse(response),
-        question: projectStudentSlot(readOwn(itemSource, "question")),
-        correctAnswer: projectAnswerKey(readOwn(itemSource, "correctAnswer")),
+        response: response === null ? null : projectResponse(response, numeric),
+        question: projectStudentSlot(readOwn(itemSource, "question"), numeric),
+        correctAnswer: projectAnswerKey(readOwn(itemSource, "correctAnswer"), numeric),
         explanation: projectBlocks(readOwn(itemSource, "explanation")),
       };
     }),
@@ -283,11 +291,17 @@ async function readGuard(ports: HttpBoundaryPorts, attemptId: string, userId: st
 
 /** Framework-independent GET boundary for the existing attempt-view and released-result routes. */
 export function createHttpBoundaryHandler(ports: HttpBoundaryPorts): (request: Request) => Promise<Response> {
+  return createVersionedBoundary(ports, false);
+}
+export function createHttpBoundaryHandlerV2(ports: HttpBoundaryPorts): (request: Request) => Promise<Response> {
+  return createVersionedBoundary(ports, true);
+}
+function createVersionedBoundary(ports: HttpBoundaryPorts, numeric: boolean): (request: Request) => Promise<Response> {
   return async (request) => {
     try {
       if (request.method !== "GET") return notFound();
       const pathname = new URL(request.url).pathname;
-      const match = /^\/api\/v1\/attempts\/([^/]+)(\/result)?$/.exec(pathname);
+      const match = (numeric ? /^\/api\/v2\/attempts\/([^/]+)(\/result)?$/ : /^\/api\/v1\/attempts\/([^/]+)(\/result)?$/).exec(pathname);
       if (match === null) return notFound();
       const parsedParams = AttemptPathParamsSchema.safeParse({ id: match[1] });
       if (!parsedParams.success || new URL(request.url).search !== "") return invalidRequest();
@@ -309,11 +323,11 @@ export function createHttpBoundaryHandler(ports: HttpBoundaryPorts): (request: R
         : await ports.loadAttemptView({ attemptId, userId, access: loaderAccess });
       let projected: unknown;
       if (releasedResultRequest) {
-        const review = AuthorizedReleasedReviewSchema.parse(projectReleasedReview(loaded));
+        const review = (numeric ? AuthorizedReleasedReviewV2Schema : AuthorizedReleasedReviewSchema).parse(projectReleasedReview(loaded, numeric));
         if (review.attemptId !== attemptId) throw new TypeError("DTO attempt ID does not match the request");
         projected = review;
       } else {
-        const view = AttemptViewSchema.parse(projectAttemptView(loaded));
+        const view = (numeric ? AttemptViewV2Schema : AttemptViewSchema).parse(projectAttemptView(loaded, numeric));
         if (view.attemptId !== attemptId) throw new TypeError("DTO attempt ID does not match the request");
         if (view.state !== before.state) throw new TypeError("DTO state does not match server access state");
         validateDeliveredAnswerReferences(view);

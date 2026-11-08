@@ -8,6 +8,7 @@ import {
   SectionSchema,
   type BlueprintConfig,
 } from "./index.ts";
+import { BlueprintConfigV2Schema, InteractionTypeV2Schema } from "./blueprint-v2.ts";
 import { canonicalize } from "./identity.ts";
 import { shuffleAssemblyUnitsV1 } from "./assembly-random.ts";
 
@@ -85,6 +86,18 @@ const FixedManifestSchema = z.object({
   reuseMode: z.literal("FIXED_AS_PUBLISHED"),
 }).strict();
 
+const MemberV2Schema = MemberSchema.extend({ interactionType: InteractionTypeV2Schema });
+const UnitV2Schema = UnitSchema.extend({ members: z.array(MemberV2Schema).min(1).max(MAX_MEMBERS_PER_UNIT) });
+const ManifestV2Schema = ManifestSchema.extend({
+  schemaVersion: z.literal("assembly-manifest/2"), blueprint: BlueprintConfigV2Schema,
+  units: z.array(UnitV2Schema).max(MAX_RAW_UNITS),
+});
+export type AssemblyManifestV2 = z.infer<typeof ManifestV2Schema>;
+export type ParsedAssemblyManifestV2 = { manifest: AssemblyManifestV2; bytes: Uint8Array; manifestHash: string };
+type SupportedPersonalManifest = AssemblyManifest | AssemblyManifestV2;
+type SupportedMember = AssemblyMember | z.infer<typeof MemberV2Schema>;
+type SupportedUnit = AssemblyUnit | z.infer<typeof UnitV2Schema>;
+
 export type AssemblyMember = z.infer<typeof MemberSchema>;
 export type AssemblyUnit = z.infer<typeof UnitSchema>;
 export type AssemblyRightsVersion = z.infer<typeof RightsVersionSchema>;
@@ -120,7 +133,7 @@ export type FixedAssemblyResult =
 
 type Section = BlueprintConfig["sections"][number];
 type Quota = BlueprintConfig["quotas"][number];
-type AssemblySelectionContext = Pick<AssemblyManifest, "blueprint" | "seed" | "units" | "conflicts" | "limits">;
+type AssemblySelectionContext = Pick<SupportedPersonalManifest, "blueprint" | "seed" | "units" | "conflicts" | "limits">;
 type ExclusionContext = { questionIds: ReadonlySet<string>; groupIds: ReadonlySet<string> };
 type SearchResult = { kind: "FOUND"; selected: number[]; visited: number } | { kind: "INFEASIBLE"; visited: number } | { kind: "EXHAUSTED"; visited: number };
 
@@ -152,13 +165,13 @@ function quotaKey(quota: Quota): string {
   return `${quota.sectionId}\u0000${quota.dimension}\u0000${quota.value}`;
 }
 
-function memberQuotaValue(member: AssemblyMember, quota: Quota): boolean {
+function memberQuotaValue(member: SupportedMember, quota: Quota): boolean {
   if (quota.dimension === "SKILL") return member.skillIds.includes(quota.value);
   if (quota.dimension === "COGNITIVE_LEVEL") return member.cognitiveLevel === quota.value;
   return member.difficulty === quota.value;
 }
 
-function normalizeCommonManifest<T extends AssemblyManifest | FixedAssemblyManifest>(parsed: T): T {
+function normalizeCommonManifest<T extends SupportedPersonalManifest | FixedAssemblyManifest>(parsed: T): T {
   const sectionById = new Map(parsed.blueprint.sections.map((section) => [section.id, section]));
   const unitIds = new Set<string>();
   const versionProjection = new Map<string, string>();
@@ -174,7 +187,7 @@ function normalizeCommonManifest<T extends AssemblyManifest | FixedAssemblyManif
     const members = unit.members.map((member) => {
       if (member.section !== section.section) fail("Unit member section does not match its blueprint section");
       if (member.taxonomyVersionId !== parsed.blueprint.taxonomyVersionId) fail("Unit member taxonomy does not match the blueprint");
-      if (!parsed.blueprint.allowedTypes.includes(member.interactionType)) fail("Unit contains an interaction type not allowed by the blueprint");
+      if (!new Set<string>(parsed.blueprint.allowedTypes).has(member.interactionType)) fail("Unit contains an interaction type not allowed by the blueprint");
       if (localQuestions.has(member.questionId) || localGroups.has(member.groupId)) fail("Unit repeats a stable question or group");
       localQuestions.add(member.questionId);
       localGroups.add(member.groupId);
@@ -233,7 +246,7 @@ function normalizeCommonManifest<T extends AssemblyManifest | FixedAssemblyManif
   return { ...parsed, units, rightsVersions, conflicts };
 }
 
-function normalizeManifest(parsed: AssemblyManifest): AssemblyManifest {
+function normalizeManifest<T extends SupportedPersonalManifest>(parsed: T): T {
   const normalized = normalizeCommonManifest(parsed);
   return {
     ...normalized,
@@ -259,7 +272,7 @@ function copyAndCheckRawManifest(input: unknown): Record<string, unknown> {
   return copied;
 }
 
-function finishManifest<T extends AssemblyManifest | FixedAssemblyManifest>(
+function finishManifest<T extends SupportedPersonalManifest | FixedAssemblyManifest>(
   parsed: T,
   normalize: (manifest: T) => T,
 ): { manifest: T; bytes: Uint8Array; manifestHash: string } {
@@ -276,6 +289,12 @@ export function parseAssemblyManifest(input: unknown): ParsedAssemblyManifest {
   const copied = copyAndCheckRawManifest(input);
   const parsed = ManifestSchema.parse(copied);
   return finishManifest(parsed, normalizeManifest);
+}
+
+/** Extended personal schema; selection ordering and assembly/1 remain shared. */
+export function parseAssemblyManifestV2(input: unknown): ParsedAssemblyManifestV2 {
+  const copied = copyAndCheckRawManifest(input);
+  return finishManifest(ManifestV2Schema.parse(copied), normalizeManifest);
 }
 
 /** Parse, validate and canonicalize a complete fixed /1 snapshot. */
@@ -302,7 +321,7 @@ type State = {
 function stateFor(
   manifest: AssemblySelectionContext,
   selected: readonly number[],
-  rankedUnits: readonly AssemblyUnit[],
+  rankedUnits: readonly SupportedUnit[],
   conflictsByUnit: ReadonlyMap<string, ReadonlySet<string>>,
 ): State {
   const state: State = {
@@ -341,7 +360,7 @@ function conflictKey(left: string, right: string): string {
 function unitIncompatible(
   manifest: AssemblySelectionContext,
   state: State,
-  unit: AssemblyUnit,
+  unit: SupportedUnit,
 ): boolean {
   if (state.unitIds.has(unit.id) || state.blockedUnitIds.has(unit.id)) return true;
   const selectedCount = state.sectionCounts.get(unit.sectionId) ?? 0;
@@ -373,7 +392,7 @@ function selectedValidPartial(manifest: AssemblySelectionContext, state: State):
   return true;
 }
 
-function quotaContribution(unit: AssemblyUnit, quota: Quota): number {
+function quotaContribution(unit: SupportedUnit, quota: Quota): number {
   if (unit.sectionId.length === 0) return 0;
   return unit.members.reduce((sum, member) => sum + Number(memberQuotaValue(member, quota)), 0);
 }
@@ -383,7 +402,7 @@ type Target = { kind: "QUOTA"; quota: Quota } | { kind: "SECTION"; section: Sect
 function chooseTarget(
   manifest: AssemblySelectionContext,
   state: State,
-  compatible: readonly AssemblyUnit[],
+  compatible: readonly SupportedUnit[],
 ): Target | undefined {
   const unmet = manifest.blueprint.quotas.flatMap((quota) => {
     const deficit = quota.min - (state.quotaCounts.get(quotaKey(quota)) ?? 0);
@@ -406,7 +425,7 @@ function chooseTarget(
   return section ? { kind: "SECTION", section } : undefined;
 }
 
-function targetContribution(unit: AssemblyUnit, target: Target): boolean {
+function targetContribution(unit: SupportedUnit, target: Target): boolean {
   return target.kind === "QUOTA"
     ? unit.sectionId === target.quota.sectionId && quotaContribution(unit, target.quota) > 0
     : unit.sectionId === target.section.id;
@@ -415,7 +434,7 @@ function targetContribution(unit: AssemblyUnit, target: Target): boolean {
 function canStillReach(
   manifest: AssemblySelectionContext,
   state: State,
-  compatible: readonly AssemblyUnit[],
+  compatible: readonly SupportedUnit[],
 ): boolean {
   for (const section of manifest.blueprint.sections) {
     const current = state.sectionCounts.get(section.id) ?? 0;
@@ -433,7 +452,7 @@ function canStillReach(
 function validateFinalSelection(
   manifest: AssemblySelectionContext,
   selected: readonly number[],
-  rankedUnits: readonly AssemblyUnit[],
+  rankedUnits: readonly SupportedUnit[],
   conflictSet: ReadonlySet<string>,
   exclusions: ExclusionContext,
 ): boolean {
@@ -471,7 +490,7 @@ function validateFinalSelection(
 
 function solve(
   manifest: AssemblySelectionContext,
-  candidates: readonly AssemblyUnit[],
+  candidates: readonly SupportedUnit[],
   budget: number,
   exclusions: ExclusionContext,
 ): SearchResult {
@@ -524,13 +543,13 @@ function intrinsicConflict(manifest: AssemblySelectionContext): boolean {
   return false;
 }
 
-function eligibleUnits(manifest: AssemblySelectionContext, exclusions: ExclusionContext): AssemblyUnit[] {
+function eligibleUnits(manifest: AssemblySelectionContext, exclusions: ExclusionContext): SupportedUnit[] {
   return manifest.units.filter((unit) => !unit.members.some((member) =>
     exclusions.questionIds.has(member.questionId) || exclusions.groupIds.has(member.groupId),
   ));
 }
 
-function slotsFor(manifest: AssemblySelectionContext, selected: readonly number[], rankedUnits: readonly AssemblyUnit[], seededPosition: ReadonlyMap<string, number>): AssemblySlot[] {
+function slotsFor(manifest: AssemblySelectionContext, selected: readonly number[], rankedUnits: readonly SupportedUnit[], seededPosition: ReadonlyMap<string, number>): AssemblySlot[] {
   const selectedUnits = selected.map((index) => rankedUnits[index]!);
   const result: AssemblySlot[] = [];
   for (const section of manifest.blueprint.sections) {
@@ -560,7 +579,7 @@ function blueprintExclusions(manifest: AssemblySelectionContext): ExclusionConte
   return { questionIds: new Set(manifest.blueprint.excludedQuestionIds), groupIds: new Set() };
 }
 
-function personalHistoryExclusions(manifest: AssemblyManifest): ExclusionContext {
+function personalHistoryExclusions(manifest: SupportedPersonalManifest): ExclusionContext {
   return {
     questionIds: new Set([...manifest.blueprint.excludedQuestionIds, ...manifest.historyQuestionIds]),
     groupIds: new Set(manifest.historyGroupIds),
@@ -586,6 +605,15 @@ function runSingleReference(
 /** Run bounded deterministic assembly/1 against the captured manifest only. */
 export function runAssemblyReference(input: unknown): AssemblyResult {
   const { manifest, manifestHash } = parseAssemblyManifest(input);
+  return runPersonalReference(manifest, manifestHash);
+}
+
+export function runAssemblyReferenceV2(input: unknown): AssemblyResult {
+  const { manifest, manifestHash } = parseAssemblyManifestV2(input);
+  return runPersonalReference(manifest, manifestHash);
+}
+
+function runPersonalReference(manifest: SupportedPersonalManifest, manifestHash: string): AssemblyResult {
   if (manifest.reuseMode === "NEW_ONLY") {
     if (intrinsicConflict(manifest)) return emptyFailure("CONSTRAINT_CONFLICT", manifestHash, 0);
     if (manifest.units.length > manifest.limits.maxUnits) return emptyFailure("SEARCH_EXHAUSTED", manifestHash, 0);
@@ -613,12 +641,12 @@ export function runFixedAssemblyReference(input: unknown): FixedAssemblyResult {
   return runSingleReference(manifest, manifestHash, blueprintExclusions(manifest));
 }
 
-function rankedForSlots(manifest: AssemblySelectionContext, candidates: readonly AssemblyUnit[]): { rankedUnits: AssemblyUnit[]; seededPosition: Map<string, number> } {
+function rankedForSlots(manifest: AssemblySelectionContext, candidates: readonly SupportedUnit[]): { rankedUnits: SupportedUnit[]; seededPosition: Map<string, number> } {
   const sorted = [...candidates].sort((left, right) => compare(left.id, right.id));
   const shuffled = shuffleAssemblyUnitsV1(sorted, manifest.seed);
   const positions = new Map(shuffled.map((unit, index) => [unit.id, index]));
   const rankedUnits = [...shuffled].sort((left, right) => {
-    const exposure = (unit: AssemblyUnit) => unit.members.reduce((sum, member) => sum + BigInt(member.exposureCount), 0n);
+    const exposure = (unit: SupportedUnit) => unit.members.reduce((sum, member) => sum + BigInt(member.exposureCount), 0n);
     const a = exposure(left); const b = exposure(right);
     return a < b ? -1 : a > b ? 1 : positions.get(left.id)! - positions.get(right.id)!;
   });

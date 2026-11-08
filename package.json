@@ -10,6 +10,16 @@
     "packages/*"
   ],
   "scripts": {
+    "factory:fixture": "node tools/question-factory/generic-fixture-cli.mjs",
+    "test:factory:generic": "node --test tests/ai/generic-fixture-factory.test.mjs tests/ai/generic-fixture-cli.test.mjs tests/integration/factory-bank-exam/generic-fixture-import.test.mjs",
+    "test:generation": "node --test tests/ai/fake-generation-adapter.test.mjs tests/ai/generation-response-validation.test.mjs",
+    "factory:reading:manual": "node tools/question-factory/manual.mjs",
+    "test:factory:manual": "node --test tests/ai/manual-reading.test.mjs tests/ai/reading-factory.test.mjs",
+    "test:factory:manual:transport": "npm run build && node --experimental-strip-types --test --test-concurrency=1 packages/contracts/test/factory-package-v3.test.ts tests/ai/manual-import-configuration.test.mjs tests/integration/bank/manual-factory-import.test.mjs",
+    "factory:reading": "node tools/question-factory/cli.mjs",
+    "test:factory:reading": "node --test tests/ai/reading-factory.test.mjs tests/integration/factory-bank-exam/*.test.mjs tests/integration/assembly/reading-experiment.test.mjs",
+    "demo:factory:reading": "npm run build && node scripts/start-reading-factory-demo.mjs",
+    "test:factory:reading:browser": "node scripts/verify-reading-factory-browser.mjs",
     "dev:b0": "node apps/practice-prototype/server.mjs",
     "test:b0": "node --test apps/practice-prototype/test/*.test.mjs",
     "test:b0:browser": "node scripts/verify-b0-browser.mjs",
@@ -18,6 +28,7 @@
     "contracts:check": "node --experimental-strip-types packages/contracts/scripts/check-openapi.ts && node --experimental-strip-types packages/contracts/scripts/check-staff-openapi.ts",
     "contracts:generate": "node --experimental-strip-types packages/contracts/scripts/generate-openapi.ts",
     "docs:check": "sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node",
+    "test:docs": "node --test tests/quality/docs-check.test.mjs",
     "test:built": "node packages/contracts/test/emitted-javascript.test.mjs && node --experimental-strip-types --test packages/contracts/test/staff-built.test.mjs packages/contracts/test/staff-package-export.test.mjs",
     "test:consumers": "node --test packages/contracts/test/emitted-consumers.test.mjs packages/contracts/test/stage4b-built.test.mjs",
     "contracts:consumer-check": "node --experimental-strip-types packages/contracts/scripts/check-consumer-boundaries.ts && node scripts/check-app-consumer-boundaries.mjs",
@@ -33,6 +44,7 @@
     "test:scoring": "node --test tests/scoring/*.test.mjs",
     "test:grading": "node --test tests/integration/grading/*.test.mjs",
     "test:critical:student": "node --test tests/critical/student-state-machine.test.mjs",
+    "test:critical:privacy": "node --test tests/critical/student-leakage.test.mjs",
     "test:recovery": "node --test tests/integration/recovery/*.test.mjs",
     "test:results": "node --test tests/integration/results/*.test.mjs",
     "test:directory": "node --test tests/integration/directory/*.test.mjs",
@@ -51,6 +63,9 @@
     "test:student:rate-limit:attempt": "STUDENT_RATE_LIMIT_TEST=true STUDENT_RATE_LIMIT_SCOPE=ATTEMPT_SAVE node scripts/verify-student-browser.mjs",
     "test:student:reading": "STUDENT_READING_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:domains": "STUDENT_DOMAINS_TEST=true node scripts/verify-student-browser.mjs",
+    "test:topics": "node --test tests/integration/topic-practice/*.test.mjs tests/integration/student-runtime/topic-*.test.mjs tests/integration/local/topic-migration.test.mjs",
+    "test:topics:browser": "STUDENT_TOPIC_TEST=true node scripts/verify-student-browser.mjs",
+    "test:topics:firefox": "STUDENT_TOPIC_FIREFOX=true node scripts/verify-student-firefox.mjs",
     "test:student:closed-save": "STUDENT_CLOSED_SAVE_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:keyboard": "STUDENT_ACCESSIBILITY_TEST=true node scripts/verify-student-browser.mjs",
     "test:student:expiry": "STUDENT_EXPIRY_TEST=true node scripts/verify-student-browser.mjs",
@@ -71,7 +86,14 @@
     "test:student:zoom:firefox": "STUDENT_NATIVE_ZOOM_FIREFOX=true node scripts/verify-student-firefox.mjs",
     "demo:student:short": "npm run build && STUDENT_FIXTURE_DOMAINS=true STUDENT_FIXTURE_SHORT=true node scripts/start-student-fixture.mjs",
     "test:student:short": "STUDENT_SHORT_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",
-    "test:student:short:firefox": "STUDENT_SHORT_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs"
+    "test:student:short:firefox": "STUDENT_SHORT_PRACTICE_FIREFOX=true node scripts/verify-student-firefox.mjs",
+    "test:media": "node --test --test-concurrency=2 tests/media/*.test.mjs tests/integration/bank/content-safety.test.mjs tests/integration/student-runtime/asset-http-boundary.test.mjs tests/integration/student-runtime/attempt-images.test.mjs tests/integration/student-runtime/image-authorization.test.mjs tests/integration/student-runtime/image-races.test.mjs tests/integration/local/image-migration.test.mjs",
+    "test:student:images": "STUDENT_IMAGE_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:images:firefox": "STUDENT_IMAGE_FIREFOX=true STUDENT_FIREFOX_ARTIFACT_DIR=/tmp/tsa-image-firefox-evidence node scripts/verify-student-firefox.mjs",
+    "demo:student:numeric": "npm run build && STUDENT_FIXTURE_NUMERIC=true node scripts/start-student-fixture.mjs",
+    "test:numeric": "npm run build && node --experimental-strip-types --test --test-concurrency=2 packages/contracts/test/numeric-response.test.ts packages/contracts/test/numeric-versioning.test.ts tests/scoring/versioned-binary.test.mjs tests/integration/bank/numeric-*.test.mjs tests/integration/student-runtime/numeric-practice.test.mjs tests/integration/local/numeric-migration.test.mjs",
+    "test:student:numeric": "STUDENT_NUMERIC_TEST=true node scripts/verify-student-browser.mjs",
+    "test:student:numeric:firefox": "STUDENT_NUMERIC_FIREFOX=true STUDENT_FIREFOX_ARTIFACT_DIR=/tmp/tsa-numeric-firefox-evidence node scripts/verify-student-firefox.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
@@ -79,6 +101,7 @@
   },
   "dependencies": {
     "katex": "0.19.0",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "sharp": "0.35.5"
   }
 }

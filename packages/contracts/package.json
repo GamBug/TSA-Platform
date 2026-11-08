@@ -12,6 +12,14 @@
       "types": "./src/student.ts",
       "default": "./src/student.ts"
     },
+    "./student-v2": {
+      "types": "./src/student-v2.ts",
+      "default": "./src/student-v2.ts"
+    },
+    "./released-review-v2": {
+      "types": "./src/released-review-v2.ts",
+      "default": "./src/released-review-v2.ts"
+    },
     "./released-review": {
       "types": "./src/released-review.ts",
       "default": "./src/released-review.ts"
