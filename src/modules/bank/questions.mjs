@@ -10,6 +10,12 @@ import {
   createReferenceHash,
 } from '../../../packages/contracts/dist/internal.js';
 import {
+  AnswerKeyV2Schema,
+  InteractionV2Schema,
+  QuestionVersionV2Schema,
+  SupportedQuestionVersionSchema,
+} from '../../../packages/contracts/dist/question-v2.js';
+import {
   MANUAL_REFERENCE_NAMESPACE,
   MAX_REFERENCE_NODES,
   BankCommandError,
@@ -38,6 +44,10 @@ const WORKFLOW_STATES = new Set(['DRAFT', 'IN_REVIEW', 'APPROVED', 'REJECTED', '
 const SECTIONS = new Set(['MATH', 'READING', 'SCIENCE']);
 const COGNITIVE_LEVELS = new Set(['M1', 'M2', 'M3']);
 const DIFFICULTIES = new Set(['EASY', 'MEDIUM', 'HARD']);
+
+function assertNumericQuestionsOption(value) {
+  if (typeof value !== 'boolean') throw new TypeError('enableNumericQuestions must be a boolean');
+}
 
 function parseJson(value) {
   if (typeof value !== 'string') return value;
@@ -189,9 +199,12 @@ async function loadQuestionRow(client, versionId) {
   return result.rows[0] ?? null;
 }
 
-function toQuestionVersion(row) {
+function toQuestionVersion(row, { enableNumericQuestions = false } = {}) {
   if (!row.authored_created_at || !row.reference_namespace) reject(422, 'PARENT_REFERENCE_NOT_REGISTERED');
-  return QuestionVersionSchema.parse({
+  const schema = row.schema_version === 'question/2' && enableNumericQuestions
+    ? SupportedQuestionVersionSchema
+    : QuestionVersionSchema;
+  const parsed = schema.safeParse({
     schemaVersion: row.schema_version,
     id: row.id,
     questionId: row.question_id,
@@ -221,6 +234,8 @@ function toQuestionVersion(row) {
     createdAt: row.authored_created_at,
     contentHash: row.content_hash,
   });
+  if (!parsed.success) reject(422, 'VALIDATION_ERROR');
+  return parsed.data;
 }
 
 function questionProjection(question) {
@@ -228,10 +243,10 @@ function questionProjection(question) {
   return projection;
 }
 
-async function loadParentGraph(client, parentVersionId, questionId) {
+async function loadParentGraph(client, parentVersionId, questionId, options = {}) {
   const row = await loadQuestionRow(client, parentVersionId);
   if (!row || row.question_id !== questionId) reject(404, 'NOT_FOUND');
-  const question = toQuestionVersion(row);
+  const question = toQuestionVersion(row, options);
   const parentNodeClosure = await resolveReferenceGraph(client, row.reference_namespace,
     [{ kind: 'question', id: parentVersionId }]);
   const parentNode = parentNodeClosure.find((node) => node.kind === 'question' && node.id === parentVersionId);
@@ -358,7 +373,7 @@ function buildDraftQuestion(draft, { questionId, versionId, versionNo, parentVer
       answerKey: draft.answerKey,
       explanation: draft.explanation,
       evidenceRefs: draft.evidenceRefs,
-      scoringPolicy: 'practice-binary-v1',
+      scoringPolicy: draft.schemaVersion === 'question/2' ? 'practice-binary-v2' : 'practice-binary-v1',
     },
     origin: draft.origin,
     provenanceIds,
@@ -369,9 +384,11 @@ function buildDraftQuestion(draft, { questionId, versionId, versionNo, parentVer
   };
 }
 
-function validateDraftInput(draft) {
+function validateDraftInput(draft, { enableNumericQuestions = false } = {}) {
+  assertNumericQuestionsOption(enableNumericQuestions);
   strictRecord(draft, QUESTION_DRAFT_KEYS, 'question draft');
-  if (draft.schemaVersion !== 'question/1' || draft.language !== 'vi-VN'
+  const isQuestionV2 = draft.schemaVersion === 'question/2';
+  if ((draft.schemaVersion !== 'question/1' && !(enableNumericQuestions && isQuestionV2)) || draft.language !== 'vi-VN'
       || !SECTIONS.has(draft.section) || !UUID_PATTERN.test(draft.taxonomyVersionId)
       || !UUID_PATTERN.test(draft.domainId) || !['MANUAL', 'IMPORTED'].includes(draft.origin)
       || !(draft.cognitiveLevel === null || COGNITIVE_LEVELS.has(draft.cognitiveLevel))
@@ -388,9 +405,11 @@ function validateDraftInput(draft) {
     ...(Array.isArray(draft.explanation) ? draft.explanation : [])]) {
     if (!BlockSchema.safeParse(block).success) reject(422, 'VALIDATION_ERROR');
   }
+  const interactionSchema = isQuestionV2 ? InteractionV2Schema : InteractionSchema;
+  const answerKeySchema = isQuestionV2 ? AnswerKeyV2Schema : AnswerKeySchema;
   if (!Array.isArray(draft.content) || !Array.isArray(draft.explanation)
-      || !InteractionSchema.safeParse(draft.interaction).success
-      || !AnswerKeySchema.safeParse(draft.answerKey).success) reject(422, 'VALIDATION_ERROR');
+      || !interactionSchema.safeParse(draft.interaction).success
+      || !answerKeySchema.safeParse(draft.answerKey).success) reject(422, 'VALIDATION_ERROR');
   for (const item of draft.provenance) {
     strictRecord(item, ['sourceVersionId', 'span', 'transformation'], 'provenance');
     if (!UUID_PATTERN.test(item.sourceVersionId) || !(item.span === null || typeof item.span === 'string')
@@ -398,8 +417,10 @@ function validateDraftInput(draft) {
   }
 }
 
-async function createDraftVersion(client, principal, draft, { questionId = randomUUID(), parentVersionId = null, parent = null } = {}) {
-  validateDraftInput(draft);
+async function createDraftVersion(client, principal, draft, {
+  questionId = randomUUID(), parentVersionId = null, parent = null, enableNumericQuestions = false,
+} = {}) {
+  validateDraftInput(draft, { enableNumericQuestions });
   const taxonomyNode = await loadTaxonomyNode(client, draft.taxonomyVersionId);
   const canonicalDraft = canonicalizeTaxonomyIds(draft, taxonomyNode);
   const versionId = randomUUID();
@@ -411,7 +432,8 @@ async function createDraftVersion(client, principal, draft, { questionId = rando
     questionId, versionId, versionNo: parent ? parent.version.versionNo + 1 : 1,
     parentVersionId, principal, createdAt, provenanceIds: provenance.persisted.map((item) => item.provenanceId),
   });
-  const parsed = QuestionVersionSchema.safeParse(question);
+  const questionSchema = draft.schemaVersion === 'question/2' ? QuestionVersionV2Schema : QuestionVersionSchema;
+  const parsed = questionSchema.safeParse(question);
   if (!parsed.success) reject(422, 'VALIDATION_ERROR');
   const normalizedQuestion = parsed.data;
   validateTaxonomyMembership(normalizedQuestion, taxonomyNode);
@@ -443,8 +465,9 @@ async function createDraftVersion(client, principal, draft, { questionId = rando
     }),
   };
 
+  const fingerprintVersion = storedQuestion.schemaVersion === 'question/2' ? 'fingerprint/2' : 'fingerprint/1';
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
-    JSON.stringify(['fingerprint/1', storedQuestion.section, fingerprint.fingerprint]),
+    JSON.stringify([fingerprintVersion, storedQuestion.section, fingerprint.fingerprint]),
   ]);
 
   if (parent) {
@@ -524,9 +547,9 @@ async function createDraftVersion(client, principal, draft, { questionId = rando
     const rightId = row.id < versionId ? versionId : row.id;
     await client.query(
       `INSERT INTO tsa.duplicate_relations (id, left_version_id, right_version_id, kind, evidence, detector_version)
-       VALUES ($1, $2, $3, 'EXACT', $4::jsonb, 'fingerprint/1')
+       VALUES ($1, $2, $3, 'EXACT', $4::jsonb, $5)
        ON CONFLICT (left_version_id, right_version_id, kind) DO NOTHING`,
-      [randomUUID(), leftId, rightId, JSON.stringify({ fingerprint: fingerprint.fingerprint })]);
+      [randomUUID(), leftId, rightId, JSON.stringify({ fingerprint: fingerprint.fingerprint }), fingerprintVersion]);
   }
   if (duplicateResult.rowCount > 0) {
     await client.query('UPDATE tsa.bank_state SET eligibility_revision = eligibility_revision + 1, updated_at = clock_timestamp() WHERE id = 1');
@@ -545,26 +568,32 @@ async function createDraftVersion(client, principal, draft, { questionId = rando
   };
 }
 
-export async function createQuestionDraft(bankPool, identityService, principal, key, draft) {
+export async function createQuestionDraft(bankPool, identityService, principal, key, draft, { enableNumericQuestions = false } = {}) {
+  assertNumericQuestionsOption(enableNumericQuestions);
   requireActor(identityService, principal, 'bank.question.author');
-  return withIdempotency(bankPool, principal, key, 'POST /api/v1/questions', draft, async (client) => {
-    const body = await createDraftVersion(client, principal, draft);
+  const apiVersion = enableNumericQuestions ? 'v2' : 'v1';
+  return withIdempotency(bankPool, principal, key, `POST /api/${apiVersion}/questions`, draft, async (client) => {
+    const body = await createDraftVersion(client, principal, draft, { enableNumericQuestions });
     return { status: 201, body, resourceId: body.versionId };
   });
 }
 
-export async function createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input) {
+export async function createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input,
+  { enableNumericQuestions = false } = {}) {
+  assertNumericQuestionsOption(enableNumericQuestions);
   requireActor(identityService, principal, 'bank.question.author');
   strictRecord(input, ['parentVersionId', 'draft'], 'question version');
   if (!UUID_PATTERN.test(questionId) || !UUID_PATTERN.test(input.parentVersionId)) reject(404, 'NOT_FOUND');
-  return withIdempotency(bankPool, principal, key, `POST /api/v1/questions/${questionId}/versions`, input, async (client) => {
+  const apiVersion = enableNumericQuestions ? 'v2' : 'v1';
+  return withIdempotency(bankPool, principal, key, `POST /api/${apiVersion}/questions/${questionId}/versions`, input, async (client) => {
     const lockedQuestion = await client.query('SELECT id FROM tsa.questions WHERE id = $1 FOR UPDATE', [questionId]);
     if (lockedQuestion.rowCount !== 1) reject(404, 'NOT_FOUND');
-    const parent = await loadParentGraph(client, input.parentVersionId, questionId);
+    const parent = await loadParentGraph(client, input.parentVersionId, questionId, { enableNumericQuestions });
     const body = await createDraftVersion(client, principal, input.draft, {
       questionId,
       parentVersionId: input.parentVersionId,
       parent,
+      enableNumericQuestions,
     });
     return { status: 201, body, resourceId: body.versionId };
   });
@@ -592,7 +621,9 @@ function decodeCursor(cursor) {
   }
 }
 
-export async function listQuestionSummaries(bankPool, identityService, principal, searchParams) {
+export async function listQuestionSummaries(bankPool, identityService, principal, searchParams,
+  { enableNumericQuestions = false } = {}) {
+  assertNumericQuestionsOption(enableNumericQuestions);
   requireActor(identityService, principal, 'bank.question.read');
   const allowed = new Set(['section', 'state', 'cursor', 'limit']);
   for (const key of searchParams.keys()) if (!allowed.has(key)) reject(422, 'VALIDATION_ERROR');
@@ -604,6 +635,7 @@ export async function listQuestionSummaries(bankPool, identityService, principal
   if (section !== null && !SECTIONS.has(section) || state !== null && !WORKFLOW_STATES.has(state)
       || !Number.isInteger(limit) || limit < 1 || limit > 100) reject(422, 'VALIDATION_ERROR');
   const cursor = decodeCursor(searchParams.get('cursor') ?? undefined);
+  const versionFilter = enableNumericQuestions ? '' : "AND qv.schema_version = 'question/1'";
   const result = await withTransaction(bankPool, (client) => client.query(
     `SELECT qv.question_id, qv.id AS version_id, qv.section, w.state,
             qv.interaction->>'type' AS interaction_type, qv.content_hash, qv.created_at,
@@ -613,6 +645,7 @@ export async function listQuestionSummaries(bankPool, identityService, principal
       WHERE ($1::text IS NULL OR qv.section::text = $1)
         AND ($2::text IS NULL OR w.state::text = $2)
         AND ($3::timestamptz IS NULL OR (qv.created_at, qv.id) < ($3::timestamptz, $4::uuid))
+        ${versionFilter}
       ORDER BY qv.created_at DESC, qv.id DESC LIMIT $5`,
     [section, state, cursor?.createdAt ?? null, cursor?.id ?? null, limit + 1]), { role: 'tsa_bank' });
   const hasMore = result.rows.length > limit;
@@ -630,13 +663,16 @@ export async function listQuestionSummaries(bankPool, identityService, principal
   return { items, nextCursor };
 }
 
-export async function createQuestionService({ bankPool, identityService }) {
+export async function createQuestionService({ bankPool, identityService, enableNumericQuestions = false }) {
   if (!bankPool || !identityService) throw new TypeError('Bank pool and identity service are required');
+  assertNumericQuestionsOption(enableNumericQuestions);
   await assertBankConnection(bankPool);
   return Object.freeze({
-    createQuestionDraft: (principal, key, draft) => createQuestionDraft(bankPool, identityService, principal, key, draft),
+    createQuestionDraft: (principal, key, draft) =>
+      createQuestionDraft(bankPool, identityService, principal, key, draft, { enableNumericQuestions }),
     createQuestionDraftVersion: (principal, questionId, key, input) =>
-      createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input),
-    listQuestionSummaries: (principal, searchParams) => listQuestionSummaries(bankPool, identityService, principal, searchParams),
+      createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input, { enableNumericQuestions }),
+    listQuestionSummaries: (principal, searchParams) =>
+      listQuestionSummaries(bankPool, identityService, principal, searchParams, { enableNumericQuestions }),
   });
 }

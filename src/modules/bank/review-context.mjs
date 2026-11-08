@@ -1,4 +1,5 @@
 import { StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
+import { StaffReviewContextV2Schema } from '../../../packages/contracts/dist/staff-v2.js';
 import { assertBankConnection, reject, requireActor, UUID_PATTERN } from './common.mjs';
 import { assertSafeQuestionContent } from './content-safety.mjs';
 import { withTransaction } from '../database/pool.mjs';
@@ -8,8 +9,8 @@ const LIMIT_BYTES = 1024 * 1024;
 const fail = () => reject(503, 'TEMPORARILY_UNAVAILABLE');
 const need = (condition) => { if (!condition) fail(); };
 
-async function readSnapshot(client, identityService, principal, versionId) {
-  const { basis, target, verified } = await loadStaffReviewSnapshot(client, identityService, principal, versionId);
+async function readSnapshot(client, identityService, principal, versionId, options) {
+  const { basis, target, verified } = await loadStaffReviewSnapshot(client, identityService, principal, versionId, options);
   const observation = await client.query(`SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC',
     'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS observed_at`);
   const observedAt = observation.rows[0].observed_at;
@@ -41,7 +42,7 @@ async function readSnapshot(client, identityService, principal, versionId) {
   let reason = ['QUARANTINED', 'RETIRED'].includes(target.state) ? 'WORKFLOW_HELD'
     : result.rows.some((row) => !row.permitted) ? 'RIGHTS_BLOCKED' : null;
   if (!reason) {
-    try { assertSafeQuestionContent(verified.question, verified.graph.filter((node) => !(node.kind === 'question' && node.id === target.id))); }
+    try { assertSafeQuestionContent(verified.question, verified.graph.filter((node) => !(node.kind === 'question' && node.id === target.id)), { numericQuestions: options.enableNumericQuestions }); }
     catch { reason = 'CONTENT_UNSUPPORTED'; }
   }
   const preview = reason ? { status: 'BLOCKED', reason } : { status: 'AVAILABLE', question: {
@@ -50,24 +51,25 @@ async function readSnapshot(client, identityService, principal, versionId) {
     scoringPolicyVersion: verified.question.private.scoringPolicy, stimulus: verified.stimulus,
   } };
   const payload = {
-    schemaVersion: 'staff-review-context/1', observedAt, accessBasis: basis, environment: 'LOCAL_SYNTHETIC_ONLY',
+    schemaVersion: verified.question.schemaVersion === 'question/2' ? 'staff-review-context/2' : 'staff-review-context/1', observedAt, accessBasis: basis, environment: 'LOCAL_SYNTHETIC_ONLY',
     version: { questionId: target.question_id, versionId: target.id, versionNo: target.version_no,
       parentVersionId: target.parent_version_id, section: target.section, contentHash: target.content_hash },
     workflow: { state: target.state, revision: Number(target.revision) }, sources, preview,
     rightsEvidenceIncluded: false, publicationEligibility: 'NOT_EVALUATED',
   };
   need(Buffer.byteLength(JSON.stringify(payload), 'utf8') <= LIMIT_BYTES);
-  return StaffReviewContextSchema.parse(payload);
+  return (payload.schemaVersion === 'staff-review-context/2' ? StaffReviewContextV2Schema : StaffReviewContextSchema).parse(payload);
 }
 
-export async function createReviewContextService({ bankPool, identityService }) {
+export async function createReviewContextService({ bankPool, identityService, enableNumericQuestions = false }) {
+  if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('Numeric questions opt-in must be boolean');
   await assertBankConnection(bankPool);
   return Object.freeze({ async read(principal, versionId) {
     requireActor(identityService, principal, 'bank.question.read');
     if (!UUID_PATTERN.test(versionId)) reject(404, 'NOT_FOUND');
     return withTransaction(bankPool, async (client) => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
-      try { return await readSnapshot(client, identityService, principal, versionId); }
+      try { return await readSnapshot(client, identityService, principal, versionId, { enableNumericQuestions }); }
       catch (error) {
         if (error?.status === 404 && error?.code === 'NOT_FOUND') throw error;
         fail();

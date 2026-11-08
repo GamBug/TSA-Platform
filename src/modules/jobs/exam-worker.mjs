@@ -1,5 +1,6 @@
 import { parseJobDispatchForExecutor } from "../../../packages/contracts/dist/internal.js";
-import { percentage, scoreAttempt } from "../scoring/binary.mjs";
+import { percentage } from "../scoring/binary.mjs";
+import { scoreVersionedAttempt } from "../scoring/versioned-binary.mjs";
 import { withTransaction } from "../database/pool.mjs";
 
 const ATTEMPT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -134,7 +135,7 @@ function validateLoad(raw, lease) {
     result.status !== "READY" ||
     result.attemptId !== lease.attemptId ||
     !hasUuid(result.formId) ||
-    result.policyVersion !== "practice-binary-v1" ||
+    !["practice-binary-v1", "practice-binary-v2"].includes(result.policyVersion) ||
     typeof result.inputHash !== "string" ||
     !SHA256.test(result.inputHash) ||
     !Array.isArray(result.slots) ||
@@ -325,7 +326,7 @@ export function createExamWorker({ workerPool, executorId, leaseSeconds, retrySe
 
       let computed;
       try {
-        computed = scoreAttempt(loaded);
+        computed = scoreVersionedAttempt(loaded);
       } catch (error) {
         const code = error instanceof TypeError || error instanceof RangeError
           ? "INVALID_GRADING_INPUT"

@@ -8,9 +8,9 @@ import { createMixedStudentFixture } from './mixed-fixture.mjs';
 const hash = (value) => `sha256:${createHash('sha256').update(canonicalize(value)).digest('hex')}`;
 
 /** Original standalone engineering fixtures; no retained seed or human approval. */
-export async function createDomainStudentFixture({extraPerLargeDomain=0}={}) {
+export async function createDomainStudentFixture({extraPerLargeDomain=0,privateExplanationPrefix=''}={}) {
   if(!Number.isSafeInteger(extraPerLargeDomain)||extraPerLargeDomain<0||extraPerLargeDomain>8)throw new TypeError('Bounded extra synthetic inventory required');
-  const f = await createMixedStudentFixture({ durationSeconds: 360 });
+  const f = await createMixedStudentFixture({ durationSeconds: 360, privateExplanationPrefix });
   try {
     f.domainBlueprints = { MATH: f.blueprint };
     for(let index=0;index<extraPerLargeDomain;index++)await f.createQuestion();
@@ -40,7 +40,7 @@ export async function createDomainStudentFixture({extraPerLargeDomain=0}={}) {
           content: text(`${name}, câu ${index + 1}. Ghi chú tự viết: mẫu số ${index + 1} được đánh dấu B. Chọn nhãn được nêu trong ghi chú. Chỉ kiểm thử kỹ thuật.`),
           interaction: { type: 'SINGLE_CHOICE', options: ['a', 'b', 'c'].map((id) => ({ id, content: text(`Nhãn ${id.toUpperCase()}`) })) },
           answerKey: { type: 'SINGLE_CHOICE', optionId: 'b' },
-          explanation: text('Ghi chú tự viết nêu nhãn B; đây không phải câu hỏi kỳ thi chính thức.'),
+          explanation: text(`${privateExplanationPrefix}Ghi chú tự viết nêu nhãn B; đây không phải câu hỏi kỳ thi chính thức.`),
           stimulusVersionId: null, evidenceRefs: template.evidenceRefs, origin: 'MANUAL', provenance: template.provenance,
         };
         const response = await bankRequest(f.harness, f.browsers.author, '/api/v1/questions', {

@@ -133,9 +133,9 @@ Restore a database and matching assets into an isolated environment; verify form
 
 Phase 02.5 additions: [resolution](../reviews/REVIEW_RESOLUTION_001.md) maps each finding to regression requirements. Q-17 is the owner-approved H1 global active-attempt suite above: same-key replay, distinct-key conflict, cross-mode conflict, durable stale finalization, closure retake and NEW_ONLY history exclusion. Q-18 verifies owner-approved H2 admission boundaries, lazy/swept CREATED cancellation and no running-clock truncation; Q-19 verifies owner-approved MVP H3 one-domain form validation, typed quotas/taxonomy and aggregate sealing rollback while preserving future generic multi-section storage; Q-20 verifies lifecycle-pinned idempotency cleanup; Q-21 verifies shared save rate limits, retry behavior and authorization order; Q-22 verifies role-specific diagnostics and CI contract-drift failure. These augment Q-01–Q-16 and are NOT RUN. WEB-001 adds section-warning/timezone cases; SCORE-001 adds exact tie rounding. No full forensic answer history is expected; global usage is analytics, not a capacity gate.
 
-Check all 21 required foundation/refinement documents are present and nonempty, all tracked Markdown file links resolve, code fences balance, IDs are unique, task references/ADR prerequisites resolve, no decision is falsely approved, and research hash is unchanged. Manually trace question→approval→manifest→snapshot→attempt→score→release for matching field/state semantics. Inspect Git/untracked file scope separately; these checks do not demonstrate runtime correctness.
+Check all 21 required foundation/refinement documents are present and nonempty, tracked and scoped authored untracked Markdown file targets resolve, code fences balance, IDs are unique, task references/ADR prerequisites resolve, no decision is falsely approved, and research hash is unchanged. Heading fragments are NOT_CHECKED. Manually trace question→approval→manifest→snapshot→attempt→score→release for matching field/state semantics. Inspect unrelated untracked file scope separately; these checks do not demonstrate runtime correctness.
 
-Reproduce the Phase 01 static check from repository root with `sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node`. The checker prefers Git-tracked discovery and, in restricted runners, falls back to a filtered workspace walk that never enters `.git`, dependencies, generated-output or temporary build directories. This embedded checker is documentation verification only; it creates no files. Its fixed counts/hash describe this handoff, not permanent limits for later phases.
+Run `npm run docs:check` or reproduce the embedded check from repository root with `sed -n '/^```javascript$/,/^```$/p' docs/quality/TEST_STRATEGY.md | sed '1d;$d' | node`. Git discovery includes tracked files and nonignored untracked Markdown only in docs/agents, architecture, decisions, guides, quality, reviews, specifications and tasks. New research files and private data are excluded. If Git discovery fails, a bounded walk checks those authored directories, required root documents and the two pinned historical inputs; it cannot establish tracked-artifact or Git-ignore coverage and reports that limitation. No discovery follows symlinks. This checker creates no files. Counts change with authored documents; protected input hashes remain pinned. Focused discovery/mutation regressions run with `npm run test:docs`.
 
 ```javascript
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -148,6 +148,8 @@ const required = ['README.md','AGENTS.md',
   ...['AGENT_ONBOARDING','PROJECT_STATE','HANDOFF_PROTOCOL','HANDOFF_TEMPLATE','LAST_HANDOFF'].map(x=>`docs/agents/${x}.md`),
   'docs/quality/TEST_STRATEGY.md'];
 const ignoredDirectories = new Set(['.git','.local','.next','.parcel-cache','.turbo','build','coverage','dist','node_modules','out','target','temp','tmp']);
+const authoredDirectories = ['agents','architecture','decisions','guides','quality','reviews','specifications','tasks'].map(name=>`docs/${name}`);
+const pinnedInputs = ['docs/research/TSA_DEEP_RESEARCH.md','docs/reviews/ARCHITECTURE_REVIEW_001.md'];
 const sourceExtensions = new Set(['.cjs','.css','.cts','.go','.html','.java','.js','.jsx','.json','.kt','.mjs','.mts','.php','.py','.rb','.rs','.scss','.sh','.sql','.ts','.tsx','.vue','.yaml','.yml']);
 const approvedCodexConfigs = new Set([
   '.codex/config.toml',
@@ -158,23 +160,48 @@ const approvedCodexConfigs = new Set([
 const approvedFontAssets = new Set([400,500,600,700].flatMap(weight=>
   ['latin','latin-ext','vietnamese'].map(subset=>
     `apps/practice-prototype/public/fonts/be-vietnam-pro-${weight}-${subset}.woff2`)));
+const approvedCaptureFixtures = new Set(['single','multiple','truth-ambiguous']
+  .map(name=>`tests/ai/fixtures/reading-captures/${name}.txt`));
 const errors=[], warnings=[]; let links=0;
-let files=[];
+let files=[], tracked=[], untracked=[], discovery='git';
 try {
-  files=execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean)
+  tracked=execFileSync('git',['ls-files','-z'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).split('\0').filter(Boolean)
     .filter(p=>!p.split('/').some(segment=>ignoredDirectories.has(segment)));
+  untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z','--',...authoredDirectories],{encoding:'utf8',stdio:['ignore','pipe','ignore']})
+    .split('\0').filter(p=>p.endsWith('.md')&&authoredDirectories.some(root=>p.startsWith(root+'/')))
+    .filter(p=>!p.split('/').some(segment=>ignoredDirectories.has(segment)));
+  files=[...new Set([...tracked,...untracked])].sort();
 } catch {
+  discovery='bounded-workspace'; tracked=[]; untracked=[];
+  files=[...new Set([...required,...pinnedInputs])];
+  warnings.push('Git discovery unavailable: tracked-artifact and Git-ignore coverage NOT_CHECKED');
   function walkWorkspace(d) {
+    if(!fs.existsSync(d)) return;
+    if(!safePath(d)) { errors.push(`Unsafe directory: ${d}`); return; }
     for(const e of fs.readdirSync(d,{withFileTypes:true})) {
       if(ignoredDirectories.has(e.name)) continue;
       const p=path.join(d,e.name);
-      if(e.isDirectory()) walkWorkspace(p); else files.push(p);
+      if(e.isSymbolicLink()) { if(p.endsWith('.md')) errors.push(`Unsafe symlink: ${p}`); continue; }
+      if(e.isDirectory()) walkWorkspace(p); else if(p.endsWith('.md')) files.push(p);
     }
   }
-  walkWorkspace('.');
+  for(const directory of authoredDirectories) walkWorkspace(directory);
+  files=[...new Set(files)].sort();
 }
-for(const p of required) if(!fs.existsSync(p)||!fs.readFileSync(p,'utf8').trim()) errors.push(`Missing/empty: ${p}`);
-const backlog=fs.readFileSync('docs/tasks/TASK_BACKLOG.md','utf8');
+function safePath(p) {
+  let current='.';
+  for(const segment of p.split('/')) {
+    current=path.join(current,segment);
+    if(!fs.existsSync(current)||fs.lstatSync(current).isSymbolicLink()) return false;
+  }
+  return true;
+}
+function safeFile(p) { return safePath(p)&&fs.lstatSync(p).isFile(); }
+const safeFiles=[];
+for(const p of files) { if(safeFile(p)) safeFiles.push(p); else errors.push(`Missing/unsafe file: ${p}`); }
+files=safeFiles;
+for(const p of required) if(!files.includes(p)||!fs.readFileSync(p,'utf8').trim()) errors.push(`Missing/empty: ${p}`);
+const backlog=files.includes('docs/tasks/TASK_BACKLOG.md')?fs.readFileSync('docs/tasks/TASK_BACKLOG.md','utf8'):'';
 const ids=[...backlog.matchAll(/^## ([A-Z]+-\d+) /gm)].map(m=>m[1]);
 if(new Set(ids).size!==ids.length) errors.push('Duplicate task ID');
 for(const p of files.filter(p=>p.endsWith('.md')&&!p.endsWith('TSA_DEEP_RESEARCH.md'))) {
@@ -191,18 +218,20 @@ for(const p of files.filter(p=>p.endsWith('.md')&&!p.endsWith('TSA_DEEP_RESEARCH
   for(const m of text.matchAll(/\b(?:FOUND|DATA|BANK|AUTH|ASSEMBLY|EXAM|SCORE|WEB|TEST|OPS|CONTENT|AI|RESEARCH|FACTORY|INT)-\d{3}\b/g))
     if(!ids.includes(m[0])) errors.push(`Unknown task: ${m[0]} in ${p}`);
 }
-const hash=crypto.createHash('sha256').update(fs.readFileSync('docs/research/TSA_DEEP_RESEARCH.md')).digest('hex');
+const hash=safeFile(pinnedInputs[0])?crypto.createHash('sha256').update(fs.readFileSync(pinnedInputs[0])).digest('hex'):null;
 if(hash!=='97a5bbe5844626043a5aa92bef7813a1fdbe1ba7d0d65e2bce3970f4c0dd2284') errors.push('Research changed');
 const reviewPath='docs/reviews/ARCHITECTURE_REVIEW_001.md';
-if(!fs.existsSync(reviewPath)||crypto.createHash('sha256').update(fs.readFileSync(reviewPath)).digest('hex')!=='d78a114027d3441967a2a7756d1a44bf6c6e46a80d537c027a3265ce2669ee34') errors.push('Review input missing/changed');
+if(!safeFile(reviewPath)||crypto.createHash('sha256').update(fs.readFileSync(reviewPath)).digest('hex')!=='d78a114027d3441967a2a7756d1a44bf6c6e46a80d537c027a3265ce2669ee34') errors.push('Review input missing/changed');
 const unexpected=files.filter(p=>{
-  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)||approvedFontAssets.has(p)) return false;
+  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)||approvedFontAssets.has(p)||approvedCaptureFixtures.has(p)) return false;
   return !sourceExtensions.has(path.extname(p).toLowerCase());
 });
-if(unexpected.length) errors.push(`Unsupported tracked artifacts: ${unexpected.join(', ')}`);
-const decisions=fs.readFileSync('docs/decisions/OPEN_DECISIONS.md','utf8');
+if(discovery==='git'&&unexpected.length) errors.push(`Unsupported tracked artifacts: ${unexpected.join(', ')}`);
+const decisions=files.includes('docs/decisions/OPEN_DECISIONS.md')?fs.readFileSync('docs/decisions/OPEN_DECISIONS.md','utf8'):'';
 if((decisions.match(/^- Status: PROPOSED; approval: none; revision: [1-9]\d*/gm)||[]).length!==8) errors.push('Review ADR status count');
-console.log(JSON.stringify({required:required.length,markdown:files.filter(p=>p.endsWith('.md')).length,links,tasks:ids.length,hash,warnings,errors},null,2));
+console.log(JSON.stringify({required:required.length,discovery,trackedMarkdown:discovery==='git'?tracked.filter(p=>p.endsWith('.md')).length:null,
+  untrackedMarkdown:discovery==='git'?untracked.length:null,markdown:files.filter(p=>p.endsWith('.md')).length,
+  anchors:'NOT_CHECKED',links,tasks:ids.length,hash,warnings,errors},null,2));
 if(errors.length) process.exitCode=1;
 ```
 

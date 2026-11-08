@@ -1,3 +1,4 @@
+import { listAuthoringTaxonomies } from '../../../src/modules/bank/taxonomy-catalog.mjs';
 // Only for disposable browser acceptance; never alters retained source rights.
 import { seedFixedReferenceRuns } from './fixed-reference-fixture.mjs';
 import { randomUUID } from 'node:crypto';
@@ -81,7 +82,7 @@ export async function createReviewBrowserFixture({ includeEligibleFixedStock = f
         if (!principal || !handlers.identity.mayPerform(principal, 'bank.question.author')) {
           return Response.json({ error: { code: principal ? 'FORBIDDEN' : 'UNAUTHENTICATED' } }, { status: principal ? 403 : 401 });
         }
-        return Response.json({ template }, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
+        return Response.json({ template, taxonomies: await listAuthoringTaxonomies(fixture.pool) }, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
       }
       return null;
     } });

@@ -8,6 +8,7 @@ import {
 } from '../../../packages/contracts/dist/internal.js';
 import { withTransaction } from '../database/pool.mjs';
 import { BankCommandError, reject, requireActor, UUID_PATTERN } from '../bank/common.mjs';
+import { parseNumericPracticeConfig } from '../assembly/versioned-contracts.mjs';
 
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_CURSOR_LENGTH = 1_024;
@@ -126,7 +127,7 @@ function parseEnvelope(value, expectedKeys) {
   return envelope;
 }
 
-function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false) {
+function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false, allowReadingExperiment = false, allowNumeric = false) {
   const envelope = parseEnvelope(value, ['items', 'next']);
   const rawItems = envelope.items;
   if (!Array.isArray(rawItems) || rawItems.length > limit || !(envelope.next === null
@@ -137,7 +138,8 @@ function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false) {
   const seen = new Set();
   const items = rawItems.map((raw) => {
     if (!isRecord(raw) || !canonicalObject(raw, ['entry', 'config'])) reject(503, 'TEMPORARILY_UNAVAILABLE');
-    const config = parsePersonalPracticeConfig(parseJson(raw.config),{allowShort:allowShort&&!fixed});
+    const config = (allowNumeric && parseNumericPracticeConfig(parseJson(raw.config)))
+      || parsePersonalPracticeConfig(parseJson(raw.config),{allowShort:allowShort&&!fixed,allowReadingExperiment:allowReadingExperiment&&!fixed});
     const parsedEntry = CatalogEntrySchema.safeParse(parseJson(raw.entry));
     if (!config || !parsedEntry.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
     const entry = parsedEntry.data;
@@ -162,6 +164,19 @@ function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false) {
   return page.data;
 }
 
+function mergePersonalCatalogPages(left,right,limit){
+  const items=[...left.items,...right.items].sort((a,b)=>a.blueprintVersionId<b.blueprintVersionId?-1:a.blueprintVersionId>b.blueprintVersionId?1:0);
+  const unique=[];const seen=new Set();
+  for(const item of items){
+    if(seen.has(item.blueprintVersionId))continue;
+    seen.add(item.blueprintVersionId);unique.push(item);
+  }
+  const more=unique.length>limit||left.nextCursor!==null||right.nextCursor!==null;
+  const shown=unique.slice(0,limit);
+  const nextCursor=more&&shown.length?encodeCursor({v:1,kind:'catalog',afterBlueprintId:shown.at(-1).blueprintVersionId}):null;
+  return CatalogPageSchema.parse({items:shown,nextCursor});
+}
+
 function parseHistoryEnvelope(value, limit) {
   const envelope = parseEnvelope(value, ['items', 'next']);
   if (!Array.isArray(envelope.items) || envelope.items.length > limit) reject(503, 'TEMPORARILY_UNAVAILABLE');
@@ -184,8 +199,8 @@ function parseHistoryEnvelope(value, limit) {
   return page.data;
 }
 
-async function runQuery(examPool, work) {
-  try { return await withTransaction(examPool, work, { role: 'tsa_exam' }); }
+async function runQuery(examPool, work, enableNumericPractice = false) {
+  try { return await withTransaction(examPool, work, { role: 'tsa_exam', enableNumericPractice }); }
   catch (error) {
     if (error instanceof BankCommandError) throw error;
     reject(503, 'TEMPORARILY_UNAVAILABLE');
@@ -193,13 +208,14 @@ async function runQuery(examPool, work) {
 }
 
 /** Owner-scoped catalog and compact attempt-history reads over the restricted exam role. */
-export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false } = {}) {
+export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableNumericPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
 
   if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
+  if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
   if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
 
@@ -209,21 +225,33 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
     const cursor = decodeCursor(query.cursor, 'catalog', enableFixedPractice);
     const page = await runQuery(examPool, async (client) => {
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [userId]);
+      if (enableNumericPractice) return parseCatalogEnvelope((await client.query(
+        'SELECT tsa.exam_numeric_catalog_page($1::integer,$2::uuid) AS result', [query.limit, cursor?.afterBlueprintId ?? null],
+      )).rows[0]?.result, query.limit, false, false, false, true);
       const fixedPage = async (limit, after) => parseCatalogEnvelope((await client.query(
         'SELECT tsa.exam_fixed_catalog_page($1::integer,$2::uuid) AS result', [limit,after])).rows[0]?.result, limit, true);
       if (cursor?.phase === 'fixed') return fixedPage(query.limit,cursor.afterFormId);
-      const personal = parseCatalogEnvelope((await client.query(
+      let personal = parseCatalogEnvelope((await client.query(
         enableShortPractice?'SELECT tsa.exam_short_catalog_page($1::integer,$2::uuid) AS result':'SELECT tsa.exam_catalog_page($1::integer,$2::uuid) AS result',
         [query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result,query.limit,false,enableShortPractice);
+      if(enableReadingExperiment){
+        await client.query("SELECT set_config('tsa.enable_reading_experiment','true',true)");
+        const experiment=parseCatalogEnvelope((await client.query(
+          'SELECT tsa.exam_reading_experiment_catalog_page($1::integer,$2::uuid) AS result',
+          [query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result,query.limit,false,false,true);
+        personal=mergePersonalCatalogPages(personal,experiment,query.limit);
+      }
       if (!enableFixedPractice || personal.nextCursor !== null) return personal;
       const remaining = query.limit-personal.items.length;
       const fixed = await fixedPage(Math.max(1,remaining),null);
       if (remaining === 0) return {items:personal.items,nextCursor:fixed.items.length
         ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:null}) : null};
       return CatalogPageSchema.parse({items:[...personal.items,...fixed.items],nextCursor:fixed.nextCursor});
-    });
+    }, enableNumericPractice);
     // Capability flags only advertise their own mode; fixed rows never gain reviewAllowed.
-    return enableReviewPractice ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE' && !(['MATH','SCIENCE'].includes(entry.domain)&&entry.questionCount===2&&entry.durationSeconds===180)
+    return enableReviewPractice && !enableNumericPractice ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE'
+      && !(['MATH','SCIENCE'].includes(entry.domain)&&entry.questionCount===2&&entry.durationSeconds===180)
+      && !(entry.domain==='READING'&&entry.questionCount===20&&entry.durationSeconds===1800)
       ? {...entry,reviewAllowed:true} : entry)} : page;
   }
 
@@ -238,7 +266,7 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
         [query.limit, cursor?.beforeCreatedAt ?? null, cursor?.beforeId ?? null],
       );
       return result.rows[0]?.result;
-    });
+    }, enableNumericPractice);
     return parseHistoryEnvelope(value, query.limit);
   }
 

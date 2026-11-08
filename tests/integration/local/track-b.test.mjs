@@ -236,7 +236,13 @@ test('private persistent PostgreSQL composes local auth and real Bank routes in 
 
     const templateResponse = await api(runtime.origin, author, '/local/workspace/template');
     assert.equal(templateResponse.status, 200);
-    const { template } = await templateResponse.json();
+    const { template, taxonomies } = await templateResponse.json();
+    assert.ok(taxonomies.length > 0);
+    const registered = taxonomies.find((item) => item.taxonomyVersionId === template.taxonomyVersionId);
+    assert.ok(registered);
+    const domain = registered.nodes.find((item) => item.id === template.domainId);
+    assert.equal(domain.kind, 'DOMAIN');
+    assert.ok(registered.nodes.some((item) => item.kind === 'SKILL' && item.parentId === domain.id));
     assert.equal(template.content[0].text, privateQuestionText);
     assert.equal(template.answerKey.optionId, 'b');
     assert.equal(template.explanation[0].text, privateExplanation);
@@ -246,6 +252,11 @@ test('private persistent PostgreSQL composes local auth and real Bank routes in 
     assert.ok(template.evidenceRefs.length);
 
     const draft = draftFromTemplate(template);
+    const invalidClassification = await api(runtime.origin, author, '/api/v1/questions', {
+      method: 'POST', csrf: true, key: 'author-invalid-taxonomy-combination',
+      body: { ...draft, skillIds: [domain.id] },
+    });
+    assert.equal(invalidClassification.status, 422);
     const created = await api(runtime.origin, author, '/api/v1/questions', {
       method: 'POST', csrf: true, key: 'author-draft-create-v1', body: draft,
     });

@@ -3,6 +3,7 @@ import {
   QuestionVersionSchema,
   canonicalize,
 } from '../../../packages/contracts/dist/internal.js';
+import { SupportedQuestionVersionSchema } from '../../../packages/contracts/dist/question-v2.js';
 import {
   HASH_PATTERN,
   MAX_REFERENCE_BYTES,
@@ -216,6 +217,7 @@ function scanBlock(block, assets) {
       break;
     case 'image':
       assertRenderedString(block.alt);
+      if (!block.alt.trim() || block.alt.length > 2_000) invalidContent();
       if (block.caption !== undefined) assertRenderedString(block.caption);
       assets.add(block.assetVersionId);
       break;
@@ -231,6 +233,11 @@ function scanBlocks(blocks, assets) {
 
 function scanInteraction(interaction, assets) {
   if (!interaction || typeof interaction !== 'object') invalidContent();
+  if (interaction.type === 'NUMERIC_RESPONSE') {
+    assertRenderedString(interaction.label);
+    if (!interaction.label.trim() || interaction.label.length > 200) invalidContent();
+    return;
+  }
   if (interaction.type === 'TRUE_FALSE_GROUP') {
     for (const statement of interaction.statements) scanBlocks(statement.content, assets);
   } else {
@@ -238,8 +245,11 @@ function scanInteraction(interaction, assets) {
   }
 }
 
-function scanQuestion(question, assets) {
-  const parsed = QuestionVersionSchema.safeParse(question);
+function scanQuestion(question, assets, numericQuestions = false) {
+  const schema = question.schemaVersion === 'question/2' && numericQuestions
+    ? SupportedQuestionVersionSchema
+    : QuestionVersionSchema;
+  const parsed = schema.safeParse(question);
   if (!parsed.success) invalidContent();
   assertCanonicalQuestion(question, parsed.data);
   scanBlocks(question.content, assets);
@@ -331,29 +341,34 @@ function validateStimulus(node, assets) {
   if (!Array.isArray(node.payload.provenanceIds) || node.payload.provenanceIds.length > MAX_REFERENCE_NODES
       || node.payload.provenanceIds.some((id) => typeof id !== 'string' || !id.trim() || id.length > 2_048)
       || new Set(node.payload.provenanceIds).size !== node.payload.provenanceIds.length) invalidGraph();
-  scanBlocks(node.payload.content, assets);
+  const stimulusAssets = new Set();
+  scanBlocks(node.payload.content, stimulusAssets);
+  for (const id of stimulusAssets) assets.add(id);
   const roots = node.payload.provenanceIds.map((id) => ({ kind: 'provenance', id }));
-  for (const id of assets) roots.push({ kind: 'asset', id });
+  for (const id of stimulusAssets) roots.push({ kind: 'asset', id });
   assertExactEdges(node, roots);
 }
 
-function validateQuestionReference(node, assets) {
+function validateQuestionReference(node, assets, numericQuestions = false) {
   assertPlainRecord(node.payload);
   if (Object.hasOwn(node.payload, 'contentHash')) invalidGraph();
   let question;
   try {
     const input = { ...node.payload, contentHash: HASH_PLACEHOLDER };
-    question = QuestionVersionSchema.parse(input);
+    const schema = node.payload.schemaVersion === 'question/2' && numericQuestions
+      ? SupportedQuestionVersionSchema
+      : QuestionVersionSchema;
+    question = schema.parse(input);
     assertCanonicalQuestion(input, question, invalidGraph);
   } catch {
     invalidGraph();
   }
   if (question.id !== node.id) invalidGraph();
-  scanQuestion(question, assets);
+  scanQuestion(question, assets, numericQuestions);
   assertExactEdges(node, requiredQuestionRoots(question));
 }
 
-function validateReferenceClosure(question, nodes, rootAssets) {
+function validateReferenceClosure(question, nodes, rootAssets, numericQuestions = false) {
   const roots = requiredQuestionRoots(question);
   const reachable = new Set();
   const active = new Set();
@@ -365,7 +380,7 @@ function validateReferenceClosure(question, nodes, rootAssets) {
     if (active.has(key)) invalidGraph();
     if (reachable.has(key)) return;
     active.add(key);
-    if (node.kind === 'question') validateQuestionReference(node, rootAssets);
+    if (node.kind === 'question') validateQuestionReference(node, rootAssets, numericQuestions);
     if (node.kind === 'stimulus') validateStimulus(node, rootAssets);
     for (const edge of node.references) visit(edge, depth + 1);
     active.delete(key);
@@ -378,25 +393,39 @@ function validateReferenceClosure(question, nodes, rootAssets) {
 
 /**
  * Fail closed unless the canonical question and every rendered parent/stimulus
- * block use the supported text/math/table profile. The function never rewrites
- * authored data and deliberately rejects all asset-bearing graphs.
+ * block use a supported profile. Numeric interactions and inspected images need
+ * their explicit opt-ins; authored data is never rewritten.
  */
-export function assertSafeQuestionContent(question, references) {
+export function assertSafeQuestionContent(question, references, { inspectedImages = false, numericQuestions = false } = {}) {
+  if (typeof inspectedImages !== 'boolean' || typeof numericQuestions !== 'boolean') invalidContent();
   assertPlainRecord(question);
   assertJsonTree(question);
-  const parsed = QuestionVersionSchema.safeParse(question);
+  const schema = question.schemaVersion === 'question/2' && numericQuestions
+    ? SupportedQuestionVersionSchema
+    : QuestionVersionSchema;
+  const parsed = schema.safeParse(question);
   if (!parsed.success) invalidContent();
   if (!HASH_PATTERN.test(question.contentHash) || asJsonBytes(question) > QUESTION_BYTES_LIMIT) invalidContent();
 
   const assets = new Set();
-  scanQuestion(question, assets);
+  scanQuestion(question, assets, numericQuestions);
   const nodes = parseReferenceNodes(references);
-  const roots = validateReferenceClosure(question, nodes, assets);
+  const roots = validateReferenceClosure(question, nodes, assets, numericQuestions);
   for (const id of assets) {
     if (!nodes.has(referenceKey('asset', id))) invalidGraph();
   }
-  if (roots.some(({ kind }) => kind === 'asset') || [...nodes.values()].some(({ kind }) => kind === 'asset')) {
+  if (!inspectedImages && (roots.some(({ kind }) => kind === 'asset') || [...nodes.values()].some(({ kind }) => kind === 'asset'))) {
     reject(422, 'ASSET_SANITIZATION_REQUIRED');
+  }
+  if (inspectedImages) {
+    // This branch validates content only. The Bank writer separately verifies
+    // every immutable object before recording the inspected-image profile.
+    for (const node of nodes.values()) if (node.kind === 'asset') {
+      const asset = node.payload;
+      if (!asset || !['image/png', 'image/jpeg', 'image/webp'].includes(asset.mediaType)
+          || !Number.isSafeInteger(asset.byteLength) || asset.byteLength < 1 || asset.byteLength > 2 * 1024 * 1024
+          || !HASH_PATTERN.test(asset.bytesHash) || node.references.length !== 0) invalidGraph();
+    }
   }
   return true;
 }

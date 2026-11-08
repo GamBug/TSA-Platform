@@ -1,3 +1,5 @@
+import { listAuthoringTaxonomies } from '../modules/bank/taxonomy-catalog.mjs';
+import { backupLocalDatabase } from './database-backup.mjs';
 import { prepareStudentComponents } from './student.mjs';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -119,6 +121,11 @@ export async function createTrackBRuntime({
     throw new Error('LOCAL_STUDENT_ENABLED must be true or false');
   }
   const studentEnabled = env.LOCAL_STUDENT_ENABLED === 'true';
+  if (env.LOCAL_NUMERIC_PRACTICE_ENABLED !== undefined && !['true','false'].includes(env.LOCAL_NUMERIC_PRACTICE_ENABLED)) {
+    throw new Error('LOCAL_NUMERIC_PRACTICE_ENABLED must be true or false');
+  }
+  const numericEnabled = env.LOCAL_NUMERIC_PRACTICE_ENABLED === 'true';
+  if (numericEnabled && !studentEnabled) throw new Error('Numeric practice requires the local student runtime');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new TypeError('port must be an integer from 0 through 65535');
   if (env.LOCAL_AUTH_TRUSTED_ORIGIN && port === 0) {
     throw new Error('Do not set LOCAL_AUTH_TRUSTED_ORIGIN when requesting an ephemeral port');
@@ -160,6 +167,8 @@ export async function createTrackBRuntime({
   };
 
   try {
+    await backupLocalDatabase({ connectionConfig: database.connectionConfig,
+      directory: `${absoluteDataDirectory}-backups`, pgBin });
     await migrate(ownerPool);
     await bootstrapLocalSyntheticIdentity(ownerPool, { env: bootstrapEnv });
     await ensureLocalTaxonomy(ownerPool);
@@ -187,21 +196,25 @@ export async function createTrackBRuntime({
       identityPool, examPool, workerPool, env, port,
       pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'local-retained-student',
       leaseSeconds: 30, retrySeconds: 1,
-      createRate: rate, saveRate: { user: rate, attempt: rate },
+      createRate: rate, saveRate: { user: rate, attempt: rate }, enableNumericPractice: numericEnabled,
     }) : null;
 
     const integratedRequestHandler = async (request) => {
       if (!routeHandlers) {
         const requestId = randomUUID();
         const pathName = new URL(request.url).pathname;
-        if (pathName.startsWith('/api/v1/')) return asError('TEMPORARILY_UNAVAILABLE', 'The local request could not be completed', requestId);
+        if (/^\/api\/v[12]\//.test(pathName)) return asError('TEMPORARILY_UNAVAILABLE', 'The local request could not be completed', requestId);
         return response(503, { error: 'LOCAL_WORKSPACE_UNAVAILABLE' });
       }
       const pathname = new URL(request.url).pathname;
       if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request);
       if (pathname === TEMPLATE_PATH) return routeHandlers.templateHandler(request);
-      if (student && (pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
-          || pathname.startsWith('/api/v1/attempts/'))) return routeHandlers.attemptHandler(request);
+      if (student && (pathname === '/api/v1/topics' || pathname === '/api/v1/topic-practice'
+          || pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
+          || pathname.startsWith('/api/v1/attempts/')
+          || (numericEnabled && (pathname === '/api/v2/catalog' || pathname === '/api/v2/attempts'
+            || pathname.startsWith('/api/v2/attempts/'))))) return routeHandlers.attemptHandler(request);
+      if (numericEnabled && pathname.startsWith('/api/v2/')) return routeHandlers.numericBankHandler(request);
       if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) return routeHandlers.bankHandler(request);
       return null;
     };
@@ -220,6 +233,8 @@ export async function createTrackBRuntime({
     const identityService = await createLocalSyntheticIdentityService(identityPool, { env: handlerEnv });
     const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv });
     const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealMetadata: true });
+    const numericBankHandler = numericEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin,
+      enableNumericQuestions: true, enableReviewContext: true }) : null;
     let sourceSeed = null;
     sourceSeed = await ensureLocalSourceSeed({
       authHandler, bankHandler, origin, existing: sourceSeedState,
@@ -237,10 +252,11 @@ export async function createTrackBRuntime({
       const principal = await identityService.authenticate(request);
       if (!principal) return response(401, { error: 'UNAUTHENTICATED' });
       if (!identityService.mayPerform(principal, 'bank.question.author')) return response(403, { error: 'FORBIDDEN' });
-      return response(200, { template: buildTemplate(sourceSeed) }, { 'x-request-id': requestId });
+      return response(200, { template: buildTemplate(sourceSeed), taxonomies: await listAuthoringTaxonomies(bankPool),
+        ...(numericEnabled ? { capabilities: { numericQuestions: true } } : {}) }, { 'x-request-id': requestId });
     };
     const attemptHandler = student?.createHandler({ identityService, trustedOrigin: origin });
-    routeHandlers = { authHandler, bankHandler, templateHandler, attemptHandler };
+    routeHandlers = { authHandler, bankHandler, numericBankHandler, templateHandler, attemptHandler };
     if (student) workerStop = student.startWorker();
 
     return {

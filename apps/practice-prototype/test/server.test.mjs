@@ -2,15 +2,46 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { createPrototypeHandler } from "../server.mjs";
+import { privateQuestionFixture, privateTrueFalseGroupFixture } from "../src/private-question-fixture.mjs";
+
+const privateExplanationSentinels = [privateQuestionFixture, privateTrueFalseGroupFixture]
+  .map((fixture) => fixture.private.explanation.map((part) => part.text).join("\n"));
+
+const publicBrowserAssets = [
+  ["/", "text/html; charset=utf-8"],
+  ["/index.html", "text/html; charset=utf-8"],
+  ["/styles.css", "text/css; charset=utf-8"],
+  ["/fonts.css", "text/css; charset=utf-8"],
+  ["/app/main.js", "text/javascript; charset=utf-8"],
+  ["/app/persistent-api.js", "text/javascript; charset=utf-8"],
+  ["/app/api.js", "text/javascript; charset=utf-8"],
+  ["/app/staff.js", "text/javascript; charset=utf-8"],
+  ["/app/math.js", "text/javascript; charset=utf-8"],
+  ["/app/topic-practice.js", "text/javascript; charset=utf-8"],
+  ["/app/exam-shortcuts.js", "text/javascript; charset=utf-8"],
+  ["/app/question-media.js", "text/javascript; charset=utf-8"],
+];
+
+const originalStudentAssets = ["/", "/index.html", "/styles.css", "/app/main.js", "/app/api.js"];
+
+function assertNoPrivateExplanations(response, path) {
+  const body = response.body.toString("utf8");
+  for (const sentinel of privateExplanationSentinels) {
+    assert.equal(body.includes(sentinel), false, `${path} exposed a private explanation`);
+  }
+}
 
 describe("local static server public-file boundary", () => {
-  it("serves only explicit public assets and never serves the private fixture", async () => {
+  it("serves the first-party browser surface without private explanations", async () => {
     const handler = createPrototypeHandler();
-    for (const path of ["/", "/index.html", "/styles.css", "/app/main.js", "/app/api.js"]) {
+    for (const [path, contentType] of publicBrowserAssets) {
       const response = await handler({ method: "GET", url: path });
       assert.equal(response.status, 200, path);
-      assert.ok(response.headers["Content-Type"]);
-      assert.doesNotMatch(response.body.toString("utf8"), /answerKey|Subtract 2 from each side/);
+      assert.equal(response.headers["Content-Type"], contentType, path);
+      assertNoPrivateExplanations(response, path);
+      if (originalStudentAssets.includes(path)) {
+        assert.doesNotMatch(response.body.toString("utf8"), /answerKey|Subtract 2 from each side/);
+      }
     }
     const staffScript = await handler({ method: "GET", url: "/app/staff.js" });
     assert.equal(staffScript.status, 200);
@@ -19,6 +50,7 @@ describe("local static server public-file boundary", () => {
     const index = await handler({ method: "GET", url: "/" });
     const html = index.body.toString("utf8");
     assert.match(html, /lang="vi"/);
+    assertNoPrivateExplanations(index, "/");
     assert.doesNotMatch(html, /answerKey|Subtract 2 from each side/);
 
     for (const path of [
@@ -27,10 +59,15 @@ describe("local static server public-file boundary", () => {
       "/../src/private-question-fixture.mjs",
       "/%2e%2e/src/private-question-fixture.mjs",
       "/apps/practice-prototype/src/private-question-fixture.mjs",
+      "/tools/question-factory/cli.mjs",
+      "/tools/question-factory/reading.mjs",
+      "/data/research/reading_questions.txt",
+      "/data/research/reading_questions.progress.json",
       "/app/nonexistent.js",
     ]) {
       const response = await handler({ method: "GET", url: path });
       assert.equal(response.status, 404, path);
+      assertNoPrivateExplanations(response, path);
       assert.doesNotMatch(String(response.body), /answerKey|Subtract 2 from each side/);
     }
     assert.equal((await handler({ method: "POST", url: "/app/main.js" })).status, 404);

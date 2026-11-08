@@ -1,3 +1,4 @@
+import { createTopicPracticeHandler } from '../http/topic-practice.mjs';
 import { randomUUID } from 'node:crypto';
 import { createAttemptHandler } from '../http/attempts.mjs';
 import { createLocalAuthHandler } from '../http/local-auth.mjs';
@@ -89,7 +90,7 @@ function jsonResponse(status, payload) {
 }
 
 function unavailableResponse(pathname) {
-  if (pathname.startsWith('/api/v1')) {
+  if (/^\/api\/v[12](?:\/|$)/.test(pathname)) {
     const requestId = randomUUID();
     return new Response(JSON.stringify({ error: {
       code: 'TEMPORARILY_UNAVAILABLE',
@@ -190,9 +191,14 @@ export async function prepareStudentComponents({
   enableReviewPractice = false,
   enableFixedPractice = false,
   enableShortPractice = false,
+  enableReadingExperiment = false,
+  enableNumericPractice = false,
+  imageStore = null,
 } = {}) {
   if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
+  if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
+  if (typeof enableNumericPractice !== 'boolean') throw new TypeError('Numeric practice opt-in must be boolean');
   const config = validateConfig({
     env, port, pollMilliseconds, sweepBatchSize, executorId, leaseSeconds, retrySeconds, createRate, saveRate,
   });
@@ -203,8 +209,17 @@ export async function prepareStudentComponents({
   return Object.freeze({
     env: config.env,
     createHandler({ identityService, trustedOrigin }) {
-      return createAttemptHandler({ examPool, identityService, trustedOrigin, enableReviewPractice, enableFixedPractice, enableShortPractice,
+      const attempts = createAttemptHandler({ examPool, identityService, trustedOrigin, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, imageStore,
         createRate: config.rates.createRate, saveRate: config.rates.saveRate });
+      const topics = createTopicPracticeHandler({ examPool, identityService, trustedOrigin, createRate: config.rates.createRate });
+      const numeric = enableNumericPractice ? createAttemptHandler({ examPool, identityService, trustedOrigin,
+        enableNumericPractice: true, imageStore,
+        createRate: config.rates.createRate, saveRate: config.rates.saveRate }) : null;
+      return (request) => {
+        const pathname = new URL(request.url).pathname;
+        if (numeric && pathname.startsWith('/api/v2/')) return numeric(request);
+        return ['/api/v1/topics', '/api/v1/topic-practice'].includes(pathname) ? topics(request) : attempts(request);
+      };
     },
     startWorker() { return createWorkerLoop(sweeper, worker, pollMilliseconds); },
   });
@@ -223,7 +238,7 @@ export async function createStudentRuntime(options = {}) {
     if (pathname === '/local-auth' || pathname.startsWith('/local-auth/')) {
       return routes.authHandler(request);
     }
-    if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) {
+    if (/^\/api\/v[12](?:\/|$)/.test(pathname)) {
       return routes.attemptHandler(request);
     }
     return jsonResponse(404, { error: 'NOT_FOUND' });

@@ -5,9 +5,12 @@ import { createAllocationFixture } from '../assembly/fixtures.mjs';
 import { bankRequest } from '../bank/harness.mjs';
 
 /** Disposable postmaster-scoped engineering inventory, never a persistent stock seed. */
-export async function createMixedStudentFixture({ durationSeconds = 600 } = {}) {
+export async function createMixedStudentFixture({ durationSeconds = 600, privateExplanationPrefix = '' } = {}) {
   if (!Number.isSafeInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 21_600) {
     throw new RangeError('Fixture durationSeconds must be an integer from 1 through 21600.');
+  }
+  if (typeof privateExplanationPrefix !== 'string' || privateExplanationPrefix.length > 128) {
+    throw new TypeError('Bounded synthetic explanation prefix required.');
   }
   const f = await createAllocationFixture({ questionCount: 0, blueprintCount: 4 });
   try {
@@ -33,7 +36,7 @@ export async function createMixedStudentFixture({ durationSeconds = 600 } = {}) 
           { type: 'text', text: `Câu hỏi tổng hợp ${index + 1} — chỉ kiểm thử kỹ thuật.` },
           { type: 'math', tex: 'x^2 + 1', display: true, accessibleText: 'x bình phương cộng một' },
           { type: 'table', caption: 'Bảng dữ liệu tổng hợp', headers: ['x', 'y'], rows: [['1', '2']] },
-        ], ...spec, explanation: text('Lời giải tổng hợp; không phải nội dung kỳ thi chính thức.'),
+        ], ...spec, explanation: text(`${privateExplanationPrefix}Lời giải tổng hợp; không phải nội dung kỳ thi chính thức.`),
         stimulusVersionId: null, evidenceRefs: template.evidenceRefs, origin: 'MANUAL', provenance: template.provenance,
       };
       const response = await bankRequest(f.harness, f.browsers.author, '/api/v1/questions', {

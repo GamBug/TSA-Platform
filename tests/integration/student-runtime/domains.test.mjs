@@ -203,7 +203,8 @@ test('review consent cannot transfer to another candidate when cookies change af
   const intent=apiA.prepareReviewAttempt(f.blueprint.versionId);changeAfterSession=true;
   await assert.rejects(apiA.createReviewAttempt(intent),{code:'UNAUTHENTICATED'});
   assert.equal(createPosts,0,'a prior candidate repeat-consent intent must not create for the new session');
-  activeJar=jarA;const secondIntent=apiA.prepareReviewAttempt(f.blueprint.versionId);changeAtDispatch=true;
+  activeJar=jarA;await apiA.openDemoSession();
+  const secondIntent=apiA.prepareReviewAttempt(f.blueprint.versionId);changeAtDispatch=true;
   await assert.rejects(apiA.createReviewAttempt(secondIntent),error=>{assert.equal(error.status,403);return true;});
   assert.equal(createPosts,1,'a dispatch-time cookie change reaches the server with the original nonce and fails CSRF');
   assert.equal((await f.pool.query('SELECT count(*)::integer AS n FROM tsa.attempts')).rows[0].n,0);

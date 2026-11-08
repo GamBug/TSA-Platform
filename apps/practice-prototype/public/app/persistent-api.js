@@ -15,9 +15,16 @@ const ERROR_TEXT = {
   TEMPORARILY_UNAVAILABLE: 'Máy chủ chưa hoàn tất yêu cầu. Bạn có thể thử lại cùng thao tác.',
 };
 const STATES = new Set(['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED', 'GRADED', 'CANCELLED', 'INVALIDATED']);
+const STATE_ORDER = { CREATED: 0, IN_PROGRESS: 1, SUBMITTED: 2, EXPIRED: 2, GRADED: 3, CANCELLED: 4, INVALIDATED: 4 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DOMAINS = new Set(['MATH', 'READING', 'SCIENCE']);
 const PROFILE_KINDS = new Set(['INDEPENDENT_PRACTICE', 'PUBLIC_REFERENCE']);
+const API_VERSIONS = new Set(['v1', 'v2']);
+const NUMERIC_DECIMAL = /^[+-]?[0-9]{1,40}(?:[.,][0-9]{1,20})?$/u;
+
+function validNumericResponse(value) {
+  return typeof value === 'string' && value.length <= 64 && NUMERIC_DECIMAL.test(value.trim());
+}
 
 function exactRecord(value, keys) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -44,12 +51,16 @@ function group(values = {}) {
     .map(([statementId, value]) => ({ statementId, value }));
 }
 function answer(slotId, value, revision = 0) {
+  if (value?.type === 'NUMERIC_RESPONSE') return { slotId, type: value.type, value: value.value, revision };
   if (value?.type === 'TRUE_FALSE_GROUP') return { slotId, type: value.type, statementValues: group(value.values), revision };
   if (value?.type === 'MULTIPLE_CHOICE') return { slotId, type: value.type, optionIds: clone(value.optionIds), revision };
   return { slotId, type: 'SINGLE_CHOICE', optionId: value?.optionId ?? null, revision };
 }
 function answered(slot, value) {
   if (!value) return false;
+  if (slot.interaction.type === 'NUMERIC_RESPONSE') {
+    return value.type === 'NUMERIC_RESPONSE' && validNumericResponse(value.value);
+  }
   if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
     return slot.interaction.statements.every(({ id }) => typeof value.values?.[id] === 'boolean');
   }
@@ -64,17 +75,37 @@ function publicSlot(value) {
 }
 
 /** Explicit local PostgreSQL mode; never falls back to demo routes or publishes stock. */
-export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(...args), readCookie = cookie } = {}) {
+export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(...args), readCookie = cookie, apiVersion = 'v1' } = {}) {
+  if (!API_VERSIONS.has(apiVersion)) throw failure('VALIDATION_ERROR', 422);
+  const apiRoot = `/api/${apiVersion}`;
   const attempts = new Map();
   const pendingKeys = new Map();
   const catalogProfiles = new Map(),personalProfiles = new Map();
   const shortIntents = new WeakSet();
+  const topicIntents = new WeakMap();
+  let topicCatalogBinding = null;
   let principal = null;
   let identityGeneration = 0;
+  let readSequence = 0;
+
+  function invalidateIdentity() {
+    identityGeneration += 1; principal = null; topicCatalogBinding = null;
+    attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+  }
+  function identityBinding() {
+    return { generation: identityGeneration, nonce: readCookie('tsa_local_csrf') };
+  }
+  function requireIdentity(binding) {
+    // A stale operation must not invalidate the replacement identity's state.
+    if (binding.generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
+    if (binding.nonce !== readCookie('tsa_local_csrf')) {
+      invalidateIdentity(); throw failure('UNAUTHENTICATED', 401);
+    }
+  }
 
   async function request(path, { method = 'GET', body, key, csrfToken = null } = {}) {
     const generation = identityGeneration;
-    const studentRequest = path.startsWith('/api/v1/');
+    const studentRequest = /^\/api\/v[12]\//u.test(path);
     const sessionNonce = studentRequest ? readCookie('tsa_local_csrf') : null;
     const headers = new Headers({ accept: 'application/json' });
     if (body !== undefined) headers.set('content-type', 'application/json');
@@ -91,14 +122,14 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     } catch { throw failure('TEMPORARILY_UNAVAILABLE'); }
     if (generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
     if (studentRequest && sessionNonce !== readCookie('tsa_local_csrf')) {
-      identityGeneration += 1; principal = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+      identityGeneration += 1; principal = null; topicCatalogBinding = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
       const denied = response.status === 403;
       const code = denied && typeof value?.error?.code === 'string' ? value.error.code : 'UNAUTHENTICATED';
       throw failure(code, denied ? 403 : 401);
     }
     if (!response.ok) {
       const code = value?.error?.code ?? value?.error ?? 'TEMPORARILY_UNAVAILABLE';
-      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') { attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); }
+      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') invalidateIdentity();
       throw failure(typeof code === 'string' ? code : 'TEMPORARILY_UNAVAILABLE', response.status, value?.error?.details ?? {});
     }
     return value;
@@ -120,11 +151,11 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     }
   }
   async function pages(path) {
-    const generation = identityGeneration;
+    const binding = identityBinding();
     const items = []; let cursor = null; const seen = new Set();
     do {
       const result = await request(`${path}?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
-      if (generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
+      requireIdentity(binding);
       if (!Array.isArray(result?.items) || !(result.nextCursor === null || typeof result.nextCursor === 'string')) {
         throw failure('TEMPORARILY_UNAVAILABLE');
       }
@@ -157,8 +188,11 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     };
   }
   async function readAttempt(attemptId, expected = null) {
-    const path = `/api/v1/attempts/${encodeURIComponent(attemptId)}`;
+    const binding = identityBinding();
+    const readId = ++readSequence;
+    const path = `${apiRoot}/attempts/${encodeURIComponent(attemptId)}`;
     const view = await request(path);
+    requireIdentity(binding);
     const expectedMode = expected?.formMode
       ?? (expected?.reuseMode === 'FIXED_AS_PUBLISHED' ? 'PUBLISHED_FIXED' : 'PERSONALIZED_PRACTICE');
     if (!view || view.attemptId !== attemptId
@@ -170,52 +204,125 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
           || view.sections.reduce((sum,section)=>sum+section.count,0)!==expected.questionCount))))) {
       throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
     }
+    if (!STATES.has(view.state) || !Array.isArray(view.slots) || !Array.isArray(view.answers)
+        || (apiVersion === 'v1' && view.slots.some((slot) => slot?.interaction?.type === 'NUMERIC_RESPONSE'))) {
+      throw failure('TEMPORARILY_UNAVAILABLE');
+    }
     let released = null;
     if (view.state === 'GRADED') {
       released = await request(`${path}/result`);
+      requireIdentity(binding);
       if (released.attemptId !== attemptId || released.scoreLabel !== 'UNOFFICIAL_PRACTICE' || !Array.isArray(released.items)) {
         throw failure('TEMPORARILY_UNAVAILABLE');
       }
     }
+    // Reads and mutations have separate ordering: an earlier read completion
+    // cannot suppress a later read's authoritative closure. Known lifecycle and
+    // answer revisions never move backward. Auth/release/mode checks run first.
+    const current = attempts.get(attemptId);
+    if (current) {
+      const olderState = STATE_ORDER[view.state] < STATE_ORDER[current.view.state];
+      const sameState = STATE_ORDER[view.state] === STATE_ORDER[current.view.state];
+      const olderAnswers = current.view.answers.some((item) => item.revision > (view.answers.find((entry) => entry.slotId === item.slotId)?.revision ?? 0));
+      const newerAnswers = view.answers.some((item) => item.revision > (current.view.answers.find((entry) => entry.slotId === item.slotId)?.revision ?? 0));
+      if (olderState || (sameState && (olderAnswers || (!newerAnswers && current.readId > readId)))) {
+        return { attempt: clone(current.display) };
+      }
+    }
     const result = display(view, released);
-    attempts.set(attemptId, { view: clone(view), display: clone(result) });
+    attempts.set(attemptId, { view: clone(view), display: clone(result), readId });
     return { attempt: result };
   }
-  async function session() {
+  async function session(bound = false) {
+    const binding = identityBinding();
     const current = await request('/local-auth/session');
-    if (!current.authenticated) throw failure('UNAUTHENTICATED', 401);
-    if (!current.principal?.roles?.includes('CANDIDATE')) throw failure('FORBIDDEN', 403);
+    requireIdentity(binding);
+    if (!current.authenticated) { invalidateIdentity(); throw failure('UNAUTHENTICATED', 401); }
+    if (!current.principal?.roles?.includes('CANDIDATE')) { invalidateIdentity(); throw failure('FORBIDDEN', 403); }
     if (principal?.userId !== current.principal.userId) { identityGeneration += 1; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear(); }
     principal = current.principal;
-    return current;
+    return bound ? { current, binding: identityBinding() } : current;
   }
   async function openDemoSession() {
-    await session();
-    const history = await request('/api/v1/attempts?limit=100');
+    const { binding } = await session(true);
+    requireIdentity(binding);
+    const history = await request(`${apiRoot}/attempts?limit=100`);
+    requireIdentity(binding);
     if (!Array.isArray(history?.items)) throw failure('TEMPORARILY_UNAVAILABLE');
     const current = history.items.find((item) => ['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED'].includes(item.state))
       ?? history.items.find((item) => item.state === 'GRADED');
-    return current ? readAttempt(current.attemptId, current) : { attempt: null };
+    const result = current ? await readAttempt(current.attemptId, current) : { attempt: null };
+    requireIdentity(binding);
+    return result;
   }
   async function loginCandidate(actorKey) {
     if (!['studentA', 'studentB'].includes(actorKey)) throw failure('FORBIDDEN', 403);
-    identityGeneration += 1; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+    invalidateIdentity();
+    const binding = identityBinding();
     const current = await request('/local-auth/session');
+    requireIdentity(binding);
     if (current.authenticated) {
       if (current.principal?.actorKey !== actorKey) throw failure('FORBIDDEN', 403);
-      return session();
+    } else {
+      const guest = await request('/local-auth/bootstrap', { method: 'POST', body: {} });
+      if (binding.generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
+      const guestNonce = guest.csrfToken ?? binding.nonce;
+      if (guestNonce !== readCookie('tsa_local_csrf')) { invalidateIdentity(); throw failure('UNAUTHENTICATED', 401); }
+      await request('/local-auth/login', { method: 'POST', body: { actorKey }, csrfToken: guestNonce });
+      // Login intentionally rotates the cookie; adopt only after a fresh session
+      // confirms the requested actor, while preserving generation ownership.
+      if (binding.generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
     }
-    await request('/local-auth/bootstrap', { method: 'POST', body: {} });
-    await request('/local-auth/login', { method: 'POST', body: { actorKey } });
-    return session();
+    const authenticated = await session(true);
+    requireIdentity(authenticated.binding);
+    if (authenticated.current.principal.actorKey !== actorKey) { invalidateIdentity(); throw failure('FORBIDDEN', 403); }
+    return authenticated.current;
   }
   async function logout() {
-    identityGeneration += 1; principal = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+    invalidateIdentity();
+    const generation = identityGeneration;
     await request('/local-auth/logout', { method: 'POST', body: {} });
-    principal = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+    if (generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
+    invalidateIdentity();
+  }
+  async function loadTopics({ durationSeconds = 120 } = {}) {
+    const binding = identityBinding();
+    const result = await request(`/api/v1/topics?durationSeconds=${encodeURIComponent(durationSeconds)}`);
+    requireIdentity(binding);
+    if (!Array.isArray(result?.groups)) throw failure('TEMPORARILY_UNAVAILABLE');
+    topicCatalogBinding = Object.freeze(binding);
+    return result;
+  }
+  async function createTopicAttempt(intent) {
+    if (!intent || typeof intent.key !== 'string' || !intent.body) throw failure('VALIDATION_ERROR', 422);
+    if (!topicIntents.has(intent)) {
+      if (!topicCatalogBinding) throw failure('UNAUTHENTICATED', 401);
+      topicIntents.set(intent, { binding: topicCatalogBinding, body: clone(intent.body), key: intent.key });
+    }
+    const prepared = topicIntents.get(intent);
+    const { binding } = prepared;
+    requireIdentity(binding);
+    await session();
+    requireIdentity(binding);
+    // The selected catalog and exact retry body belong to the initiating identity.
+    const receipt = await mutation('/api/v1/topic-practice', prepared.body, prepared.key, binding.nonce);
+    requireIdentity(binding);
+    if (!UUID.test(receipt?.attemptId) || receipt.formMode !== 'PERSONALIZED_PRACTICE'
+        || receipt.reuseMode !== 'NEW_ONLY') throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
+    const profile = receipt.practiceProfile;
+    if (profile?.topicPractice === true && UUID.test(profile.blueprintVersionId)
+        && DOMAINS.has(profile.domain) && profile.questionCount === prepared.body.questionCount
+        && Number.isSafeInteger(profile.durationSeconds) && profile.durationSeconds >= 60 && profile.durationSeconds <= 10800) {
+      personalProfiles.set(receipt.attemptId, clone(profile));
+    }
+    const result = await readAttempt(receipt.attemptId, receipt);
+    requireIdentity(binding);
+    return result;
   }
   async function loadCatalog() {
-    const items = await pages('/api/v1/catalog');
+    const binding = identityBinding();
+    const items = await pages(`${apiRoot}/catalog`);
+    requireIdentity(binding);
     const domains = items.filter((item) => item.mode === 'PERSONALIZED_PRACTICE').map((item) => ({
       domain: item.domain, name: item.name, questionCount: item.questionCount, durationSeconds: item.durationSeconds,
       isShort: ['MATH','SCIENCE'].includes(item.domain)&&item.questionCount===2&&item.durationSeconds===180,
@@ -253,7 +360,8 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     if(!shortIntents.has(intent)||intent.generation!==identityGeneration)throw failure('UNAUTHENTICATED',401);
     await session();
     if(intent.generation!==identityGeneration||intent.csrfToken!==readCookie('tsa_local_csrf'))throw failure('UNAUTHENTICATED',401);
-    const receipt=await mutation('/api/v1/attempts',intent.body,intent.key,intent.csrfToken);
+    const receipt=await mutation(`${apiRoot}/attempts`,intent.body,intent.key,intent.csrfToken);
+    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken });
     if(!UUID.test(receipt?.attemptId)||!UUID.test(receipt?.formId)||receipt.state!=='CREATED'
       ||receipt.domain!==intent.profile.domain||receipt.formMode!=='PERSONALIZED_PRACTICE'
       ||receipt.reuseMode!=='NEW_ONLY')throw failure('UNEXPECTED_ATTEMPT_MODE',502);
@@ -261,8 +369,10 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     return receipt;
   }
   async function readShortAttempt(attemptId,domain) {
+    const binding = identityBinding();
     if(!UUID.test(attemptId)||!['MATH','SCIENCE'].includes(domain))throw failure('VALIDATION_ERROR',422);
-    return readAttempt(attemptId,{formMode:'PERSONALIZED_PRACTICE',reuseMode:'NEW_ONLY',domain,questionCount:2});
+    const result = await readAttempt(attemptId,{formMode:'PERSONALIZED_PRACTICE',reuseMode:'NEW_ONLY',domain,questionCount:2});
+    requireIdentity(binding); return result;
   }
   function prepareReviewAttempt(blueprintVersionId) {
     if (typeof blueprintVersionId !== 'string'
@@ -291,7 +401,8 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     }
     // Freeze the session nonce too: a cookie change after this check must fail CSRF,
     // never transfer one candidate's repeat consent to another candidate.
-    return mutation('/api/v1/attempts', intent.body, intent.key, intent.csrfToken);
+    const receipt = await mutation(`${apiRoot}/attempts`, intent.body, intent.key, intent.csrfToken);
+    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken }); return receipt;
   }
   function prepareFixedAttempt(formId) {
     if (typeof formId !== 'string' || !UUID.test(formId)) throw failure('VALIDATION_ERROR', 422);
@@ -316,50 +427,73 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     if (intent.generation !== identityGeneration || intent.csrfToken !== readCookie('tsa_local_csrf')) {
       throw failure('UNAUTHENTICATED', 401);
     }
-    return mutation('/api/v1/attempts', intent.body, intent.key, intent.csrfToken);
+    const receipt = await mutation(`${apiRoot}/attempts`, intent.body, intent.key, intent.csrfToken);
+    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken }); return receipt;
   }
   async function readFixedAttempt(attemptId, domain, formId) {
+    const binding = identityBinding();
     if (typeof attemptId !== 'string' || !UUID.test(attemptId)
         || !DOMAINS.has(domain) || typeof formId !== 'string' || !UUID.test(formId)) {
       throw failure('VALIDATION_ERROR', 422);
     }
-    return readAttempt(attemptId, { formMode: 'PUBLISHED_FIXED', reuseMode: 'FIXED_AS_PUBLISHED', domain, formId });
+    const result = await readAttempt(attemptId, { formMode: 'PUBLISHED_FIXED', reuseMode: 'FIXED_AS_PUBLISHED', domain, formId });
+    requireIdentity(binding); return result;
   }
   async function readReviewAttempt(attemptId, domain) {
-    return readAttempt(attemptId, { formMode: 'PERSONALIZED_PRACTICE', reuseMode: 'REVIEW_ALLOWED', domain });
+    const binding = identityBinding();
+    const result = await readAttempt(attemptId, { formMode: 'PERSONALIZED_PRACTICE', reuseMode: 'REVIEW_ALLOWED', domain });
+    requireIdentity(binding); return result;
   }
   async function startDemo(domain = 'MATH', blueprintVersionId) {
-    await session();
-    const history = await request('/api/v1/attempts?limit=100');
+    const { binding } = await session(true);
+    requireIdentity(binding);
+    const history = await request(`${apiRoot}/attempts?limit=100`);
+    requireIdentity(binding);
     let existing = history.items.find((item) => ['CREATED', 'IN_PROGRESS'].includes(item.state));
     if(existing)throw failure('CONCURRENT_ATTEMPT_EXISTS',409,{existingAttemptId:existing.attemptId});
     if (typeof blueprintVersionId !== 'string') throw failure('VALIDATION_ERROR', 422);
-    existing=await mutation('/api/v1/attempts',{blueprintVersionId});
+    existing=await mutation(`${apiRoot}/attempts`,{blueprintVersionId},null,binding.nonce);
+    requireIdentity(binding);
     const profile=catalogProfiles.get(blueprintVersionId);
     if(profile && profile.domain===domain && existing.domain===domain && existing.formMode==='PERSONALIZED_PRACTICE'
       && existing.reuseMode==='NEW_ONLY')personalProfiles.set(existing.attemptId,profile);
     const loaded = await readAttempt(existing.attemptId, existing);
+    requireIdentity(binding);
     if (loaded.attempt.state === 'CREATED') {
-      await mutation(`/api/v1/attempts/${encodeURIComponent(existing.attemptId)}/start`, {});
+      await mutation(`${apiRoot}/attempts/${encodeURIComponent(existing.attemptId)}/start`, {}, null, binding.nonce);
+      requireIdentity(binding);
     }
-    return { ...await readAttempt(existing.attemptId, existing), resumed:false };
+    const result = await readAttempt(existing.attemptId, existing);
+    requireIdentity(binding); return { ...result, resumed:false };
   }
   async function startReservedAttempt(attemptId, expected = null) {
+    const binding = identityBinding();
     // A reservation action must never fall through to a replacement allocation.
-    try { await mutation(`/api/v1/attempts/${encodeURIComponent(attemptId)}/start`, {}); }
+    try { await mutation(`${apiRoot}/attempts/${encodeURIComponent(attemptId)}/start`, {}, null, binding.nonce); requireIdentity(binding); }
     catch (error) {
       if (error.code !== 'FORM_UNAVAILABLE') throw error;
+      requireIdentity(binding);
       // Start commits cancellation before returning410; read its safe reason.
-      return { ...await readAttempt(attemptId, expected), resumed: true };
+      const result = await readAttempt(attemptId, expected);
+      requireIdentity(binding); return { ...result, resumed: true };
     }
-    return { ...await readAttempt(attemptId, expected), resumed: true };
+    const result = await readAttempt(attemptId, expected);
+    requireIdentity(binding); return { ...result, resumed: true };
   }
   async function saveAnswer(attemptId, slotId, input) {
+    const binding = identityBinding();
     const cached = attempts.get(attemptId);
     const slot = cached?.view.slots.find((item) => item.slotId === slotId);
     if (!slot || cached.view.state !== 'IN_PROGRESS') throw failure('ATTEMPT_CLOSED', 409);
     let value;
-    if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
+    if (slot.interaction.type === 'NUMERIC_RESPONSE') {
+      if (apiVersion !== 'v2' || !exactRecord(input, ['type', 'value'])
+          || input.type !== 'NUMERIC_RESPONSE'
+          || !(input.value === null || validNumericResponse(input.value))) throw failure('VALIDATION_ERROR', 422);
+      value = { type: 'NUMERIC_RESPONSE', value: input.value };
+    } else if (input?.type === 'NUMERIC_RESPONSE' || apiVersion === 'v1' && slot.interaction.type === 'NUMERIC_RESPONSE') {
+      throw failure('VALIDATION_ERROR', 422);
+    } else if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
       const entries = input?.statementValues ?? [];
       if (!Array.isArray(entries) || new Set(entries.map((item) => item.statementId)).size !== entries.length
           || entries.some((item) => typeof item.value !== 'boolean'
@@ -373,32 +507,51 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       value = { type: 'MULTIPLE_CHOICE', optionIds: slot.interaction.options.filter((item) => ids.includes(item.id)).map((item) => item.id) };
     } else value = { type: 'SINGLE_CHOICE', optionId: typeof input === 'string' ? input : input?.optionId ?? null };
     const expectedRevision = cached.view.answers.find((item) => item.slotId === slotId)?.revision ?? 0;
-    const ack = await mutation(`/api/v1/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(slotId)}`,
-      { expectedRevision, value });
+    const ack = await mutation(`${apiRoot}/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(slotId)}`,
+      { expectedRevision, value }, null, binding.nonce);
+    requireIdentity(binding);
     // PostgreSQL JSON object key order is not a browser serialization contract.
     if (ack.slotId !== slotId || ack.revision !== expectedRevision + 1
         || !sameValue(ack.value, value)) throw failure('TEMPORARILY_UNAVAILABLE');
     const current = attempts.get(attemptId);
-    if (current !== cached) throw failure('REVISION_CONFLICT', 409);
+    if (!current) throw failure('REVISION_CONFLICT', 409);
+    // An intervening GET or a different slot's save is not itself a conflict.
+    // Preserve any newer slot revision and never reopen a known closed attempt.
+    if (current.view.state !== 'IN_PROGRESS') return { attempt: clone(current.display), message: 'Đã lưu lựa chọn vào bài luyện tập.' };
+    const previous = current.view.answers.find((item) => item.slotId === slotId);
+    if (previous && (previous.revision > ack.revision
+        || (previous.revision === ack.revision && !sameValue(previous.value, ack.value)))) {
+      throw failure('REVISION_CONFLICT', 409);
+    }
+    const nextView = clone(current.view);
     const entry = { slotId, value: clone(ack.value), revision: ack.revision, savedAt: ack.savedAt };
-    const index = cached.view.answers.findIndex((item) => item.slotId === slotId);
-    if (index < 0) cached.view.answers.push(entry); else cached.view.answers[index] = entry;
-    cached.view.serverNow = ack.savedAt;
-    cached.display = display(cached.view);
-    return { attempt: clone(cached.display), message: 'Đã lưu lựa chọn vào bài luyện tập.' };
+    const index = nextView.answers.findIndex((item) => item.slotId === slotId);
+    if (index < 0) nextView.answers.push(entry); else nextView.answers[index] = entry;
+    if (Date.parse(ack.savedAt) > Date.parse(nextView.serverNow)) nextView.serverNow = ack.savedAt;
+    const nextDisplay = display(nextView);
+    attempts.set(attemptId, { view: nextView, display: clone(nextDisplay), readId: current.readId });
+    return { attempt: nextDisplay, message: 'Đã lưu lựa chọn vào bài luyện tập.' };
   }
   async function submitAttempt(attemptId) {
-    const closure = await mutation(`/api/v1/attempts/${encodeURIComponent(attemptId)}/submit`, {});
+    const binding = identityBinding();
+    const closure = await mutation(`${apiRoot}/attempts/${encodeURIComponent(attemptId)}/submit`, {}, null, binding.nonce);
+    requireIdentity(binding);
     const cached = attempts.get(attemptId);
-    if (!cached || closure.state === 'GRADED') return readAttempt(attemptId, cached?.view ?? null);
+    if (!cached || closure.state === 'GRADED') {
+      const result = await readAttempt(attemptId, cached?.view ?? null);
+      requireIdentity(binding); return result;
+    }
+    if (STATE_ORDER[cached.view.state] > STATE_ORDER[closure.state]) return { attempt: clone(cached.display) };
     const view = { ...cached.view, state: closure.state, startBefore: null, activeSectionId: null,
       slots: [], answers: [], closure, serverNow: closure.closedAt ?? cached.view.serverNow };
     const result = display(view);
-    attempts.set(attemptId, { view, display: clone(result) });
+    attempts.set(attemptId, { view, display: clone(result), readId: cached.readId });
     return { attempt: result };
   }
   async function readReview(attemptId) {
-    const review = await request(`/api/v1/attempts/${encodeURIComponent(attemptId)}/result`);
+    const binding = identityBinding();
+    const review = await request(`${apiRoot}/attempts/${encodeURIComponent(attemptId)}/result`);
+    requireIdentity(binding);
     if (review.attemptId !== attemptId || review.scoreLabel !== 'UNOFFICIAL_PRACTICE' || !Array.isArray(review.items)) {
       throw failure('TEMPORARILY_UNAVAILABLE');
     }
@@ -406,17 +559,25 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       repeatNotice: 'Câu hỏi thuộc bài luyện tập độc lập; đây không phải kỳ thi TSA chính thức.',
       slots: review.items.map((item) => ({ slotId: item.slotId, ordinal: item.question.ordinal,
         type: item.question.interaction.type, earned: item.earned,
+        ...(item.correctAnswer.type === 'NUMERIC_RESPONSE' ? {
+          correctNumericValue: item.correctAnswer.value,
+          numericResponseValue: item.response?.type === 'NUMERIC_RESPONSE' ? item.response.value : null,
+        } : {}),
         ...(item.correctAnswer.type === 'SINGLE_CHOICE' ? { correctOptionId: item.correctAnswer.optionId } : {}),
         ...(item.correctAnswer.type === 'MULTIPLE_CHOICE' ? { correctOptionIds: clone(item.correctAnswer.optionIds) } : {}),
         ...(item.correctAnswer.type === 'TRUE_FALSE_GROUP' ? { correctStatementValues: group(item.correctAnswer.values),
           statementValues: group(item.response?.values) } : {}), explanation: clone(item.explanation) })) } };
   }
-  return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog,
+  return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog, loadTopics, createTopicAttempt,
     startDemo, prepareReviewAttempt, createReviewAttempt, readReviewAttempt,
     prepareFixedAttempt, createFixedAttempt, readFixedAttempt,
     prepareShortAttempt, createShortAttempt, readShortAttempt,
     startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
-    loadHistory: () => pages('/api/v1/attempts') });
+    loadHistory: async () => {
+      const binding = identityBinding();
+      const result = await pages(`${apiRoot}/attempts`);
+      requireIdentity(binding); return result;
+    } });
 }
 
 function sameValue(left, right) {

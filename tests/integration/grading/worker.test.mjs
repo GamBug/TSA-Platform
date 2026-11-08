@@ -279,6 +279,110 @@ test("student role cannot spoof a live worker lease or read private grading data
   }, { role: "tsa_exam" }), (error) => error.code === "42501");
 });
 
+test("dedicated Factory LOGIN cannot use a known live grading lease or publish Bank content", { timeout: 30_000 }, async (t) => {
+  const { fixture, createWorker, attemptId } = await setup(t);
+  const executorId = "factory-isolation-legitimate-grader";
+  const worker = createWorker(executorId);
+  const lease = await worker.claim();
+  assert.equal(lease.status, "CLAIMED");
+  assert.equal(lease.attemptId, attemptId);
+  const loaded = await worker.load(lease);
+  assert.equal(loaded.status, "READY");
+  const computed = scoreAttempt(loaded);
+
+  await fixture.pool.query("CREATE ROLE factory_lease_probe LOGIN");
+  await fixture.pool.query("GRANT tsa_factory TO factory_lease_probe");
+  const factoryPool = createDatabasePool({ ...fixture.harness.database.connectionConfig, user: "factory_lease_probe" }, {
+    applicationName: "tsa-factory-live-lease-isolation-test", max: 1,
+  });
+  let client;
+  try {
+    client = await factoryPool.connect();
+    const identity = (await client.query(`SELECT session_user::text AS login,current_user::text AS current_role,
+      pg_has_role(session_user,'tsa_factory','MEMBER') AS factory,
+      pg_has_role(session_user,'tsa_bank','MEMBER') AS bank,
+      pg_has_role(session_user,'tsa_exam','MEMBER') AS exam,
+      pg_has_role(session_user,'tsa_exam_worker','MEMBER') AS worker,
+      (SELECT count(*)::integer FROM pg_auth_members WHERE member=(SELECT oid FROM pg_roles WHERE rolname=session_user)) AS memberships,
+      (SELECT rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication OR rolbypassrls FROM pg_roles WHERE rolname=session_user) AS elevated`)).rows[0];
+    assert.deepEqual(identity, { login: "factory_lease_probe", current_role: "factory_lease_probe", factory: true,
+      bank: false, exam: false, worker: false, memberships: 1, elevated: false });
+
+    // Positive control: existing Factory job permissions are intentionally intact.
+    const factoryJobId = randomUUID();
+    await fixture.pool.query(`INSERT INTO tsa.jobs(id,kind,dedup_key,payload_ref)
+      VALUES($1,'factory_produce_unit',$2,'fixture:factory-lease-isolation')`, [factoryJobId, key("factory-lease-job")]);
+    const ownJobs = await client.query("SELECT id FROM tsa.jobs ORDER BY id");
+    assert.deepEqual(ownJobs.rows, [{ id: factoryJobId }]);
+    assert.equal((await client.query("UPDATE tsa.jobs SET last_error_code='TEMPORARILY_UNAVAILABLE' WHERE id=$1 RETURNING id", [factoryJobId])).rowCount, 1);
+    assert.equal((await client.query("SELECT id FROM tsa.source_versions WHERE id=$1", [fixture.source.sourceVersionId])).rowCount, 1);
+
+    // Snapshot every application table after positive controls. No background
+    // executor runs in this fixture; exact JSONB row images include raw clocks.
+    const tables = (await fixture.pool.query(`SELECT table_schema,table_name FROM information_schema.tables
+      WHERE table_schema IN('tsa','tsa_private') AND table_type='BASE TABLE' ORDER BY table_schema,table_name`)).rows;
+    const snapshot = async () => {
+      const rows = [];
+      for (const { table_schema: schema, table_name: table } of tables) {
+        assert.match(schema, /^[a-z_]+$/); assert.match(table, /^[a-z_]+$/);
+        rows.push((await fixture.pool.query(`SELECT COALESCE(jsonb_agg(value ORDER BY value::text),'[]'::jsonb) AS value
+          FROM (SELECT to_jsonb(t) AS value FROM "${schema}"."${table}" t) entries`)).rows[0].value);
+      }
+      return JSON.stringify(rows);
+    };
+    const before = await snapshot();
+    let denied = 0;
+    async function rejectPermission(sql, values = []) {
+      // Each failed operation gets a fresh transaction; the supplied live GUCs
+      // cannot turn Factory session identity into trusted EXAM worker authority.
+      await client.query("BEGIN");
+      try {
+        await client.query(`SELECT set_config('tsa.exam_job_id',$1,true),set_config('tsa.executor_id',$2,true),
+          set_config('tsa.lease_token',$3,true),set_config('tsa.local_user_id',$4,true)`,
+        [lease.dispatch.jobId, executorId, lease.leaseToken, fixture.principals.reviewer.userId]);
+        await assert.rejects(client.query(sql, values), (error) => error.code === "42501", "Factory operation must fail with insufficient privilege");
+        denied++;
+      } finally { await client.query("ROLLBACK"); }
+    }
+    for (const role of [null, "tsa_factory"]) {
+      if (role) await client.query("SET ROLE tsa_factory");
+      await rejectPermission("SELECT tsa.exam_worker_claim($1::text,$2::integer)", [executorId, 30]);
+      await rejectPermission("SELECT tsa.exam_worker_load($1::uuid,$2::text,$3::bigint)", [lease.dispatch.jobId, executorId, lease.leaseToken]);
+      await rejectPermission("SELECT tsa.exam_worker_finish($1::uuid,$2::text,$3::bigint,$4::jsonb)",
+        [lease.dispatch.jobId, executorId, lease.leaseToken, JSON.stringify(computed)]);
+      await rejectPermission("SELECT tsa.exam_worker_fail($1::uuid,$2::text,$3::bigint,$4::text,$5::integer)",
+        [lease.dispatch.jobId, executorId, lease.leaseToken, "TEMPORARILY_UNAVAILABLE", 1]);
+      for (const table of ["tsa.users", "tsa.attempts", "tsa.answers", "tsa_private.question_secrets", "tsa_private.form_slot_secrets"]) {
+        await rejectPermission(`SELECT * FROM ${table} LIMIT 1`);
+      }
+      const question = fixture.questions[0];
+      await rejectPermission("UPDATE tsa.question_workflow SET state='APPROVED' WHERE question_version_id=$1", [question.versionId]);
+      await rejectPermission("UPDATE tsa.questions SET eligible_version_id=$1 WHERE id=$2", [question.versionId, question.questionId]);
+      await rejectPermission(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
+        VALUES($1,$2,$3,$4,'APPROVE',$5::jsonb,'Synthetic denied Factory impersonation')`,
+      [randomUUID(), question.versionId, question.contentHash, fixture.principals.reviewer.userId,
+        JSON.stringify({ correctness: true, unambiguous: true, relevant: true, language: true, explanation: true, rights: true })]);
+      await rejectPermission("SET ROLE tsa_exam_worker");
+      await rejectPermission("SET ROLE tsa_exam");
+      await rejectPermission("SET ROLE tsa_bank");
+      // Jobs are SELECT/column-UPDATE granted: RLS must hide the grading row,
+      // rather than a missing table grant making the denial test vacuous.
+      assert.equal((await client.query("SELECT id FROM tsa.jobs WHERE id=$1", [lease.dispatch.jobId])).rowCount, 0);
+      assert.equal((await client.query("UPDATE tsa.jobs SET state='FAILED_FINAL' WHERE id=$1 RETURNING id", [lease.dispatch.jobId])).rowCount, 0);
+      assert.deepEqual((await client.query("SELECT id FROM tsa.jobs")).rows, [{ id: factoryJobId }]);
+    }
+    assert.equal(denied, 30);
+    assert.equal(await snapshot() === before, true, "Factory attacks preserve exact application rows without printing private snapshots");
+    const live = (await fixture.pool.query(`SELECT state,lease_owner,lease_token::text AS token,
+      lease_until>clock_timestamp() AS live FROM tsa.jobs WHERE id=$1`, [lease.dispatch.jobId])).rows[0];
+    assert.deepEqual(live, { state: "RUNNING", lease_owner: executorId, token: lease.leaseToken, live: true });
+    assert.equal((await worker.finish(lease, computed)).status, "GRADED");
+    await assertGraded(fixture.pool, attemptId);
+    t.diagnostic(JSON.stringify({ deniedOperations: denied, roleContexts: 2, applicationTablesUnchanged: tables.length,
+      factoryJobPositiveControl: true, legitimateGrade: "GRADED" }));
+  } finally { client?.release(); await factoryPool.end(); }
+});
+
 for (const shutdownMode of ["fast", "immediate"]) test(shutdownMode === "fast" ? "running grading lease survives a real PostgreSQL restart and fences the old executor after real expiry" : "running grading lease survives immediate PostgreSQL shutdown with WAL recovery and fences the old executor", { timeout: 35_000 }, async (t) => {
   const { fixture, workerPool, attemptId } = await setup(t);
   const database = fixture.harness.database;

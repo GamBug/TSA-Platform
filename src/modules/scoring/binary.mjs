@@ -31,7 +31,7 @@ function sameIdSet(left, right) {
   return rightSet.size === right.length && left.every((id) => rightSet.has(id));
 }
 
-function earnedFor(interaction, answerKey, rawResponse) {
+export function scoreBinaryAnswer(interaction, answerKey, rawResponse) {
   const key = parseSchema(AnswerKeySchema, answerKey);
   if (key.type !== interaction.type) invalidInput();
   if (interaction.type === "SINGLE_CHOICE") {
@@ -95,11 +95,16 @@ export function percentage(correctCount, totalCount) {
 
 /** Scores a frozen SQL grading-input projection; malformed persisted data is rejected. */
 export function scoreAttempt(input) {
+  return scoreAttemptWithPolicy(input, { policyVersion: POLICY_VERSION, interactionSchema: InteractionSchema, scoreResponse: scoreBinaryAnswer });
+}
+
+/** Shared tally/lifecycle validation for explicitly versioned practice policies. */
+export function scoreAttemptWithPolicy(input, { policyVersion, interactionSchema, scoreResponse }) {
   if (
     input === null ||
     typeof input !== "object" ||
     Array.isArray(input) ||
-    input.policyVersion !== POLICY_VERSION ||
+    input.policyVersion !== policyVersion ||
     !Array.isArray(input.slots) ||
     input.slots.length === 0
   ) {
@@ -130,8 +135,8 @@ export function scoreAttempt(input) {
     seenSlotIds.add(slot.slotId);
     seenOrdinals.add(slot.ordinal);
 
-    const interaction = parseSchema(InteractionSchema, slot.interaction);
-    const earned = earnedFor(interaction, slot.answerKey, slot.response);
+    const interaction = parseSchema(interactionSchema, slot.interaction);
+    const earned = scoreResponse(interaction, slot.answerKey, slot.response);
     return { slotId: slot.slotId, ordinal: slot.ordinal, earned };
   });
 

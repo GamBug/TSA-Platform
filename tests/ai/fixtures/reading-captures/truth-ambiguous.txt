@@ -1,0 +1,9 @@
+Login
+Passage 2
+An original synthetic passage states that a tank fills slowly.
+Question 3: True or false? Evaluate the claims.
+a) The tank fills.
+b) The tank never fills.
+Correct answer: a: true; b: false
+Question 4: Fill the blank from the passage.
+A selected checkbox or hidden colour cannot establish the answer.

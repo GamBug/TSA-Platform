@@ -22,7 +22,8 @@ const READING_SAMPLES = [
 ];
 
 /** Original private disposable inventory; no retained provisioning or human approval. */
-export async function createBundleFixture({ bundleCount = 2, memberCount = 2, ordinals, materialize = true, mismatchedStimulus = false, section = 'MATH', durationSeconds = 180 } = {}) {
+export async function createBundleFixture({ bundleCount = 2, memberCount = 2, ordinals, materialize = true, mismatchedStimulus = false, section = 'MATH', durationSeconds = 180, splitSkills = false } = {}) {
+  if (typeof splitSkills !== 'boolean' || (splitSkills && section !== 'READING')) throw new TypeError('Split-skill fixture requires Reading');
   if (!Number.isSafeInteger(durationSeconds) || durationSeconds <= 0) throw new RangeError('Positive integral fixture duration required');
   if (section === 'READING' && (!Number.isSafeInteger(bundleCount) || bundleCount < 1 || bundleCount > READING_SAMPLES.length || memberCount !== 2)) throw new RangeError('Reading fixtures support one or two original two-question passages');
   if (!['MATH', 'READING'].includes(section)) throw new RangeError('Unsupported bundle fixture section');
@@ -35,13 +36,16 @@ export async function createBundleFixture({ bundleCount = 2, memberCount = 2, or
       const definition = { schemaVersion: 'taxonomy/1', taxonomyVersionId, name: 'Synthetic shared-reading taxonomy', versionNo: 1,
         nodes: [{ id: domainId, code: 'READING', kind: 'DOMAIN', parentId: null, metadata: {} },
           { id: skillId, code: 'READING_REASONING', kind: 'SKILL', parentId: domainId, metadata: {} }] };
+      if (splitSkills) definition.nodes.push({ id: randomUUID(), code: 'READING_ANALYSIS', kind: 'SKILL', parentId: domainId, metadata: {} });
       await withTransaction(f.pool, async (client) => {
         await client.query('INSERT INTO tsa.taxonomy_versions(id,name,version_no,definition_hash) VALUES($1,$2,1,$3)',
           [taxonomyVersionId, definition.name, jsonDigest(definition)]);
         await client.query(`INSERT INTO tsa.taxonomy_nodes(id,taxonomy_version_id,code,kind,parent_id,metadata)
           VALUES($1,$3,'READING','DOMAIN',NULL,'{}'),($2,$3,'READING_REASONING','SKILL',$1,'{}')`, [domainId, skillId, taxonomyVersionId]);
+        if (splitSkills) await client.query(`INSERT INTO tsa.taxonomy_nodes(id,taxonomy_version_id,code,kind,parent_id,metadata) VALUES($1,$2,'READING_ANALYSIS','SKILL',$3,'{}')`, [definition.nodes[2].id, taxonomyVersionId, domainId]);
       });
-      taxonomy = { taxonomyVersionId, domainId, skillIds: [skillId] };
+      taxonomy = { taxonomyVersionId, domainId, skillIds: splitSkills ? [skillId, definition.nodes[2].id] : [skillId] };
+      f.bundleTaxonomy = taxonomy;
       const config = structuredClone(f.blueprint.config), oldVersion = f.blueprint.versionId;
       Object.assign(config, { name: 'Bài đọc hiểu có đoạn dẫn tổng hợp', taxonomyVersionId,
         sections: [{ id: 'reading-bundle', section, count: 2, durationSeconds }],
@@ -79,7 +83,7 @@ export async function createBundleFixture({ bundleCount = 2, memberCount = 2, or
         const template = createPrivateTemplate(f.source);
         const response = await bankRequest(f.harness, f.browsers.author, '/api/v1/questions', { method: 'POST', key: randomUUID(), body: {
           schemaVersion: 'question/1', language: 'vi-VN', section, taxonomyVersionId: taxonomy.taxonomyVersionId,
-          domainId: taxonomy.domainId, skillIds: taxonomy.skillIds, subskillIds: [], cognitiveLevel: null, targetDifficulty: 'EASY',
+          domainId: taxonomy.domainId, skillIds: splitSkills ? [taxonomy.skillIds[index % taxonomy.skillIds.length]] : taxonomy.skillIds, subskillIds: [], cognitiveLevel: null, targetDifficulty: 'EASY',
           content: [{ type: 'text', text: section === 'READING' ? reading.questions[index] : `Câu hỏi tổng hợp có đoạn dẫn ${bundleIndex + 1}, vị trí ${index + 1}, mã ${randomUUID()}.` }],
           stimulusVersionId, interaction: { type: 'SINGLE_CHOICE', options: ['a', 'b', 'c'].map((id) => ({ id, content: [{ type: 'text', text: section === 'READING' ? reading.options[index][id] : `Nhãn ${id}` }] })) },
           answerKey: { type: 'SINGLE_CHOICE', optionId: section === 'READING' && index === 1 ? 'c' : 'b' }, explanation: [{ type: 'text', text: section === 'READING' ? reading.explanations[index] : 'Lời giải tổng hợp cho dữ liệu tự viết.' }],

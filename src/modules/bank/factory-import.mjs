@@ -4,6 +4,8 @@ import {
   parseFactoryPackageV2,
 } from '../../../packages/contracts/dist/internal.js';
 import { withTransaction } from '../database/pool.mjs';
+import { factoryImportNamespace, isFactoryImportNamespace } from './factory-namespace.mjs';
+import { assertSafeQuestionContent } from './content-safety.mjs';
 import {
   assertBankConnection, compareReference, reject, requireActor, resolveReferenceGraph, storeReferenceGraph,
 } from './common.mjs';
@@ -14,7 +16,7 @@ function digest(value) {
   return `sha256:${createHash('sha256').update(canonicalize(value)).digest('hex')}`;
 }
 function keyOf(ref) { return `${ref.kind}\u0000${ref.id}`; }
-function namespaceFor(pkg) { return `factory/2/${digest([pkg.producerNamespace, pkg.batchKey])}`; }
+const namespaceFor = factoryImportNamespace;
 function questionRoots(question) {
   const roots = [{ kind: 'taxonomy', id: question.taxonomyVersionId }];
   if (question.parentVersionId) roots.push({ kind: 'question', id: question.parentVersionId });
@@ -255,8 +257,20 @@ async function verifyPersistedQuestion(client, versionId, producerNamespace, exp
   return { row, question, graph, identity, fingerprint };
 }
 
-async function verifyNodeAtNamespace(client, namespace, expectedNode) {
-  integrity(typeof namespace === 'string' && namespace.startsWith('factory/2/'));
+async function verifyNodeAtNamespace(client, namespace, expectedNode, producerNamespace) {
+  integrity(isFactoryImportNamespace(namespace));
+  // A reused source retains its first immutable attribution, even in a new batch.
+  const manifests = await client.query(`SELECT manifest_hash, manifest FROM
+    tsa_private.factory_import_manifests WHERE producer_namespace=$1`, [producerNamespace]);
+  const originals = manifests.rows.filter((row) => {
+    const manifest = parsedJson(row.manifest);
+    return factoryImportNamespace(manifest) === namespace;
+  });
+  integrity(originals.length === 1);
+  const manifest = parsedJson(originals[0].manifest);
+  integrity(digest(manifest) === originals[0].manifest_hash);
+  integrity(manifest.references.some((node) => node.kind === expectedNode.kind
+    && node.id === expectedNode.id && sameCanonical(comparableNode(node), comparableNode(expectedNode))));
   const graph = await resolveReferenceGraph(client, namespace, [{ kind: expectedNode.kind, id: expectedNode.id }]);
   const stored = graph.find((node) => node.kind === expectedNode.kind && node.id === expectedNode.id);
   integrity(stored && sameCanonical(comparableNode(stored), comparableNode(expectedNode)));
@@ -290,7 +304,7 @@ async function verifyMaterializedMappings(client, pkg) {
       integrity(row.title === node.payload.title && row.origin === 'EXTERNAL'
         && row.content_hash === digest(node.payload)
         && metadata.referenceKind === 'source' && metadata.referenceId === node.id);
-      await verifyNodeAtNamespace(client, metadata.referenceNamespace, node);
+      await verifyNodeAtNamespace(client, metadata.referenceNamespace, node, pkg.producerNamespace);
       sourceIds.set(node.id, localId);
     } else if (kind === 'asset') {
       const member = members.get(node.id);
@@ -315,7 +329,7 @@ async function verifyMaterializedMappings(client, pkg) {
         && metadata.importArtifact === true && metadata.referenceKind === 'asset' && metadata.referenceId === node.id
         && bytes.rows[0].bytes.length === member.byteLength
         && `sha256:${createHash('sha256').update(bytes.rows[0].bytes).digest('hex')}` === member.bytesHash);
-      await verifyNodeAtNamespace(client, metadata.referenceNamespace, node);
+      await verifyNodeAtNamespace(client, metadata.referenceNamespace, node, pkg.producerNamespace);
       assetIds.set(node.id, localId);
     } else {
       const stored = await client.query(
@@ -350,7 +364,7 @@ async function verifyMaterializedMappings(client, pkg) {
   }
 }
 
-async function verifyStoredPackage(client, pkg, { requireDraftReceipts = false } = {}) {
+export async function verifyStoredFactoryPackage(client, pkg, { requireDraftReceipts = false } = {}) {
   const namespace = namespaceFor(pkg);
   const nodeMap = new Map(pkg.references.map((node) => [keyOf(node), node]));
   const candidateNodes = pkg.candidates.map((candidate) => {
@@ -395,6 +409,14 @@ async function verifyStoredPackage(client, pkg, { requireDraftReceipts = false }
       node,
     );
   }
+  if (pkg.schemaVersion === 'factory-package/3') {
+    for (const candidate of pkg.candidates) {
+      const run = await client.query(`SELECT external_generation_run_id,run_metadata
+        FROM tsa_private.factory_import_runs WHERE question_version_id=$1`, [candidate.question.id]);
+      integrity(run.rowCount === 1 && run.rows[0].external_generation_run_id === null
+        && sameCanonical(parsedJson(run.rows[0].run_metadata), pkg.manualRun));
+    }
+  }
   if (requireDraftReceipts) {
     for (const candidate of pkg.candidates) {
       const state = await client.query(
@@ -410,25 +432,8 @@ async function verifyStoredPackage(client, pkg, { requireDraftReceipts = false }
   }
 }
 
-async function importFactoryPackageV2(bankPool, identityService, principal, input, capability, configuredCapability) {
-  if (!configuredCapability || capability !== configuredCapability) reject(403, 'FORBIDDEN');
-  requireActor(identityService, principal, 'bank.question.author');
-  let pkg; try { pkg=parseFactoryPackageV2(input); } catch { reject(422,'VALIDATION_ERROR'); }
-  const manifestHash=digest(pkg); const namespace=namespaceFor(pkg);
-  return withTransaction(bankPool, async (client) => {
-    await client.query("SELECT set_config('tsa.bank_actor_id',$1,true)",[principal.userId]);
-    await client.query('SELECT pg_advisory_xact_lock(1414742321,1)');
-    await client.query('SELECT id FROM tsa.bank_state WHERE id=1 FOR UPDATE');
-    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[JSON.stringify(['factory-package/2',pkg.producerNamespace,pkg.batchKey])]);
-    const prior = await client.query(
-      `SELECT manifest_hash, manifest FROM tsa_private.factory_import_manifests
-        WHERE producer_namespace = $1 AND batch_key = $2`,
-      [pkg.producerNamespace, pkg.batchKey]);
-    if (prior.rowCount) {
-      const storedManifest = parsedJson(prior.rows[0].manifest);
-      if (prior.rows[0].manifest_hash !== manifestHash || digest(storedManifest) !== prior.rows[0].manifest_hash
-          || !sameCanonical(storedManifest, pkg)) reject(409, 'IMPORT_CONFLICT');
-      const receipts = await client.query(
+export async function verifyStoredFactoryReceipts(client, pkg) {
+  const receipts = await client.query(
         `SELECT receipt.producer_namespace AS "producerNamespace",
                 receipt.batch_key AS "batchKey",
                 receipt.item_key AS "itemKey",
@@ -452,7 +457,43 @@ async function importFactoryPackageV2(bankPool, identityService, principal, inpu
           reject(409, 'IMPORT_INTEGRITY_CONFLICT');
         }
       }
-      await verifyStoredPackage(client, pkg);
+  return receipts.rows;
+}
+
+async function importFactoryPackageV2(bankPool, identityService, principal, input, capability, configuredCapability) {
+  if (!configuredCapability || capability !== configuredCapability) reject(403, 'FORBIDDEN');
+  requireActor(identityService, principal, 'bank.question.author');
+  let pkg; try { pkg=parseFactoryPackageV2(input); } catch { reject(422,'VALIDATION_ERROR'); }
+  return withTransaction(bankPool, (client) => persistValidatedFactoryPackage(client, principal, pkg), {role:'tsa_bank'});
+}
+
+// Format-specific parsers and the trusted admission boundary run before this
+// internal persistence primitive. It never checks out a different connection.
+export async function persistValidatedFactoryPackage(client, principal, pkg) {
+    const manifestHash=digest(pkg); const namespace=namespaceFor(pkg);
+    if (pkg.schemaVersion === 'factory-package/3') {
+      const nodes = new Map(pkg.references.map((node) => [keyOf(node), node]));
+      for (const candidate of pkg.candidates) assertSafeQuestionContent(candidate.question, closure(candidate.question, nodes));
+    }
+    await client.query("SELECT set_config('tsa.bank_actor_id',$1,true)",[principal.userId]);
+    await client.query('SELECT pg_advisory_xact_lock(1414742321,1)');
+    await client.query('SELECT id FROM tsa.bank_state WHERE id=1 FOR UPDATE');
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[JSON.stringify([pkg.schemaVersion,pkg.producerNamespace,pkg.batchKey])]);
+    const producers = await client.query(`SELECT manifest->>'schemaVersion' AS schema_version,
+      manifest->>'profile' AS profile FROM tsa_private.factory_import_manifests
+      WHERE producer_namespace=$1`, [pkg.producerNamespace]);
+    if (producers.rows.some((row) => row.schema_version !== pkg.schemaVersion
+        || (row.profile ?? null) !== (pkg.profile ?? null))) reject(409, 'IMPORT_PRODUCER_CONFLICT');
+    const prior = await client.query(
+      `SELECT manifest_hash, manifest FROM tsa_private.factory_import_manifests
+        WHERE producer_namespace = $1 AND batch_key = $2`,
+      [pkg.producerNamespace, pkg.batchKey]);
+    if (prior.rowCount) {
+      const storedManifest = parsedJson(prior.rows[0].manifest);
+      if (prior.rows[0].manifest_hash !== manifestHash || digest(storedManifest) !== prior.rows[0].manifest_hash
+          || !sameCanonical(storedManifest, pkg)) reject(409, 'IMPORT_CONFLICT');
+      const receipts = { rows: await verifyStoredFactoryReceipts(client, pkg) };
+      await verifyStoredFactoryPackage(client, pkg);
       return { receipts: pkg.candidates.map((candidate) => receipts.rows.find((receipt) =>
         receipt.itemKey === candidate.itemKey && receipt.candidateOrdinal === candidate.candidateOrdinal)), replayed:true };
     }
@@ -478,7 +519,7 @@ async function importFactoryPackageV2(bankPool, identityService, principal, inpu
         await client.query('INSERT INTO tsa_private.factory_import_runs (question_version_id,external_generation_run_id,run_metadata) VALUES ($1,$2,$3::jsonb) ON CONFLICT DO NOTHING', [question.id, question.generationRunId, JSON.stringify({ ancestralReference: true })]);
       }
     }
-    for(const candidate of pkg.candidates) { await client.query('INSERT INTO tsa_private.factory_import_runs (question_version_id,external_generation_run_id,run_metadata) VALUES ($1,$2,$3::jsonb)',[candidate.question.id,candidate.run.generationRunId,JSON.stringify(candidate.run)]); for(const validation of candidate.validations) await client.query(`INSERT INTO tsa.validation_runs (id,question_version_id,input_hash,validator_version,kind,outcome,evidence,job_id,actor) VALUES ($1,$2,$3,$4,$5,$6::tsa.validation_outcome,$7::jsonb,NULL,$8)`,[randomUUID(),candidate.question.id,candidate.contentHash,validation.validatorVersion,validation.validatorKind,validation.outcome,JSON.stringify({evidencePointer:validation.evidencePointer,at:validation.at}),validation.actor]); }
+    for(const candidate of pkg.candidates) { await client.query('INSERT INTO tsa_private.factory_import_runs (question_version_id,external_generation_run_id,run_metadata) VALUES ($1,$2,$3::jsonb)',[candidate.question.id,candidate.question.generationRunId,JSON.stringify(pkg.manualRun ?? candidate.run)]); for(const validation of candidate.validations) await client.query(`INSERT INTO tsa.validation_runs (id,question_version_id,input_hash,validator_version,kind,outcome,evidence,job_id,actor) VALUES ($1,$2,$3,$4,$5,$6::tsa.validation_outcome,$7::jsonb,NULL,$8)`,[randomUUID(),candidate.question.id,candidate.contentHash,validation.validatorVersion,validation.validatorKind,validation.outcome,JSON.stringify({evidencePointer:validation.evidencePointer,at:validation.at}),validation.actor]); }
     const candidateNodes = pkg.candidates.map((candidate) => {
       const dependencies = questionRoots(candidate.question).map((reference) => {
         const node = nodeMap.get(keyOf(reference));
@@ -516,9 +557,8 @@ async function importFactoryPackageV2(bankPool, identityService, principal, inpu
           receipt.inputHash, receipt.questionId, receipt.questionVersionId, receipt.generationRunId]);
       receipts.push(receipt);
     }
-    await verifyStoredPackage(client, pkg, { requireDraftReceipts: true });
+    await verifyStoredFactoryPackage(client, pkg, { requireDraftReceipts: true });
     return {receipts,replayed:false};
-  },{role:'tsa_bank'});
 }
 
 export async function createFactoryImportService({bankPool,identityService,internalCapability}) {

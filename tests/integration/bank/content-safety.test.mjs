@@ -162,6 +162,20 @@ function assertBankError(operation, { code = 'VALIDATION_ERROR', status = 422 } 
   });
 }
 
+test('stimulus image edges are local to each content owner in inspected graphs', () => {
+  const image = (suffix) => ({ type: 'image', assetVersionId: `60000000-0000-4000-8000-00000000000${suffix}`, alt: 'Hình tổng hợp kiểm thử.' });
+  for (const stimulusContent of [[{ type: 'text', text: 'Đoạn dẫn chỉ có văn bản.' }], [image(3)]]) {
+    const question = makeQuestion({ stimulusVersionId: STIMULUS_ID, content: [image(1)], explanation: [image(2)] });
+    const references = makeReferences(question, { stimulusContent });
+    for (const node of references) if (node.kind === 'asset') node.payload.byteLength = 128;
+    assert.equal(assertSafeQuestionContent(question, references, { inspectedImages: true }), true);
+    assertBankError(() => assertSafeQuestionContent(question, references), { code: 'ASSET_SANITIZATION_REQUIRED' });
+    const stimulus = references.find((node) => node.kind === 'stimulus');
+    stimulus.references.push({ kind: 'asset', id: question.content[0].assetVersionId });
+    assertBankError(() => assertSafeQuestionContent(question, references, { inspectedImages: true }), { code: 'INVALID_REFERENCE_GRAPH' });
+  }
+});
+
 test('accepts supported text, math and table blocks for every question interaction without rewriting', () => {
   const source = {
     type: 'math',

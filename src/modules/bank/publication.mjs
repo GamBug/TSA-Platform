@@ -61,6 +61,10 @@ function assertState(target, state) {
   if (target.state !== state) reject(409, 'INVALID_WORKFLOW_TRANSITION');
 }
 
+function assertQuestionSchemaEnabled(target, enableNumericQuestions) {
+  if (target.schema_version === 'question/2' && !enableNumericQuestions) reject(422, 'VALIDATION_ERROR');
+}
+
 function requireBankManager(identityService, principal) {
   requireAuthenticated(principal);
   if (!identityService.mayPerform(principal, 'bank.question.read')
@@ -103,22 +107,23 @@ async function appendImmutableValidation(client, principal, target) {
       JSON.stringify({ syntheticWorkflow: true }), principal.userId]);
 }
 
-async function submitReview(bankPool, identityService, principal, versionId, key, input) {
+async function submitReview(bankPool, identityService, principal, versionId, key, input, imageStore, enableNumericQuestions) {
   requireActor(identityService, principal, 'bank.question.author');
   validateVersionId(versionId);
   strictRecord(input, EXPECTED_REVISION_KEYS, 'submit review input');
   validateRevision(input.expectedRevision);
 
   return withIdempotency(bankPool, principal, key,
-    `POST /api/v1/question-versions/${versionId}/submit-review`, input,
+    `POST /api/${enableNumericQuestions ? 'v2' : 'v1'}/question-versions/${versionId}/submit-review`, input,
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
       if (!target) reject(404, 'NOT_FOUND');
+      assertQuestionSchemaEnabled(target, enableNumericQuestions);
       if (target.created_by !== principal.userId) reject(403, 'FORBIDDEN');
       assertCurrentRevision(target, input.expectedRevision);
       if (!['DRAFT', 'QUARANTINED'].includes(target.state)) reject(409, 'INVALID_WORKFLOW_TRANSITION');
 
-      await validateWorkflowTarget(client, target);
+      await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions });
       await appendImmutableValidation(client, principal, target);
       const changed = await client.query(
         `UPDATE tsa.question_workflow
@@ -136,17 +141,19 @@ async function submitReview(bankPool, identityService, principal, versionId, key
     });
 }
 
-async function review(bankPool, identityService, fixtureScopeId, principal, versionId, key, input) {
+async function review(bankPool, identityService, fixtureScopeId, principal, versionId, key, input, imageStore,
+  enableNumericQuestions) {
   requireAuthenticated(principal);
   validateVersionId(versionId);
   reviewInput(input);
   await authorizeIndependentReviewer(bankPool, identityService, principal, versionId);
 
   return withIdempotency(bankPool, principal, key,
-    `POST /api/v1/question-versions/${versionId}/reviews`, input,
+    `POST /api/${enableNumericQuestions ? 'v2' : 'v1'}/question-versions/${versionId}/reviews`, input,
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
       if (!target) reject(404, 'NOT_FOUND');
+      assertQuestionSchemaEnabled(target, enableNumericQuestions);
       assertIndependentReviewer(identityService, principal, await resolveOriginalImportAttribution(client, target));
       assertCurrentRevision(target, input.expectedRevision);
       assertState(target, 'IN_REVIEW');
@@ -154,7 +161,7 @@ async function review(bankPool, identityService, fixtureScopeId, principal, vers
 
       if (input.decision === 'APPROVE') {
         if (RUBRIC_KEYS.some((key) => input.rubric[key] !== true)) reject(422, 'REVIEW_RUBRIC_INCOMPLETE');
-        await assertPublicationGates(client, target, principal, fixtureScopeId);
+        await assertPublicationGates(client, target, principal, fixtureScopeId, imageStore, { enableNumericQuestions });
       }
 
       const reviewId = randomUUID();
@@ -199,7 +206,7 @@ async function review(bankPool, identityService, fixtureScopeId, principal, vers
     });
 }
 
-async function quarantine(bankPool, identityService, principal, versionId, key, input) {
+async function quarantine(bankPool, identityService, principal, versionId, key, input, enableNumericQuestions) {
   requireBankManager(identityService, principal);
   validateVersionId(versionId);
   strictRecord(input, QUARANTINE_KEYS, 'quarantine input');
@@ -207,10 +214,11 @@ async function quarantine(bankPool, identityService, principal, versionId, key, 
   validateReason(input.reason);
 
   const result = await withIdempotency(bankPool, principal, key,
-    `POST /api/v1/question-versions/${versionId}/quarantine`, input,
+    `POST /api/${enableNumericQuestions ? 'v2' : 'v1'}/question-versions/${versionId}/quarantine`, input,
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
       if (!target) reject(404, 'NOT_FOUND');
+      assertQuestionSchemaEnabled(target, enableNumericQuestions);
       requireBankManager(identityService, principal);
       assertCurrentRevision(target, input.expectedRevision);
       if (!['DRAFT', 'IN_REVIEW', 'APPROVED'].includes(target.state)) reject(409, 'INVALID_WORKFLOW_TRANSITION');
@@ -239,7 +247,7 @@ async function quarantine(bankPool, identityService, principal, versionId, key, 
   return result;
 }
 
-async function confirmSingleton(bankPool, identityService, principal, versionId, key, input) {
+async function confirmSingleton(bankPool, identityService, principal, versionId, key, input, enableNumericQuestions) {
   requireAuthenticated(principal);
   validateVersionId(versionId);
   strictRecord(input, SINGLETON_KEYS, 'singleton input');
@@ -249,10 +257,11 @@ async function confirmSingleton(bankPool, identityService, principal, versionId,
   await authorizeIndependentReviewer(bankPool, identityService, principal, versionId);
 
   return withIdempotency(bankPool, principal, key,
-    `POST /api/v1/question-versions/${versionId}/confirm-singleton`, input,
+    `POST /api/${enableNumericQuestions ? 'v2' : 'v1'}/question-versions/${versionId}/confirm-singleton`, input,
     async (client) => {
       const target = await loadWorkflowTarget(client, versionId);
       if (!target) reject(404, 'NOT_FOUND');
+      assertQuestionSchemaEnabled(target, enableNumericQuestions);
       assertIndependentReviewer(identityService, principal, await resolveOriginalImportAttribution(client, target));
       assertCurrentRevision(target, input.expectedRevision);
       assertState(target, 'IN_REVIEW');
@@ -286,10 +295,12 @@ async function confirmSingleton(bankPool, identityService, principal, versionId,
     });
 }
 
-export async function createPublicationService({ bankPool, identityService, fixtureScopeId = null }) {
+export async function createPublicationService({ bankPool, identityService, fixtureScopeId = null, imageStore = null,
+  enableNumericQuestions = false }) {
   if (!bankPool || !identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('Bank pool and identity service are required');
   }
+  if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('enableNumericQuestions must be a boolean');
   if (fixtureScopeId !== null && (typeof fixtureScopeId !== 'string' || !UUID_PATTERN.test(fixtureScopeId))) {
     throw new TypeError('Fixture scope ID must be a canonical UUID or null');
   }
@@ -300,12 +311,12 @@ export async function createPublicationService({ bankPool, identityService, fixt
 
   return Object.freeze({
     submitReview: (principal, versionId, key, input) =>
-      submitReview(bankPool, identityService, principal, versionId, key, input),
+      submitReview(bankPool, identityService, principal, versionId, key, input, imageStore, enableNumericQuestions),
     review: (principal, versionId, key, input) =>
-      review(bankPool, identityService, fixtureScopeId, principal, versionId, key, input),
+      review(bankPool, identityService, fixtureScopeId, principal, versionId, key, input, imageStore, enableNumericQuestions),
     quarantine: (principal, versionId, key, input) =>
-      quarantine(bankPool, identityService, principal, versionId, key, input),
+      quarantine(bankPool, identityService, principal, versionId, key, input, enableNumericQuestions),
     confirmSingleton: (principal, versionId, key, input) =>
-      confirmSingleton(bankPool, identityService, principal, versionId, key, input),
+      confirmSingleton(bankPool, identityService, principal, versionId, key, input, enableNumericQuestions),
   });
 }

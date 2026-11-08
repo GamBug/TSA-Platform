@@ -1,6 +1,8 @@
-import {parseShortPracticeConfig} from './practice-profiles.mjs';
+import {isReadingExperimentCandidate,parseReadingExperimentConfig,parseShortPracticeConfig,parseTopicPracticeConfig} from './practice-profiles.mjs';
 import { randomBytes } from 'node:crypto';
 import {
+  parseAssemblyManifest,
+  runAssemblyReference,
   CreateAttemptSchema,
   CreationReceiptSchema,
   ErrorHttpStatusByCode,
@@ -8,6 +10,7 @@ import {
 } from '../../../packages/contracts/dist/internal.js';
 import { buildAllocationPlan } from './snapshot-builder.mjs';
 import { captureStandaloneManifest } from './candidate-stock.mjs';
+import { parseNumericPracticeConfig } from './versioned-contracts.mjs';
 import { withTransaction } from '../database/pool.mjs';
 import { BankCommandError, jsonDigest, reject, requireActor } from '../bank/common.mjs';
 
@@ -112,6 +115,27 @@ function randomSeed() {
   return randomBytes(4).readUInt32BE(0);
 }
 
+function isReadingExperimentUnit(unit) {
+  if (!unit || unit.members?.length !== 10) return false;
+  const counts={M1:0,M2:0,M3:0};
+  for(const member of unit.members){
+    if(!Object.hasOwn(counts,member.cognitiveLevel))return false;
+    counts[member.cognitiveLevel]+=1;
+  }
+  return counts.M1===4&&counts.M2===3&&counts.M3===3;
+}
+
+function restrictReadingExperimentUnits(captured) {
+  const units=captured.manifest.units.filter(isReadingExperimentUnit);
+  const unitIds=new Set(units.map(unit=>unit.id));
+  const sourceIds=new Set(units.flatMap(unit=>unit.members.flatMap(member=>member.sourceIds)));
+  const manifest={...captured.manifest,units,
+    rightsVersions:captured.manifest.rightsVersions.filter(rights=>sourceIds.has(rights.sourceId)),
+    conflicts:captured.manifest.conflicts.filter(edge=>unitIds.has(edge.leftUnitId)&&unitIds.has(edge.rightUnitId))};
+  const parsed=parseAssemblyManifest(manifest);
+  return {...captured,...parsed,result:runAssemblyReference(parsed.manifest)};
+}
+
 function isRetryableTransactionConflict(error) {
   return error?.code === '40001' || error?.code === '40P01';
 }
@@ -137,10 +161,11 @@ function statusResult(value) {
   return result;
 }
 
-export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false } = {}) {
+export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableTopicPractice = false, enableNumericPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') throw new TypeError('identityService is required');
   if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
+  if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
   if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   const fixedLimits = Object.freeze({ ...limits });
@@ -151,7 +176,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       const result = await client.query(
         'SELECT tsa.assembly_creation_check($1,$2,$3) AS result', [key, requestHash, blueprintVersionId]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function runReceipt(principal, key, requestHash) {
@@ -160,18 +185,21 @@ export function createAllocationService({ examPool, identityService, limits = DE
       const result = await client.query('SELECT tsa.assembly_receipt($1,$2) AS result', [key, requestHash]);
       const value = result.rows[0]?.result;
       return value === null || value === undefined ? null : statusResult(value);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function runCommit(principal, key, requestHash, plan) {
     return withTransaction(examPool, async (client) => {
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
       await client.query("SELECT set_config('tsa.enable_short_practice',$1,true)",[String(enableShortPractice && plan.manifest.reuseMode==='NEW_ONLY' && Boolean(parseShortPracticeConfig(plan.manifest.blueprint)))]);
+      await client.query("SELECT set_config('tsa.enable_reading_experiment',$1,true)",[String(enableReadingExperiment && plan.manifest.reuseMode==='NEW_ONLY' && Boolean(parseReadingExperimentConfig(plan.manifest.blueprint)))]);
+      await client.query("SELECT set_config('tsa.enable_topic_practice',$1,true),set_config('tsa.topic_practice_profile_id',$2,true)",
+        [String(enableTopicPractice), enableTopicPractice ? plan.manifest.blueprintVersionId : '']);
       const result = await client.query(
         'SELECT tsa.assembly_commit_personal($1,$2,$3::jsonb) AS result',
         [key, requestHash, JSON.stringify(plan)]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function handlePreflight(result, blueprintVersionId, reuseMode = 'NEW_ONLY') {
@@ -257,7 +285,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       let committed;
       let plan;
       try {
-        const captured = await captureStandaloneManifest({
+        let captured = await captureStandaloneManifest({
           examPool,
           identityService,
           principal,
@@ -265,9 +293,26 @@ export function createAllocationService({ examPool, identityService, limits = DE
           seed: randomSeed(),
           reuseMode,
           limits: fixedLimits,
+          enableTopicPractice,
+          enableNumericPractice,
         });
-        if (parseShortPracticeConfig(captured.manifest.blueprint) && (!enableShortPractice || reuseMode!=='NEW_ONLY')) reject(422,'UNSUPPORTED_TYPE');
-        plan = await buildAllocationPlan(examPool, principal, captured);
+        const numericProfile = captured.manifest.schemaVersion === 'assembly-manifest/2';
+        if (numericProfile && (!enableNumericPractice || !parseNumericPracticeConfig(captured.manifest.blueprint) || reuseMode !== 'NEW_ONLY')) reject(422, 'UNSUPPORTED_TYPE');
+        const topicProfile = enableTopicPractice && parseTopicPracticeConfig(captured.manifest.blueprint);
+        if (!topicProfile && parseShortPracticeConfig(captured.manifest.blueprint) && (!enableShortPractice || reuseMode!=='NEW_ONLY')) reject(422,'UNSUPPORTED_TYPE');
+        const readingCandidate=!numericProfile && !topicProfile && isReadingExperimentCandidate(captured.manifest.blueprint);
+        const readingExperiment=readingCandidate?parseReadingExperimentConfig(captured.manifest.blueprint):null;
+        if(readingCandidate&&(!readingExperiment||!enableReadingExperiment||reuseMode!=='NEW_ONLY'))reject(422,'UNSUPPORTED_TYPE');
+        if(readingExperiment){
+          const supported=await withTransaction(examPool,async client=>{
+            await client.query("SELECT set_config('tsa.local_user_id',$1,true)",[principal.userId]);
+            await client.query("SELECT set_config('tsa.enable_reading_experiment','true',true)");
+            return (await client.query('SELECT tsa.exam_reading_experiment_profile_supported($1) AS supported',[blueprintVersionId])).rows[0]?.supported===true;
+          },{role:'tsa_exam',enableNumericPractice});
+          if(!supported)reject(422,'UNSUPPORTED_TYPE');
+          captured=restrictReadingExperimentUnits(captured);
+        }
+        plan = await buildAllocationPlan(examPool, principal, captured, { enableNumericPractice });
         if (reuseMode === 'REVIEW_ALLOWED') plan.acknowledgeRepeats = request.acknowledgeRepeats;
         committed = await runCommit(principal, key, requestHash, plan);
       } catch (error) {
@@ -290,7 +335,9 @@ export function createAllocationService({ examPool, identityService, limits = DE
       if (committed.status === 'ACTIVE') failCommand('CONCURRENT_ATTEMPT_EXISTS', committed, blueprintVersionId, reuseMode);
       if (committed.status === 'FAILURE') {
         const shortAlternatives=enableShortPractice&&reuseMode==='NEW_ONLY'
+          && plan.manifest.schemaVersion !== 'assembly-manifest/2'
           && !parseShortPracticeConfig(plan.manifest.blueprint)
+          && !parseReadingExperimentConfig(plan.manifest.blueprint)
           && ['INSUFFICIENT_UNSEEN_INVENTORY','INSUFFICIENT_ELIGIBLE_INVENTORY'].includes(committed.code)
           ?await withTransaction(examPool,async client=>{
             await client.query("SELECT set_config('tsa.local_user_id',$1,true)",[principal.userId]);
@@ -301,6 +348,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
           sectionDeficits: sectionDeficitsForFailure(committed.code, plan.manifest),
           alternatives: [...(enableReviewPractice && reuseMode === 'NEW_ONLY' && committed.code === 'INSUFFICIENT_UNSEEN_INVENTORY'
             && !parseShortPracticeConfig(plan.manifest.blueprint)
+            && !parseReadingExperimentConfig(plan.manifest.blueprint)
             ? [{ kind: 'REVIEW_MODE', blueprintVersionId, requiresRepeatConsent: true }] : []),...safeAlternatives(shortAlternatives)],
         }, blueprintVersionId, reuseMode);
       }

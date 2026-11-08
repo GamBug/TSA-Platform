@@ -4,6 +4,7 @@ import { constants as fsConstants } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createDatabasePool } from '../../../../src/modules/database/pool.mjs';
+import { backupLocalDatabase } from '../../../../src/local/database-backup.mjs';
 
 const DEFAULT_TIMEOUT_MS = 35_000;
 const COMMAND_TIMEOUT_MS = 8_000;
@@ -175,6 +176,8 @@ export async function startDisposablePostgres({ timeoutMs = DEFAULT_TIMEOUT_MS, 
 
     await startServer();
     let restarting = false;
+    await backupLocalDatabase({ connectionConfig: config, directory: path.join(root, 'before-migrations'),
+      pgBin: path.dirname(binaries.postgres) });
     return {
       get pool() { return pool; }, connectionConfig: config, version: '18.6', temporaryDirectory: root, stop,
       // Test-only fast (default) or immediate restart of this owned postmaster.

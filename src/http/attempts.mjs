@@ -8,6 +8,10 @@ import { createHttpBoundaryHandler } from '../../packages/contracts/dist/interna
 import { BankCommandError } from '../modules/bank/common.mjs';
 import { createAttemptService } from '../modules/attempts/service.mjs';
 import { createStudentDirectoryService } from '../modules/attempts/directory.mjs';
+import { createAttemptAssetService } from '../modules/attempts/asset-service.mjs';
+import { createAttemptAssetHandler } from './attempt-assets.mjs';
+import { studentRouteRegistryV2 } from '../../packages/contracts/dist/routes-v2.js';
+import { createHttpBoundaryHandlerV2 } from '../../packages/contracts/dist/http-boundary.js';
 
 const MAX_JSON_BYTES = 64 * 1024;
 
@@ -44,8 +48,8 @@ function requestIsTrusted(request, trustedOrigin) {
   }
 }
 
-function routeResponse(operation, status, body, requestId, extraHeaders = {}) {
-  const definition = studentRouteRegistry[operation]?.responses?.[status];
+function serializeRouteResponse(operation, status, body, requestId, extraHeaders = {}, registry = studentRouteRegistry) {
+  const definition = registry[operation]?.responses?.[status];
   const parsed = definition?.schema?.safeParse(body);
   if (!parsed?.success) {
     const unavailable = {
@@ -148,17 +152,24 @@ async function readJson(request) {
 }
 
 /** Loopback-only student create/start/save/submit/GET adapter using frozen routes. */
-export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false } = {}) {
+export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, imageStore = null, enableNumericPractice = false } = {}) {
   if (!identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function'
       || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('A trusted identity service is required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
-  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice, enableShortPractice });
-  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice });
+  if (typeof enableNumericPractice !== 'boolean') throw new TypeError('Numeric practice opt-in must be boolean');
+  const apiVersion = enableNumericPractice ? 'v2' : 'v1';
+  const registry = enableNumericPractice ? studentRouteRegistryV2 : studentRouteRegistry;
+  const routeResponse = (operation, status, body, requestId, headers) => serializeRouteResponse(operation, status, body, requestId, headers, registry);
+  const assets = createAttemptAssetHandler({ identityService, trustedOrigin: trusted,
+    apiVersion, assetService: createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice }) });
+  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice });
+  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice });
 
   return async function handleAttemptRequest(request) {
+    if (/^\/api\/v[12]\/attempts\/[^/]+\/assets(?:\/|$)/.test(new URL(request.url).pathname)) return assets(request);
     const requestId = randomUUID();
     let operation = 'createAttempt';
     try {
@@ -168,6 +179,10 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
         }, requestId);
       }
       const url = new URL(request.url);
+      if (!url.pathname.startsWith(`/api/${apiVersion}/`)) return routeResponse(operation, 404, {
+        error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} },
+      }, requestId);
+      if (enableNumericPractice) url.pathname = url.pathname.replace('/api/v2/', '/api/v1/');
       const method = request.method.toUpperCase();
 
       if (method === 'GET' && (url.pathname === '/api/v1/catalog' || url.pathname === '/api/v1/attempts')) {
@@ -193,7 +208,7 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
           }, requestId);
         }
         return await service.withReadBoundary(principal, async (ports) => {
-          const boundary = createHttpBoundaryHandler({
+          const boundary = (enableNumericPractice ? createHttpBoundaryHandlerV2 : createHttpBoundaryHandler)({
             authenticate: async () => principal,
             ...ports,
           });

@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { assertSafeQuestionContent } from './content-safety.mjs';
+import { checkReferencedImages, INSPECTED_IMAGE_PROFILE } from './inspected-images.mjs';
 import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema } from '../../../packages/contracts/dist/internal.js';
+import { SupportedQuestionVersionSchema } from '../../../packages/contracts/dist/question-v2.js';
 import { reject, resolveReferenceGraph, UUID_PATTERN, jsonDigest } from './common.mjs';
 
 export async function loadWorkflowTarget(client, versionId) {
@@ -32,7 +34,9 @@ export function assertIndependentReviewer(identityService, principal, target) {
   })) reject(403, 'FORBIDDEN');
 }
 
-export async function validateWorkflowTarget(client, target) {
+export async function validateWorkflowTarget(client, target, imageStore = null, { enableNumericQuestions = false } = {}) {
+  if (typeof enableNumericQuestions !== 'boolean') reject(422, 'VALIDATION_ERROR');
+  if (target.schema_version === 'question/2' && !enableNumericQuestions) reject(422, 'VALIDATION_ERROR');
   if (!target.reference_namespace || !target.authored_created_at) reject(422, 'VALIDATION_ERROR');
   const graph = await resolveReferenceGraph(client, target.reference_namespace,
     [{ kind: 'question', id: target.id }]);
@@ -41,7 +45,11 @@ export async function validateWorkflowTarget(client, target) {
   const references = graph.filter((node) => node !== root);
   let question;
   try {
-    question = QuestionVersionSchema.parse({ ...root.payload, contentHash: target.content_hash });
+    const schema = target.schema_version === 'question/2'
+      ? SupportedQuestionVersionSchema
+      : QuestionVersionSchema;
+    question = schema.parse({ ...root.payload, contentHash: target.content_hash });
+    if (question.schemaVersion !== target.schema_version) reject(422, 'VALIDATION_ERROR');
     if (computeQuestionIdentity(question, references).contentHash !== target.content_hash
         || computeDuplicateFingerprint(question, references).fingerprint !== target.normalized_fingerprint) reject(422, 'VALIDATION_ERROR');
     const normalized = {
@@ -63,13 +71,32 @@ export async function validateWorkflowTarget(client, target) {
   const failed = await client.query(`SELECT 1 FROM tsa.validation_runs WHERE question_version_id=$1
     AND input_hash=$2 AND outcome<>'PASS' LIMIT 1`, [target.id, target.content_hash]);
   if (failed.rowCount) reject(422, 'VALIDATION_ERROR');
-  assertSafeQuestionContent(question, references);
+  assertSafeQuestionContent(question, references, {
+    inspectedImages: imageStore?.status?.().enabled === true,
+    numericQuestions: enableNumericQuestions,
+  });
+  const imageProfile = await checkReferencedImages(client, references, imageStore);
+  const profile = question.schemaVersion === 'question/2'
+    ? imageProfile === INSPECTED_IMAGE_PROFILE
+      ? 'text-math-table-inspected-image-numeric/3'
+      : 'text-math-table-numeric/2'
+    : imageProfile;
   const sourceIds = await collectQuestionSourceIds(client, target, references);
+  if (imageProfile === INSPECTED_IMAGE_PROFILE) {
+    for (const sourceId of sourceIds) {
+      const allowed = await client.query('SELECT tsa.bank_source_display_allowed($1) AS allowed', [sourceId]);
+      if (allowed.rows[0]?.allowed !== true) reject(422, 'RIGHTS_BLOCKED');
+    }
+  }
   const checked = await client.query(`INSERT INTO tsa_private.question_delivery_checks(question_version_id,input_hash,profile)
-    VALUES($1,$2,'text-math-table/1') ON CONFLICT(question_version_id) DO NOTHING RETURNING question_version_id`, [target.id,target.content_hash]);
+    VALUES($1,$2,$3) ON CONFLICT(question_version_id) DO NOTHING RETURNING question_version_id`, [target.id,target.content_hash,profile]);
   if (checked.rowCount) {
     for (const sourceId of sourceIds) await client.query('INSERT INTO tsa_private.question_source_dependencies(question_version_id,source_version_id) VALUES($1,$2)',[target.id,sourceId]);
   } else {
+    const existingProfile = await client.query(
+      'SELECT input_hash,profile FROM tsa_private.question_delivery_checks WHERE question_version_id=$1', [target.id]);
+    if (existingProfile.rowCount !== 1 || existingProfile.rows[0].input_hash !== target.content_hash
+        || existingProfile.rows[0].profile !== profile) reject(422, 'VALIDATION_ERROR');
     const existing = await client.query('SELECT source_version_id FROM tsa_private.question_source_dependencies WHERE question_version_id=$1 ORDER BY source_version_id',[target.id]);
     if (JSON.stringify(existing.rows.map((row)=>row.source_version_id))!==JSON.stringify([...sourceIds].sort())) reject(422,'VALIDATION_ERROR');
   }
@@ -157,12 +184,13 @@ async function assertRights(client, target, references) {
   }
 }
 
-export async function assertPublicationGates(client, target, principal, fixtureScopeId) {
+export async function assertPublicationGates(client, target, principal, fixtureScopeId, imageStore = null,
+  { enableNumericQuestions = false } = {}) {
   if (!fixtureScopeId || !UUID_PATTERN.test(fixtureScopeId)) reject(403, 'PUBLICATION_DISABLED');
   await client.query("SELECT set_config('tsa.bank_fixture_scope', $1, true)", [fixtureScopeId]);
   const fixture = await client.query('SELECT tsa.bank_fixture_scope_active() AS active');
   if (fixture.rows[0]?.active !== true) reject(403, 'PUBLICATION_DISABLED');
-  const { references } = await validateWorkflowTarget(client, target);
+  const { references } = await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions });
   const validation = await client.query(`SELECT 1 FROM tsa.validation_runs
     WHERE question_version_id=$1 AND input_hash=$2 AND kind='BANK_IMMUTABLE'
       AND validator_version='bank-immutable/1' AND outcome='PASS'

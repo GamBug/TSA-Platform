@@ -21,6 +21,9 @@ const PUBLIC_FILES = new Map([
   ["/app/api.js", "public/app/api.js"],
   ["/app/staff.js", "public/app/staff.js"],
   ["/app/math.js", "public/app/math.js"],
+  ["/app/question-media.js", "public/app/question-media.js"],
+  ["/app/topic-practice.js", "public/app/topic-practice.js"],
+  ["/app/exam-shortcuts.js", "public/app/exam-shortcuts.js"],
   ["/vendor/katex.mjs", "../../node_modules/katex/dist/katex.mjs"],
   ["/vendor/katex-LICENSE.txt", "../../node_modules/katex/LICENSE"],
 ]);
@@ -35,6 +38,9 @@ const CONTENT_TYPES = {
   "public/app/api.js": "text/javascript; charset=utf-8",
   "public/app/staff.js": "text/javascript; charset=utf-8",
   "public/app/math.js": "text/javascript; charset=utf-8",
+  "public/app/question-media.js": "text/javascript; charset=utf-8",
+  "public/app/topic-practice.js": "text/javascript; charset=utf-8",
+  "public/app/exam-shortcuts.js": "text/javascript; charset=utf-8",
   "../../node_modules/katex/dist/katex.mjs": "text/javascript; charset=utf-8",
   "../../node_modules/katex/LICENSE": "text/plain; charset=utf-8",
 };
@@ -100,11 +106,11 @@ async function readRequestBody(request, maxRequestBytes) {
 
 function requestLike(method, pathname) {
   return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/workspace/")
-    || pathname === "/api/v1" || pathname.startsWith("/api/v1/");
+    || /^\/api\/v[12](?:\/|$)/.test(pathname);
 }
 
 function tooLargeResponse(url) {
-  if (url.startsWith("/api/v1")) {
+  if (/^\/api\/v[12](?:\/|$|\?)/.test(url)) {
     const requestId = randomUUID();
     return {
       status: 413,
@@ -190,7 +196,7 @@ export function createPrototypeServer({
       await sendResponse(outgoing, method, response);
     } catch {
       const requestUrl = incoming.url ?? "/";
-      if (requestUrl.startsWith("/api/v1")) {
+      if (/^\/api\/v[12](?:\/|$|\?)/.test(requestUrl)) {
         const requestId = randomUUID();
         outgoing.writeHead(503, {
           "Content-Type": "application/json; charset=utf-8",

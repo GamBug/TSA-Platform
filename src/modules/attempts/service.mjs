@@ -17,6 +17,9 @@ import {
 import { createAllocationService } from '../assembly/allocation.mjs';
 import { withTransaction } from '../database/pool.mjs';
 import { BankCommandError, jsonDigest, reject, requireActor } from '../bank/common.mjs';
+import { AttemptViewV2Schema, AnswerAckV2Schema, AnswerSubmissionRequestV2Schema } from '../../../packages/contracts/dist/student-v2.js';
+import { ResponseValueV2Schema } from '../../../packages/contracts/dist/question-v2.js';
+import { AuthorizedReleasedReviewV2Schema } from '../../../packages/contracts/dist/released-review-v2.js';
 
 const ROUTE_ONLY_STATUS = Object.freeze({
   NOT_FOUND: 404,
@@ -122,13 +125,13 @@ function parseGuard(value, attemptId, userId) {
   };
 }
 
-function parseReadResult(value, attemptId, userId) {
+function parseReadResult(value, attemptId, userId, schema = AttemptViewSchema) {
   const source = record(value);
   if (!source || Object.keys(source).some((key) => key !== 'guard' && key !== 'view')) {
     reject(503, 'TEMPORARILY_UNAVAILABLE');
   }
   const guard = parseGuard(source.guard, attemptId, userId);
-  const parsedView = AttemptViewSchema.safeParse(source.view);
+  const parsedView = schema.safeParse(source.view);
   if (!parsedView.success || parsedView.data.attemptId !== attemptId || parsedView.data.state !== guard.state) {
     reject(503, 'TEMPORARILY_UNAVAILABLE');
   }
@@ -155,9 +158,9 @@ function toCreationResult(result) {
   reject(503, 'TEMPORARILY_UNAVAILABLE');
 }
 
-function toAnswerResult(result) {
+function toAnswerResult(result, ackSchema = AnswerAckSchema, responseSchema = ResponseValueSchema) {
   if (result.status === 'SAVED' || result.status === 'REPLAY') {
-    const parsed = AnswerAckSchema.safeParse(result.receipt);
+    const parsed = ackSchema.safeParse(result.receipt);
     if (!parsed.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
     return { status: 200, body: parsed.data, replayed: result.status === 'REPLAY' };
   }
@@ -175,7 +178,7 @@ function toAnswerResult(result) {
       const details = record(result.details);
       if (details && Number.isSafeInteger(details.currentRevision) && details.currentRevision >= 0) {
         error.details = { currentRevision: details.currentRevision };
-        const currentAnswer = ResponseValueSchema.safeParse(details.currentAnswer);
+        const currentAnswer = responseSchema.safeParse(details.currentAnswer);
         if (currentAnswer.success) error.details.currentAnswer = currentAnswer.data;
       }
     }
@@ -194,14 +197,14 @@ function toSubmitResult(result) {
   reject(503, 'TEMPORARILY_UNAVAILABLE');
 }
 
-function normalizeRead(value, attemptId, userId) {
+function normalizeRead(value, attemptId, userId, schema = AttemptViewSchema) {
   if (value === null || value === undefined) return null;
-  return parseReadResult(value, attemptId, userId);
+  return parseReadResult(value, attemptId, userId, schema);
 }
 
-function parseReleasedReview(value, attemptId) {
+function parseReleasedReview(value, attemptId, schema = AuthorizedReleasedReviewSchema) {
   const source = record(value);
-  const parsed = source === null ? null : AuthorizedReleasedReviewSchema.safeParse(source);
+  const parsed = source === null ? null : schema.safeParse(source);
   if (!parsed?.success || parsed.data.attemptId !== attemptId) reject(503, 'TEMPORARILY_UNAVAILABLE');
   return parsed.data;
 }
@@ -211,14 +214,19 @@ function parseReleasedReview(value, attemptId) {
  * budgets commit in separate PostgreSQL transactions; SQL owns each command's
  * persisted receipt, current lifecycle guards, and answer revision.
  */
-export function createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false } = {}) {
+export function createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableTopicPractice = false, enableNumericPractice = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
   const rate = validateCreateRate(createRate);
   const saveRates = saveRate === undefined ? null : validateSaveRate(saveRate);
-  const allocation = createAllocationService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice });
+  const allocation = createAllocationService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableTopicPractice, enableNumericPractice });
+  const viewSchema = enableNumericPractice ? AttemptViewV2Schema : AttemptViewSchema;
+  const ackSchema = enableNumericPractice ? AnswerAckV2Schema : AnswerAckSchema;
+  const requestSchema = enableNumericPractice ? AnswerSubmissionRequestV2Schema : AnswerSubmissionRequestSchema;
+  const responseSchema = enableNumericPractice ? ResponseValueV2Schema : ResponseValueSchema;
+  const reviewSchema = enableNumericPractice ? AuthorizedReleasedReviewV2Schema : AuthorizedReleasedReviewSchema;
 
   async function runReceipt(principal, key, requestHash) {
     return withTransaction(examPool, async (client) => {
@@ -226,7 +234,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query('SELECT tsa.assembly_receipt($1,$2) AS result', [key, requestHash]);
       const value = result.rows[0]?.result;
       return value === null || value === undefined ? null : statusResult(value);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function consumeCreateBudget(principal) {
@@ -238,7 +246,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const budget = record(result.rows[0]?.result);
       if (!budget || typeof budget.allowed !== 'boolean') reject(503, 'TEMPORARILY_UNAVAILABLE');
       return budget;
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
     if (!budget.allowed) failCommand('RATE_LIMITED', budget);
   }
 
@@ -248,7 +256,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query(
         'SELECT tsa.exam_attempt_start($1,$2,$3) AS result', [attemptId, key, bodyHash]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function authorizeSave(principal, attemptId, slotId) {
@@ -257,7 +265,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query('SELECT tsa.exam_authorize_save($1,$2) AS authorized', [attemptId, slotId]);
       if (typeof result.rows[0]?.authorized !== 'boolean') reject(503, 'TEMPORARILY_UNAVAILABLE');
       return result.rows[0].authorized;
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function consumeSaveBudget(principal, attemptId, slotId, configured) {
@@ -277,7 +285,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       if (budget.allowed === true) return;
       if (budget.allowed === false) failCommand('RATE_LIMITED', budget);
       reject(503, 'TEMPORARILY_UNAVAILABLE');
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function runSave(principal, attemptId, slotId, key, bodyHash, request) {
@@ -287,7 +295,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
         'SELECT tsa.exam_answer_save($1,$2,$3,$4,$5::jsonb) AS result',
         [attemptId, slotId, key, bodyHash, JSON.stringify(request)]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function runSubmit(principal, attemptId, key, bodyHash) {
@@ -296,12 +304,12 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query(
         'SELECT tsa.exam_attempt_submit($1,$2,$3) AS result', [attemptId, key, bodyHash]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function readOnClient(client, principal, attemptId) {
     const result = await client.query('SELECT tsa.exam_attempt_access($1) AS result', [attemptId]);
-    return normalizeRead(result.rows[0]?.result, attemptId, principal.userId);
+    return normalizeRead(result.rows[0]?.result, attemptId, principal.userId, viewSchema);
   }
 
   async function create(principal, key, input) {
@@ -315,6 +323,19 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const prior = await runReceipt(principal, key, requestHash);
       if (prior !== null) return toCreationResult(prior);
       await consumeCreateBudget(principal);
+      return await allocation.create(principal, key, request);
+    } catch (error) {
+      if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
+      throw error;
+    }
+  }
+
+  async function createPrepared(principal, key, prepare, { existingReceipt = false } = {}) {
+    requireActor(identityService, principal, 'candidate.attempt.read');
+    if (!enableTopicPractice || !IdempotencyKeySchema.safeParse(key).success || typeof prepare !== 'function') reject(422, 'VALIDATION_ERROR');
+    try {
+      if (!existingReceipt) await consumeCreateBudget(principal);
+      const request = await prepare();
       return await allocation.create(principal, key, request);
     } catch (error) {
       if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
@@ -374,7 +395,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
 
     // The independent save buckets are charged after ownership/slot authorization
     // but before strict answer validation, including invalid typed values.
-    const parsedRequest = AnswerSubmissionRequestSchema.safeParse(input);
+    const parsedRequest = requestSchema.safeParse(input);
     if (!parsedRequest.success) reject(422, 'VALIDATION_ERROR');
     const request = parsedRequest.data;
     const bodyHash = jsonDigest(request);
@@ -388,7 +409,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
         if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
         throw error;
       }
-      return toAnswerResult(result);
+      return toAnswerResult(result, ackSchema, responseSchema);
     }
     reject(409, 'CONCURRENT_MODIFICATION');
   }
@@ -451,7 +472,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
             throw new BankCommandError(503, 'TEMPORARILY_UNAVAILABLE');
           }
           const result = await client.query('SELECT tsa.exam_released_review($1) AS result', [attemptId]);
-          return parseReleasedReview(result.rows[0]?.result, attemptId);
+          return parseReleasedReview(result.rows[0]?.result, attemptId, reviewSchema);
         },
       });
       try {
@@ -460,7 +481,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
         active = false;
         latest = null;
       }
-    }, { role: 'tsa_exam' });
+    }, { role: 'tsa_exam', enableNumericPractice });
   }
 
   async function read(principal, attemptIdInput) {
@@ -470,12 +491,12 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       return await withTransaction(examPool, async (client) => {
         await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
         return (await readOnClient(client, principal, attemptId))?.view ?? null;
-      }, { role: 'tsa_exam' });
+      }, { role: 'tsa_exam', enableNumericPractice });
     } catch (error) {
       if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
       throw error;
     }
   }
 
-  return Object.freeze({ create, start, save, submit, read, withReadBoundary });
+  return Object.freeze({ create, createPrepared, start, save, submit, read, withReadBoundary });
 }

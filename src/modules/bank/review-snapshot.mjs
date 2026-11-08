@@ -1,13 +1,16 @@
 import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema } from '../../../packages/contracts/dist/internal.js';
+import { SupportedQuestionVersionSchema } from '../../../packages/contracts/dist/question-v2.js';
 import { reject, resolveReferenceGraph, referenceKey, jsonDigest, UUID_PATTERN } from './common.mjs';
 import { resolveOriginalImportAttribution } from './import-attribution.mjs';
+import { isFactoryImportNamespace } from './factory-namespace.mjs';
 
 const fail = () => reject(503, 'TEMPORARILY_UNAVAILABLE');
 const exact = (left, right) => Buffer.from(canonicalize(left)).equals(Buffer.from(canonicalize(right)));
 const need = (condition) => { if (!condition) fail(); };
 
 async function importContext(client, row) {
-  if (!row.reference_namespace?.startsWith('factory/2/')) return row;
+  if (!row.reference_namespace?.startsWith('factory/')) return row;
+  need(isFactoryImportNamespace(row.reference_namespace));
   row = await resolveOriginalImportAttribution(client, row);
   if (row.stimulus_version_id) {
     const mapping = await client.query(`SELECT external_id FROM tsa_private.factory_external_mappings
@@ -39,10 +42,13 @@ async function loadVersion(client, versionId) {
   return result.rows[0] ? importContext(client, result.rows[0]) : null;
 }
 
-function normalizedQuestion(row) {
+function normalizedQuestion(row, { enableNumericQuestions = false } = {}) {
   need(row.reference_namespace && row.authored_created_at);
   if (row.producer_namespace && row.stimulus_version_id) need(row.external_stimulus_version_id);
-  return QuestionVersionSchema.parse({
+  const schema = row.schema_version === 'question/2' && enableNumericQuestions
+    ? SupportedQuestionVersionSchema
+    : QuestionVersionSchema;
+  const parsed = schema.safeParse({
     schemaVersion: row.schema_version, id: row.id, questionId: row.question_id,
     versionNo: row.version_no, parentVersionId: row.parent_version_id,
     language: row.language, section: row.section, taxonomyVersionId: row.taxonomy_version_id,
@@ -56,6 +62,8 @@ function normalizedQuestion(row) {
     generationRunId: row.external_generation_run_id ?? row.generation_run_id,
     createdBy: row.created_by, createdAt: row.authored_created_at, contentHash: row.content_hash,
   });
+  need(parsed.success);
+  return parsed.data;
 }
 
 function descendants(node, nodes) {
@@ -82,7 +90,7 @@ async function mappedId(client, producer, namespace, node) {
   return result.rows[0].local_id;
 }
 
-async function verifyGraph(client, target) {
+async function verifyGraph(client, target, options = {}) {
   const graph = await resolveReferenceGraph(client, target.reference_namespace, [{ kind: 'question', id: target.id }]);
   const nodes = new Map(graph.map((node) => [referenceKey(node.kind, node.id), node]));
   const sources = new Set(), stimuli = new Map(), contexts = new Map(), materialized = new Map(), questions = [];
@@ -92,7 +100,7 @@ async function verifyGraph(client, target) {
   for (const node of graph.filter((entry) => entry.kind === 'question')) {
     const row = node.id === target.id ? target : await loadVersion(client, node.id);
     need(row);
-    const parsed = normalizedQuestion(row);
+    const parsed = normalizedQuestion(row, options);
     questions.push({ row, question: parsed });
     need(!Object.hasOwn(node.payload, 'contentHash'));
     need(exact(parsed, { ...node.payload, contentHash: row.content_hash }));
@@ -208,7 +216,9 @@ async function accessBasis(client, identityService, principal, target, allowAuth
 
 // Both private reads share the exact immutable graph verification. The evidence
 // read explicitly excludes AUTHOR_OWN before any question secrets are loaded.
-export async function loadStaffReviewSnapshot(client, identityService, principal, versionId, { allowAuthorOwn = true } = {}) {
+export async function loadStaffReviewSnapshot(client, identityService, principal, versionId,
+  { allowAuthorOwn = true, enableNumericQuestions = false } = {}) {
+  if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('enableNumericQuestions must be a boolean');
   const access = await client.query(`SELECT qv.id,qv.created_by,qv.reference_namespace,w.state::text AS state,
     manifest.received_by AS operator_id
     FROM tsa.question_versions qv JOIN tsa.question_workflow w ON w.question_version_id=qv.id
@@ -221,6 +231,6 @@ export async function loadStaffReviewSnapshot(client, identityService, principal
   const basis = await accessBasis(client, identityService, principal, access.rows[0], allowAuthorOwn);
   const target = await loadVersion(client, versionId);
   need(target);
-  const verified = await verifyGraph(client, target);
+  const verified = await verifyGraph(client, target, { enableNumericQuestions });
   return { basis, target, verified };
 }
