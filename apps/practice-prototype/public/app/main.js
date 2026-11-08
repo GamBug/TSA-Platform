@@ -2,13 +2,19 @@ import * as demoApi from "./api.js";
 import { createPersistentApi } from "./persistent-api.js";
 import { openStaffWorkspace } from "./staff.js";
 import { renderMath } from "./math.js";
+import { mountTopicPractice } from "./topic-practice.js";
+import { renderQuestionImage } from "./question-media.js";
+import { attachExamShortcuts } from "./exam-shortcuts.js";
 
 const app = document.querySelector("#app");
 const productHeader = document.querySelector("#product-header");
 const announcements = document.querySelector("#announcements");
-const persistentMode = new URLSearchParams(window.location.search).get("student") === "postgres";
+const studentMode = new URLSearchParams(window.location.search).get("student");
+const numericMode = studentMode === "postgres-v2";
+const persistentMode = numericMode || studentMode === "postgres";
 productHeader.dataset.persistent = String(persistentMode);
-const api = persistentMode ? createPersistentApi() : demoApi;
+const api = persistentMode ? createPersistentApi({ apiVersion: numericMode ? "v2" : "v1" }) : demoApi;
+let characterShortcutsEnabled = true;
 
 // Browse navigation belongs to the product shell, independent of route content.
 // Keep its nodes and listeners; reconcile only state and conditional destinations.
@@ -89,6 +95,7 @@ function openStaff() {
 }
 
 const domainNames = { MATH: "Toán học", READING: "Đọc hiểu", SCIENCE: "Khoa học" };
+const NUMERIC_RESPONSE_PATTERN = /^[+-]?[0-9]{1,40}(?:[.,][0-9]{1,20})?$/u;
 const attemptStateNames = { CREATED: "Đã giữ bài", IN_PROGRESS: "Đang làm", SUBMITTED: "Đã nộp", EXPIRED: "Hết giờ", GRADED: "Đã chấm", CANCELLED: "Đã hủy", INVALIDATED: "Không còn hợp lệ" };
 const gradingStateNames = { PENDING: "Đang chờ chấm", RUNNING: "Đang chấm", SUCCEEDED: "Đã chấm xong", FAILED_RETRYABLE: "Chấm chưa thành công; máy chủ sẽ thử lại", FAILED_FINAL: "Chưa thể chấm; cần người phụ trách kiểm tra" };
 const state = {
@@ -107,6 +114,7 @@ const state = {
   currentIndex: 0,
   savingSlotId: null,
   pendingAnswer: null,
+  numericDraft: null,
   pendingMultipleChoice: null,
   busy: false,
   clockAttemptId: null,
@@ -197,11 +205,14 @@ function profileForAttempt(attempt) {
       || typeof profile.name !== "string" || !profile.name.trim()
       || !Number.isSafeInteger(profile.questionCount) || profile.questionCount <= 0
       || !Number.isSafeInteger(profile.durationSeconds) || profile.durationSeconds <= 0) return null;
+  if (profile.topicPractice === true) return profile.questionCount <= 100 && profile.durationSeconds >= 60
+    && profile.durationSeconds <= 10800 ? profile : null;
   const supported = profile.domain === "MATH"
     ? (profile.questionCount === 4 && profile.durationSeconds === 360 && profile.isShort === false)
       || (profile.questionCount === 2 && profile.durationSeconds === 180 && profile.isShort === true)
     : profile.domain === "READING"
-      ? profile.questionCount === 2 && profile.durationSeconds === 180 && profile.isShort === false
+      ? profile.isShort === false && ((profile.questionCount === 2 && profile.durationSeconds === 180)
+        || (profile.questionCount === 20 && profile.durationSeconds === 1800))
       : profile.domain === "SCIENCE"
         ? (profile.questionCount === 4 && profile.durationSeconds === 360 && profile.isShort === false)
           || (profile.questionCount === 2 && profile.durationSeconds === 180 && profile.isShort === true)
@@ -211,9 +222,11 @@ function profileForAttempt(attempt) {
 
 function profileSummary(attempt) {
   const profile = profileForAttempt(attempt);
-  return profile
-    ? profile.name
-    : "Chưa xác định từ dữ liệu đã tải.";
+  if (profile) return profile.name;
+  const count = attempt?.questionCount ?? attempt?.slots?.length;
+  const duration = attempt?.durationSeconds;
+  if (Number.isSafeInteger(count) && count > 0) return `${domainNames[attempt.domain] ?? "Bài luyện tập"} · ${count} câu${Number.isSafeInteger(duration) && duration > 0 ? ` · ${Math.ceil(duration / 60)} phút` : ""}`;
+  return "Bài luyện tập đã lưu";
 }
 
 function sameCatalogProfile(left, right) {
@@ -400,7 +413,7 @@ function contentText(blocks = []) {
   }).filter(Boolean).join(" ");
 }
 
-function renderContentBlocks(blocks = []) {
+function renderContentBlocks(blocks = [], { purpose = "question" } = {}) {
   const content = element("div", "question-content-blocks");
   for (const block of blocks) {
     if (block?.type === "text") {
@@ -433,10 +446,7 @@ function renderContentBlocks(blocks = []) {
       scroll.append(table);
       content.append(scroll);
     } else if (block?.type === "image") {
-      const figure = element("figure", "content-image-placeholder");
-      figure.append(element("p", "", block.alt ?? "Hình minh họa không khả dụng."));
-      if (block.caption) figure.append(element("figcaption", "", block.caption));
-      content.append(figure);
+      content.append(renderQuestionImage(block, { attemptId: state.attempt?.attemptId, purpose }));
     }
   }
   return content;
@@ -653,6 +663,7 @@ function clearAttemptState() {
   state.currentIndex = 0;
   state.savingSlotId = null;
   state.pendingAnswer = null;
+  state.numericDraft = null;
   state.pendingMultipleChoice = null;
   state.busy = false;
   state.review = null;
@@ -663,6 +674,7 @@ function acceptAttempt(attempt) {
   const previousAttemptId = state.attempt?.attemptId;
   const previousState = state.attempt?.state;
   const hadPendingChanges = hasUnacknowledgedChanges();
+  state.numericDraft = null;
   if (previousAttemptId !== attempt.attemptId) {
     state.currentIndex = 0;
     state.pendingAnswer = null;
@@ -2536,6 +2548,93 @@ async function recoverConflictingAttempt(recovery) {
   }
 }
 
+function renderTopicPractice() {
+  const identityGeneration = state.identityGeneration;
+  const fragment = document.createDocumentFragment();
+  fragment.append(header());
+  const page = element("section", "topic-practice-page");
+  page.dataset.testid = "topic-practice";
+  const title = element("h1", "", "Luyện tập theo chủ đề.");
+  title.tabIndex = -1;
+  const back = actionButton("Quay lại danh mục", "topic-back", renderCatalog, "button secondary small");
+  const host = element("section", "topic-practice-card");
+  page.append(title, back, host);
+  fragment.append(page, footerNote());
+  replaceApp(fragment, { catalogMode: true });
+  mountTopicPractice(host, {
+    load: async (options) => {
+      try { return await api.loadTopics(options); }
+      catch (error) {
+        if (state.identityGeneration === identityGeneration) handlePersistentError(error);
+        throw error;
+      }
+    },
+    create: async (intent) => {
+      try { return await api.createTopicAttempt(intent); }
+      catch (error) {
+        if (state.identityGeneration !== identityGeneration) throw error;
+        if (error?.code === "CONCURRENT_ATTEMPT_EXISTS"
+            && isCanonicalUuid(error.details?.existingAttemptId)) {
+          state.conflictRecovery = { attemptId: error.details.existingAttemptId, identityGeneration, phase: "available" };
+          renderCatalog();
+          focusConflictRecovery();
+        } else handlePersistentError(error);
+        throw error;
+      }
+    },
+    canCreate: () => !state.busy && !currentActivePersistentAttempt(),
+    isCurrent: () => state.identityGeneration === identityGeneration,
+    onResume: resumePersistentAttempt,
+    onAttempt: (response) => {
+      if (state.identityGeneration !== identityGeneration) return;
+      state.resumeNotice = "Bài theo chủ đề đã được lưu. Chọn Bắt đầu khi sẵn sàng.";
+      state.currentIndex = 0;
+      void refreshPersistentHistory();
+      acceptAttempt(response.attempt);
+    },
+  });
+  title.focus();
+}
+
+function renderPracticeModes() {
+  const modes = element("section", "practice-modes");
+  modes.setAttribute("aria-label", "Chế độ luyện tập");
+  const topic = element("article", "practice-mode");
+  topic.append(element("span", "catalog-overline", "01 · THEO CHỦ ĐỀ"), element("h2", "", "Tập trung kỹ năng"),
+    element("p", "", "Chọn chủ đề từ ngân hàng hiện tại, cấu hình số câu và thời lượng."));
+  const open = actionButton("Chọn chủ đề", "topic-practice-open", renderTopicPractice, "button");
+  open.disabled = state.busy || fixedSelectionLocked();
+  topic.append(open);
+  const practice = element("article", "practice-mode");
+  practice.append(element("span", "catalog-overline", "02 · BÀI CÓ CẤU HÌNH"), element("h2", "", "Luyện nhịp làm bài"),
+    element("p", "", "Số câu, thời lượng và các phần theo hồ sơ máy chủ trong danh mục bên dưới."));
+  practice.append(actionButton("Xem bài luyện tập", "practice-profiles-open", () => {
+    app.querySelector("[data-testid='catalog-grid']")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    app.querySelector("[data-testid='catalog-grid'] button:not(:disabled)")?.focus({ preventScroll: true });
+  }, "button secondary"));
+  modes.append(topic, practice);
+  const quickProfile = fullCatalogProfiles().filter((profile) => profile.available)
+    .sort((left, right) => left.questionCount - right.questionCount || left.durationSeconds - right.durationSeconds)[0];
+  if (quickProfile) {
+    const quick = element("article", "practice-mode");
+    quick.append(element("span", "catalog-overline", "03 · LUYỆN TẬP NHANH"), element("h2", "", "Một phiên ngắn"),
+      element("p", "", `${domainNames[quickProfile.domain]} · ${quickProfile.questionCount} câu · ${Math.ceil(quickProfile.durationSeconds / 60)} phút theo hồ sơ hiện tại.`));
+    const start = actionButton("Bắt đầu luyện tập nhanh", "quick-practice-open", () => startDemo(quickProfile), "button secondary");
+    start.disabled = state.busy || fixedSelectionLocked() || Boolean(currentActivePersistentAttempt());
+    quick.append(start); modes.append(quick);
+  }
+  const active = currentActivePersistentAttempt();
+  if (active) {
+    const resume = element("article", "practice-mode");
+    resume.append(element("span", "catalog-overline", "TIẾP TỤC"), element("h2", "", "Bài của bạn đã lưu"),
+      element("p", "", `${domainNames[active.domain] ?? "Bài luyện tập"} · ${active.answeredCount ?? 0}/${active.questionCount ?? active.slots.length} câu đã trả lời`));
+    const continueButton = actionButton("Tiếp tục bài đang làm", "mode-resume", resumePersistentAttempt, "button secondary");
+    continueButton.disabled = state.busy || hasUnacknowledgedChanges();
+    resume.append(continueButton); modes.append(resume);
+  }
+  return modes;
+}
+
 function renderCatalog() {
   if (persistentMode) reconcileReviewFlowWithCatalog();
   if (persistentMode) {
@@ -2568,6 +2667,7 @@ function renderCatalog() {
   }, "button secondary small"));
   panelHeader.append(heading, headerActions);
   panel.append(panelHeader);
+  if (persistentMode) panel.append(renderPracticeModes());
   if (persistentMode && state.conflictRecovery) {
     const recovery = element("section", "short-practice-unavailable attempt-conflict-recovery");
     recovery.dataset.testid = "attempt-conflict-recovery";
@@ -2731,6 +2831,23 @@ function acknowledgedAnswer(slotId) {
   return state.attempt.answers.find((answer) => answer.slotId === slotId) ?? null;
 }
 
+function isValidNumericResponse(value) {
+  return typeof value === "string" && value.length <= 64 && NUMERIC_RESPONSE_PATTERN.test(value.trim());
+}
+
+function numericAnswerInputValue(slotId) {
+  if (state.numericDraft?.slotId === slotId) return state.numericDraft.rawValue;
+  const answer = selectedAnswer(slotId);
+  return answer?.type === "NUMERIC_RESPONSE" && typeof answer.value === "string" ? answer.value : "";
+}
+
+function hasNumericDraft(slotId) {
+  if (state.numericDraft?.slotId !== slotId) return false;
+  const saved = acknowledgedAnswer(slotId);
+  const savedValue = saved?.type === "NUMERIC_RESPONSE" && typeof saved.value === "string" ? saved.value : "";
+  return state.numericDraft.rawValue !== savedValue;
+}
+
 function selectedOption(slotId) {
   return selectedAnswer(slotId)?.optionId ?? null;
 }
@@ -2747,11 +2864,12 @@ function selectedOptions(slotId) {
 }
 
 function hasUnacknowledgedChanges() {
-  return state.pendingAnswer !== null || state.pendingMultipleChoice !== null;
+  return state.pendingAnswer !== null || state.pendingMultipleChoice !== null
+    || (state.numericDraft !== null && hasNumericDraft(state.numericDraft.slotId));
 }
 
 function hasPendingForSlot(slotId) {
-  return state.pendingAnswer?.slotId === slotId || state.pendingMultipleChoice?.slotId === slotId;
+  return state.pendingAnswer?.slotId === slotId || state.pendingMultipleChoice?.slotId === slotId || hasNumericDraft(slotId);
 }
 
 function selectedStatementValues(slotId) {
@@ -2771,6 +2889,10 @@ function acknowledgedStatementValues(slotId) {
 }
 
 function isQuestionAnswered(slot) {
+  if (slot.interaction.type === "NUMERIC_RESPONSE") {
+    const answer = acknowledgedAnswer(slot.slotId);
+    return answer?.type === "NUMERIC_RESPONSE" && typeof answer.value === "string";
+  }
   if (slot.interaction.type === "MULTIPLE_CHOICE") {
     const count = acknowledgedOptions(slot.slotId).length;
     return count >= slot.interaction.minSelections && count <= slot.interaction.maxSelections;
@@ -2782,6 +2904,7 @@ function isQuestionAnswered(slot) {
 
 function hasAnySavedAnswer(slotId) {
   const answer = acknowledgedAnswer(slotId);
+  if (answer?.type === "NUMERIC_RESPONSE") return typeof answer.value === "string";
   if (answer?.type === "TRUE_FALSE_GROUP") return Array.isArray(answer.statementValues) && answer.statementValues.length > 0;
   if (answer?.type === "MULTIPLE_CHOICE") return Array.isArray(answer.optionIds) && answer.optionIds.length > 0;
   return answer?.optionId !== undefined && answer.optionId !== null;
@@ -2826,6 +2949,7 @@ function discardPendingMultipleChoice() {
   }
   state.pendingAnswer = null;
   state.pendingMultipleChoice = null;
+  state.numericDraft = null;
   renderExam();
   app.querySelector("[data-testid='question-title']")?.focus();
   announce("Đã bỏ thay đổi chưa lưu. Các câu trả lời đã xác nhận vẫn được giữ.");
@@ -2875,6 +2999,119 @@ function renderOptions(question, saving) {
     list.append(label);
   }
   return list;
+}
+
+function renderNumericResponse(question, saving) {
+  const slotId = question.slotId;
+  const control = element("div", "numeric-response-control");
+  const label = element("label", "numeric-response-label", question.interaction.label);
+  label.htmlFor = "numeric-answer-input-control";
+  const input = element("input", "numeric-response-input");
+  input.id = "numeric-answer-input-control";
+  input.type = "text";
+  input.inputMode = "decimal";
+  input.maxLength = 64;
+  input.autocomplete = "off";
+  input.autocapitalize = "off";
+  input.spellcheck = false;
+  input.value = numericAnswerInputValue(slotId);
+  input.disabled = saving || state.busy;
+  input.dataset.testid = "numeric-answer-input";
+  input.setAttribute("aria-describedby", "numeric-answer-help numeric-answer-error");
+
+  const help = element("p", "numeric-answer-help",
+    "Có thể thêm dấu + hoặc −, dùng 1–40 chữ số nguyên và tùy chọn 1–20 chữ số thập phân. Có thể có khoảng trắng ở đầu hoặc cuối. Dấu phẩy là dấu thập phân; không dùng dấu phân nhóm hàng nghìn, lũy thừa, đơn vị hoặc phân số.");
+  help.id = "numeric-answer-help";
+  const error = element("p", "numeric-answer-error");
+  error.id = "numeric-answer-error";
+  error.dataset.testid = "numeric-answer-error";
+  error.setAttribute("role", "status");
+  error.setAttribute("aria-live", "polite");
+
+  const actions = element("div", "numeric-answer-actions");
+  const savedAnswer = acknowledgedAnswer(slotId);
+  const savedRawValue = savedAnswer?.type === "NUMERIC_RESPONSE" && typeof savedAnswer.value === "string"
+    ? savedAnswer.value : "";
+  const pendingAnswer = state.pendingAnswer?.slotId === slotId && state.pendingAnswer.value?.type === "NUMERIC_RESPONSE"
+    ? state.pendingAnswer : null;
+  input.readOnly = pendingAnswer?.saveAttempted === true;
+  const save = actionButton(saving ? "Đang lưu…" : pendingAnswer ? "Thử lưu lại" : "Lưu câu trả lời",
+    "numeric-answer-save", () => {
+      const rawValue = input.value;
+      if (pendingAnswer?.value.value === null && rawValue === "") {
+        void saveSelectedAnswer(slotId, pendingAnswer.value, "numeric-answer-input");
+        return;
+      }
+      if (!isValidNumericResponse(rawValue)) {
+        error.textContent = "Câu trả lời chưa đúng định dạng hoặc chưa hoàn chỉnh.";
+        input.setAttribute("aria-invalid", "true");
+        input.focus();
+        return;
+      }
+      state.numericDraft = rawValue === savedRawValue ? null : { slotId, rawValue };
+      void saveSelectedAnswer(slotId, { type: "NUMERIC_RESPONSE", value: rawValue }, "numeric-answer-input");
+    }, "button numeric-answer-save");
+  save.dataset.testid = "numeric-answer-save";
+  const pendingValue = pendingAnswer?.value.value;
+  const retryablePending = pendingAnswer && (pendingValue === null || isValidNumericResponse(pendingValue));
+  const validDraft = isValidNumericResponse(input.value) && input.value !== savedRawValue;
+  save.disabled = saving || state.busy || !(retryablePending || validDraft);
+
+  const clear = actionButton("Xóa câu trả lời", "numeric-answer-clear", () => {
+    const hasServerAnswer = hasAnySavedAnswer(slotId);
+    const hasPendingSave = state.pendingAnswer?.slotId === slotId;
+    state.numericDraft = null;
+    if (!hasServerAnswer && !hasPendingSave) {
+      renderExam();
+      app.querySelector('[data-testid="numeric-answer-input"]')?.focus({ preventScroll: true });
+      return;
+    }
+    void saveSelectedAnswer(slotId, { type: "NUMERIC_RESPONSE", value: null }, "numeric-answer-input");
+  }, "button secondary numeric-answer-clear");
+  clear.dataset.testid = "numeric-answer-clear";
+  clear.disabled = saving || state.busy
+    || (!hasAnySavedAnswer(slotId) && !hasNumericDraft(slotId) && state.pendingAnswer?.slotId !== slotId);
+
+  input.addEventListener("input", () => {
+    if (state.pendingAnswer?.slotId === slotId && state.pendingAnswer.saveAttempted) {
+      input.value = state.pendingAnswer.value.value ?? "";
+      error.textContent = "Trạng thái lưu chưa rõ. Hãy thử lưu lại hoặc tải trạng thái đã lưu trước khi sửa.";
+      return;
+    }
+    const rawValue = input.value;
+    if (state.pendingAnswer?.slotId === slotId) state.pendingAnswer = null;
+    state.numericDraft = rawValue === savedRawValue ? null : { slotId, rawValue };
+    const emptyWithSavedAnswer = rawValue.length === 0 && savedRawValue.length > 0;
+    const valid = isValidNumericResponse(rawValue);
+    input.setAttribute("aria-invalid", String(!valid && (rawValue.length > 0 || emptyWithSavedAnswer)));
+    error.textContent = valid || rawValue.length === 0 && !emptyWithSavedAnswer
+      ? ""
+      : emptyWithSavedAnswer
+        ? "Để trống chưa xóa câu trả lời đã lưu. Chọn “Xóa câu trả lời” để lưu trạng thái trống."
+        : "Định dạng chưa hoàn chỉnh. Dùng 1–40 chữ số nguyên và tùy chọn 1–20 chữ số thập phân sau dấu chấm hoặc dấu phẩy.";
+    const dirty = hasNumericDraft(slotId);
+    const pending = state.pendingAnswer?.slotId === slotId;
+    save.disabled = state.busy || state.savingSlotId !== null
+      || !(pending && retryablePending || valid && rawValue !== savedRawValue);
+    clear.disabled = state.busy || state.savingSlotId !== null
+      || (!hasAnySavedAnswer(slotId) && !dirty && !pending);
+    const status = app.querySelector('[data-testid="save-status"]');
+    if (status && state.savingSlotId !== slotId) {
+      const saved = hasAnySavedAnswer(slotId);
+      status.className = `save-row compact-save-row${dirty ? " unsaved" : saved ? " saved" : ""}`;
+      status.replaceChildren(element("span", "save-dot"), element("span", "", dirty ? "Chưa lưu" : saved ? "Đã lưu" : "Chưa trả lời"));
+    }
+    app.querySelector('[data-testid="save-error"]')?.remove();
+  });
+
+  label.append(document.createTextNode(""));
+  actions.append(save, clear);
+  control.append(label, input, help, error, actions);
+  if (hasNumericDraft(slotId) && !isValidNumericResponse(input.value)) {
+    input.setAttribute("aria-invalid", "true");
+    error.textContent = "Định dạng chưa hoàn chỉnh. Nhập số thập phân hoặc bỏ thay đổi chưa lưu.";
+  } else input.setAttribute("aria-invalid", "false");
+  return control;
 }
 
 function renderTrueFalseGroup(question, saving) {
@@ -2957,6 +3194,7 @@ async function reloadAttemptAfterSaveConflict() {
     if (data.attempt.state === "IN_PROGRESS") {
       state.pendingAnswer = null;
       state.pendingMultipleChoice = null;
+      state.numericDraft = null;
       state.resumeNotice = "Đã tải lại trạng thái đã lưu. Chọn lại câu trả lời nếu muốn thử lưu lần nữa.";
     }
     acceptAttempt(data.attempt);
@@ -3000,6 +3238,7 @@ async function saveSelectedAnswer(slotId, answer, restoreFocusTestId) {
     }
     if (state.pendingMultipleChoice?.slotId === slotId) state.pendingMultipleChoice = null;
     if (state.pendingAnswer?.slotId === slotId) state.pendingAnswer = null;
+    if (state.numericDraft?.slotId === slotId) state.numericDraft = null;
     renderExam();
     const savedMessage = response.message || "Máy chủ đã xác nhận lưu lựa chọn.";
     updateSaveStatus(savedMessage, "saved");
@@ -3058,6 +3297,12 @@ function appendDialog(parent, { id, title, body, cancelTestId, cancelText, confi
   }, `button small${danger ? " danger" : ""}`);
   actions.append(...(confirmFirst ? [confirm, cancel] : [cancel, confirm]));
   dialog.append(actions);
+  dialog.addEventListener("close", () => {
+    const target = dialog.returnFocusTarget;
+    if (dialog.isConnected && !app.querySelector("dialog[open]") && target?.isConnected && !target.disabled) {
+      target.focus({ preventScroll: true });
+    }
+  });
   if (persistentMode) dialog.addEventListener("keydown", (event) => {
     if (event.key !== "Tab" || !dialog.open) return;
     const controls = [...dialog.querySelectorAll('button:not([disabled]), summary, a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
@@ -3092,7 +3337,10 @@ function openDialog(id) {
     if (!dialog.querySelector("[aria-current='step']")) dialog.querySelector("[data-testid='navigator-close']")?.focus();
     return;
   }
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) {
+    dialog.returnFocusTarget = document.activeElement;
+    dialog.showModal();
+  }
 }
 
 function renderNavigatorDialogContent(dialog) {
@@ -3201,25 +3449,180 @@ function examTopbar() {
   else if (isReviewAllowedAttempt(state.attempt)) identityCopy.append(element("span", "review-mode-label", reviewModeLabel()));
   identity.append(identityCopy);
 
-  const clock = element("div", "exam-clock");
-  clock.append(element("span", "", "THỜI GIAN CÒN LẠI"));
-  const timer = element("strong", "", formatRemaining(state.clockDeadlineMs - performance.now()));
-  timer.dataset.testid = "timer";
-  timer.setAttribute("aria-live", "off");
-  timer.setAttribute("aria-label", "Thời gian còn lại trong bản demo");
-  clock.append(timer);
-
   const actions = element("div", "exam-header-actions");
   const exit = persistentMode
     ? actionButton("Danh sách", "exam-catalog", () => renderCatalog(), "button secondary small exam-exit")
     : actionButton("Thoát", "cancel-open", () => openDialog("cancel-dialog"), "button secondary small exam-exit");
   exit.setAttribute("aria-label", persistentMode ? "Quay lại danh sách; bài vẫn tiếp tục trên máy chủ" : "Kết thúc phiên demo");
   exit.disabled = state.busy || state.savingSlotId !== null || hasUnacknowledgedChanges();
-  const submit = actionButton("Nộp bài", "submit-open", () => openDialog("submit-dialog"), "button small exam-submit");
-  submit.disabled = state.busy || state.savingSlotId !== null || hasUnacknowledgedChanges();
-  actions.append(exit, submit);
-  header.append(identity, clock, actions);
+  const help = actionButton("Phím tắt", "shortcut-help-open", openExamShortcutHelp, "button secondary small exam-help");
+  help.setAttribute("aria-haspopup", "dialog");
+  help.setAttribute("aria-controls", "shortcut-help-dialog");
+  actions.append(help, exit);
+  header.append(identity, actions);
   return header;
+}
+
+function examClock() {
+  const clock = element("section", "exam-clock-card");
+  clock.setAttribute("aria-label", "Đồng hồ bài luyện tập");
+  clock.append(element("span", "exam-clock-label", "THỜI GIAN CÒN LẠI"));
+  const timer = element("strong", "exam-clock-value", formatRemaining(state.clockDeadlineMs - performance.now()));
+  timer.dataset.testid = "timer";
+  timer.setAttribute("aria-live", "off");
+  timer.setAttribute("aria-label", "Thời gian còn lại");
+  clock.append(timer);
+  return clock;
+}
+
+function renderExamQuestionGrid() {
+  const navigator = element("details", "exam-question-list");
+  navigator.dataset.testid = "exam-question-list";
+  navigator.open = window.matchMedia?.("(min-width: 900px)").matches ?? true;
+  const summary = element("summary", "exam-question-list-toggle", `Danh sách câu hỏi (${state.attempt.slots.length})`);
+  summary.setAttribute("aria-label", `Mở hoặc thu gọn danh sách ${state.attempt.slots.length} câu hỏi`);
+  const grid = element("nav", "question-nav exam-question-grid");
+  grid.setAttribute("aria-label", "Chọn câu hỏi");
+  state.attempt.slots.forEach((slot, index) => {
+    const status = questionAnswerStatus(slot);
+    const marked = state.markedSlotIds.has(slot.slotId);
+    const button = element("button", [status === "answered" ? "answered" : "", status === "partial" ? "partial" : "", marked ? "marked" : ""].filter(Boolean).join(" "), String(slot.ordinal));
+    button.type = "button";
+    button.dataset.testid = `exam-question-${slot.ordinal}`;
+    button.disabled = state.busy || state.savingSlotId !== null || hasUnacknowledgedChanges();
+    if (index === state.currentIndex) button.setAttribute("aria-current", "step");
+    button.setAttribute("aria-label", `Câu ${slot.ordinal}, ${status === "answered" ? "đã hoàn tất" : status === "partial" ? "chưa hoàn tất" : "chưa trả lời"}${marked ? ", được đánh dấu xem lại" : ""}${index === state.currentIndex ? ", câu hiện tại" : ""}`);
+    button.addEventListener("click", () => navigateTo(index));
+    grid.append(button);
+  });
+  const legend = element("ul", "exam-question-legend");
+  for (const [symbol, status, className] of [
+    ["○", "Chưa trả lời", "unanswered"],
+    ["◐", "Chưa hoàn tất", "partial"],
+    ["✓", "Đã hoàn tất", "answered"],
+    ["★", "Đánh dấu xem lại", "marked"],
+    ["●", "Câu hiện tại", "current"],
+  ]) {
+    const item = element("li", `exam-question-legend-item ${className}`);
+    const mark = element("span", "exam-question-legend-mark", symbol);
+    mark.setAttribute("aria-hidden", "true");
+    item.append(mark, element("span", "", status));
+    legend.append(item);
+  }
+  navigator.append(summary, grid, legend);
+  return navigator;
+}
+
+function renderExamSidebar() {
+  const counts = attemptAnswerCounts();
+  const sidebar = element("aside", "exam-sidebar");
+  sidebar.dataset.testid = "exam-sidebar";
+  sidebar.setAttribute("aria-label", "Thời gian và tiến độ bài làm");
+  sidebar.append(examClock());
+
+  const progressSection = element("section", "exam-progress-section");
+  const progressTitle = element("h2", "exam-sidebar-heading", "Tiến độ");
+  const progressLabel = element("div", "exam-progress-label");
+  const progressValue = element("strong", "", `${counts.answered}/${counts.total}`);
+  progressValue.dataset.testid = "exam-progress-count";
+  progressLabel.append(progressValue, element("span", "", "câu hoàn tất"));
+  const progress = document.createElement("progress");
+  progress.className = "exam-progress-bar";
+  progress.max = counts.total;
+  progress.value = counts.answered;
+  progress.setAttribute("aria-label", `Tiến độ: ${counts.answered} trên ${counts.total} câu hoàn tất`);
+  progressSection.append(progressTitle, progressLabel, progress);
+
+  const submit = actionButton("Nộp bài", "submit-open", () => openDialog("submit-dialog"), "button exam-submit");
+  submit.disabled = state.busy || state.savingSlotId !== null || hasUnacknowledgedChanges();
+  const actions = element("div", "exam-sidebar-actions");
+  actions.append(submit);
+  sidebar.append(progressSection, actions, renderExamQuestionGrid());
+  return sidebar;
+}
+
+function createShortcutHelpDialog() {
+  const dialog = element("dialog", "exam-shortcut-dialog");
+  dialog.id = "shortcut-help-dialog";
+  dialog.dataset.testid = "shortcut-help-dialog";
+  dialog.setAttribute("aria-labelledby", "shortcut-help-title");
+  dialog.setAttribute("aria-describedby", "shortcut-help-description");
+  const title = element("h2", "", "Phím tắt khi làm bài");
+  title.id = "shortcut-help-title";
+  const description = element("p", "exam-shortcut-description", "Phím tắt không hoạt động khi bạn đang nhập nội dung hoặc khi một hộp thoại khác đang mở. Nộp bài luôn cần xác nhận riêng.");
+  description.id = "shortcut-help-description";
+  const shortcuts = element("dl", "exam-shortcut-list");
+  for (const [keys, meaning] of [
+    ["N", "Chuyển sang câu tiếp theo"],
+    ["P", "Quay lại câu trước"],
+    ["1–9", "Chọn hoặc bỏ chọn phương án theo thứ tự trong câu hiện tại; không áp dụng cho nhóm Đúng/Sai"],
+    ["M", "Đánh dấu hoặc bỏ đánh dấu câu hiện tại"],
+    ["G", "Mở danh sách và bộ lọc câu hỏi"],
+    ["?", "Mở hướng dẫn phím tắt"],
+    ["Esc", "Đóng danh sách câu hỏi hoặc hộp thoại"],
+    ["Ctrl + Enter", "Mở bước xác nhận nộp bài"],
+  ]) {
+    const row = element("div", "exam-shortcut-row");
+    const key = element("dt", "");
+    key.append(element("kbd", "exam-shortcut-key", keys));
+    row.append(key, element("dd", "", meaning));
+    shortcuts.append(row);
+  }
+  const actions = element("div", "exam-shortcut-actions");
+  const preference = element("label", "exam-shortcut-preference");
+  const toggle = document.createElement("input");
+  toggle.type = "checkbox";
+  toggle.checked = characterShortcutsEnabled;
+  toggle.dataset.testid = "character-shortcuts-toggle";
+  toggle.addEventListener("change", () => { characterShortcutsEnabled = toggle.checked; });
+  preference.append(toggle, document.createTextNode(" Bật phím tắt một ký tự (N, P, 1–9, M, G, ?). Áp dụng trong phiên đang mở; Ctrl + Enter và thao tác Tab luôn dùng được."));
+  actions.append(actionButton("Đóng hướng dẫn", "shortcut-help-close", () => dialog.close(), "button secondary"));
+  dialog.append(title, description, preference, shortcuts, actions);
+  dialog.returnFocusTarget = null;
+  dialog.addEventListener("close", () => {
+    if (!dialog.isConnected || app.querySelector("dialog[open]")) return;
+    if (dialog.returnFocusTarget?.isConnected && !dialog.returnFocusTarget.disabled) {
+      dialog.returnFocusTarget.focus({ preventScroll: true });
+    }
+  });
+  return dialog;
+}
+
+function openExamShortcutHelp() {
+  const dialog = app.querySelector("#shortcut-help-dialog");
+  if (!(dialog instanceof HTMLDialogElement) || dialog.open || app.querySelector("dialog[open]")) return;
+  dialog.returnFocusTarget = document.activeElement;
+  dialog.showModal();
+  dialog.querySelector("[data-testid='shortcut-help-close']")?.focus({ preventScroll: true });
+}
+
+function mountExamShortcuts(workspace) {
+  attachExamShortcuts(workspace, {
+    characterShortcutsEnabled: () => characterShortcutsEnabled,
+    next: () => navigateTo(state.currentIndex + 1),
+    previous: () => navigateTo(state.currentIndex - 1),
+    selectOption: (optionIndex) => {
+      const question = state.attempt?.slots[state.currentIndex];
+      const option = question?.interaction.type === "SINGLE_CHOICE" || question?.interaction.type === "MULTIPLE_CHOICE"
+        ? question.interaction.options[optionIndex]
+        : null;
+      if (!question || !option) return;
+      const control = app.querySelector(`[data-testid='option-${option.id}']`);
+      if (!(control instanceof HTMLInputElement) || control.disabled) return;
+      if (question.interaction.type === "MULTIPLE_CHOICE") {
+        stageMultipleChoice(question, option.id, !selectedOptions(question.slotId).includes(option.id), control.dataset.testid);
+      } else if (selectedOption(question.slotId) !== option.id) {
+        void saveSelectedAnswer(question.slotId, { optionId: option.id }, control.dataset.testid);
+      }
+    },
+    mark: () => {
+      const slot = state.attempt?.slots[state.currentIndex];
+      if (slot) toggleMarkedForReview(slot.slotId);
+    },
+    openNavigator: () => openDialog("navigator-dialog"),
+    openHelp: openExamShortcutHelp,
+    openSubmit: () => openDialog("submit-dialog"),
+  });
 }
 
 function renderExam() {
@@ -3234,10 +3637,13 @@ function renderExam() {
   const fragment = document.createDocumentFragment();
   const workspace = element("div", "exam-workspace");
   workspace.append(examTopbar());
+  const layout = element("div", "exam-layout");
+  layout.dataset.testid = "exam-layout";
+  const main = element("main", "exam-main");
 
   const scrollRegion = element("section", "exam-scroll");
   scrollRegion.dataset.testid = "exam-body";
-  scrollRegion.setAttribute("aria-label", "Bài luyện tập demo");
+  scrollRegion.setAttribute("aria-label", "Câu hỏi đang làm");
   const content = element("div", "exam-content");
   content.dataset.testid = "exam-content";
   const restored = resumeNotice();
@@ -3253,7 +3659,8 @@ function renderExam() {
   toolbar.append(element("span", "question-number", String(question.ordinal).padStart(2, "0")));
   const questionKind = question.interaction.type === "TRUE_FALSE_GROUP"
     ? "Đúng / sai"
-    : question.interaction.type === "MULTIPLE_CHOICE" ? "Chọn nhiều phương án" : "Trắc nghiệm";
+    : question.interaction.type === "MULTIPLE_CHOICE" ? "Chọn nhiều phương án"
+      : question.interaction.type === "NUMERIC_RESPONSE" ? "Trả lời bằng số" : "Trắc nghiệm";
   toolbar.append(element("span", "question-kind", questionKind));
   const markedForReview = state.markedSlotIds.has(question.slotId);
   const markButton = actionButton(
@@ -3299,10 +3706,14 @@ function renderExam() {
     ? "Chọn Đúng hoặc Sai cho từng mệnh đề. Câu chỉ hoàn tất khi đã chọn cho tất cả mệnh đề."
     : question.interaction.type === "MULTIPLE_CHOICE"
       ? `Chọn từ ${question.interaction.minSelections} đến ${question.interaction.maxSelections} phương án.`
-      : "Chọn một phương án bạn cho là đúng nhất.";
+      : question.interaction.type === "NUMERIC_RESPONSE"
+        ? "Nhập đáp án số rồi chọn Lưu câu trả lời."
+        : "Chọn một phương án bạn cho là đúng nhất.";
   const answerControl = question.interaction.type === "TRUE_FALSE_GROUP"
     ? renderTrueFalseGroup(question, state.savingSlotId === question.slotId)
-    : renderOptions(question, state.savingSlotId === question.slotId);
+    : question.interaction.type === "NUMERIC_RESPONSE"
+      ? renderNumericResponse(question, state.savingSlotId === question.slotId)
+      : renderOptions(question, state.savingSlotId === question.slotId);
   card.append(title);
   if (question.stimulus?.content) card.append(renderContentBlocks(question.stimulus.content));
   if (!simpleText) card.append(renderContentBlocks(question.content));
@@ -3322,7 +3733,7 @@ function renderExam() {
   }, "text-button clear-answer");
   clear.disabled = !hasAnySavedAnswer(question.slotId) || state.busy || state.savingSlotId !== null;
   clear.setAttribute("aria-label", "Xóa lựa chọn đã ghi nhận cho vị trí hiện tại");
-  card.append(clear);
+  if (question.interaction.type !== "NUMERIC_RESPONSE") card.append(clear);
   if (pending) {
     const multipleChoiceDraft = state.pendingMultipleChoice?.slotId === question.slotId;
     const pendingMessage = multipleChoiceDraft && !state.pendingMultipleChoice.clearRequested
@@ -3363,7 +3774,9 @@ function renderExam() {
   next.disabled = state.currentIndex === state.attempt.slots.length - 1 || state.busy || state.savingSlotId !== null || hasUnacknowledgedChanges();
   footerInner.append(previous, questionCounter, next);
   footer.append(footerInner);
-  workspace.append(scrollRegion, footer);
+  main.append(scrollRegion, footer);
+  layout.append(main, renderExamSidebar());
+  workspace.append(layout);
 
   const summary = element("div", "submit-summary");
   summary.append(element("p", "", `Đã hoàn tất ${counts.answered} trên ${counts.total} câu. ${counts.unanswered > 0 ? `${counts.unanswered} câu chưa hoàn tất sẽ được tính là sai trong kết quả minh họa.` : "Tất cả câu hỏi đều đã được hoàn tất."}`));
@@ -3416,9 +3829,10 @@ function renderExam() {
     confirmAction: cancelCurrentAttempt,
     danger: true,
   });
-  workspace.append(createNavigatorDialog());
+  workspace.append(createNavigatorDialog(), createShortcutHelpDialog());
   fragment.append(workspace);
   replaceApp(fragment, { examMode: true });
+  mountExamShortcuts(workspace);
   tick();
 }
 
@@ -3463,6 +3877,9 @@ async function cancelCurrentAttempt() {
 }
 
 function releasedAnswerStatus(released) {
+  if (released.type === "NUMERIC_RESPONSE") {
+    return released.numericResponseValue === null ? "Bỏ trống" : released.earned === 1 ? "Đúng" : "Sai";
+  }
   const sourceSlot = state.attempt.slots.find((slot) => slot.slotId === released.slotId && slot.ordinal === released.ordinal);
   if (released.type === "TRUE_FALSE_GROUP" && sourceSlot?.interaction.type === "TRUE_FALSE_GROUP") {
     const selected = Object.fromEntries((released.statementValues ?? []).map(({ statementId, value }) => [statementId, value]));
@@ -3492,7 +3909,13 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
   item.append(element("h2", "", simpleText ? contentText(sourceSlot.content) : "Nội dung câu hỏi"));
   if (sourceSlot.stimulus?.content) item.append(renderContentBlocks(sourceSlot.stimulus.content));
   if (!simpleText) item.append(renderContentBlocks(sourceSlot.content));
-  if (released.type === "TRUE_FALSE_GROUP" && sourceSlot.interaction.type === "TRUE_FALSE_GROUP") {
+  if (released.type === "NUMERIC_RESPONSE" && sourceSlot.interaction.type === "NUMERIC_RESPONSE") {
+    const response = element("div", "numeric-review");
+    response.dataset.testid = "numeric-review";
+    response.append(element("p", "", released.numericResponseValue === null ? "Bạn chưa trả lời" : `Bạn đã nhập: ${released.numericResponseValue}`),
+      element("p", "", `Đáp án đúng: ${released.correctNumericValue}`));
+    item.append(response);
+  } else if (released.type === "TRUE_FALSE_GROUP" && sourceSlot.interaction.type === "TRUE_FALSE_GROUP") {
     const selected = Object.fromEntries((released.statementValues ?? []).map(({ statementId, value }) => [statementId, value]));
     const correct = Object.fromEntries((released.correctStatementValues ?? []).map(({ statementId, value }) => [statementId, value]));
     const statements = element("div", "tf-review-statements");
@@ -3553,7 +3976,7 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
     const explanationContent = simpleExplanation
       ? element("p", "review-explanation", contentText(released.explanation))
       : element("div", "review-explanation");
-    if (!simpleExplanation) explanationContent.append(renderContentBlocks(released.explanation));
+    if (!simpleExplanation) explanationContent.append(renderContentBlocks(released.explanation, { purpose: "explanation" }));
     explanation.append(toggle, explanationContent);
     item.append(explanation);
   }
@@ -3809,7 +4232,7 @@ function renderReview() {
     const simpleExplanation = currentReleased.explanation.every((block) => block.type === "text");
     const explanationContent = simpleExplanation
       ? element("p", "review-explanation", contentText(currentReleased.explanation))
-      : renderContentBlocks(currentReleased.explanation);
+      : renderContentBlocks(currentReleased.explanation, { purpose: "explanation" });
     if (!simpleExplanation) explanationContent.classList.add("review-explanation");
     explanationCopy.replaceChildren(explanationContent);
     setExplanationOpen(false);

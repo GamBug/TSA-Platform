@@ -711,8 +711,28 @@ function supportedContentBlocks(blocks) {
   });
 }
 
+// Keep author validation local to this browser surface; private contracts stay on the server.
+function normalizeStaffDecimal(value) {
+  if (typeof value !== 'string' || value.length > 64) return null;
+  const match = /^([+-]?)([0-9]{1,40})(?:[.,]([0-9]{1,20}))?$/.exec(value.trim());
+  if (!match) return null;
+  const integer = match[2].replace(/^0+(?=[0-9])/, '');
+  const fraction = (match[3] ?? '').replace(/0+$/, '');
+  if (integer === '0' && !fraction) return '0';
+  return `${match[1] === '-' ? '-' : ''}${integer}${fraction ? `.${fraction}` : ''}`;
+}
+
+function validNumericLabel(value) {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= 200
+    && !/[\u0000-\u001f\u007f-\u009f<>]/u.test(value);
+}
+
 function supportedInteraction(interaction, answerKey) {
   if (!interaction || !answerKey || interaction.type !== answerKey.type) return false;
+  if (interaction.type === 'NUMERIC_RESPONSE') {
+    return interaction.format === 'DECIMAL' && validNumericLabel(interaction.label)
+      && typeof answerKey.value === 'string' && normalizeStaffDecimal(answerKey.value) === answerKey.value;
+  }
   if (interaction.type === 'SINGLE_CHOICE' || interaction.type === 'MULTIPLE_CHOICE') {
     if (!Array.isArray(interaction.options) || !interaction.options.length
       || !interaction.options.every((option) => option && typeof option.id === 'string' && supportedContentBlocks(option.content))) return false;
@@ -1268,7 +1288,9 @@ function renderPrivateQuestion(question) {
   }
 
   const interaction = question.interaction;
-  if (interaction.type === 'TRUE_FALSE_GROUP') {
+  if (interaction.type === 'NUMERIC_RESPONSE') {
+    article.append(node('p', 'question-instruction', `${interaction.label} · Số thập phân`));
+  } else if (interaction.type === 'TRUE_FALSE_GROUP') {
     const statements = node('ol', 'tf-review-statements');
     for (const [index, statement] of interaction.statements.entries()) {
       const row = node('li', 'tf-review-statement');
@@ -1292,7 +1314,8 @@ function renderPrivateQuestion(question) {
   }
 
   let keyText;
-  if (question.answerKey.type === 'SINGLE_CHOICE') keyText = question.answerKey.optionId;
+  if (question.answerKey.type === 'NUMERIC_RESPONSE') keyText = question.answerKey.value;
+  else if (question.answerKey.type === 'SINGLE_CHOICE') keyText = question.answerKey.optionId;
   else if (question.answerKey.type === 'MULTIPLE_CHOICE') keyText = question.answerKey.optionIds.join(', ');
   else keyText = interaction.statements.map((statement) => `${statement.id}: ${question.answerKey.values[statement.id] ? 'Đúng' : 'Sai'}`).join(' · ');
   article.append(node('h4', '', 'Đáp án trong phiên bản này'), node('p', 'staff-private-notice', keyText));
@@ -1352,6 +1375,7 @@ export async function openStaffWorkspace(container, onBack) {
     sessionBinding: null,
     sessionRequestId: 0,
     template: null,
+    numericQuestions: false,
     items: [],
     nextCursor: null,
     filters: { state: 'DRAFT', section: '' },
@@ -1407,6 +1431,8 @@ export async function openStaffWorkspace(container, onBack) {
     datasetPreflightControls: null,
   };
 
+  const questionApi = () => state.numericQuestions ? '/api/v2' : '/api/v1';
+
   function sessionChangedError() {
     const error = new Error('The local session changed. Reload its current state before continuing.');
     error.code = 'STAFF_SESSION_CHANGED';
@@ -1421,6 +1447,7 @@ export async function openStaffWorkspace(container, onBack) {
     state.sessionBinding = null;
     state.principal = null;
     state.template = null;
+    state.numericQuestions = false;
     state.pendingCreate = null;
     state.canReadList = false;
     state.items = [];
@@ -3872,7 +3899,7 @@ export async function openStaffWorkspace(container, onBack) {
       && requestPrincipal === principalKey(state.principal)
       && state.reviewView?.versionId === versionId;
     try {
-      const result = await request(`/api/v1/question-versions/${encodeURIComponent(versionId)}/review-context`);
+      const result = await request(`${questionApi()}/question-versions/${encodeURIComponent(versionId)}/review-context`);
       if (!isCurrent()) return;
       if (result?.version?.versionId !== versionId) throw new Error('Máy chủ không trả về đúng phiên bản đã chọn.');
       state.reviewView = { kind: 'context', versionId, status: 'loaded', triggerElement, context: result };
@@ -3949,7 +3976,7 @@ export async function openStaffWorkspace(container, onBack) {
       body = Object.freeze({ expectedRevision: confirmation.expectedRevision, reason });
     }
 
-    const path = `/api/v1/question-versions/${encodeURIComponent(confirmation.versionId)}/${confirmation.kind === 'reject' ? 'reviews' : 'quarantine'}`;
+    const path = `${questionApi()}/question-versions/${encodeURIComponent(confirmation.versionId)}/${confirmation.kind === 'reject' ? 'reviews' : 'quarantine'}`;
     const intent = Object.freeze({
       kind: confirmation.kind,
       versionId: confirmation.versionId,
@@ -4135,7 +4162,7 @@ export async function openStaffWorkspace(container, onBack) {
       renderReviewPanel({ focusHandoffStatus: true });
     }
     try {
-      const receipt = await request(`/api/v1/question-versions/${encodeURIComponent(intent.versionId)}/submit-review`, {
+      const receipt = await request(`${questionApi()}/question-versions/${encodeURIComponent(intent.versionId)}/submit-review`, {
         method: 'POST', body: intent.body, csrf: true, idempotencyKey: intent.key,
       });
       if (!handoffAttemptIsCurrent(intent.versionId, requestId, intent.identityEpoch, intent.principal)
@@ -4435,7 +4462,7 @@ export async function openStaffWorkspace(container, onBack) {
     if (cursor) params.set('cursor', cursor);
 
     try {
-      const result = await request(`/api/v1/questions?${params.toString()}`);
+      const result = await request(`${questionApi()}/questions?${params.toString()}`);
       if (!isCurrent()) return;
       state.items = reset ? result.items : [...state.items, ...result.items];
       state.nextCursor = result.nextCursor;
@@ -4617,8 +4644,76 @@ export async function openStaffWorkspace(container, onBack) {
       const formCard = node('section', 'staff-card');
       formCard.append(node('h2', '', 'Bản nháp từ mẫu tổng hợp riêng'));
       formCard.append(node('p', 'staff-private-notice', 'Mẫu riêng chỉ được gửi sau khi máy chủ xác nhận vai trò AUTHOR. Chỉnh sửa văn bản, lựa chọn, đáp án và lời giải trước khi tạo bản nháp.'));
-      formCard.append(node('p', 'staff-form-help', 'Trình soạn thảo này hỗ trợ tối đa hai lựa chọn hoặc hai mệnh đề. Miền câu hỏi vẫn là Toán học; chỉ dùng nội dung tổng hợp trong môi trường cục bộ.'));
+      formCard.append(node('p', 'staff-form-help', 'Trình soạn thảo này hỗ trợ tối đa hai lựa chọn hoặc hai mệnh đề. Chọn phân loại từ phiên bản cây chủ đề đã đăng ký; chỉ dùng nội dung tổng hợp trong môi trường cục bộ.'));
       const form = node('form', 'staff-draft-form');
+      const classification = node('fieldset', 'staff-interaction-fieldset');
+      classification.append(node('legend', '', 'Phân loại câu hỏi'));
+      const selectors = {};
+      for (const [key, labelText] of [['taxonomy', 'Phiên bản phân loại'], ['section', 'Phần thi'],
+        ['domain', 'Lĩnh vực'], ['skill', 'Kỹ năng / chủ đề'], ['subskill', 'Kỹ năng thành phần'],
+        ['cognitive', 'Mức độ tư duy'], ['difficulty', 'Độ khó dự kiến']]) {
+        const field = node('div', 'staff-field');
+        const label = node('label', '', labelText);
+        const select = node('select', 'staff-input');
+        select.id = `draft-${key}`;
+        select.dataset.testid = `draft-${key}`;
+        label.htmlFor = select.id;
+        if (['skill', 'subskill'].includes(key)) { select.multiple = true; select.size = 3; }
+        select.required = ['taxonomy', 'section', 'domain', 'skill'].includes(key);
+        field.append(label, select);
+        classification.append(field);
+        selectors[key] = select;
+      }
+      function fill(select, options, selected = []) {
+        select.replaceChildren(...options.map(([value, text]) => {
+          const option = node('option', '', text);
+          option.value = value;
+          option.selected = selected.includes(value);
+          return option;
+        }));
+      }
+      const selectedValues = (select) => [...select.selectedOptions].map((option) => option.value);
+      const taxonomies = state.taxonomies ?? [];
+      const taxonomy = () => taxonomies.find((item) => item.taxonomyVersionId === selectors.taxonomy.value);
+      const nodeLabel = (item) => item.metadata?.label ?? item.metadata?.name ?? item.code;
+      fill(selectors.taxonomy, taxonomies.map((item) => [item.taxonomyVersionId, `${item.name} · v${item.versionNo}`]), [state.template.taxonomyVersionId]);
+      fill(selectors.cognitive, [['', 'Chưa phân loại'], ['M1', 'M1'], ['M2', 'M2'], ['M3', 'M3']]);
+      fill(selectors.difficulty, [['EASY', 'Dễ'], ['MEDIUM', 'Trung bình'], ['HARD', 'Khó']]);
+      function updateSubskills() {
+        const skills = new Set(selectedValues(selectors.skill));
+        fill(selectors.subskill, (taxonomy()?.nodes ?? []).filter((item) => item.kind === 'SUBSKILL' && skills.has(item.parentId))
+          .map((item) => [item.id, nodeLabel(item)]));
+      }
+      function updateSkills(initial = false) {
+        const nodes = taxonomy()?.nodes ?? [];
+        const skills = nodes.filter((item) => item.kind === 'SKILL' && item.parentId === selectors.domain.value);
+        fill(selectors.skill, skills.map((item) => [item.id, nodeLabel(item)]),
+          initial ? state.template.skillIds : skills.length ? [skills[0].id] : []);
+        updateSubskills();
+      }
+      function updateDomains(initial = false) {
+        const domains = (taxonomy()?.nodes ?? []).filter((item) => item.kind === 'DOMAIN'
+          && (!(item.metadata?.section ?? (['MATH', 'READING', 'SCIENCE'].includes(item.code) ? item.code : null))
+            || (item.metadata?.section ?? item.code) === selectors.section.value));
+        fill(selectors.domain, domains.map((item) => [item.id, nodeLabel(item)]), initial ? [state.template.domainId] : []);
+        updateSkills(initial);
+      }
+      function updateSections(initial = false) {
+        const domains = (taxonomy()?.nodes ?? []).filter((item) => item.kind === 'DOMAIN');
+        const sections = ['MATH', 'READING', 'SCIENCE'].filter((section) => domains.some((item) => {
+          const assigned = item.metadata?.section ?? (['MATH', 'READING', 'SCIENCE'].includes(item.code) ? item.code : null);
+          return !assigned || assigned === section;
+        }));
+        const labels = { MATH: 'Toán học', READING: 'Đọc hiểu', SCIENCE: 'Khoa học' };
+        fill(selectors.section, sections.map((section) => [section, labels[section]]), initial ? [state.template.section ?? 'MATH'] : []);
+        updateDomains(initial);
+      }
+      selectors.taxonomy.addEventListener('change', () => updateSections());
+      selectors.section.addEventListener('change', () => updateDomains());
+      selectors.domain.addEventListener('change', () => updateSkills());
+      selectors.skill.addEventListener('change', updateSubskills);
+      updateSections(true);
+      classification.append(node('p', 'staff-form-help', 'Có thể chọn nhiều kỹ năng bằng Ctrl hoặc Cmd. Kỹ năng thành phần phụ thuộc kỹ năng đã chọn.'));
       const prompt = labeledInput('Nội dung câu hỏi', 'draft-prompt', state.template.content[0]?.text ?? '', true);
       prompt.input.rows = 3;
       const firstOption = labeledInput('Lựa chọn A', 'draft-option-a', state.template.interaction.options[0]?.content[0]?.text ?? '');
@@ -4639,6 +4734,11 @@ export async function openStaffWorkspace(container, onBack) {
         interactionType.append(option);
       }
       interactionType.value = 'SINGLE_CHOICE';
+      if (state.numericQuestions) {
+        const option = node('option', '', 'Trả lời bằng số thập phân');
+        option.value = 'NUMERIC_RESPONSE';
+        interactionType.append(option);
+      }
       interactionTypeField.append(interactionTypeLabel, interactionType);
       const interactionHelp = node('p', 'staff-form-help', 'Chuyển loại sẽ xóa các đáp án đã chọn. Hãy chọn lại đáp án cho loại mới trước khi tạo bản nháp.');
       interactionHelp.id = 'draft-interaction-help';
@@ -4649,8 +4749,37 @@ export async function openStaffWorkspace(container, onBack) {
       function renderAnswerControls(initialSingleChoice = '') {
         answerField.replaceChildren();
         const type = interactionType.value;
+        const numeric = type === 'NUMERIC_RESPONSE' && state.numericQuestions;
+        for (const option of [firstOption, secondOption]) {
+          option.field.hidden = numeric;
+          option.input.disabled = numeric;
+          option.input.required = !numeric;
+          option.input.setCustomValidity('');
+        }
         firstOption.label.textContent = type === 'TRUE_FALSE_GROUP' ? 'Mệnh đề A' : 'Lựa chọn A';
         secondOption.label.textContent = type === 'TRUE_FALSE_GROUP' ? 'Mệnh đề B' : 'Lựa chọn B';
+
+        if (numeric) {
+          answerField.append(node('legend', '', 'Đáp án số thập phân'));
+          const label = labeledInput('Nhãn ô trả lời', 'draft-numeric-label', 'Đáp án');
+          label.input.maxLength = 200;
+          const answer = labeledInput('Đáp án chuẩn chính xác', 'draft-numeric-answer', '');
+          answer.input.maxLength = 64;
+          answer.input.inputMode = 'decimal';
+          const help = node('p', 'staff-form-help', 'Dùng dấu chấm, tối đa 40 chữ số nguyên và 20 chữ số lẻ. Không dùng dấu +, số 0 thừa, dấu phẩy hoặc ký hiệu khoa học. Ví dụ: -12.34 hoặc 0.');
+          help.id = 'draft-numeric-help';
+          answer.input.setAttribute('aria-describedby', help.id);
+          const validate = () => {
+            label.input.setCustomValidity(validNumericLabel(label.input.value) ? '' : 'Nhập nhãn văn bản thuần từ 1 đến 200 ký tự.');
+            const value = answer.input.value;
+            answer.input.setCustomValidity(normalizeStaffDecimal(value) === value ? '' : 'Nhập số thập phân ở dạng chuẩn chính xác; không tự động đổi đáp án.');
+          };
+          label.input.addEventListener('input', validate);
+          answer.input.addEventListener('input', validate);
+          answerField.append(label.field, answer.field, help);
+          activeAnswerControls = { type, label: label.input, answer: answer.input, validate };
+          return;
+        }
 
         if (type === 'SINGLE_CHOICE') {
           answerField.append(node('legend', '', 'Đáp án trong bản nháp'));
@@ -4747,16 +4876,17 @@ export async function openStaffWorkspace(container, onBack) {
       const create = node('button', 'button', 'Tạo bản nháp');
       create.type = 'submit';
       create.dataset.testid = 'draft-create';
-      form.append(prompt.field, interactionTypeField, firstOption.field, secondOption.field, answerField, explanation.field, create);
+      form.append(classification, prompt.field, interactionTypeField, firstOption.field, secondOption.field, answerField, explanation.field, create);
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!isWorkspaceActive() || state.busy) return;
         const submissionEpoch = state.identityEpoch;
         const submissionIsCurrent = () => isWorkspaceActive() && submissionEpoch === state.identityEpoch;
         for (const [input, message] of requiredTextInputs) {
-          input.setCustomValidity(input.value.trim() ? '' : message);
+          input.setCustomValidity(input.disabled || input.value.trim() ? '' : message);
         }
         activeAnswerControls?.syncRequiredChoice?.();
+        activeAnswerControls?.validate?.();
         if (!form.reportValidity()) return;
         state.busy = true;
         create.disabled = true;
@@ -4768,7 +4898,10 @@ export async function openStaffWorkspace(container, onBack) {
           }));
           let interaction;
           let answerKey;
-          if (type === 'SINGLE_CHOICE') {
+          if (type === 'NUMERIC_RESPONSE' && state.numericQuestions) {
+            interaction = { type, label: activeAnswerControls.label.value, format: 'DECIMAL' };
+            answerKey = { type, value: activeAnswerControls.answer.value };
+          } else if (type === 'SINGLE_CHOICE') {
             interaction = { type, options: optionBlocks };
             answerKey = { type, optionId: activeAnswerControls.answer.value };
           } else if (type === 'MULTIPLE_CHOICE') {
@@ -4788,15 +4921,15 @@ export async function openStaffWorkspace(container, onBack) {
             };
           }
           const draft = {
-            schemaVersion: 'question/1',
+            schemaVersion: type === 'NUMERIC_RESPONSE' ? 'question/2' : 'question/1',
             language: 'vi-VN',
-            section: 'MATH',
-            taxonomyVersionId: state.template.taxonomyVersionId,
-            domainId: state.template.domainId,
-            skillIds: state.template.skillIds,
-            subskillIds: [],
-            cognitiveLevel: null,
-            targetDifficulty: 'EASY',
+            section: selectors.section.value,
+            taxonomyVersionId: selectors.taxonomy.value,
+            domainId: selectors.domain.value,
+            skillIds: selectedValues(selectors.skill),
+            subskillIds: selectedValues(selectors.subskill),
+            cognitiveLevel: selectors.cognitive.value || null,
+            targetDifficulty: selectors.difficulty.value,
             content: [{ type: 'text', text: prompt.input.value }],
             stimulusVersionId: null,
             interaction,
@@ -4810,7 +4943,7 @@ export async function openStaffWorkspace(container, onBack) {
           if (!state.pendingCreate || state.pendingCreate.bodySignature !== bodySignature) {
             state.pendingCreate = { bodySignature, key: crypto.randomUUID() };
           }
-          const result = await request('/api/v1/questions', {
+          const result = await request(`${questionApi()}/questions`, {
             method: 'POST', body: draft, csrf: true, idempotencyKey: state.pendingCreate.key,
           });
           if (!submissionIsCurrent()) return;
@@ -4904,8 +5037,11 @@ export async function openStaffWorkspace(container, onBack) {
       const result = await request('/local/workspace/template');
       if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
       state.template = result.template;
+      state.numericQuestions = result.capabilities?.numericQuestions === true;
+      state.taxonomies = Array.isArray(result.taxonomies) ? result.taxonomies : [];
     } else {
       state.template = null;
+      state.numericQuestions = false;
     }
     if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
     if (state.canReadList) await loadQuestionList({ reset: true });
