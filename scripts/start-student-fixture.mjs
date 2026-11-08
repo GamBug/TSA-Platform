@@ -8,6 +8,7 @@ import { seedShortStudentProfiles } from '../tests/integration/student-runtime/s
 import { seedFixedStudentForms } from '../tests/integration/student-runtime/fixed-fixture.mjs';
 import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
+import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 
@@ -16,11 +17,13 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       || env.LOCAL_SYNTHETIC_ONLY !== 'true' || env.STUDENT_FIXTURE_DEMO !== 'true') {
     throw new Error('Disposable student demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true');
   }
-  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT']) {
+  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT', 'STUDENT_FIXTURE_NUMERIC']) {
     if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) throw new Error(`${flag} must be true or false`);
   }
   const domains = env.STUDENT_FIXTURE_DOMAINS === 'true', reading = env.STUDENT_FIXTURE_READING === 'true';
   const fixed = env.STUDENT_FIXTURE_FIXED === 'true', short = env.STUDENT_FIXTURE_SHORT === 'true';
+  const numeric = env.STUDENT_FIXTURE_NUMERIC === 'true';
+  if (numeric && (domains || reading || fixed || short)) throw new Error('Numeric demonstration requires its own disposable fixture profile');
   if (short && !domains) throw new Error('Short student demonstration requires the three-domain fixture');
   if (fixed && !domains) throw new Error('Fixed student demonstration requires the three-domain fixture');
   if (domains && reading) throw new Error('Choose one disposable fixture profile');
@@ -37,7 +40,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     return closing;
   };
   try {
-    fixture = reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
+    fixture = numeric ? await createNumericFixture() : reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
     if (fixed) await seedFixedStudentForms(fixture);
     if (short) await seedShortStudentProfiles(fixture);
     const login = `fixture_worker_${randomUUID().replaceAll('-', '')}`;
@@ -47,9 +50,10 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     const rate = { capacity: 100, refillPerSecond: 10 };
     runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool,
       env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
-      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, leaseSeconds: 30, retrySeconds: 1,
+      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, enableNumericPractice: numeric, leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
-    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, fixtureProfile: reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
+    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, numericPractice: numeric,
+      fixtureProfile: numeric ? 'NUMERIC_MATH' : reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Demo startup and cleanup failed'); }
     throw error;
@@ -72,7 +76,7 @@ async function runWorker() {
     demo = await startStudentFixtureDemo();
     if (stopRequested) await stop();
     else {
-      const url = `${demo.origin}/?student=postgres`;
+      const url = `${demo.origin}/?student=${demo.numericPractice ? 'postgres-v2' : 'postgres'}`;
       process.stdout.write(`${JSON.stringify({ event: 'ready', url,
         mode: 'DISPOSABLE_SYNTHETIC_ONLY', fixtureProfile: demo.fixtureProfile, note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
       process.stdout.write(`\nTSA Practice — local synthetic demonstration\nOpen: ${url}\nChoose synthetic candidate A explicitly; no password or personal data is needed.\n`);

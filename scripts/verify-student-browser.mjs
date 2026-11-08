@@ -1,3 +1,6 @@
+import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
+import { runNumericJourney } from './student-numeric-journey.mjs';
+import { runTopicPracticeJourney } from './student-topic-practice-journey.mjs';
 import { runShortPracticeJourney } from './student-short-practice-journey.mjs';
 import { seedShortStudentProfiles } from '../tests/integration/student-runtime/short-fixture.mjs';
 import { runFixedPracticeJourney } from './student-fixed-practice-journey.mjs';
@@ -23,10 +26,17 @@ import { runReadingJourney } from './student-reading-journey.mjs';
 import { createSharedReadingFixture } from '../tests/integration/student-runtime/shared-reading-fixture.mjs';
 import { runDomainJourney } from './student-domain-journey.mjs';
 import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
+import { createImageFixture } from '../tests/integration/student-runtime/image-fixture.mjs';
+import { runImageJourney } from './student-image-journey.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 import { createSourceService } from '../src/modules/sources/service.mjs';
+
+if (process.env.STUDENT_BROWSER_NO_SANDBOX !== undefined
+    && !['true', 'false'].includes(process.env.STUDENT_BROWSER_NO_SANDBOX)) {
+  throw new Error('STUDENT_BROWSER_NO_SANDBOX must be true or false');
+}
 
 if(process.env.STUDENT_SHORT_PRACTICE_TEST!==undefined&&!['true','false'].includes(process.env.STUDENT_SHORT_PRACTICE_TEST))throw new Error('STUDENT_SHORT_PRACTICE_TEST must be true or false');
 const shortPracticeTest=process.env.STUDENT_SHORT_PRACTICE_TEST==='true';
@@ -48,8 +58,11 @@ const rateScope = process.env.STUDENT_RATE_LIMIT_SCOPE ?? 'USER_SAVE';
 if (rateLimitTest) assert.ok(['USER_SAVE', 'ATTEMPT_SAVE'].includes(rateScope), 'explicit supported rate scope');
 const readingTest = process.env.STUDENT_READING_TEST === 'true';
 const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
-assert.ok([shortPracticeTest, fixedPracticeTest, gradeFailureTest, newOnlyTest, allocationRaceTest, admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = shortPracticeTest ? '/tmp/tsa-student-browser-evidence/short-practice' : fixedPracticeTest ? '/tmp/tsa-student-browser-evidence/fixed-practice' : reviewPracticeTest ? '/tmp/tsa-student-browser-evidence/review-practice' : gradeFailureTest ? '/tmp/tsa-student-browser-evidence/grading-failure' : newOnlyTest ? '/tmp/tsa-student-browser-evidence/new-only' : allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+const topicTest = process.env.STUDENT_TOPIC_TEST === 'true';
+const imageTest = process.env.STUDENT_IMAGE_TEST === 'true';
+const numericTest = process.env.STUDENT_NUMERIC_TEST === 'true';
+assert.ok([numericTest, imageTest, topicTest, shortPracticeTest, fixedPracticeTest, gradeFailureTest, newOnlyTest, allocationRaceTest, admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = numericTest ? '/tmp/tsa-student-browser-evidence/numeric' : imageTest ? '/tmp/tsa-student-browser-evidence/images' : topicTest ? '/tmp/tsa-student-browser-evidence/topics' : shortPracticeTest ? '/tmp/tsa-student-browser-evidence/short-practice' : fixedPracticeTest ? '/tmp/tsa-student-browser-evidence/fixed-practice' : reviewPracticeTest ? '/tmp/tsa-student-browser-evidence/review-practice' : gradeFailureTest ? '/tmp/tsa-student-browser-evidence/grading-failure' : newOnlyTest ? '/tmp/tsa-student-browser-evidence/new-only' : allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -123,12 +136,20 @@ function observePage(targetSocket, sendCommand) {
     if (data.method === 'Network.responseReceived') {
       responseRecords.push({ url: data.params.response.url, status: data.params.response.status });
     }
-    if (data.method === 'Network.responseReceived' && /\/api\/v1\//.test(data.params.response.url)) {
+    if (data.method === 'Network.responseReceived' && /\/api\/v[12]\//.test(data.params.response.url)) {
       network.set(data.params.requestId, data.params.response);
     }
     if (data.method === 'Network.loadingFinished' && network.has(data.params.requestId)) {
       const response = network.get(data.params.requestId); network.delete(data.params.requestId);
       responseChecks.push(sendCommand('Network.getResponseBody', { requestId: data.params.requestId }).then((body) => {
+        if (response.status === 200 && response.mimeType?.startsWith('image/')) {
+          assert.ok(imageTest, 'image body only in explicit image verification');
+          const assetId = new URL(response.url).pathname.split('/').at(-1);
+          const asset = Object.values(fixture.assets).find((item) => item.id === assetId);
+          assert.ok(asset, 'exact synthetic asset membership');
+          assert.deepEqual(Buffer.from(body.body, body.base64Encoded ? 'base64' : 'utf8'), asset.bytes);
+          checkedResponses += 1; return;
+        }
         const value = JSON.parse(body.base64Encoded ? Buffer.from(body.body, 'base64').toString('utf8') : body.body);
         if (!response.url.endsWith('/result') || response.status !== 200) checkPrivate(value);
         checkedResponses += 1;
@@ -166,17 +187,26 @@ function checkPrivate(value) {
   }
   visit(value);
 }
-async function pressKey(key, { shift = false } = {}) {
+async function pressKey(key, { shift = false, ctrl = false } = {}) {
   const keys = {
     Tab: { code: 'Tab', windowsVirtualKeyCode: 9 },
     Enter: { code: 'Enter', windowsVirtualKeyCode: 13, text: String.fromCharCode(13) },
     ' ': { code: 'Space', windowsVirtualKeyCode: 32, text: ' ' },
     Escape: { code: 'Escape', windowsVirtualKeyCode: 27 },
     ArrowDown: { code: 'ArrowDown', windowsVirtualKeyCode: 40 },
+    n: { code: 'KeyN', windowsVirtualKeyCode: 78, text: 'n' },
+    p: { code: 'KeyP', windowsVirtualKeyCode: 80, text: 'p' },
+    m: { code: 'KeyM', windowsVirtualKeyCode: 77, text: 'm' },
+    g: { code: 'KeyG', windowsVirtualKeyCode: 71, text: 'g' },
+    '?': { code: 'Slash', windowsVirtualKeyCode: 191, text: '?' },
+    ...Object.fromEntries(Array.from({ length: 9 }, (_, index) => {
+      const digit = String(index + 1);
+      return [digit, { code: `Digit${digit}`, windowsVirtualKeyCode: 48 + index, text: digit }];
+    })),
   };
   const definition = keys[key];
   assert.ok(definition, `supported keyboard key ${key}`);
-  const modifiers = shift ? 8 : 0;
+  const modifiers = (shift ? 8 : 0) | (ctrl ? 2 : 0);
   const { text, ...physical } = definition;
   await command('Input.dispatchKeyEvent', { type: 'keyDown', key, modifiers, ...physical, ...(text ? { text } : {}) });
   await command('Input.dispatchKeyEvent', { type: 'keyUp', key, modifiers, ...physical });
@@ -301,6 +331,14 @@ async function runAccessibilityJourney() {
   await assertAx('columnheader', 'x', 'table column header');
   await assertAx('StaticText', 'x bình phương cộng một', 'math accessible alternative');
   await capture('keyboard-reflow-exam');
+  const { runExamShortcutJourney } = await import('./student-exam-shortcuts-journey.mjs');
+  await runExamShortcutJourney({ evaluate, waitFor, pressKey, query, report, slots,
+    assertNoSubmit: async () => {
+      assert.equal(requestRecords.filter(({ url, method }) => {
+        return method === 'POST' && new URL(url).pathname === `/api/v1/attempts/${attemptId}/submit`;
+      }).length, 0, 'Ctrl+Enter opens confirmation without submitting');
+    },
+  });
   await tabTo('exam-catalog', 'exam navigation to catalog');
   await recordFocus('catalog exit is keyboard reachable');
   await tabTo('submit-open', 'submit navigation');
@@ -335,12 +373,15 @@ async function runAccessibilityJourney() {
     if (index > 0) await advanceQuestion(index);
     if (slot.interaction.type === 'SINGLE_CHOICE') {
       await assertAx('radio', 'Phương án tổng hợp a', 'single-choice radio with its label');
-      await tabTo('option-a', `single-choice radio group at slot ${index + 1}`);
+      await pressKey('1');
+      await waitFor(`Boolean(${query('option-a')}.checked && ${query('save-status')}.classList.contains('saved'))`, 'number shortcut selects the first single-choice option');
+      await recordFocus('number shortcut acknowledged single-choice answer', 'option-a');
+      await evaluate(`${query('option-a')}.focus()`);
       await pressKey('ArrowDown');
       await waitFor(`Boolean(${query('option-b')}.checked && ${query('save-status')}.classList.contains('saved'))`, 'keyboard SC save acknowledgement');
       await recordFocus(`single-choice slot ${index + 1} acknowledged asynchronous redraw`, 'option-b');
       const saved = await fixture.pool.query('SELECT value,revision FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2', [attemptId, slot.slotId]);
-      assert.equal(saved.rowCount, 1); assert.equal(saved.rows[0].value.optionId, 'b'); assert.equal(saved.rows[0].revision, '1');
+      assert.equal(saved.rowCount, 1); assert.equal(saved.rows[0].value.optionId, 'b'); assert.equal(saved.rows[0].revision, '2');
     } else if (slot.interaction.type === 'MULTIPLE_CHOICE') {
       assert.equal(slot.interaction.minSelections, 2);
       await assertAx('checkbox', 'Phương án tổng hợp a', 'multiple-choice checkbox with its label');
@@ -352,6 +393,12 @@ async function runAccessibilityJourney() {
       assert.equal((await fixture.pool.query('SELECT 1 FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2', [attemptId, slot.slotId])).rowCount, 0,
         'a below-minimum MC draft is not persisted');
       await recordFocus('multiple-choice local draft redraw', 'option-a');
+      await evaluate(`document.getElementById('question-title').focus()`);
+      const currentQuestion = await evaluate(`${query('question-counter')}.textContent`);
+      await pressKey('n');
+      await pressKey('Enter', { ctrl: true });
+      assert.equal(await evaluate(`${query('question-counter')}.textContent`), currentQuestion, 'unacknowledged MC edits block N navigation');
+      assert.equal(await evaluate("!document.getElementById('submit-dialog')?.open"), true, 'unacknowledged MC edits block Ctrl+Enter');
       await tabTo('option-c', 'multiple-choice second checkbox');
       await pressKey(' ');
       await waitFor(`Boolean(${query('option-c')}.checked && ${query('save-status')}.classList.contains('saved') && !${query('multiple-choice-unsaved')})`,
@@ -359,7 +406,20 @@ async function runAccessibilityJourney() {
       await recordFocus('multiple-choice acknowledged asynchronous redraw', 'option-c');
       const saved = await fixture.pool.query('SELECT value,revision FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2', [attemptId, slot.slotId]);
       assert.equal(saved.rowCount, 1); assert.deepEqual(saved.rows[0].value.optionIds, ['a', 'c']);
+      await evaluate(`document.getElementById('question-title').focus()`);
+      await pressKey('3');
+      await waitFor(`Boolean(${query('multiple-choice-unsaved')}) && !${query('option-c')}.checked`, 'number shortcut toggles a multiple-choice option off');
+      assert.equal(await evaluate(`${query('submit-open')}.disabled && ${query('question-next')}.disabled`), true,
+        'toggling below the minimum keeps submission and navigation guarded');
+      await click('multiple-choice-discard');
+      await waitFor(`!${query('multiple-choice-unsaved')} && ${query('option-c')}.checked`, 'discard restores the acknowledged multiple-choice answer');
     } else if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
+      await evaluate(`document.getElementById('question-title').focus()`);
+      await pressKey('1');
+      assert.equal(await evaluate(`${query('tf-s1-true')}.checked || ${query('tf-s1-false')}.checked`), false,
+        'number shortcuts do not target statements in a true/false group');
+      assert.equal((await fixture.pool.query('SELECT 1 FROM tsa.answers WHERE attempt_id=$1 AND slot_id=$2', [attemptId, slot.slotId])).rowCount, 0,
+        'number shortcuts do not persist a true/false statement');
       await assertAx('radio', 'Mệnh đề tổng hợp một: Đúng', 'true/false radio with its accessible label');
       await tabTo('tf-s1-true', 'first true/false radio');
       await pressKey(' ');
@@ -424,6 +484,7 @@ async function runAccessibilityJourney() {
     'Actual candidate login, catalog selection and attempt start use CDP-dispatched Tab/Enter only',
     'Single-choice, minimum-staged multiple-choice and true/false native controls use Space/Arrow keys; PostgreSQL acknowledgements and revisions are verified',
     'Catalog, exam navigation, submit, review and return navigation are reachable by Tab; native modal traps Tab, closes on Escape and restores submit-trigger focus',
+    'Exam shortcuts navigate and mark safely; 1–9 selects current-question options, multiple-choice toggles preserve draft guards, and true/false groups keep native statement controls',
     'Released result and review are navigated by keyboard; asynchronous redraw focus is recorded and checked against intended headings/controls',
     '640 CSS px half-width reflow-equivalent viewport has no document/app horizontal overflow or horizontally clipped focused control',
     'Chromium AX tree smoke checks inspect accessible names/roles, table caption/column header and math alternative; this is not screen-reader/WCAG conformance evidence',
@@ -431,11 +492,12 @@ async function runAccessibilityJourney() {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture({ durationSeconds: warningResumeTest ? 45 : rateLimitExpiryTest ? 8 : 180, bundleCount: newOnlyTest ? 2 : 1 }) : (domainsTest || fixedPracticeTest || shortPracticeTest) ? await createDomainStudentFixture({extraPerLargeDomain:shortPracticeTest?2:0}) : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
-  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || reservationTest || readingTest || rateLimitTest) ? 180 : (domainsTest || fixedPracticeTest || shortPracticeTest) ? 360 : 600,
+  fixture = numericTest ? await createNumericFixture() : imageTest ? await createImageFixture({after(){}}, {largeImages:true}) : gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture({ durationSeconds: warningResumeTest ? 45 : rateLimitExpiryTest ? 8 : 180, bundleCount: newOnlyTest ? 2 : 1 }) : (topicTest || domainsTest || fixedPracticeTest || shortPracticeTest) ? await createDomainStudentFixture({extraPerLargeDomain:shortPracticeTest?2:0}) : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
+  assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || reservationTest || readingTest || rateLimitTest) ? 180 : (topicTest || domainsTest || fixedPracticeTest || shortPracticeTest) ? 360 : 600,
     'scenario-specific duration is explicit; ordinary mixed fixture retains its default');
   if(shortPracticeTest)await seedShortStudentProfiles(fixture);
   if (fixedPracticeTest) { await seedFixedStudentForms(fixture); await seedFixedStudentForms({...fixture,domainBlueprints:{MATH:fixture.domainBlueprints.MATH}}); }
+  if (imageTest) await fixture.approveImage();
   const login = `browser_worker_${randomUUID().replaceAll('-', '')}`;
   await fixture.pool.query(`CREATE ROLE ${login} LOGIN`); await fixture.pool.query(`GRANT tsa_exam_worker TO ${login}`);
   workerPool = createDatabasePool({ ...fixture.harness.database.connectionConfig, user: login });
@@ -444,13 +506,14 @@ try {
     return workerPool.connect();
   } };
   const rate = { capacity: 100, refillPerSecond: 10 };
-  const options = { identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool: workerProxy,
+  const options = { enableNumericPractice: numericTest, imageStore: imageTest ? fixture.imageStore : null, identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool: workerProxy,
     env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0, pollMilliseconds: 30,
     sweepBatchSize: 10, executorId: 'student-browser', enableReviewPractice: reviewPracticeTest || shortPracticeTest, enableFixedPractice: fixedPracticeTest, enableShortPractice:shortPracticeTest, leaseSeconds: 30, retrySeconds: 1,
     createRate: rate, saveRate: { user: rateLimitTest && rateScope === 'USER_SAVE' ? { capacity: 1, refillPerSecond: rateLimitExpiryTest ? 0.01 : 0.1 } : rate,
       attempt: rateLimitTest && rateScope === 'ATTEMPT_SAVE' ? { capacity: 1, refillPerSecond: rateLimitExpiryTest ? 0.01 : 0.1 } : rate } };
   runtime = await createStudentRuntime(options); workerState.available = false;
   browser = spawn(process.env.STUDENT_BROWSER ?? '/snap/bin/chromium', ['--headless', '--disable-gpu',
+    ...(process.env.STUDENT_BROWSER_NO_SANDBOX === 'true' ? ['--no-sandbox'] : []),
     '--disable-background-networking', '--no-first-run', '--no-default-browser-check',
     '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'],
   { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -459,10 +522,13 @@ try {
   let ws;
   for (let i = 0; i < 200 && !ws; i++) {
     if (browserError) throw browserError;
+    if (browser.exitCode !== null || browser.signalCode !== null) {
+      throw new Error(`Chromium exited before DevTools startup (exit=${browser.exitCode}, signal=${browser.signalCode}): ${browserLog}`);
+    }
     ws = browserLog.match(/DevTools listening on (ws:\/\/[^\s]+)/)?.[1];
     if (!ws) await new Promise((resolve) => setTimeout(resolve, 40));
   }
-  assert.ok(ws, 'Chromium starts');
+  assert.ok(ws, `Chromium starts: ${browserLog}`);
   const debug = ws.replace(/^ws:/, 'http:').split('/devtools/')[0];
   report.browser = (await (await fetch(`${debug}/json/version`)).json()).Browser;
   const targets = await (await fetch(`${debug}/json/list`)).json();
@@ -516,7 +582,7 @@ try {
     await secondWaitFor(expectCatalog ? `Boolean(${query('catalog-grid')})` : "Boolean(document.getElementById('question-title'))", expectCatalog ? 'same candidate opens empty catalog in second tab' : 'same candidate resumes attempt in second tab');
   }
   await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-  await command('Page.navigate', { url: `${runtime.origin}/?student=postgres` });
+  await command('Page.navigate', { url: `${runtime.origin}/?student=${numericTest ? 'postgres-v2' : 'postgres'}` });
   await waitFor(`Boolean(${query('persistent-login')})`, 'explicit candidate login');
   await capture('candidate-login');
   if (accessibilityTest) {
@@ -525,7 +591,13 @@ try {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
     await assertTimingNotice('demo-start');
-    if(shortPracticeTest){
+    if(numericTest){
+      workerState.available=true;
+      await runNumericJourney({evaluate,command,click,query,waitFor,capture,report});
+    } else if(imageTest){
+      workerState.available=true;
+      await runImageJourney({evaluate,command,click,query,waitFor,capture,report});
+    } else if(shortPracticeTest){
       workerState.available=true;
       await runShortPracticeJourney({evaluate,click,query,waitFor,fixture,capture,report,
         reload:()=>command('Page.reload',{ignoreCache:true}),
@@ -563,6 +635,9 @@ try {
     } else if (readingTest) {
       workerState.available = true;
       await runReadingJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });
+    } else if (topicTest) {
+      workerState.available = true;
+      await runTopicPracticeJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });
     } else if (domainsTest) {
       workerState.available = true;
       await runDomainJourney({ evaluate, command, click, query, waitFor, fixture, capture, report });

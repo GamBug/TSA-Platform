@@ -15,6 +15,7 @@ import { createFactoryImportService } from '../src/modules/bank/factory-import.m
 
 const artifacts = path.resolve(process.env.TRACK_B_ARTIFACT_DIR ?? path.join(tmpdir(), 'tsa-track-b-browser-evidence'));
 const browserExecutable = process.env.TRACK_B_BROWSER ?? '/snap/bin/chromium';
+const numericStaff = process.env.TRACK_B_NUMERIC_TEST === 'true';
 const timeoutMs = 120_000;
 const scratch = await mkdtemp(path.join(tmpdir(), 'tsa-track-b-browser-'));
 await chmod(scratch, 0o700);
@@ -131,7 +132,8 @@ async function stopChild(child) {
 try {
   await mkdir(artifacts, { recursive: true });
   runtime = await createTrackBRuntime({
-    env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' },
+    env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true',
+      ...(numericStaff ? {LOCAL_STUDENT_ENABLED:'true',LOCAL_NUMERIC_PRACTICE_ENABLED:'true'} : {}) },
     dataDirectory: path.join(scratch, 'cluster'),
     port: 0,
   });
@@ -188,6 +190,32 @@ try {
   await click('staff-login');
   await waitFor(`Boolean(${query('draft-create')} && ${query('staff-question-list')})`, 'AUTHOR draft workspace');
   assert.match(await evaluate('document.body.innerText'), /LOCAL_SYNTHETIC_ONLY/);
+
+  if (numericStaff) {
+    await evaluate(`(()=>{const type=${query('draft-interaction-type')};type.value='NUMERIC_RESPONSE';type.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
+    await waitFor(`Boolean(${query('draft-numeric-answer')})`,'numeric staff editor capability');
+    assert.equal(await evaluate(`${query('draft-option-a')}.disabled`),true);
+    await evaluate(`(()=>{const e=${query('draft-numeric-answer')};e.value='1/2';e.dispatchEvent(new Event('input',{bubbles:true}));return true;})()`);
+    assert.equal(await evaluate(`${query('draft-numeric-answer')}.checkValidity()`),false);
+    await evaluate(`(()=>{const e=${query('draft-numeric-answer')};e.value='9007199254740993';e.dispatchEvent(new Event('input',{bubbles:true}));return true;})()`);
+    assert.equal(await evaluate(`${query('draft-numeric-answer')}.checkValidity()`),true);
+    await screenshot('numeric-staff-editor-desktop');
+    await click('draft-create');
+    await waitFor(`Boolean(${query('staff-question-list')}?.querySelector('li.staff-question-item'))`,'numeric immutable draft created');
+    const listing=await evaluate("fetch('/api/v2/questions?state=DRAFT&limit=100').then(r=>r.json())");
+    assert.equal(listing.items.length,1);assert.equal(listing.items[0].interactionType,'NUMERIC_RESPONSE');
+    assert.equal((await evaluate("fetch('/api/v1/questions?state=DRAFT&limit=100').then(r=>r.json())")).items.length,0);
+    const versionId=listing.items[0].versionId;
+    await evaluate(`document.querySelector('[data-testid="staff-review-inspect"][data-version-id="${versionId}"]').click()`);
+    await waitFor(`Boolean(${query('staff-review-context')})`,'versioned staff context');
+    const context=await evaluate(`fetch('/api/v2/question-versions/${versionId}/review-context').then(r=>r.json())`);
+    assert.equal(context.schemaVersion,'staff-review-context/2');assert.equal(context.preview.status,'BLOCKED');
+    assert.equal(context.preview.reason,'RIGHTS_BLOCKED','synthetic UNKNOWN source remains unapproved');
+    assert.equal(JSON.stringify(context).includes('9007199254740993'),false,'blocked preview discloses no private numeric key');
+    await command('Emulation.setDeviceMetricsOverride',{width:375,height:900,deviceScaleFactor:1,mobile:true});
+    await noHorizontalOverflow();await screenshot('numeric-staff-context-mobile');
+    report.checks.push('Explicit numeric staff capability, canonical-key validation, immutable question/2 DRAFT, v1 metadata exclusion and rights-blocked staff-review-context/2 verified against PostgreSQL; no approval or publication.');
+  } else {
 
   await evaluate(`(()=>{
     window.__trackBOriginalFetch=window.fetch.bind(window);
@@ -1675,6 +1703,7 @@ try {
   report.checks.push('B9 real explicit seal: native cancel/Escape0POST and mobile confirmation; committed lost201 stays uncertain and exact body/key retry replays one immutable form with no student attempt/history');
   report.checks.push('B9 separate explicit metadata list/detail uses safe historical receipt plus current stored availability, survives fresh reload without POST; same configuration can open a fresh cancelled intent and desktop/mobile fit');
 
+  }
   const mockOrigin = await serveMockOnly();
   await command('Page.navigate', { url: mockOrigin });
   await waitFor(`Boolean(${query('staff-open')})`, 'mock-only landing');
@@ -1684,7 +1713,7 @@ try {
   report.checks.push('mock-only B0 link reports workspace unavailable instead of a fake login');
   assert.equal(errors.length, 0, JSON.stringify(errors));
   assert.deepEqual(requests.filter((url) => /^https?:/.test(url) && !url.startsWith(`${runtime.origin}/`)
-    && !url.startsWith(`${reviewFixture.origin}/`) && !url.startsWith(`${mockOrigin}/`)), []);
+    && !url.startsWith(`${reviewFixture?.origin}/`) && !url.startsWith(`${mockOrigin}/`)), []);
   report.checks.push('no uncaught browser errors or external page requests');
   await writeFile(path.join(artifacts, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ result: 'PASS', ...report }, null, 2));

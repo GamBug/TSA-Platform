@@ -1,3 +1,8 @@
+import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
+import { runNumericJourney } from './student-numeric-journey.mjs';
+import { createImageFixture } from '../tests/integration/student-runtime/image-fixture.mjs';
+import { runImageJourney } from './student-image-journey.mjs';
+import { runTopicPracticeJourney } from './student-topic-practice-journey.mjs';
 import { runShortPracticeJourney } from './student-short-practice-journey.mjs';
 import { seedShortStudentProfiles } from '../tests/integration/student-runtime/short-fixture.mjs';
 import { runFixedPracticeJourney } from './student-fixed-practice-journey.mjs';
@@ -24,6 +29,11 @@ if (process.env.STUDENT_REVIEW_PRACTICE_FIREFOX !== undefined
 if (process.env.STUDENT_FIXED_PRACTICE_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_FIXED_PRACTICE_FIREFOX)) throw new Error('STUDENT_FIXED_PRACTICE_FIREFOX must be true or false');
 if(process.env.STUDENT_SHORT_PRACTICE_FIREFOX!==undefined&&!['true','false'].includes(process.env.STUDENT_SHORT_PRACTICE_FIREFOX))throw new Error('STUDENT_SHORT_PRACTICE_FIREFOX must be true or false');
 const enableShortPractice=process.env.STUDENT_SHORT_PRACTICE_FIREFOX==='true';
+const enableTopics = process.env.STUDENT_TOPIC_FIREFOX === 'true';
+const enableImages = process.env.STUDENT_IMAGE_FIREFOX === 'true';
+const enableNumeric = process.env.STUDENT_NUMERIC_FIREFOX === 'true';
+if (enableNumeric && (enableImages || enableTopics || enableShortPractice || process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true' || process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true' || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Numeric verification runs separately');
+if (enableImages && (enableTopics || enableShortPractice || process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true' || process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true' || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Image verification runs separately');
 const enableFixedPractice = process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true';
 const enableReviewPractice = process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true';
 if (process.env.STUDENT_NATIVE_ZOOM_FIREFOX !== undefined && !['true','false'].includes(process.env.STUDENT_NATIVE_ZOOM_FIREFOX)) throw new Error('STUDENT_NATIVE_ZOOM_FIREFOX must be true or false');
@@ -962,7 +972,8 @@ function checkPrivate(value) {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = enableFixedPractice || enableShortPractice ? await createDomainStudentFixture({extraPerLargeDomain:enableShortPractice?2:0}) : await createMixedStudentFixture();
+  fixture = enableNumeric ? await createNumericFixture() : enableImages ? await createImageFixture({after(){}}, {largeImages:true}) : enableTopics || enableFixedPractice || enableShortPractice ? await createDomainStudentFixture({extraPerLargeDomain:enableShortPractice?2:0}) : await createMixedStudentFixture();
+  if(enableImages)await fixture.approveImage();
   if(enableShortPractice)await seedShortStudentProfiles(fixture);
   if (enableFixedPractice) { await seedFixedStudentForms(fixture); await seedFixedStudentForms({...fixture,domainBlueprints:{MATH:fixture.domainBlueprints.MATH}}); }
   const login = `firefox_worker_${randomUUID().replaceAll('-', '')}`;
@@ -973,7 +984,7 @@ try {
     return workerPool.connect();
   } };
   const rate = { capacity: 100, refillPerSecond: 10 };
-  runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool,
+  runtime = await createStudentRuntime({ enableNumericPractice: enableNumeric, imageStore: enableImages ? fixture.imageStore : null, identityPool: fixture.harness.authPool, examPool: fixture.examPool,
     workerPool: workerProxy, env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
     pollMilliseconds: 30, sweepBatchSize: 10, executorId: 'firefox-browser', leaseSeconds: 30, retrySeconds: 1,
     enableReviewPractice:enableReviewPractice||enableShortPractice, enableFixedPractice, enableShortPractice,
@@ -998,12 +1009,40 @@ try {
   sessionId = session.sessionId; report.browser = `${session.capabilities.browserName}/${session.capabilities.browserVersion}`;
   assert.equal(session.capabilities.browserName, 'firefox');
   await wd('POST', '/window/rect', { width: 1280, height: 900 });
-  await wd('POST', '/url', { url: `${runtime.origin}/?student=postgres` });
+  await wd('POST', '/url', { url: `${runtime.origin}/?student=${enableNumeric ? 'postgres-v2' : 'postgres'}` });
   await waitFor(`Boolean(${query('persistent-login-studentA')})`, 'explicit candidate login');
   if (enableNativeZoom) await setNativeZoom();
-  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
+  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/')||url.pathname.startsWith('/api/v2/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
   await capture('login'); await click('persistent-login-studentA');
-  if(enableShortPractice){
+  if (enableNumeric) {
+    workerState.available = true;
+    await waitFor(`Boolean(${query('demo-start')})`, 'numeric catalog');
+    await runNumericJourney({ evaluate, click, query, waitFor, capture, report, narrowWidth: 500,
+      viewport: (width,height) => setViewport(width,height,'numeric'),
+      reload: () => wd('POST','/refresh',{}),
+      key: value => wd('POST','/actions',{actions:[{type:'key',id:'numeric-typing',actions:[{type:'keyDown',value:value==='Escape'?'\uE00C':value},{type:'keyUp',value:value==='Escape'?'\uE00C':value}]}]}),
+      escape: () => wd('POST','/actions',{actions:[{type:'key',id:'numeric-keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]}) });
+  } else if (enableImages) {
+    workerState.available = true;
+    await waitFor(`Boolean(${query('demo-start')})`, 'image catalog');
+    await runImageJourney({ evaluate, click, query, waitFor, capture, report, narrowWidth: 500,
+      viewport: (width, height) => setViewport(width, height, 'image'),
+      reload: () => wd('POST', '/refresh', {}),
+      escape: () => wd('POST', '/actions', { actions: [{ type: 'key', id: 'image-keyboard', actions: [{ type: 'keyDown', value: '\uE00C' }, { type: 'keyUp', value: '\uE00C' }] }] }),
+    });
+  } else if (enableTopics) {
+    workerState.available = true;
+    const topicEvaluate = async expression => {
+      const value = await wd('POST', '/execute/async', { args: [expression],
+        script: "const done=arguments[arguments.length-1];Promise.resolve().then(()=>eval(arguments[0])).then(value=>done({value}),error=>done({failure:String(error)}));" });
+      if (value.failure) throw new Error(value.failure); return value.value;
+    };
+    await runTopicPracticeJourney({ evaluate: topicEvaluate, click, query, waitFor, fixture, capture, report, narrowWidth: 500,
+      selectFirst: () => click('topic-select'),
+      viewport: (width, height) => setViewport(width, height, 'topic'),
+      reload: () => wd('POST', '/refresh', {}),
+    });
+  } else if(enableShortPractice){
     workerState.available=true;
     const scenarioEvaluate=async expression=>{const value=await wd('POST','/execute/async',{args:[expression],script:"const done=arguments[arguments.length-1];Promise.resolve().then(()=>eval(arguments[0])).then(value=>done({value}),error=>done({failure:String(error)}));"});if(value.failure)throw new Error(value.failure);return value.value;};
     await runShortPracticeJourney({evaluate:scenarioEvaluate,click,query,waitFor,fixture,capture,report,narrowWidth:500,
@@ -1032,17 +1071,57 @@ try {
   const clocks = (await fixture.pool.query('SELECT started_at::text,deadline_at::text FROM tsa.attempts WHERE id=$1', [view.attemptId])).rows;
   await waitFor('Boolean(document.querySelector(".content-math[data-math-state=rendered] math msup"))', 'Firefox native MathML superscript');
   assert.equal(await evaluate('document.body.innerText.includes("Bảng dữ liệu tổng hợp")'), true);
+  const pressExamKey = async (key, { ctrl = false, shift = false } = {}) => {
+    if (ctrl) {
+      await wd('POST', '/actions', { actions: [{ type: 'key', id: 'exam-shortcuts-keyboard', actions: [
+        { type: 'keyDown', value: '\uE009' }, { type: 'keyDown', value: '\uE007' },
+        { type: 'keyUp', value: '\uE007' }, { type: 'keyUp', value: '\uE009' },
+      ] }] });
+    } else if (shift && key === '?') {
+      await wd('POST', '/actions', { actions: [{ type: 'key', id: 'exam-shortcuts-keyboard', actions: [
+        { type: 'keyDown', value: '\uE008' }, { type: 'keyDown', value: '/' },
+        { type: 'keyUp', value: '/' }, { type: 'keyUp', value: '\uE008' },
+      ] }] });
+    } else {
+      await nativeKey(({ Escape: '\uE00C', Enter: '\uE007' })[key] ?? key);
+    }
+  };
+  const { runExamShortcutJourney } = await import('./student-exam-shortcuts-journey.mjs');
+  await runExamShortcutJourney({ evaluate, waitFor, pressKey: pressExamKey, query, report, slots: view.slots,
+    assertNoSubmit: async () => {
+      assert.equal((await fixture.pool.query('SELECT state FROM tsa.attempts WHERE id=$1', [view.attemptId])).rows[0].state, 'IN_PROGRESS',
+        'Ctrl+Enter did not submit the PostgreSQL attempt');
+      assert.equal((await fixture.pool.query("SELECT count(*)::int AS n FROM tsa.jobs WHERE attempt_id=$1 AND kind='exam_grade_attempt'", [view.attemptId])).rows[0].n, 0,
+        'shortcut confirmation did not enqueue grading');
+    },
+  });
   for (const [index, slot] of view.slots.entries()) {
     if (index) await click('question-next');
     if (slot.interaction.type === 'MULTIPLE_CHOICE') {
       await click('option-a');
       assert.equal(await evaluate(`${query('submit-open')}.disabled`), true, 'partial MC stays unsaved');
-      await click('option-c');
+      await evaluate(`document.getElementById('question-title').focus()`);
+      await pressExamKey('3');
+      await waitFor(`Boolean(${query('option-c')}.checked && ${query('save-status')}.classList.contains('saved'))`, 'number shortcut adds a multiple-choice option');
+      await evaluate(`document.getElementById('question-title').focus()`);
+      await pressExamKey('3');
+      await waitFor(`Boolean(${query('multiple-choice-unsaved')}) && !${query('option-c')}.checked`, 'number shortcut toggles the option off below the minimum');
+      assert.equal(await evaluate(`${query('submit-open')}.disabled && ${query('question-next')}.disabled`), true,
+        'partial keyboard toggle retains the submit and navigation guards');
+      await click('multiple-choice-discard');
+      await waitFor(`!${query('multiple-choice-unsaved')} && ${query('option-c')}.checked`, 'discard restores the acknowledged multiple-choice value');
     } else if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
+      await evaluate(`document.getElementById('question-title').focus()`);
+      await pressExamKey('1');
+      assert.equal(await evaluate(`${query('tf-s1-true')}.checked || ${query('tf-s1-false')}.checked`), false,
+        'number shortcuts do not target true/false statements');
       await click('tf-s1-true');
       await waitFor(`!${query('tf-s2-false')}.disabled`, 'first TF save acknowledged');
       await click('tf-s2-false');
-    } else await click('option-b');
+    } else {
+      await pressExamKey('2');
+      await waitFor(`Boolean(${query('option-b')}.checked && ${query('save-status')}.classList.contains('saved'))`, 'number shortcut selects the second single-choice option');
+    }
     await waitFor(`Boolean(${query('save-status')}.classList.contains('saved') && !${query('submit-open')}.disabled)`, 'acknowledged typed answer');
   }
   assert.match(await evaluate(`${query('answered-count')}.textContent`), /4\/4/);
@@ -1086,6 +1165,7 @@ try {
   assert.equal(await evaluate(`performance.getEntriesByType('resource').every(item=>new URL(item.name).origin===location.origin)`), true);
   report.checks = ['Actual Firefox candidate login and mixed-type PostgreSQL allocation/delivery',
     'SC/MC/TF acknowledged saves and partial MC guard; actual pre-release response privacy',
+    'Firefox exam shortcuts restore focus, ignore dialogs/native controls, select and toggle current-question options, and do not map digits to true/false statements',
     'Fresh reload preserves saved answers and exact PostgreSQL clock text',
     'Pending worker outage, recovered 100% release and explicit owner review'];
   if(enableNativeZoom){
