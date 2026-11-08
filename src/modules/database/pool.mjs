@@ -35,13 +35,14 @@ export function query(poolOrClient, text, values = []) {
 }
 
 /** Run work on one checked-out connection and commit or roll back atomically. */
-export async function withTransaction(pool, work, { role, enableNumericPractice = false } = {}) {
+export async function withTransaction(pool, work, { role, enableNumericPractice = false, enableFullSimulation = false } = {}) {
   if (typeof work !== 'function') throw new TypeError('Transaction callback is required');
   if (role !== undefined && !APPLICATION_ROLES.has(role)) throw new TypeError('Database role is not allowlisted');
   if (typeof enableNumericPractice !== 'boolean' || (enableNumericPractice && role !== 'tsa_exam')) {
     throw new TypeError('Numeric practice context requires the exam role');
   }
 
+  if (typeof enableFullSimulation !== 'boolean' || (enableFullSimulation && role !== 'tsa_exam')) throw new TypeError('Simulation context requires the exam role');
   const client = await pool.connect();
   let transactionOpen = false;
   let released = false;
@@ -55,6 +56,7 @@ export async function withTransaction(pool, work, { role, enableNumericPractice 
     transactionOpen = true;
     if (role !== undefined) await client.query(`SET LOCAL ROLE ${role}`);
     if (enableNumericPractice) await client.query("SET LOCAL tsa.enable_numeric_practice = 'true'");
+    if (enableFullSimulation) await client.query("SET LOCAL tsa.enable_full_simulation = 'true'");
     const result = await work(client);
     await client.query('COMMIT');
     transactionOpen = false;

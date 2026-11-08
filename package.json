@@ -93,7 +93,11 @@
     "demo:student:numeric": "npm run build && STUDENT_FIXTURE_NUMERIC=true node scripts/start-student-fixture.mjs",
     "test:numeric": "npm run build && node --experimental-strip-types --test --test-concurrency=2 packages/contracts/test/numeric-response.test.ts packages/contracts/test/numeric-versioning.test.ts tests/scoring/versioned-binary.test.mjs tests/integration/bank/numeric-*.test.mjs tests/integration/student-runtime/numeric-practice.test.mjs tests/integration/local/numeric-migration.test.mjs",
     "test:student:numeric": "STUDENT_NUMERIC_TEST=true node scripts/verify-student-browser.mjs",
-    "test:student:numeric:firefox": "STUDENT_NUMERIC_FIREFOX=true STUDENT_FIREFOX_ARTIFACT_DIR=/tmp/tsa-numeric-firefox-evidence node scripts/verify-student-firefox.mjs"
+    "test:student:numeric:firefox": "STUDENT_NUMERIC_FIREFOX=true STUDENT_FIREFOX_ARTIFACT_DIR=/tmp/tsa-numeric-firefox-evidence node scripts/verify-student-firefox.mjs",
+    "demo:student:simulation": "npm run build && STUDENT_FIXTURE_SIMULATION=true node scripts/start-student-fixture.mjs",
+    "test:simulation": "npm run build && node --experimental-strip-types --test packages/contracts/test/simulation-v3.test.ts tests/integration/local/simulation-migration.test.mjs tests/integration/student-runtime/full-simulation.test.mjs",
+    "test:student:simulation": "node scripts/verify-simulation-browser.mjs chromium",
+    "test:student:simulation:firefox": "node scripts/verify-simulation-browser.mjs firefox"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

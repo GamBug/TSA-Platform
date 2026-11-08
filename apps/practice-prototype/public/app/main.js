@@ -4402,6 +4402,10 @@ async function initializePersistent() {
 }
 
 async function initialize() {
+  if (studentMode === "postgres-v3") {
+    const stylesheet=document.createElement('link');stylesheet.rel='stylesheet';stylesheet.href='/simulation.css';document.head.append(stylesheet);
+    const {mountSimulation}=await import('./simulation.js');await mountSimulation();return;
+  }
   // Resolve the local header faces before its first paint. Font failure leaves
   // the system fallback usable; subsequent routes reuse the same font and nodes.
   await Promise.allSettled([

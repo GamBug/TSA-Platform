@@ -9,6 +9,8 @@ import {
 import { withTransaction } from '../database/pool.mjs';
 import { BankCommandError, reject, requireActor, UUID_PATTERN } from '../bank/common.mjs';
 import { parseNumericPracticeConfig } from '../assembly/versioned-contracts.mjs';
+import { FullSimulationCatalogPageV3Schema } from '../../../packages/contracts/dist/simulation.js';
+import { SimulationAttemptHistoryPageV3Schema } from '../../../packages/contracts/dist/student-v3.js';
 
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_CURSOR_LENGTH = 1_024;
@@ -199,8 +201,8 @@ function parseHistoryEnvelope(value, limit) {
   return page.data;
 }
 
-async function runQuery(examPool, work, enableNumericPractice = false) {
-  try { return await withTransaction(examPool, work, { role: 'tsa_exam', enableNumericPractice }); }
+async function runQuery(examPool, work, enableNumericPractice = false, enableFullSimulation = false) {
+  try { return await withTransaction(examPool, work, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation }); }
   catch (error) {
     if (error instanceof BankCommandError) throw error;
     reject(503, 'TEMPORARILY_UNAVAILABLE');
@@ -208,7 +210,7 @@ async function runQuery(examPool, work, enableNumericPractice = false) {
 }
 
 /** Owner-scoped catalog and compact attempt-history reads over the restricted exam role. */
-export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableNumericPractice = false } = {}) {
+export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableNumericPractice = false, enableFullSimulation = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
@@ -225,6 +227,11 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
     const cursor = decodeCursor(query.cursor, 'catalog', enableFixedPractice);
     const page = await runQuery(examPool, async (client) => {
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [userId]);
+      if (enableFullSimulation) {
+        const value=(await client.query('SELECT tsa.exam_simulation_catalog($1::integer,$2::uuid) AS result',[query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result;
+        if (!value || !Array.isArray(value.items) || value.items.length>query.limit || (value.next!==null && !UUID_PATTERN.test(value.next))) reject(503,'TEMPORARILY_UNAVAILABLE');
+        return FullSimulationCatalogPageV3Schema.parse({items:value.items,nextCursor:value.next===null?null:encodeCursor({v:1,kind:'catalog',afterBlueprintId:value.next})});
+      }
       if (enableNumericPractice) return parseCatalogEnvelope((await client.query(
         'SELECT tsa.exam_numeric_catalog_page($1::integer,$2::uuid) AS result', [query.limit, cursor?.afterBlueprintId ?? null],
       )).rows[0]?.result, query.limit, false, false, false, true);
@@ -247,7 +254,7 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
       if (remaining === 0) return {items:personal.items,nextCursor:fixed.items.length
         ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:null}) : null};
       return CatalogPageSchema.parse({items:[...personal.items,...fixed.items],nextCursor:fixed.nextCursor});
-    }, enableNumericPractice);
+    }, enableNumericPractice, enableFullSimulation);
     // Capability flags only advertise their own mode; fixed rows never gain reviewAllowed.
     return enableReviewPractice && !enableNumericPractice ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE'
       && !(['MATH','SCIENCE'].includes(entry.domain)&&entry.questionCount===2&&entry.durationSeconds===180)
@@ -262,11 +269,15 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
     const value = await runQuery(examPool, async (client) => {
       await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [userId]);
       const result = await client.query(
-        'SELECT tsa.exam_history_page($1::integer,$2::timestamptz,$3::uuid) AS result',
+        enableFullSimulation ? 'SELECT tsa.exam_simulation_history($1::integer,$2::timestamptz,$3::uuid) AS result' : 'SELECT tsa.exam_history_page($1::integer,$2::timestamptz,$3::uuid) AS result',
         [query.limit, cursor?.beforeCreatedAt ?? null, cursor?.beforeId ?? null],
       );
       return result.rows[0]?.result;
-    }, enableNumericPractice);
+    }, enableNumericPractice, enableFullSimulation);
+    if (enableFullSimulation) {
+      if (!value || !Array.isArray(value.items) || value.items.length>query.limit || (value.next!==null && (!isUtcMicrosecondInstant(value.next?.createdAt) || !UUID_PATTERN.test(value.next?.id)))) reject(503,'TEMPORARILY_UNAVAILABLE');
+      return SimulationAttemptHistoryPageV3Schema.parse({items:value.items,nextCursor:value.next===null?null:encodeCursor({v:1,kind:'history',beforeCreatedAt:value.next.createdAt,beforeId:value.next.id})});
+    }
     return parseHistoryEnvelope(value, query.limit);
   }
 

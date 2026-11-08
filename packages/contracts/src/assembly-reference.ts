@@ -10,6 +10,7 @@ import {
 } from "./index.ts";
 import { BlueprintConfigV2Schema, InteractionTypeV2Schema } from "./blueprint-v2.ts";
 import { canonicalize } from "./identity.ts";
+import { BlueprintConfigV3Schema } from "./blueprint-v3.ts";
 import { shuffleAssemblyUnitsV1 } from "./assembly-random.ts";
 
 const HASH = /^sha256:[0-9a-f]{64}$/;
@@ -94,7 +95,19 @@ const ManifestV2Schema = ManifestSchema.extend({
 });
 export type AssemblyManifestV2 = z.infer<typeof ManifestV2Schema>;
 export type ParsedAssemblyManifestV2 = { manifest: AssemblyManifestV2; bytes: Uint8Array; manifestHash: string };
-type SupportedPersonalManifest = AssemblyManifest | AssemblyManifestV2;
+const ManifestV3Schema = ManifestSchema.extend({ schemaVersion: z.literal("assembly-manifest/3"), blueprint: BlueprintConfigV3Schema, reuseMode: z.literal("NEW_ONLY") });
+export type AssemblyManifestV3 = z.infer<typeof ManifestV3Schema>;
+export function parseAssemblyManifestV3(input: unknown) {
+  return finishManifest(ManifestV3Schema.parse(copyAndCheckRawManifest(input)), normalizeManifest);
+}
+export function runAssemblyReferenceV3(input: unknown): AssemblyResult {
+  const { manifest, manifestHash } = parseAssemblyManifestV3(input);
+  const result = runPersonalReference(manifest, manifestHash);
+  if (result.status !== "SUCCESS") return result;
+  const slots = result.slots.map((slot, ordinal) => ({ ...slot, ordinal }));
+  return { ...result, slots, slotsHash: sha256(canonicalize(slots)) };
+}
+type SupportedPersonalManifest = AssemblyManifest | AssemblyManifestV2 | AssemblyManifestV3;
 type SupportedMember = AssemblyMember | z.infer<typeof MemberV2Schema>;
 type SupportedUnit = AssemblyUnit | z.infer<typeof UnitV2Schema>;
 

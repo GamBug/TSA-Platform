@@ -20,6 +20,8 @@ import { BankCommandError, jsonDigest, reject, requireActor } from '../bank/comm
 import { AttemptViewV2Schema, AnswerAckV2Schema, AnswerSubmissionRequestV2Schema } from '../../../packages/contracts/dist/student-v2.js';
 import { ResponseValueV2Schema } from '../../../packages/contracts/dist/question-v2.js';
 import { AuthorizedReleasedReviewV2Schema } from '../../../packages/contracts/dist/released-review-v2.js';
+import { SimulationAttemptViewV3Schema, SimulationCreationReceiptV3Schema, SimulationStartReceiptV3Schema, SimulationSectionSwitchRequestV3Schema, SimulationSectionSwitchReceiptV3Schema } from '../../../packages/contracts/dist/student-v3.js';
+import { AuthorizedReleasedReviewV3Schema } from '../../../packages/contracts/dist/released-review-v3.js';
 
 const ROUTE_ONLY_STATUS = Object.freeze({
   NOT_FOUND: 404,
@@ -148,9 +150,9 @@ function isRetryableTransactionConflict(error) {
   return error?.code === '40001' || error?.code === '40P01';
 }
 
-function toCreationResult(result) {
+function toCreationResult(result, schema = CreationReceiptSchema) {
   if (result.status === 'REPLAY') {
-    const parsed = CreationReceiptSchema.safeParse(result.receipt);
+    const parsed = schema.safeParse(result.receipt);
     if (!parsed.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
     return { status: 201, body: parsed.data, replayed: true };
   }
@@ -214,19 +216,19 @@ function parseReleasedReview(value, attemptId, schema = AuthorizedReleasedReview
  * budgets commit in separate PostgreSQL transactions; SQL owns each command's
  * persisted receipt, current lifecycle guards, and answer revision.
  */
-export function createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableTopicPractice = false, enableNumericPractice = false } = {}) {
+export function createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableTopicPractice = false, enableNumericPractice = false, enableFullSimulation = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
   }
   const rate = validateCreateRate(createRate);
   const saveRates = saveRate === undefined ? null : validateSaveRate(saveRate);
-  const allocation = createAllocationService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableTopicPractice, enableNumericPractice });
-  const viewSchema = enableNumericPractice ? AttemptViewV2Schema : AttemptViewSchema;
+  const allocation = createAllocationService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableTopicPractice, enableNumericPractice, enableFullSimulation });
+  const viewSchema = enableFullSimulation ? SimulationAttemptViewV3Schema : enableNumericPractice ? AttemptViewV2Schema : AttemptViewSchema;
   const ackSchema = enableNumericPractice ? AnswerAckV2Schema : AnswerAckSchema;
   const requestSchema = enableNumericPractice ? AnswerSubmissionRequestV2Schema : AnswerSubmissionRequestSchema;
   const responseSchema = enableNumericPractice ? ResponseValueV2Schema : ResponseValueSchema;
-  const reviewSchema = enableNumericPractice ? AuthorizedReleasedReviewV2Schema : AuthorizedReleasedReviewSchema;
+  const reviewSchema = enableFullSimulation ? AuthorizedReleasedReviewV3Schema : enableNumericPractice ? AuthorizedReleasedReviewV2Schema : AuthorizedReleasedReviewSchema;
 
   async function runReceipt(principal, key, requestHash) {
     return withTransaction(examPool, async (client) => {
@@ -234,7 +236,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query('SELECT tsa.assembly_receipt($1,$2) AS result', [key, requestHash]);
       const value = result.rows[0]?.result;
       return value === null || value === undefined ? null : statusResult(value);
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function consumeCreateBudget(principal) {
@@ -246,7 +248,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const budget = record(result.rows[0]?.result);
       if (!budget || typeof budget.allowed !== 'boolean') reject(503, 'TEMPORARILY_UNAVAILABLE');
       return budget;
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
     if (!budget.allowed) failCommand('RATE_LIMITED', budget);
   }
 
@@ -256,7 +258,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query(
         'SELECT tsa.exam_attempt_start($1,$2,$3) AS result', [attemptId, key, bodyHash]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function authorizeSave(principal, attemptId, slotId) {
@@ -265,7 +267,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query('SELECT tsa.exam_authorize_save($1,$2) AS authorized', [attemptId, slotId]);
       if (typeof result.rows[0]?.authorized !== 'boolean') reject(503, 'TEMPORARILY_UNAVAILABLE');
       return result.rows[0].authorized;
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function consumeSaveBudget(principal, attemptId, slotId, configured) {
@@ -285,7 +287,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       if (budget.allowed === true) return;
       if (budget.allowed === false) failCommand('RATE_LIMITED', budget);
       reject(503, 'TEMPORARILY_UNAVAILABLE');
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function runSave(principal, attemptId, slotId, key, bodyHash, request) {
@@ -295,7 +297,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
         'SELECT tsa.exam_answer_save($1,$2,$3,$4,$5::jsonb) AS result',
         [attemptId, slotId, key, bodyHash, JSON.stringify(request)]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function runSubmit(principal, attemptId, key, bodyHash) {
@@ -304,7 +306,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       const result = await client.query(
         'SELECT tsa.exam_attempt_submit($1,$2,$3) AS result', [attemptId, key, bodyHash]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function readOnClient(client, principal, attemptId) {
@@ -321,7 +323,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
     const requestHash = jsonDigest(request);
     try {
       const prior = await runReceipt(principal, key, requestHash);
-      if (prior !== null) return toCreationResult(prior);
+      if (prior !== null) return toCreationResult(prior, enableFullSimulation ? SimulationCreationReceiptV3Schema : CreationReceiptSchema);
       await consumeCreateBudget(principal);
       return await allocation.create(principal, key, request);
     } catch (error) {
@@ -361,7 +363,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
         throw error;
       }
       if (result.status === 'STARTED' || result.status === 'REPLAY') {
-        const parsed = StartReceiptSchema.safeParse(result.receipt);
+        const parsed = (enableFullSimulation ? SimulationStartReceiptV3Schema : StartReceiptSchema).safeParse(result.receipt);
         if (!parsed.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
         return { status: 200, body: parsed.data, replayed: result.status === 'REPLAY' };
       }
@@ -471,7 +473,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
               || access.releaseAuthorized !== guard.releaseAuthorized || access.revision !== guard.revision) {
             throw new BankCommandError(503, 'TEMPORARILY_UNAVAILABLE');
           }
-          const result = await client.query('SELECT tsa.exam_released_review($1) AS result', [attemptId]);
+          const result = await client.query(enableFullSimulation ? 'SELECT tsa.exam_simulation_released_review($1) AS result' : 'SELECT tsa.exam_released_review($1) AS result', [attemptId]);
           return parseReleasedReview(result.rows[0]?.result, attemptId, reviewSchema);
         },
       });
@@ -481,7 +483,7 @@ export function createAttemptService({ examPool, identityService, createRate, sa
         active = false;
         latest = null;
       }
-    }, { role: 'tsa_exam', enableNumericPractice });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   }
 
   async function read(principal, attemptIdInput) {
@@ -491,12 +493,28 @@ export function createAttemptService({ examPool, identityService, createRate, sa
       return await withTransaction(examPool, async (client) => {
         await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
         return (await readOnClient(client, principal, attemptId))?.view ?? null;
-      }, { role: 'tsa_exam', enableNumericPractice });
+      }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
     } catch (error) {
       if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code)) mapPostgresError(error);
       throw error;
     }
   }
 
-  return Object.freeze({ create, createPrepared, start, save, submit, read, withReadBoundary });
+  async function switchSection(principal, attemptIdInput, key, input) {
+    requireActor(identityService, principal, 'candidate.attempt.read');
+    if (!enableFullSimulation || !IdempotencyKeySchema.safeParse(key).success) reject(422,'VALIDATION_ERROR');
+    const attemptId = parseAttemptId(attemptIdInput);
+    const body = SimulationSectionSwitchRequestV3Schema.safeParse(input);
+    if (!body.success) reject(422,'VALIDATION_ERROR');
+    const result = await withTransaction(examPool, async client => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)",[principal.userId]);
+      return statusResult((await client.query('SELECT tsa.exam_simulation_switch($1,$2,$3,$4) AS result',
+        [attemptId,key,jsonDigest(body.data),body.data.sectionId])).rows[0]?.result);
+    }, {role:'tsa_exam',enableFullSimulation:true});
+    if (result.status === 'ERROR') failCommand(result.code,result);
+    const receipt=SimulationSectionSwitchReceiptV3Schema.safeParse(result.receipt);
+    if (!['SWITCHED','REPLAY'].includes(result.status) || !receipt.success) reject(503,'TEMPORARILY_UNAVAILABLE');
+    return {status:200,body:receipt.data,replayed:result.status==='REPLAY'};
+  }
+  return Object.freeze({ create, createPrepared, start, save, submit, read, withReadBoundary, switchSection });
 }

@@ -17,7 +17,7 @@ function metadata(value) {
 }
 
 /** Bytes are buffered and checked before the final guarded authorization point. */
-export function createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice = false } = {}) {
+export function createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice = false, enableFullSimulation = false } = {}) {
   return Object.freeze({ async read(principal, attemptId, assetVersionId, purpose) {
     requireActor(identityService, principal, 'candidate.attempt.read');
     if (!UUID_PATTERN.test(attemptId) || !UUID_PATTERN.test(assetVersionId)
@@ -54,7 +54,7 @@ export function createAttemptAssetService({ examPool, identityService, imageStor
         if (current === null) return null;
         if (JSON.stringify(current) !== JSON.stringify(expected) || performance.now() - started >= GUARD_MILLISECONDS) deny();
         return { bytes, mediaType: current.mediaType, byteSize: current.byteSize };
-      }, { role: 'tsa_exam', enableNumericPractice });
+      }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
       if (result === null || performance.now() - started >= GUARD_MILLISECONDS) deny();
       return result;
     } catch { deny(); }

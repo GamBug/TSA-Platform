@@ -8,6 +8,7 @@ import { seedShortStudentProfiles } from '../tests/integration/student-runtime/s
 import { seedFixedStudentForms } from '../tests/integration/student-runtime/fixed-fixture.mjs';
 import { createDomainStudentFixture } from '../tests/integration/student-runtime/domain-fixture.mjs';
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
+import { createSimulationFixture } from '../tests/integration/student-runtime/simulation-fixture.mjs';
 import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
@@ -17,12 +18,13 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       || env.LOCAL_SYNTHETIC_ONLY !== 'true' || env.STUDENT_FIXTURE_DEMO !== 'true') {
     throw new Error('Disposable student demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true');
   }
-  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT', 'STUDENT_FIXTURE_NUMERIC']) {
+  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT', 'STUDENT_FIXTURE_NUMERIC', 'STUDENT_FIXTURE_SIMULATION']) {
     if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) throw new Error(`${flag} must be true or false`);
   }
   const domains = env.STUDENT_FIXTURE_DOMAINS === 'true', reading = env.STUDENT_FIXTURE_READING === 'true';
   const fixed = env.STUDENT_FIXTURE_FIXED === 'true', short = env.STUDENT_FIXTURE_SHORT === 'true';
-  const numeric = env.STUDENT_FIXTURE_NUMERIC === 'true';
+  const numeric = env.STUDENT_FIXTURE_NUMERIC === 'true', simulation = env.STUDENT_FIXTURE_SIMULATION === 'true';
+  if (simulation && (numeric || domains || reading || fixed || short)) throw new Error('Full simulation requires its own disposable fixture');
   if (numeric && (domains || reading || fixed || short)) throw new Error('Numeric demonstration requires its own disposable fixture profile');
   if (short && !domains) throw new Error('Short student demonstration requires the three-domain fixture');
   if (fixed && !domains) throw new Error('Fixed student demonstration requires the three-domain fixture');
@@ -40,7 +42,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     return closing;
   };
   try {
-    fixture = numeric ? await createNumericFixture() : reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
+    fixture = simulation ? await createSimulationFixture() : numeric ? await createNumericFixture() : reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
     if (fixed) await seedFixedStudentForms(fixture);
     if (short) await seedShortStudentProfiles(fixture);
     const login = `fixture_worker_${randomUUID().replaceAll('-', '')}`;
@@ -49,11 +51,11 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     workerPool = createDatabasePool({ ...fixture.harness.database.connectionConfig, user: login });
     const rate = { capacity: 100, refillPerSecond: 10 };
     runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool,
-      env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
-      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, enableNumericPractice: numeric, leaseSeconds: 30, retrySeconds: 1,
+      env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: simulation ? Number(env.STUDENT_FIXTURE_PORT ?? 3234) : 0,
+      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, enableNumericPractice: numeric, enableFullSimulation: simulation, imageStore: simulation ? fixture.imageStore : null, leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
-    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, numericPractice: numeric,
-      fixtureProfile: numeric ? 'NUMERIC_MATH' : reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
+    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, numericPractice: numeric, fullSimulation: simulation,
+      fixtureProfile: simulation ? 'FULL_SIMULATION' : numeric ? 'NUMERIC_MATH' : reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Demo startup and cleanup failed'); }
     throw error;
@@ -76,7 +78,7 @@ async function runWorker() {
     demo = await startStudentFixtureDemo();
     if (stopRequested) await stop();
     else {
-      const url = `${demo.origin}/?student=${demo.numericPractice ? 'postgres-v2' : 'postgres'}`;
+      const url = `${demo.origin}/?student=${demo.fullSimulation ? 'postgres-v3' : demo.numericPractice ? 'postgres-v2' : 'postgres'}`;
       process.stdout.write(`${JSON.stringify({ event: 'ready', url,
         mode: 'DISPOSABLE_SYNTHETIC_ONLY', fixtureProfile: demo.fixtureProfile, note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
       process.stdout.write(`\nTSA Practice — local synthetic demonstration\nOpen: ${url}\nChoose synthetic candidate A explicitly; no password or personal data is needed.\n`);
@@ -85,7 +87,8 @@ async function runWorker() {
       }
       if (demo.shortPractice) process.stdout.write('Short Mathematics/Science profiles are explicit two-question NEW_ONLY choices with a separate Start; shortage never creates one automatically.\n');
       if (demo.fixedPractice) process.stdout.write('Fixed forms also appear in the catalog: choose one, give fresh repeat consent, then explicitly Start the reserved attempt.\n');
-      process.stdout.write('Answer, wait for saved confirmation, reload, submit, then open the released review.\nAfter unseen inventory is exhausted, optional review requires fresh repeat consent and an explicit Start.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\nGuide: docs/guides/TRACK_B_SUPERVISOR_DEMO.md\n\n');
+      if (demo.fullSimulation) process.stdout.write('100 questions in one attempt: Mathematics 40/60 minutes, Reading 20/30, Science 40/60. Only the open section uses time. Submit all sections to see section and total correct counts.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\n');
+      else process.stdout.write('Answer, wait for saved confirmation, reload, submit, then open the released review.\nAfter unseen inventory is exhausted, optional review requires fresh repeat consent and an explicit Start.\nKeep this terminal running. Ctrl+C stops the application and deletes its temporary database.\nGuide: docs/guides/TRACK_B_SUPERVISOR_DEMO.md\n\n');
     }
   } catch (error) {
     process.stderr.write(`${error.message}\n`); process.exitCode = 1;

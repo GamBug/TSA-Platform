@@ -31,6 +31,18 @@
     "./staff": {
       "types": "./src/staff.ts",
       "default": "./src/staff.ts"
+    },
+    "./student-v3": {
+      "types": "./src/student-v3.ts",
+      "default": "./src/student-v3.ts"
+    },
+    "./released-review-v3": {
+      "types": "./src/released-review-v3.ts",
+      "default": "./src/released-review-v3.ts"
+    },
+    "./simulation": {
+      "types": "./src/simulation.ts",
+      "default": "./src/simulation.ts"
     }
   },
   "dependencies": {

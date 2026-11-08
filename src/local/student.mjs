@@ -90,7 +90,7 @@ function jsonResponse(status, payload) {
 }
 
 function unavailableResponse(pathname) {
-  if (/^\/api\/v[12](?:\/|$)/.test(pathname)) {
+  if (/^\/api\/v[123](?:\/|$)/.test(pathname)) {
     const requestId = randomUUID();
     return new Response(JSON.stringify({ error: {
       code: 'TEMPORARILY_UNAVAILABLE',
@@ -193,6 +193,7 @@ export async function prepareStudentComponents({
   enableShortPractice = false,
   enableReadingExperiment = false,
   enableNumericPractice = false,
+  enableFullSimulation = false,
   imageStore = null,
 } = {}) {
   if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
@@ -215,8 +216,11 @@ export async function prepareStudentComponents({
       const numeric = enableNumericPractice ? createAttemptHandler({ examPool, identityService, trustedOrigin,
         enableNumericPractice: true, imageStore,
         createRate: config.rates.createRate, saveRate: config.rates.saveRate }) : null;
+      const simulation = enableFullSimulation ? createAttemptHandler({examPool,identityService,trustedOrigin,
+        enableFullSimulation:true,imageStore,createRate:config.rates.createRate,saveRate:config.rates.saveRate}) : null;
       return (request) => {
         const pathname = new URL(request.url).pathname;
+        if (simulation && pathname.startsWith('/api/v3/')) return simulation(request);
         if (numeric && pathname.startsWith('/api/v2/')) return numeric(request);
         return ['/api/v1/topics', '/api/v1/topic-practice'].includes(pathname) ? topics(request) : attempts(request);
       };
@@ -238,7 +242,7 @@ export async function createStudentRuntime(options = {}) {
     if (pathname === '/local-auth' || pathname.startsWith('/local-auth/')) {
       return routes.authHandler(request);
     }
-    if (/^\/api\/v[12](?:\/|$)/.test(pathname)) {
+    if (/^\/api\/v[123](?:\/|$)/.test(pathname)) {
       return routes.attemptHandler(request);
     }
     return jsonResponse(404, { error: 'NOT_FOUND' });

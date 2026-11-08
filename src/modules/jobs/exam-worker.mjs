@@ -1,3 +1,4 @@
+import { scoreSimulationAttempt } from '../scoring/simulation-binary.mjs';
 import { parseJobDispatchForExecutor } from "../../../packages/contracts/dist/internal.js";
 import { percentage } from "../scoring/binary.mjs";
 import { scoreVersionedAttempt } from "../scoring/versioned-binary.mjs";
@@ -170,6 +171,7 @@ function validateLoad(raw, lease) {
     policyVersion: result.policyVersion,
     inputHash: result.inputHash,
     slots: Object.freeze(slots),
+    fullSimulation: result.fullSimulation === true,
   });
 }
 
@@ -182,22 +184,23 @@ function validateComputed(computed) {
     computed.correctCount < 0 ||
     computed.correctCount > computed.totalCount ||
     !Array.isArray(computed.sections) ||
-    computed.sections.length !== 1 ||
+    ![1, 3].includes(computed.sections.length) ||
     !Array.isArray(computed.items) ||
     computed.items.length !== computed.totalCount
   ) {
     invalidResult();
   }
-  const section = computed.sections[0];
-  if (
-    !isRecord(section) ||
-    typeof section.sectionId !== "string" || section.sectionId.trim().length === 0 ||
-    !["MATH", "READING", "SCIENCE"].includes(section.section) ||
-    section.correctCount !== computed.correctCount ||
-    section.totalCount !== computed.totalCount
-  ) {
-    invalidResult();
-  }
+  const sectionIds = new Set();
+  const sections = computed.sections.map(section => {
+    if (!isRecord(section) || typeof section.sectionId !== 'string' || !section.sectionId.trim()
+      || sectionIds.has(section.sectionId) || !['MATH','READING','SCIENCE'].includes(section.section)
+      || !Number.isSafeInteger(section.correctCount) || !Number.isSafeInteger(section.totalCount)
+      || section.totalCount < 1 || section.correctCount < 0 || section.correctCount > section.totalCount) invalidResult();
+    sectionIds.add(section.sectionId);
+    return {sectionId:section.sectionId,section:section.section,correctCount:section.correctCount,totalCount:section.totalCount};
+  });
+  if (sections.reduce((n,s)=>n+s.correctCount,0)!==computed.correctCount
+    || sections.reduce((n,s)=>n+s.totalCount,0)!==computed.totalCount) invalidResult();
   const earnedIds = new Set();
   const items = computed.items.map((item) => {
     if (!isRecord(item) || !hasUuid(item.slotId) || (item.earned !== 0 && item.earned !== 1) || earnedIds.has(item.slotId)) {
@@ -218,12 +221,7 @@ function validateComputed(computed) {
     correctCount: computed.correctCount,
     totalCount: computed.totalCount,
     percentage: computed.percentage,
-    sections: [{
-      sectionId: section.sectionId,
-      section: section.section,
-      correctCount: section.correctCount,
-      totalCount: section.totalCount,
-    }],
+    sections,
     items,
   };
 }
@@ -326,7 +324,7 @@ export function createExamWorker({ workerPool, executorId, leaseSeconds, retrySe
 
       let computed;
       try {
-        computed = scoreVersionedAttempt(loaded);
+        computed = loaded.fullSimulation ? scoreSimulationAttempt(loaded) : scoreVersionedAttempt(loaded);
       } catch (error) {
         const code = error instanceof TypeError || error instanceof RangeError
           ? "INVALID_GRADING_INPUT"

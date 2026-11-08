@@ -17,6 +17,8 @@ const PUBLIC_FILES = new Map([
   ["/fonts.css", "public/fonts.css"],
   ["/fonts/OFL.txt", "public/fonts/OFL.md"],
   ["/app/main.js", "public/app/main.js"],
+  ["/app/simulation.js", "public/app/simulation.js"],
+  ["/simulation.css", "public/simulation.css"],
   ["/app/persistent-api.js", "public/app/persistent-api.js"],
   ["/app/api.js", "public/app/api.js"],
   ["/app/staff.js", "public/app/staff.js"],
@@ -34,6 +36,8 @@ const CONTENT_TYPES = {
   "public/fonts.css": "text/css; charset=utf-8",
   "public/fonts/OFL.md": "text/plain; charset=utf-8",
   "public/app/main.js": "text/javascript; charset=utf-8",
+  "public/app/simulation.js": "text/javascript; charset=utf-8",
+  "public/simulation.css": "text/css; charset=utf-8",
   "public/app/persistent-api.js": "text/javascript; charset=utf-8",
   "public/app/api.js": "text/javascript; charset=utf-8",
   "public/app/staff.js": "text/javascript; charset=utf-8",
@@ -106,11 +110,11 @@ async function readRequestBody(request, maxRequestBytes) {
 
 function requestLike(method, pathname) {
   return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/workspace/")
-    || /^\/api\/v[12](?:\/|$)/.test(pathname);
+    || /^\/api\/v[123](?:\/|$)/.test(pathname);
 }
 
 function tooLargeResponse(url) {
-  if (/^\/api\/v[12](?:\/|$|\?)/.test(url)) {
+  if (/^\/api\/v[123](?:\/|$|\?)/.test(url)) {
     const requestId = randomUUID();
     return {
       status: 413,
@@ -196,7 +200,7 @@ export function createPrototypeServer({
       await sendResponse(outgoing, method, response);
     } catch {
       const requestUrl = incoming.url ?? "/";
-      if (/^\/api\/v[12](?:\/|$|\?)/.test(requestUrl)) {
+      if (/^\/api\/v[123](?:\/|$|\?)/.test(requestUrl)) {
         const requestId = randomUUID();
         outgoing.writeHead(503, {
           "Content-Type": "application/json; charset=utf-8",

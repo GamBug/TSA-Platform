@@ -136,7 +136,7 @@ export function createAttemptAssetHandler({ identityService, trustedOrigin, asse
     throw new TypeError('A trusted identity service is required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
-  if (!['v1', 'v2'].includes(apiVersion)) throw new TypeError('Unsupported asset API version');
+  if (!['v1', 'v2', 'v3'].includes(apiVersion)) throw new TypeError('Unsupported asset API version');
 
   return async function handleAttemptAssetRequest(request) {
     const requestId = randomUUID();

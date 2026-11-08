@@ -5,9 +5,9 @@ import { withTransaction } from '../database/pool.mjs';
 import { parsePracticeManifest, runPracticeAssembly, practiceSlotSchema } from './versioned-contracts.mjs';
 
 /** Build exact public/private sealing bytes only inside the trusted service. */
-export async function buildAllocationPlan(examPool, principal, captured, { enableNumericPractice = false } = {}) {
-  const parsed = parsePracticeManifest(captured.manifest, { enableNumericPractice });
-  const result = runPracticeAssembly(parsed.manifest, { enableNumericPractice });
+export async function buildAllocationPlan(examPool, principal, captured, { enableNumericPractice = false, enableFullSimulation = false } = {}) {
+  const parsed = parsePracticeManifest(captured.manifest, { enableNumericPractice, enableFullSimulation });
+  const result = runPracticeAssembly(parsed.manifest, { enableNumericPractice, enableFullSimulation });
   if (parsed.manifestHash !== captured.manifestHash || jsonDigest(result) !== jsonDigest(captured.result)) reject(422, 'VALIDATION_ERROR');
   const plan = {
     manifest: parsed.manifest, manifestBytes: Buffer.from(parsed.bytes).toString('utf8'),
@@ -19,7 +19,7 @@ export async function buildAllocationPlan(examPool, principal, captured, { enabl
     await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
     return (await client.query('SELECT tsa.assembly_snapshot_inputs($1::uuid[]) AS inputs',
       [result.slots.map((slot) => slot.questionVersionId)])).rows[0].inputs;
-  }, { role: 'tsa_exam', enableNumericPractice });
+  }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   const byVersion = new Map(inputs.map((input) => [input.questionVersionId, input]));
   Object.assign(plan, { runId: randomUUID(), formId: randomUUID(), attemptId: randomUUID(), snapshots: [] });
   // A current restriction may have appeared after capture. The final transaction
@@ -36,7 +36,7 @@ export async function buildAllocationPlan(examPool, principal, captured, { enabl
       privateSnapshot, privateBytes: Buffer.from(canonicalize(privateSnapshot)).toString('utf8'), privateHash: jsonDigest(privateSnapshot) });
   }
   const form = {
-    schemaVersion: parsed.manifest.schemaVersion === 'assembly-manifest/2' ? 'sealed-form/2' : 'sealed-form/1', id: plan.formId, blueprintVersionId: parsed.manifest.blueprintVersionId,
+    schemaVersion: parsed.manifest.schemaVersion === 'assembly-manifest/3' ? 'sealed-form/3' : parsed.manifest.schemaVersion === 'assembly-manifest/2' ? 'sealed-form/2' : 'sealed-form/1', id: plan.formId, blueprintVersionId: parsed.manifest.blueprintVersionId,
     mode: 'PERSONALIZED_PRACTICE', ownerUserId: principal.userId,
     policyVersions: { scoring: parsed.manifest.blueprint.scoringPolicy, release: parsed.manifest.blueprint.releasePolicy },
     sections: parsed.manifest.blueprint.sections,

@@ -11,6 +11,7 @@ import { createStudentDirectoryService } from '../modules/attempts/directory.mjs
 import { createAttemptAssetService } from '../modules/attempts/asset-service.mjs';
 import { createAttemptAssetHandler } from './attempt-assets.mjs';
 import { studentRouteRegistryV2 } from '../../packages/contracts/dist/routes-v2.js';
+import { studentRouteRegistryV3, releasedReviewRouteRegistryV3 } from '../../packages/contracts/dist/routes-v3.js';
 import { createHttpBoundaryHandlerV2 } from '../../packages/contracts/dist/http-boundary.js';
 
 const MAX_JSON_BYTES = 64 * 1024;
@@ -84,7 +85,7 @@ function serializeRouteResponse(operation, status, body, requestId, extraHeaders
   });
 }
 
-function safeError(error, operation) {
+function safeError(error, operation, registry = studentRouteRegistry) {
   if (error instanceof BankCommandError) {
     const code = typeof error.code === 'string' ? error.code : 'TEMPORARILY_UNAVAILABLE';
     const status = ErrorHttpStatusByCode[code] ?? ({
@@ -94,7 +95,7 @@ function safeError(error, operation) {
       MALFORMED_JSON: 400,
       PAYLOAD_TOO_LARGE: 413,
     })[code];
-    if (status && studentRouteRegistry[operation]?.responses?.[status]) {
+    if (status && registry[operation]?.responses?.[status]) {
       const details = error.details ?? {};
       const message = code === 'FORM_NOT_OPEN' ? 'The form is not open'
         : code === 'FORM_UNAVAILABLE' ? 'The form is unavailable'
@@ -152,7 +153,7 @@ async function readJson(request) {
 }
 
 /** Loopback-only student create/start/save/submit/GET adapter using frozen routes. */
-export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, imageStore = null, enableNumericPractice = false } = {}) {
+export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, imageStore = null, enableNumericPractice = false, enableFullSimulation = false } = {}) {
   if (!identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function'
       || typeof identityService.mayPerform !== 'function') {
@@ -160,16 +161,16 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
   if (typeof enableNumericPractice !== 'boolean') throw new TypeError('Numeric practice opt-in must be boolean');
-  const apiVersion = enableNumericPractice ? 'v2' : 'v1';
-  const registry = enableNumericPractice ? studentRouteRegistryV2 : studentRouteRegistry;
+  const apiVersion = enableFullSimulation ? 'v3' : enableNumericPractice ? 'v2' : 'v1';
+  const registry = enableFullSimulation ? {...studentRouteRegistryV3,...releasedReviewRouteRegistryV3} : enableNumericPractice ? studentRouteRegistryV2 : studentRouteRegistry;
   const routeResponse = (operation, status, body, requestId, headers) => serializeRouteResponse(operation, status, body, requestId, headers, registry);
   const assets = createAttemptAssetHandler({ identityService, trustedOrigin: trusted,
-    apiVersion, assetService: createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice }) });
-  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice });
-  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice });
+    apiVersion, assetService: createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice, enableFullSimulation }) });
+  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice, enableFullSimulation });
+  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice, enableFullSimulation });
 
   return async function handleAttemptRequest(request) {
-    if (/^\/api\/v[12]\/attempts\/[^/]+\/assets(?:\/|$)/.test(new URL(request.url).pathname)) return assets(request);
+    if (/^\/api\/v[123]\/attempts\/[^/]+\/assets(?:\/|$)/.test(new URL(request.url).pathname)) return assets(request);
     const requestId = randomUUID();
     let operation = 'createAttempt';
     try {
@@ -182,7 +183,7 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
       if (!url.pathname.startsWith(`/api/${apiVersion}/`)) return routeResponse(operation, 404, {
         error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} },
       }, requestId);
-      if (enableNumericPractice) url.pathname = url.pathname.replace('/api/v2/', '/api/v1/');
+      if (enableNumericPractice || enableFullSimulation) url.pathname = url.pathname.replace(`/api/${apiVersion}/`, '/api/v1/');
       const method = request.method.toUpperCase();
 
       if (method === 'GET' && (url.pathname === '/api/v1/catalog' || url.pathname === '/api/v1/attempts')) {
@@ -206,6 +207,20 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
           return routeResponse('getAttempt', 401, {
             error: { code: 'UNAUTHENTICATED', message: 'Authentication is required', requestId, details: {} },
           }, requestId);
+        }
+        if (enableFullSimulation) {
+          const match=url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)(\/result)?$/);
+          operation=match[2]?'releasedResult':'getAttempt';
+          if (url.search!=='') throw new BankCommandError(422,'VALIDATION_ERROR');
+          return await service.withReadBoundary(principal,async ports=>{
+            const input={attemptId:match[1],userId:principal.userId};
+            const access=await ports.readAccess(input);
+            if (!access) throw new BankCommandError(404,'NOT_FOUND');
+            if (access.withdrawn) throw new BankCommandError(410,'CONTENT_WITHDRAWN');
+            if (match[2] && !access.releaseAuthorized) throw new BankCommandError(409,'RESULT_NOT_READY');
+            const body=match[2]?await ports.loadReleasedReview({...input,access}):await ports.loadAttemptView({...input,access});
+            return routeResponse(operation,200,body,requestId);
+          });
         }
         return await service.withReadBoundary(principal, async (ports) => {
           const boundary = (enableNumericPractice ? createHttpBoundaryHandlerV2 : createHttpBoundaryHandler)({
@@ -253,11 +268,12 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
 
       const startMatch = url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)\/start$/);
       const submitMatch = url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)\/submit$/);
+      const switchMatch = enableFullSimulation && url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)\/section$/);
       const isCreate = url.pathname === '/api/v1/attempts';
-      if (!isCreate && !startMatch && !submitMatch) return routeResponse('createAttempt', 404, {
+      if (!isCreate && !startMatch && !submitMatch && !switchMatch) return routeResponse('createAttempt', 404, {
         error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} },
       }, requestId);
-      operation = isCreate ? 'createAttempt' : startMatch ? 'startAttempt' : 'submitAttempt';
+      operation = isCreate ? 'createAttempt' : startMatch ? 'startAttempt' : switchMatch ? 'switchSection' : 'submitAttempt';
 
       const principal = await identityService.validateMutation(request);
       if (!principal) {
@@ -279,12 +295,13 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
         ? await service.create(principal, key, body)
         : startMatch
           ? await service.start(principal, startMatch[1], key, body)
+          : switchMatch ? await service.switchSection(principal,switchMatch[1],key,body)
           : await service.submit(principal, submitMatch[1], key, body);
       return routeResponse(operation, result.status, result.body, requestId, result.status === 429
         ? { 'Retry-After': String(result.body?.error?.details?.retryAfterSeconds ?? 1) }
         : {});
     } catch (error) {
-      const mapped = safeError(error, operation);
+      const mapped = safeError(error, operation, registry);
       mapped.body.error.requestId = requestId;
       const headers = mapped.status === 429
         ? { 'Retry-After': String(Number.isSafeInteger(mapped.retryAfter) && mapped.retryAfter > 0 ? mapped.retryAfter : 1) }

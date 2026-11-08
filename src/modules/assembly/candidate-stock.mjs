@@ -3,10 +3,11 @@ import { BlueprintConfigSchema, canonicalize } from '../../../packages/contracts
 import { withTransaction } from '../database/pool.mjs';
 import { UUID_PATTERN, reject } from '../bank/common.mjs';
 import { BlueprintConfigV2Schema } from '../../../packages/contracts/dist/blueprint-v2.js';
+import { BlueprintConfigV3Schema } from '../../../packages/contracts/dist/blueprint-v3.js';
 import { parsePracticeManifest, runPracticeAssembly } from './versioned-contracts.mjs';
 
 /** Internal search groundwork; this creates no form, attempt, receipt or approval. */
-export async function captureStandaloneManifest({ examPool, identityService, principal, blueprintVersionId, seed, limits, reuseMode = 'NEW_ONLY', enableTopicPractice = false, enableNumericPractice = false }) {
+export async function captureStandaloneManifest({ examPool, identityService, principal, blueprintVersionId, seed, limits, reuseMode = 'NEW_ONLY', enableTopicPractice = false, enableNumericPractice = false, enableFullSimulation = false }) {
   if (!['NEW_ONLY','REVIEW_ALLOWED'].includes(reuseMode)) reject(422, 'VALIDATION_ERROR');
   if (!identityService.mayPerform(principal, 'candidate.attempt.read')) reject(403, 'FORBIDDEN');
   if (!UUID_PATTERN.test(blueprintVersionId)) reject(404, 'NOT_FOUND');
@@ -20,10 +21,10 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
       reject(state.code === 'NOT_FOUND' ? 404 : state.code === 'FORM_NOT_OPEN' ? 409 : 410, state.code);
     }
     return stock;
-  }, { role: 'tsa_exam', enableNumericPractice });
+  }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
   if (!stock) reject(404, 'NOT_FOUND');
   let blueprint;
-  try { blueprint = (stock.blueprint?.schemaVersion === 'blueprint/2' && enableNumericPractice ? BlueprintConfigV2Schema : BlueprintConfigSchema).parse(stock.blueprint); }
+  try { blueprint = (stock.blueprint?.schemaVersion === 'blueprint/3' && enableFullSimulation ? BlueprintConfigV3Schema : stock.blueprint?.schemaVersion === 'blueprint/2' && enableNumericPractice ? BlueprintConfigV2Schema : BlueprintConfigSchema).parse(stock.blueprint); }
   catch { reject(422, 'VALIDATION_ERROR'); }
   if (stock.overflow || stock.candidates.length > 10_000) reject(503, 'SEARCH_EXHAUSTED');
   const rightsVersions = stock.rightsVersions.map(({ sourceId, versionId, decision }) => ({
@@ -31,7 +32,7 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
     contentHash: `sha256:${createHash('sha256').update(canonicalize(decision)).digest('hex')}`,
   }));
   const input = {
-    schemaVersion: blueprint.schemaVersion === 'blueprint/2' ? 'assembly-manifest/2' : 'assembly-manifest/1', algorithmVersion: 'assembly/1',
+    schemaVersion: blueprint.schemaVersion === 'blueprint/3' ? 'assembly-manifest/3' : blueprint.schemaVersion === 'blueprint/2' ? 'assembly-manifest/2' : 'assembly-manifest/1', algorithmVersion: 'assembly/1',
     blueprintVersionId, blueprintHash: stock.blueprintHash, blueprint, seed,
     reuseMode, bankRevision: stock.bankRevision, rightsVersions,
     historyQuestionIds: stock.historyQuestionIds, historyGroupIds: stock.historyGroupIds,
@@ -39,10 +40,10 @@ export async function captureStandaloneManifest({ examPool, identityService, pri
     conflicts: stock.conflicts, limits,
   };
   let parsed;
-  try { parsed = parsePracticeManifest(input, { enableNumericPractice }); }
+  try { parsed = parsePracticeManifest(input, { enableNumericPractice, enableFullSimulation }); }
   catch { reject(422, 'VALIDATION_ERROR'); }
   return {
     ...parsed, historyRevision: stock.historyRevision, offeringRevision: stock.offeringRevision,
-    result: runPracticeAssembly(parsed.manifest, { enableNumericPractice }),
+    result: runPracticeAssembly(parsed.manifest, { enableNumericPractice, enableFullSimulation }),
   };
 }

@@ -1,0 +1,33 @@
+/* Product register: existing red accent, white cards, shared type and restrained clocks. */
+.simulation-app { --sim-space: 1rem; --sim-gap: 1.5rem; --sim-radius: .75rem; --sim-touch: 2.75rem; --sim-title: 2rem; --sim-body: 1rem; --sim-small: .875rem; --sim-border: 1px; --sim-wide: 60rem; --sim-reading: 72ch; max-width: var(--sim-wide); }
+.simulation-shell { display: grid; gap: var(--sim-gap); }
+.simulation-header, .simulation-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sim-space); }
+.simulation-header h1 { font-size: var(--sim-title); line-height: 1.2; margin: 0; letter-spacing: -.03em; }
+.simulation-header .eyebrow { margin-bottom: calc(var(--sim-space) / 2); }
+.simulation-card { min-width: 0; padding: var(--sim-gap); border: var(--sim-border) solid var(--line); border-radius: var(--sim-radius); background: var(--surface); }
+.simulation-card h2 { font-size: var(--sim-title); line-height: 1.3; }
+.simulation-card p { line-height: 1.7; max-width: var(--sim-reading); overflow-wrap: anywhere; }
+.simulation-card > .button { margin: calc(var(--sim-space)/4); }
+.simulation-notice { margin: 0; min-height: var(--sim-gap); color: var(--brand-deep); overflow-wrap: anywhere; }
+.simulation-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--sim-space); }
+.simulation-tab.button { display: grid; justify-items: start; padding: var(--sim-space); gap: calc(var(--sim-space)/2); text-align: left; white-space: normal; }
+.simulation-tab[aria-selected="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-deep); }
+.simulation-tab span { font-size: var(--sim-title); font-variant-numeric: tabular-nums; }
+.simulation-tab small { font-size: var(--sim-small); font-weight: 400; }
+.simulation-options { padding: 0; border: 0; display: grid; gap: var(--sim-space); margin: var(--sim-gap) 0; min-width: 0; }
+.simulation-options legend { font-weight: 700; margin-bottom: var(--sim-space); }
+.simulation-options label { display: flex; align-items: center; gap: var(--sim-space); min-height: var(--sim-touch); padding: var(--sim-space); border: var(--sim-border) solid var(--line); border-radius: var(--sim-radius); cursor: pointer; }
+.simulation-options input { flex-shrink: 0; width: var(--sim-body); height: var(--sim-body); accent-color: var(--brand); }
+.simulation-options input:disabled { cursor: not-allowed; }
+.simulation-options label:has(input:checked) { background: var(--brand-soft); border-color: var(--brand); }
+.simulation-options label:has(input:disabled) { cursor: default; }
+.simulation-options label p { margin: 0; }
+.simulation-blocks { min-width: 0; }
+.simulation-app table { border-collapse: collapse; width: 100%; margin: var(--sim-space) 0; }
+.simulation-app th, .simulation-app td { padding: var(--sim-space); border-bottom: var(--sim-border) solid var(--line); text-align: left; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.simulation-save-status { color: var(--muted); }
+.simulation-save-status.saved { color: var(--green); }
+.simulation-locked { padding: var(--sim-space); background: var(--amber-soft); }
+.simulation-app dialog { width: min(var(--sim-wide),calc(100% - var(--sim-gap))); }
+.simulation-app .button { min-height: var(--sim-touch); }
+@media (max-width: 640px) { .simulation-app { --sim-title: 1.5rem; --sim-gap: 1rem; } .simulation-tabs { gap: calc(var(--sim-space)/2); } .simulation-tab.button { padding: calc(var(--sim-space)/2); font-size: var(--sim-small); } .simulation-tab small { font-size: .75rem; } .simulation-actions .button { flex: 1 1 auto; } }

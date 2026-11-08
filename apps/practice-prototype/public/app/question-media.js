@@ -1,7 +1,7 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** Images use only the owned-attempt asset route, never source URLs or paths. */
-export function renderQuestionImage(block, { attemptId, purpose = 'question' } = {}) {
+export function renderQuestionImage(block, { attemptId, purpose = 'question', apiVersion = 'v1' } = {}) {
   const figure = document.createElement('figure'); figure.className = 'question-image';
   const alternative = document.createElement('p');
   alternative.textContent = block.alt || 'Hình minh họa chưa khả dụng.';
@@ -9,8 +9,8 @@ export function renderQuestionImage(block, { attemptId, purpose = 'question' } =
   if (block.caption) {
     const caption = document.createElement('figcaption'); caption.textContent = block.caption; figure.append(caption);
   }
-  if (!UUID.test(attemptId) || !UUID.test(block.assetVersionId) || !['question', 'explanation'].includes(purpose)) return figure;
-  const url = `/api/v1/attempts/${attemptId}/assets/${block.assetVersionId}?purpose=${purpose}`;
+  if (!UUID.test(attemptId) || !UUID.test(block.assetVersionId) || !['question', 'explanation'].includes(purpose) || !['v1','v2','v3'].includes(apiVersion)) return figure;
+  const url = `/api/${apiVersion}/attempts/${attemptId}/assets/${block.assetVersionId}?purpose=${purpose}`;
   const enlarge = document.createElement('button'); enlarge.type = 'button'; enlarge.className = 'question-image-enlarge';
   enlarge.setAttribute('aria-label', `Phóng to hình: ${block.alt}`); enlarge.setAttribute('aria-haspopup', 'dialog');
   enlarge.disabled = true;
