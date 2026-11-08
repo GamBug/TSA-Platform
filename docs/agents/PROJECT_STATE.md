@@ -137,3 +137,4 @@ claim follows from these local tests.
 - 2026-11-08: CP0 baseline preparation and required suites verified; commits await first-run owner approval. See [CP0 report](../../plans/reports/codex-261108-1603-cp0.md).
 - 2026-11-08: CP1 blocked by the uncommitted CP0 prerequisite; see [CP1 report](../../plans/reports/codex-261108-1611-cp1.md).
 - 2026-11-08: CP1 remains blocked pending CP0 completion; see [CP1 report](../../plans/reports/codex-261108-1651-cp1.md).
+- 2026-11-08: Owner authorized CP0 commits; baseline committed and required suites passed. See [CP0 completion report](../../plans/reports/codex-261108-1708-cp0.md).

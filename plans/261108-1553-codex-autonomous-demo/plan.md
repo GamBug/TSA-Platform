@@ -22,8 +22,8 @@ Codex updates the Status column. Run one checkpoint per Codex session or goal.
 
 | CP | Card | Depends on | Status |
 |---|---|---|---|
-| CP0 Safe baseline | [cp0-safe-baseline.md](cp0-safe-baseline.md) | — | BLOCKED: awaiting first-run commit approval |
-| CP1 Lean docs | [cp1-lean-docs.md](cp1-lean-docs.md) | CP0 | BLOCKED: CP0 baseline remains uncommitted; rerun CP0 first |
+| CP0 Safe baseline | [cp0-safe-baseline.md](cp0-safe-baseline.md) | — | DONE: six baseline commits; required suites pass |
+| CP1 Lean docs | [cp1-lean-docs.md](cp1-lean-docs.md) | CP0 | IN PROGRESS |
 | CP2 Full simulation | [cp2-full-simulation.md](cp2-full-simulation.md) | CP1 | TODO |
 | CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | TODO |
 | CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | TODO |
