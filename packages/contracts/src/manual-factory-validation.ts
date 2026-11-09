@@ -62,6 +62,12 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
   const response = ManualResponseSchema.parse(raw("response"));
   const declaration = ManualDeclarationSchema.parse(raw("declaration"));
   const sourceDeclaration = ManualSourceDeclarationSchema.parse(raw("sourceDeclaration"));
+  const corpus = mapping.profile === "corpus-reading-draft/1";
+  need(sourceDeclaration.kind === (corpus ? "CORPUS_IMPORTED" : "AI_AUTHORED_EXPERIMENTAL"), "Source authorship/profile mismatch");
+  need(corpus ? sourceDeclaration.sourceCaptures?.length === 10
+    && new Set(sourceDeclaration.sourceCaptures.map((capture) => capture.path)).size === 10
+    && response.questions.every((draft) => sourceDeclaration.sourceCaptures!.some((capture) => capture.path === draft.id))
+    : sourceDeclaration.sourceCaptures === undefined, "Corpus source capture evidence mismatch");
   const source = input.sources[0]!;
   const taxonomy = validateManualTaxonomy(target);
   const staging = validateManualTaxonomy(input.taxonomy);
@@ -103,13 +109,13 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
     const choices = draft.interaction.type === "TRUE_FALSE_GROUP" ? draft.interaction.statements.map((choice) => choice.id)
       : draft.interaction.options.filter((choice) => !correct.includes(choice.id)).map((choice) => choice.id);
     const reasons = draft.distractorReasons.map((reason) => reason.choiceId);
-    need(new Set(reasons).size === reasons.length && choices.length === reasons.length
+    need(corpus ? reasons.length === 0 : new Set(reasons).size === reasons.length && choices.length === reasons.length
       && choices.every((choice) => reasons.includes(choice)), "Distractor reason mismatch");
     const fingerprint = digestManualValue({ content: draft.content, interaction: draft.interaction });
     need(!fingerprints.has(fingerprint), "Exact duplicate draft"); fingerprints.add(fingerprint);
     quota[draft.cognitiveLevel] += 1; assertTextOnly(draft);
   }
-  need(quota.M1 === 4 && quota.M2 === 3 && quota.M3 === 3, "Intended cognition quota mismatch");
+  need(corpus ? quota.M1 === 10 : quota.M1 === 4 && quota.M2 === 3 && quota.M3 === 3, "Intended cognition quota mismatch");
   assertTextOnly([{ type: "text", text: source.text }]);
   need(Boolean(artifacts.criticResponse) === Boolean(artifacts.criticDeclaration)
     && (!artifacts.criticNotes || artifacts.criticResponse), "Critic pair required");

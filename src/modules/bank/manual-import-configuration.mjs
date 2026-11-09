@@ -7,7 +7,7 @@ import { BankCommandError } from './common.mjs';
 
 const files = Object.freeze({ activation: 'activation.json', mapping: 'mapping.json', state: 'active-state.json', retired: 'retired-activations.ndjson', admissions: 'admissions.ndjson' });
 export const MANUAL_IMPORT_CONFIGURATION_LAYOUT = files;
-const PROFILE = 'manual-reading-draft/1';
+const PROFILES = new Set(['manual-reading-draft/1', 'corpus-reading-draft/1']);
 const activationKeys = ['schemaVersion', 'activationId', 'profile', 'ownerDecisionRef', 'producerNamespace', 'registeredAuthorId', 'declaredOperatorId', 'sourceVersionId', 'sourceTextHash', 'permissionHash', 'sourceAuthoringHash', 'responseHash', 'promptHash', 'mappingHash', 'taxonomyVersionId', 'taxonomyDefinitionHash', 'validFrom', 'validUntil'];
 const stateKeys = ['schemaVersion', 'activationId', 'activationHash', 'status'];
 const hashPattern = /^sha256:[0-9a-f]{64}$/;
@@ -78,7 +78,7 @@ async function journalText(directory, name) {
 }
 function validateActivation(activation, approvedActivationHash) {
   strictObject(activation, activationKeys);
-  if (activation.schemaVersion !== 'manual-import-activation/1' || activation.profile !== PROFILE || activation.validUntil === null
+  if (activation.schemaVersion !== 'manual-import-activation/1' || !PROFILES.has(activation.profile) || activation.validUntil === null
       || !['activationId', 'ownerDecisionRef', 'producerNamespace', 'registeredAuthorId', 'declaredOperatorId', 'sourceVersionId', 'taxonomyVersionId'].every((key) => typeof activation[key] === 'string' && activation[key].length)
       || !['sourceTextHash', 'permissionHash', 'sourceAuthoringHash', 'responseHash', 'promptHash', 'mappingHash', 'taxonomyDefinitionHash'].every((key) => hashPattern.test(activation[key]))) fail();
   instant(activation.validFrom); instant(activation.validUntil); if (Date.parse(activation.validFrom) >= Date.parse(activation.validUntil)) fail();
@@ -92,7 +92,7 @@ function validateState(state, activation, activationHash) {
 }
 function validateMapping(mapping, activation) {
   let parsed; try { parsed = parseManualImportMapping(mapping); } catch { fail(); }
-  if (parsed.profile !== PROFILE || parsed.producerNamespace !== activation.producerNamespace || parsed.declaredOperatorId !== activation.declaredOperatorId
+  if (parsed.profile !== activation.profile || parsed.producerNamespace !== activation.producerNamespace || parsed.declaredOperatorId !== activation.declaredOperatorId
       || parsed.registeredAuthorId !== activation.registeredAuthorId || parsed.sourceVersionId !== activation.sourceVersionId
       || parsed.taxonomy?.registeredVersionId !== activation.taxonomyVersionId || parsed.taxonomy?.registeredDefinitionHash !== activation.taxonomyDefinitionHash
       || digest(parsed) !== activation.mappingHash) fail('MANUAL_IMPORT_MAPPING_MISMATCH', 403);

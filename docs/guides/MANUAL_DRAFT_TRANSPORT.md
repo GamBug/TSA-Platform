@@ -103,3 +103,56 @@ up its empty baseline before migrations. The harness retires its servers/cluster
 
 [Implementation evidence](../../plans/reports/implementation-261105-2205-manual-draft-transport.md)
 records commands, actual review, failures repaired and activation limits.
+
+## Corpus Reading DRAFTs
+
+The additive private `corpus-reading-draft/1` profile uses the same v3 coordinator with
+`CORPUS_IMPORTED` source evidence, `DETERMINISTIC_CORPUS_EXTRACTION` run metadata and
+`IMPORTED` question/provenance origin. The manual AI profile retains its existing semantics.
+Source-relative capture paths and SHA256 hashes remain bound in private raw evidence.
+Rights are recorded as “corpus, non-profit permission (REQUIRES_VERIFICATION)”.
+No corpus-derived content becomes eligible or approved through this path.
+
+The [capture parser](../../tools/corpus-ingest/reading-captures.mjs) owns extraction and
+whole-passage deferral. Only complete ten-question passages with explicit choice keys qualify.
+It never infers missing true/false keys or converts cloze/matching into choices. Deferred
+indexes retain source paths/hashes; original captures remain read-only. Reading genre is a
+proposed classification, not an exam domain or validated reasoning skill.
+Corpus cognition is provisionally M1 and marked for owner classification; missing source
+explanations and distractor reasoning are not fabricated. The AI profile's 4/3/3 quota stays strict.
+
+After `npm run build`, create an owner-only `data/corpus-ingest/` parent and run:
+
+```sh
+node tools/corpus-ingest/extract-reading.mjs TSA_Example_Questions data/corpus-ingest/reading-run
+```
+
+Give only the generated `blind.json` to one independent subscription-based solver, with no
+source captures, extracted keys or explanations. Save its 100 checks as private
+`blind-solve.json` beside that file. The exact checked shape and flag rules are owned by
+[compareBlindAnswers](../../tools/corpus-ingest/verify-reading.mjs); missing/duplicate answers fail.
+This tool does not invoke a provider or record an unperformed solve as complete. Mismatches,
+ambiguity, unsupported evidence and provisional classification remain owner-attention flags;
+extracted keys are preserved.
+
+```sh
+node tools/corpus-ingest/verify-reading.mjs TSA_Example_Questions data/corpus-ingest/reading-run data/corpus-ingest/reading-run/verified
+```
+
+Verification creates a backed-up disposable PostgreSQL cluster, registers local fixture identities
+and Reading taxonomy, prepares/imports each bundle through the coordinator, checks exact replay,
+the staff DRAFT queue, ten-question stimulus groups, zero approvals/rights/eligibility, public
+answer stripping and unchanged source hashes. Per-bundle activation pins are trusted local test
+configuration for this disposable invocation only. All coordinators retire and the cluster is
+removed at exit. This does not activate a retained Bank or bypass its separate registration and
+owner-pinned configuration requirements.
+
+Private packages, receipts, deferral/attention lists, backup archives, queue summary and ten
+HTML/JSON spot-check samples remain in the ignored owner-only output directory. Open
+`samples.html` locally; it contains private answers inside disclosure controls. The staff preview
+continues to report `RIGHTS_BLOCKED`. Retained-bank import and human approval/publication are
+separate authorized operations.
+
+Focused checks: `node --test tests/ai/corpus-reading.test.mjs` and
+`node --test tests/ai/corpus-reading-import.test.mjs`. The latter needs local PostgreSQL sockets.
+Run the existing manual transport and critical privacy suites for shared-boundary regression checks.

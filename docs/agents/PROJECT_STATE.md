@@ -39,3 +39,5 @@ Follow the [supervisor demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md) for pre
 - 2026-11-09: CP3 BLOCKED before implementation: 136 explicit-key Reading choices fall short of 150; true/false keys need owner source evidence. [Report](../../plans/reports/codex-261109-0913-cp3.md).
 
 - 2026-11-09: Owner approved CP3a’s 100-item target; CP3a BLOCKED on v3 AI-authorship literals outside its allowed contract scope. [Report](../../plans/reports/codex-261109-1342-cp3a.md).
+
+- 2026-11-09: CP3a complete: 100 Reading DRAFTs in ten bundles verified through the disposable coordinator/staff queue; blind triage and private samples retained, corpus unchanged. CP3b next. [Report](../../plans/reports/codex-261109-1435-cp3a.md).

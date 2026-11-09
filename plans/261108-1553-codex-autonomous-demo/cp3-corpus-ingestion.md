@@ -22,6 +22,15 @@ key, and 42 items are other types. The revision has four parts:
   outputs through `head` or counts. Math runs in batches of 20, and the session stops cleanly with a
   report when quota runs low; the next session resumes from the batch log.
 
+## Resume authority 2026-11-09
+
+After the provenance blocker, the owner explicitly directed: “BRO! I gave u full permission.
+finish CP3a at any cost!” This extends CP3a to additive corpus provenance/schema/builder,
+coordinator compatibility and necessary verification fixes, with the existing manual Reading
+profile preserved. [Recorded scope and design](../../docs/decisions/OPEN_DECISIONS.md#cp3a-corpus-transport-compatibility--2026-11-09).
+The requested 100-DRAFT outcome, no inferred keys and local/private/publication boundaries remain.
+Audits are inline; at most one subagent performs the independent blind solve, without repeated polling.
+
 ## Read first (only these)
 `plans/reports/research-261106-1827-tsa-example-questions.md`, `docs/guides/MANUAL_DRAFT_TRANSPORT.md`,
 `docs/decisions/OPEN_DECISIONS.md` (top two entries), and `src/modules/bank/manual-import-*.mjs`.

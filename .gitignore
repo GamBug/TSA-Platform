@@ -43,3 +43,5 @@ temp/
 # Private corpus source and derived working data
 /TSA_Example_Questions/
 /data/research/
+
+/data/corpus-ingest/

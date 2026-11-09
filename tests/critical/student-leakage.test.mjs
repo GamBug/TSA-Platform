@@ -106,7 +106,7 @@ test('composed student runtime keeps PostgreSQL private values behind owner rele
       assertNoPrivateData({ text, headers: reply.headers }, released ? hardSecrets : [...hardSecrets, explanationMarker],
         { released, propertyNames: json });
       assert.equal(reply.status, status, 'expected HTTP status');
-      assert.equal(reply.headers.get('cache-control'), 'no-store');
+      assert.equal(reply.headers.get('cache-control'), operation === 'attemptAsset' ? 'private, no-store' : 'no-store');
       assert.equal(reply.headers.get('x-content-type-options'), 'nosniff');
       let value;
       if (json) {
@@ -223,7 +223,8 @@ test('composed student runtime keeps PostgreSQL private values behind owner rele
       await request(resultPath, { operation: 'releasedResult', actor: 'author', status: 403, code: 'FORBIDDEN' });
       await request(resultPath, { operation: 'releasedResult', authenticated: false, status: 401, code: 'UNAUTHENTICATED' });
       await request(`${resultPath}?unexpected=${encodeURIComponent(explanationMarker)}`, { operation: 'releasedResult', status: 422, code: 'VALIDATION_ERROR' });
-      await request(`${path}/assets/${randomUUID()}?purpose=QUESTION`, { operation: 'attemptAsset', status: 404, code: 'NOT_FOUND' });
+      await request(`${path}/assets/${randomUUID()}?purpose=QUESTION`, { operation: 'attemptAsset', status: 422, code: 'VALIDATION_ERROR' });
+      await request(`${path}/assets/${randomUUID()}?purpose=question`, { operation: 'attemptAsset', status: 404, code: 'NOT_FOUND' });
     }
     assert.deepEqual([...coveredTypes].sort(), ['MULTIPLE_CHOICE', 'SINGLE_CHOICE', 'TRUE_FALSE_GROUP']);
     stage = 'pagination and mounted public assets';

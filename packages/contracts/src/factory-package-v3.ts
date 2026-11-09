@@ -248,18 +248,19 @@ function construct(input: {
     const ref = (id: string) => ({
         id, bytesHash: (artifacts.find(a => a.id === id)!.payload as any).bytesHash
     });
+    const corpus = mapping.profile === "corpus-reading-draft/1";
     const sourceHash = hash(new TextEncoder().encode(source.text));
     const permission = {
         schemaVersion: "internal-source-permission/1", id: input.permissionId, sourceVersionId: source.sourceVersionId, sourceTextHash: sourceHash, state: "INTERNAL_EXPERIMENT_AUTHORIZED", allowedUses: ["DISPLAY", "GENERATE"], scope: "LOCAL_PRIVATE_DRAFT_REVIEW", territories: source.rights.territories, validFrom: source.rights.validFrom, validUntil: source.rights.validUntil, authorizationEvidenceRef: source.rights.evidence, copyrightVerification: "UNVERIFIED", publicationPermission: false
     };
     const authoring = {
-        schemaVersion: "manual-source-authoring/1", id: input.authoringId, sourceVersionId: source.sourceVersionId, sourceTextHash: sourceHash, kind: "AI_AUTHORED_EXPERIMENTAL", declarationEvidenceRef: "artifact-source-declaration", exactModelRevision: sourceDeclaration.exactModelRevision, scientificVerification: "UNVERIFIED", copyrightVerification: "UNVERIFIED"
+        schemaVersion: "manual-source-authoring/1", id: input.authoringId, sourceVersionId: source.sourceVersionId, sourceTextHash: sourceHash, kind: sourceDeclaration.kind, declarationEvidenceRef: "artifact-source-declaration", exactModelRevision: sourceDeclaration.exactModelRevision, scientificVerification: "UNVERIFIED", copyrightVerification: "UNVERIFIED"
     };
     const promptHash = digestManualCanonical(prompt), inputHash = digestManualCanonical(rawInput), responseHash = hash(input.artifacts.response);
     if (declaration.promptHash !== promptHash)
         fail("declaration prompt hash mismatch");
     const run = {
-        schemaVersion: "manual-llm-run/1", manualRunId: input.manualRunId, kind: "MANUAL_LLM_OUTPUT", declaredOperatorId: rawInput.operatorId, declaredModel: declaration.model, exactModelRevision: declaration.exactModelRevision, declaredAt: declaration.generatedAt, interface: declaration.interface, timestampMeaning: "LOCAL_DECLARATION_ASSEMBLY", promptTemplateVersion: prompt.version, sourceVersionIds: [source.sourceVersionId], inputHash, promptHash, responseHash, artifactRefs: {
+        schemaVersion: "manual-llm-run/1", manualRunId: input.manualRunId, kind: corpus ? "DETERMINISTIC_CORPUS_EXTRACTION" : "MANUAL_LLM_OUTPUT", declaredOperatorId: rawInput.operatorId, declaredModel: declaration.model, exactModelRevision: declaration.exactModelRevision, declaredAt: declaration.generatedAt, interface: declaration.interface, timestampMeaning: "LOCAL_DECLARATION_ASSEMBLY", promptTemplateVersion: prompt.version, sourceVersionIds: [source.sourceVersionId], inputHash, promptHash, responseHash, artifactRefs: {
             input: ref("artifact-input"), prompt: ref("artifact-prompt"), response: ref("artifact-response"), declaration: ref("artifact-declaration"), sourceDeclaration: ref("artifact-source-declaration"), ...(input.artifacts.criticResponse ? {
                 criticResponse: ref("artifact-critic-response"), criticDeclaration: ref("artifact-critic-declaration"), ...(input.artifacts.criticNotes ? { criticNotes: ref("artifact-critic-notes") } : {})
             } : {})
@@ -303,7 +304,7 @@ function construct(input: {
         ], contentHash: ""
     };
     const provenance = {
-        sourceVersionId: source.sourceVersionId, origin: "GENERATED", sourceSpan: null, transformation: input.transformation, creator: mapping.registeredAuthorId, sourcePermissionId: permission.id
+        sourceVersionId: source.sourceVersionId, origin: corpus ? "IMPORTED" : "GENERATED", sourceSpan: null, transformation: input.transformation, creator: mapping.registeredAuthorId, sourcePermissionId: permission.id
     };
     const vNode = {
         kind: "provenance" as const, id: "manual-provenance", payload: {
@@ -352,7 +353,7 @@ function construct(input: {
                 }], contentHash: ""
         }, {
             kind: "evidence", id: eid, payload: {
-                schemaVersion: "manual-question-evidence/1", sourceVersionId: sourceNode.id, rawQuestionId: raw.id, evidence: raw.evidence, distractorReasons: raw.distractorReasons, cognitiveLevel: raw.cognitiveLevel, calibration: "NOT_PERFORMED"
+                schemaVersion: "manual-question-evidence/1", sourceVersionId: sourceNode.id, rawQuestionId: raw.id, evidence: raw.evidence, distractorReasons: raw.distractorReasons, cognitiveLevel: raw.cognitiveLevel, calibration: "NOT_PERFORMED", ...(corpus ? { classification: "PROVISIONAL_M1_NEEDS_OWNER_CLASSIFICATION" } : {})
             } as any, references: [{
                     kind: "source", id: sourceNode.id
                 }, {
@@ -364,19 +365,19 @@ function construct(input: {
                 target: null, predicted: null, empiricalStudyId: null
             }, content: raw.content, stimulusVersionId: zId, interaction: raw.interaction, private: {
                 answerKey: raw.answerKey, explanation: raw.explanation, evidenceRefs: [xid, eid], scoringPolicy: "practice-binary-v1"
-            }, origin: "GENERATED", provenanceIds: [vNode.id], generationRunId: null, createdBy: mapping.registeredAuthorId, createdAt: declaration.generatedAt, contentHash: "sha256:" + "0".repeat(64)
+            }, origin: corpus ? "IMPORTED" : "GENERATED", provenanceIds: [vNode.id], generationRunId: null, createdBy: mapping.registeredAuthorId, createdAt: declaration.generatedAt, contentHash: "sha256:" + "0".repeat(64)
         };
         finalize(nodes);
         const identity = computeQuestionIdentity(q, nodes.filter(n => reachable(n, new Map(nodes.map(n => [n.kind + "\0" + n.id, n])), roots(q))));
         q.contentHash = identity.contentHash;
         candidates.push({
             itemKey: "manual-reading-bundle", candidateOrdinal: m.candidateOrdinal, contentHash: identity.contentHash, question: q, provenance, manualRunId: run.manualRunId, validations: [{
-                    validatorKind: "MANUAL_READING_DETERMINISTIC", validatorVersion: "manual-reading-draft/1", inputHash: identity.contentHash, outcome: "PASS", evidencePointer: eid, at: declaration.generatedAt, actor: mapping.registeredAuthorId
+                    validatorKind: corpus ? "CORPUS_READING_DETERMINISTIC" : "MANUAL_READING_DETERMINISTIC", validatorVersion: mapping.profile, inputHash: identity.contentHash, outcome: "PASS", evidencePointer: eid, at: declaration.generatedAt, actor: mapping.registeredAuthorId
                 }]
         });
     }
     finalize(nodes);
     return Package.parse({
-        schemaVersion: "factory-package/3", profile: "manual-reading-draft/1", producerNamespace: mapping.producerNamespace, batchKey: mapping.batchKey, manualRun: run, sourcePermissions: [permission], sourceAuthoring: [authoring], candidates, references: nodes, assets: []
+        schemaVersion: "factory-package/3", profile: mapping.profile, producerNamespace: mapping.producerNamespace, batchKey: mapping.batchKey, manualRun: run, sourcePermissions: [permission], sourceAuthoring: [authoring], candidates, references: nodes, assets: []
     });
 }

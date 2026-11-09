@@ -1,6 +1,6 @@
 # Codex autonomous run: university demo
 
-Status: CP2 complete; CP3a blocked on corpus provenance compatibility after owner-approved target revision. Created 2026-11-08 (Asia/Bangkok).
+Status: CP2 and CP3a complete; CP3b Math pending. Created 2026-11-08 (Asia/Bangkok).
 Authority: owner decisions recorded 2026-11-07 at the top of `docs/decisions/OPEN_DECISIONS.md`.
 Background: `plans/reports/review-261107-2114-tsa-product-readiness-gap.md`.
 
@@ -30,7 +30,7 @@ Codex updates the Status column. Run one checkpoint per Codex session or goal.
 | CP0 Safe baseline | [cp0-safe-baseline.md](cp0-safe-baseline.md) | — | DONE: six baseline commits; required suites pass |
 | CP1 Lean docs | [cp1-lean-docs.md](cp1-lean-docs.md) | CP0 | DONE: compact navigation, verbatim archives and docs checks verified |
 | CP2 Full simulation | [cp2-full-simulation.md](cp2-full-simulation.md) | CP1 | DONE: migration, clocks, privacy, scoring and both browser journeys verified; [report](../reports/codex-261108-2238-cp2.md) |
-| CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | CP3a BLOCKED: approved 100-item target; existing v3 requires AI-authored provenance, and CP3a cannot change contracts; [report](../reports/codex-261109-1342-cp3a.md). CP3b pending |
+| CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | CP3a DONE_WITH_CONCERNS: 100 Reading DRAFTs / ten passages verified; blind triage retained; [report](../reports/codex-261109-1435-cp3a.md). CP3b TODO |
 | CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | TODO |
 | CP5 Science ingestion | [cp5-science-ingestion.md](cp5-science-ingestion.md) | CP3 + owner-supplied Science files | TODO |
 | CP6 Demo-ready | [cp6-demo-ready.md](cp6-demo-ready.md) | CP2, CP3 (CP4 and CP5 if done) | TODO |

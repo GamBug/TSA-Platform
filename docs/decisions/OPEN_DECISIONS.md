@@ -1,5 +1,24 @@
 # Architectural decisions and open questions
 
+## CP3a corpus transport compatibility — 2026-11-09
+
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
+Evidence: after the [provenance blocker](../../plans/reports/codex-261109-1342-cp3a.md),
+the owner directed: “BRO! I gave u full permission. finish CP3a at any cost!”
+This authorizes the additive corpus Reading transport, parser/builder/coordinator compatibility,
+focused tests and disposable local verification needed for the approved 100-DRAFT target.
+Existing manual AI transport remains compatible. Source captures remain read-only; no missing
+keys are inferred. Publication, content approval, network, paid APIs and remote Git remain excluded.
+Implementation design: separate `corpus-reading-draft/1` within private `factory-package/3`,
+with `CORPUS_IMPORTED` source authorship, `DETERMINISTIC_CORPUS_EXTRACTION` run kind and
+`IMPORTED` question/provenance origin. The raw evidence remains bound and reconstructed.
+Corpus cognition is provisional M1, explicitly flagged for owner classification; no fabricated
+4/3/3 quota, distractor rationales or source explanation is asserted. Existing AI quota stays strict.
+Verification requires 100 DRAFTs in ten stimulus groups, no reviews/rights/eligibility, exact
+replay, blind triage, privacy/content checks, unchanged source hashes and ten private samples.
+The database is disposable and removed after verification; retained private packages and receipts
+allow a later separately authorized import. Owner approval/publication remains a later gate.
+
 ## University-demo product direction — 2026-11-07
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-07.

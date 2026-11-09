@@ -130,13 +130,17 @@ export const ManualPromptSchema = z.object({
 }).strict();
 
 export const ManualSourceDeclarationSchema = z.object({
-  kind: z.literal("AI_AUTHORED_EXPERIMENTAL"),
+  kind: z.enum(["AI_AUTHORED_EXPERIMENTAL", "CORPUS_IMPORTED"]),
   model: BoundedText,
   exactModelRevision: BoundedText.nullable(),
   authoringInterface: BoundedText,
   recordedAt: Instant,
   authorizationEvidence: BoundedText,
   operatorIdentityScope: BoundedText,
+  sourceCaptures: z.array(z.object({
+    path: BoundedText.refine((value) => !value.startsWith("/") && !value.split(/[\\/]/u).includes("..")),
+    hash: Hash,
+  }).strict()).length(10).optional(),
   prompt: z.unknown().optional(),
 }).strict();
 
@@ -189,7 +193,7 @@ export const ManualArtifactRefsSchema = z.object({
 export const ManualRunSchema = z.object({
   schemaVersion: z.literal("manual-llm-run/1"),
   manualRunId: Uuid,
-  kind: z.literal("MANUAL_LLM_OUTPUT"),
+  kind: z.enum(["MANUAL_LLM_OUTPUT", "DETERMINISTIC_CORPUS_EXTRACTION"]),
   declaredOperatorId: BoundedText,
   declaredModel: BoundedText,
   exactModelRevision: BoundedText.nullable(),
@@ -230,7 +234,7 @@ export const ManualAuthoringSchema = z.object({
   id: BoundedText,
   sourceVersionId: Uuid,
   sourceTextHash: Hash,
-  kind: z.literal("AI_AUTHORED_EXPERIMENTAL"),
+  kind: z.enum(["AI_AUTHORED_EXPERIMENTAL", "CORPUS_IMPORTED"]),
   declarationEvidenceRef: BoundedText,
   exactModelRevision: BoundedText.nullable(),
   scientificVerification: z.literal("UNVERIFIED"),
@@ -239,7 +243,7 @@ export const ManualAuthoringSchema = z.object({
 
 export const ManualProvenanceSchema = z.object({
   sourceVersionId: Uuid,
-  origin: z.literal("GENERATED"),
+  origin: z.enum(["GENERATED", "IMPORTED"]),
   sourceSpan: z.null(),
   transformation: BoundedText,
   creator: Uuid,
@@ -276,7 +280,7 @@ const MappingCandidateSchema = z.object({
 
 export const ManualImportMappingSchema = z.object({
   schemaVersion: z.literal("manual-import-mapping/1"),
-  profile: z.literal("manual-reading-draft/1"),
+  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1"]),
   producerNamespace: BoundedText,
   batchKey: BoundedText,
   declaredOperatorId: BoundedText,
@@ -303,7 +307,7 @@ export const ManualReferenceNodeSchema = z.object({
 
 export const ManualFactoryPackageV3Schema = z.object({
   schemaVersion: z.literal("factory-package/3"),
-  profile: z.literal("manual-reading-draft/1"),
+  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1"]),
   producerNamespace: BoundedText,
   batchKey: BoundedText,
   manualRun: ManualRunSchema,
