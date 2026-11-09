@@ -35,3 +35,5 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 ## Run the local demo
 
 Follow the [supervisor demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md) for prerequisites and commands.
+
+- 2026-11-09: CP3 BLOCKED before implementation: 136 explicit-key Reading choices fall short of 150; true/false keys need owner source evidence. [Report](../../plans/reports/codex-261109-0913-cp3.md).
