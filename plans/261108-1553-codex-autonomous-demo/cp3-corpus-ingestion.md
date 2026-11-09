@@ -31,6 +31,16 @@ profile preserved. [Recorded scope and design](../../docs/decisions/OPEN_DECISIO
 The requested 100-DRAFT outcome, no inferred keys and local/private/publication boundaries remain.
 Audits are inline; at most one subagent performs the independent blind solve, without repeated polling.
 
+## CP3a-import authority — 2026-11-09
+
+The owner separately authorized loading the 100 verified Reading DRAFTs into the retained
+`.local/track-b` database used by `npm run dev:track-b`, after a backup. Omit blind-solve
+doubts from the retained review context, keep the source keys and DRAFT state, and grant no
+rights or approvals. This includes the additive Reading taxonomy registration, fresh retained
+activation pins, a local commit including the pending card/decision edits, and leaving the
+requested staff server running. [Authority](../../docs/decisions/OPEN_DECISIONS.md#cp3a-retained-import--2026-11-09)
+and [execution report](../reports/codex-261109-1615-cp3a-import.md).
+
 ## Read first (only these)
 `plans/reports/research-261106-1827-tsa-example-questions.md`, `docs/guides/MANUAL_DRAFT_TRANSPORT.md`,
 `docs/decisions/OPEN_DECISIONS.md` (top two entries), and `src/modules/bank/manual-import-*.mjs`.
@@ -51,9 +61,13 @@ The source files in `TSA_Example_Questions/` are read-only and never modified.
   (REQUIRES_VERIFICATION)". The owner is the approver, never the author.
 - Types that are not yet supported (cloze, matching) are kept in a deferred output, not flattened
   into choice questions.
-- AI checks are triage only: one independent blind solve per item, compared with the extracted
-  key. A mismatch, ambiguity or cropped figure sets the item to `needs_owner_attention`; such items
-  are never silently fixed.
+- **Source keys are authoritative** (owner policy 2026-11-09). An AI blind solve never casts doubt
+  on a corpus key; a disagreement usually means the item's format is hard for the AI to read. Keep
+  the source key and keep the item. Do not flag it for the owner and do not exclude it.
+- For image domains (Math, Science), the blind solve is used only to catch **transcription**
+  errors. On a mismatch, re-compare the transcription with the image. Fix a misread so it matches
+  the image; otherwise keep the item unchanged. Only clipped or unreadable figures go to
+  `needs_owner_attention`.
 
 ## Steps
 1. **CP3a Reading** (text, deterministic): parse the 200 captures, dedupe the 20 passages, and emit

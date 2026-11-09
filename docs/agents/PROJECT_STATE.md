@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-08. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-09. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -20,14 +20,16 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
-[CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) is complete after CP0 and CP1. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP3 corpus DRAFT ingestion is next.
+[CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) and CP3a retained Reading import are complete. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP3b Math is next.
 
 - 2026-11-08: CP1 navigation and archives verified; docs validator repaired under owner resumption authorization. See the [CP1 completion report](../../plans/reports/codex-261108-2051-cp1.md).
 - 2026-11-08: CP2 completed under owner resumption authorization; migration preservation, required suites, and Chromium/Firefox 100-answer journeys passed. See the [CP2 completion report](../../plans/reports/codex-261108-2238-cp2.md).
 
+- 2026-11-09: CP3a-import verified 100 retained Reading DRAFTs in ten passages, with authoritative source keys and no blind-solve doubts; no approvals or rights grants. See the [retained import report](../../plans/reports/codex-261109-1615-cp3a-import.md).
+
 ## Known gaps and gates
 
-- The full simulation demo uses disposable original synthetic inventory; corpus DRAFT ingestion and human approval/publication remain separate work.
+- The full simulation demo uses disposable original synthetic inventory; retained corpus Reading DRAFTs are separate inventory awaiting human approval and publication rights.
 - Cloze and matching interactions remain unsupported; their compatibility needs resolution before claiming full corpus coverage.
 - Corpus-derived items require recorded rights evidence and owner approval before publication; neither is implied by local engineering.
 - CP5 waits for owner-supplied Science files. Hosting and production authentication are optional for this demo.

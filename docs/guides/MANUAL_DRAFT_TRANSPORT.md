@@ -19,8 +19,9 @@ Back up the target database before any schema/data operation. Use an existing
 registered author and exact registered Reading domain/skill closure. Preparation
 and import both recheck registrations; neither creates taxonomy or users. Missing,
 foreign, ambiguous or stale mappings fail. The retained local Bank inspected on
-November 5 has the synthetic author but no registered Reading taxonomy, so actual
-pilot activation remains pending the separate scoped registration decision.
+November 5 had the synthetic author but no registered Reading taxonomy. The
+[November 9 retained corpus import authority](../decisions/OPEN_DECISIONS.md#cp3a-retained-import--2026-11-09)
+authorizes additive Reading registration for the local corpus DRAFT queue only.
 
 Use [prepareManualDraftTransport](../../tools/question-factory/manual-transport.mjs)
 from a trusted local host with the existing restricted Bank pool, local identity
@@ -131,9 +132,12 @@ Give only the generated `blind.json` to one independent subscription-based solve
 source captures, extracted keys or explanations. Save its 100 checks as private
 `blind-solve.json` beside that file. The exact checked shape and flag rules are owned by
 [compareBlindAnswers](../../tools/corpus-ingest/verify-reading.mjs); missing/duplicate answers fail.
-This tool does not invoke a provider or record an unperformed solve as complete. Mismatches,
-ambiguity, unsupported evidence and provisional classification remain owner-attention flags;
-extracted keys are preserved.
+This tool does not invoke a provider or record an unperformed solve as complete. Its original
+verification output records blind-solve flags as historical evidence. Under the owner
+[authoritative source-key policy](../decisions/OPEN_DECISIONS.md#university-demo-product-direction--2026-11-07),
+blind-solve answers, disagreements, ambiguity and evidence flags are omitted from the retained
+import review context. Extracted keys are preserved; provisional classification and missing
+source explanations remain explicit.
 
 ```sh
 node tools/corpus-ingest/verify-reading.mjs TSA_Example_Questions data/corpus-ingest/reading-run data/corpus-ingest/reading-run/verified
@@ -156,3 +160,20 @@ separate authorized operations.
 Focused checks: `node --test tests/ai/corpus-reading.test.mjs` and
 `node --test tests/ai/corpus-reading-import.test.mjs`. The latter needs local PostgreSQL sockets.
 Run the existing manual transport and critical privacy suites for shared-boundary regression checks.
+
+## Retained CP3a review queue
+
+The [retained import report](../../plans/reports/codex-261109-1615-cp3a-import.md) records
+the November 9 operation, pre-import backup, private activation pins and verification.
+Operational artifacts remain owner-only under
+`data/corpus-ingest/cp3a-2026-11-09/retained-2026-11-09/`; the prior disposable packages
+and verification evidence remain unchanged. Each newly prepared package is bound to the
+registered retained-bank author and Reading taxonomy, with no blind-solve review context.
+Exact replay uses those saved packages; rebuilding the same namespace/batch with new IDs
+is a conflict, not a safe reimport.
+
+Start `NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true npm run dev:track-b` and open
+`http://127.0.0.1:4174`. Choose the staff workspace and a reviewer or bank-manager profile,
+then filter for Reading DRAFTs. This is the retained `.local/track-b` database.
+The import grants no rights and creates no reviews or approvals; private preview remains
+`RIGHTS_BLOCKED` until the separate owner-controlled rights gate is satisfied.

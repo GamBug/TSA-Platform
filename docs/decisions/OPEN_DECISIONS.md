@@ -1,5 +1,23 @@
 # Architectural decisions and open questions
 
+## CP3a retained import — 2026-11-09
+
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
+Evidence: the owner requested import of the 100 verified CP3a Reading DRAFTs into the
+retained database used by `npm run dev:track-b`, a backup before changes, a local commit
+including the pending card/decision edits, and startup of the staff workspace.
+Scope: `.local/track-b`; private operational artifacts and fresh, per-bundle activation
+configurations under `data/corpus-ingest/cp3a-2026-11-09/retained-2026-11-09/`.
+The operator pins each exact activation and canonical configuration path there before
+coordinator admission; disposable verification pins are not reused. Register the additive
+Reading taxonomy as needed and use the registered author account, separate from reviewers.
+Source keys remain authoritative under the 2026-11-07 direction, item 6. Omit all blind-solve
+answers, disagreements, ambiguity and evidence flags from the retained import review context.
+Keep source captures and the prior verification evidence unchanged. All 100 items stay DRAFT;
+no approval, publication or rights grant is authorized. The requested dev server remains
+running for owner review at session end. No network, paid API or remote Git operation.
+Execution, backup path and retained activation evidence: [import report](../../plans/reports/codex-261109-1615-cp3a-import.md).
+
 ## CP3a corpus transport compatibility — 2026-11-09
 
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
@@ -54,6 +72,12 @@ as they are until versioned additions are reviewed.
    exhausted becomes read-only, and the attempt ends when every budget is exhausted or the student
    submits. This is a product choice, not a claim about official HUST rules. It needs a versioned
    multi-section attempt design with review before implementation.
+
+6. **Corpus keys are authoritative (2026-11-09).** The owner states that the source keys are
+   correct and that some item formats are simply hard for AI to read. AI blind-solve disagreements
+   do not create doubt, flags or exclusions for corpus items. Keep the source key. For image items,
+   blind solves serve only to detect transcription misreads against the image. The owner's
+   approval remains the human gate.
 
 ## Track B modernization local execution authority — 2026-11-06
 
