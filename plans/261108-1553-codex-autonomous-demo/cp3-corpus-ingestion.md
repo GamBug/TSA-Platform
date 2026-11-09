@@ -48,8 +48,10 @@ and [execution report](../reports/codex-261109-1615-cp3a-import.md).
 ## Allowed files
 New tools under `tools/corpus-ingest/`, their tests under `tests/ai/`, a generated private output
 under `data/corpus-ingest/` (add it to `.gitignore` first), the manual-import mapping/config, and,
-for CP3b only, additive Math draft support in `packages/contracts/src/manual-factory-*.ts`,
-`src/modules/bank/manual-import-*.mjs` and their tests.
+for CP3b only, additive Math draft support anywhere in the existing import pipeline:
+`packages/contracts/src/factory-package-v3.ts`, `packages/contracts/src/manual-factory-*.ts`,
+`src/modules/bank/manual-import-*.mjs`, `src/modules/bank/factory-*.mjs`, and their tests. Reading
+behavior and the existing tests must stay unchanged (owner extension, 2026-11-09).
 The source files in `TSA_Example_Questions/` are read-only and never modified.
 
 ## Rules

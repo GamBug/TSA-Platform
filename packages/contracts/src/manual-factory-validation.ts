@@ -3,7 +3,11 @@ import {
   ManualCriticNotesSchema,
   ManualCriticResponseSchema,
   ManualDeclarationSchema,
+  ManualCorpusMathInputSchema,
+  ManualCorpusMathResponseSchema,
   ManualInputSchema,
+  MANUAL_MATH_PROMPT_VERSION,
+  MANUAL_PROMPT_VERSION,
   ManualPromptSchema,
   ManualResponseSchema,
   ManualSourceDeclarationSchema,
@@ -15,6 +19,18 @@ import { assertManualJson, digestManualValue, manualFail, parseManualJsonBytes }
 const need = (condition: unknown, message: string): void => {
   if (!condition) manualFail(message);
 };
+
+const CorpusMathEvidenceSchema = z.object({
+  schemaVersion: z.literal("corpus-math-transcription-evidence/1"),
+  classification: z.literal("PROVISIONAL_M1_NEEDS_OWNER_CLASSIFICATION"),
+  proposedTaxonomy: z.array(z.object({
+    id: z.string().min(1),
+    section: z.literal("MATH"),
+    topic: z.string().min(1),
+    status: z.literal("REQUIRES_VERIFICATION"),
+  }).strict()).min(1).max(20),
+  explanation: z.literal("NOT_RETAINED"),
+}).strict();
 
 export function validateManualTaxonomy(input: unknown) {
   assertManualJson(input);
@@ -57,15 +73,29 @@ function assertTextOnly(value: unknown): void {
 export function validateManualRawArtifacts(mapping: ManualImportMapping, target: unknown,
   artifacts: Record<string, Uint8Array | undefined>) {
   const raw = (name: string): unknown => parseManualJsonBytes(artifacts[name]!, name);
-  const input = ManualInputSchema.parse(raw("input"));
+  const math = mapping.profile === "corpus-math-draft/1";
+  const corpus = mapping.profile === "corpus-reading-draft/1" || math;
+  const input = (math ? ManualCorpusMathInputSchema : ManualInputSchema).parse(raw("input"));
   const prompt = ManualPromptSchema.parse(raw("prompt"));
-  const response = ManualResponseSchema.parse(raw("response"));
+  const response = (math ? ManualCorpusMathResponseSchema : ManualResponseSchema).parse(raw("response"));
   const declaration = ManualDeclarationSchema.parse(raw("declaration"));
   const sourceDeclaration = ManualSourceDeclarationSchema.parse(raw("sourceDeclaration"));
-  const corpus = mapping.profile === "corpus-reading-draft/1";
+  if (math) {
+    need(declaration.model === "SUBSCRIPTION_NATIVE_VISION_TRANSCRIPTION"
+      && declaration.exactModelRevision === null
+      && declaration.interface === "Codex subscription UI, native vision transcription"
+      && declaration.evidenceNote === "Subscription-native vision transcription of corpus images; no provider API adapter call."
+      && sourceDeclaration.model === "UNKNOWN_ORIGINAL_AUTHORSHIP"
+      && sourceDeclaration.authoringInterface === "Read-only corpus images; subscription-native vision transcription",
+    "Math subscription transcription metadata mismatch");
+    const evidence = CorpusMathEvidenceSchema.parse(sourceDeclaration.prompt);
+    need(evidence.proposedTaxonomy.length === response.questions.length
+      && evidence.proposedTaxonomy.every((item, index) => item.id === response.questions[index]!.id),
+    "Math proposed taxonomy evidence mismatch");
+  }
   need(sourceDeclaration.kind === (corpus ? "CORPUS_IMPORTED" : "AI_AUTHORED_EXPERIMENTAL"), "Source authorship/profile mismatch");
-  need(corpus ? sourceDeclaration.sourceCaptures?.length === 10
-    && new Set(sourceDeclaration.sourceCaptures.map((capture) => capture.path)).size === 10
+  need(corpus ? sourceDeclaration.sourceCaptures?.length === response.questions.length
+    && new Set(sourceDeclaration.sourceCaptures.map((capture) => capture.path)).size === response.questions.length
     && response.questions.every((draft) => sourceDeclaration.sourceCaptures!.some((capture) => capture.path === draft.id))
     : sourceDeclaration.sourceCaptures === undefined, "Corpus source capture evidence mismatch");
   const source = input.sources[0]!;
@@ -76,6 +106,8 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
     && source.rights.allowedUses.includes("GENERATE")
     && new Set(source.rights.territories).size === source.rights.territories.length, "Invalid internal permission");
   need(source.rights.validUntil === null || Date.parse(source.rights.validUntil) > Date.parse(source.rights.validFrom), "Invalid permission interval");
+  const section = math ? "MATH" : "READING";
+  const domainCode = section;
   need(mapping.producerNamespace === input.producerNamespace && mapping.batchKey === input.batchKey
     && mapping.declaredOperatorId === input.operatorId && mapping.sourceVersionId === source.sourceVersionId
     && mapping.taxonomy.stagingVersionId === staging.taxonomyVersionId
@@ -91,11 +123,16 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
       && node.stagingKind === node.registeredKind && parent === node.parentCode && targetParent === node.parentCode,
     "Mapping taxonomy closure mismatch");
   }
-  need(mapping.taxonomy.nodes.some((node) => node.stagingKind === "SKILL" && node.stagingCode === source.skillId), "Missing source skill mapping");
+  need(mapping.taxonomy.nodes.some((node) => node.stagingKind === "DOMAIN" && node.stagingCode === domainCode
+    && node.section === section && node.parentCode === null)
+    && mapping.taxonomy.nodes.some((node) => node.stagingKind === "SKILL" && node.stagingCode === source.skillId
+    && node.section === section && node.parentCode === domainCode), "Missing domain or source skill mapping");
+  need(prompt.version === (math ? MANUAL_MATH_PROMPT_VERSION : MANUAL_PROMPT_VERSION)
+    && prompt.schemaVersion === (math ? "corpus-math-draft-output/1" : "reading-draft-output/1"), "Prompt/profile mismatch");
   need(prompt.sourceData === source.text && prompt.sourceVersionId === source.sourceVersionId
     && prompt.skillId === source.skillId && prompt.taxonomyVersionId === staging.taxonomyVersionId
     && declaration.operatorId === input.operatorId && declaration.promptHash === digestManualValue(prompt), "Prompt declaration mismatch");
-  const outputSchema = JSON.parse(JSON.stringify(z.toJSONSchema(ManualResponseSchema))) as unknown;
+  const outputSchema = JSON.parse(JSON.stringify(z.toJSONSchema(math ? ManualCorpusMathResponseSchema : ManualResponseSchema))) as unknown;
   need(digestManualValue(prompt.outputJsonSchema) === digestManualValue(outputSchema), "Pinned draft output schema mismatch");
   for (const span of prompt.evidenceSpans) need(span.end > span.start
     && source.text.slice(span.start, span.end) === span.quote, "Prompt evidence mismatch");
@@ -115,7 +152,7 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
     need(!fingerprints.has(fingerprint), "Exact duplicate draft"); fingerprints.add(fingerprint);
     quota[draft.cognitiveLevel] += 1; assertTextOnly(draft);
   }
-  need(corpus ? quota.M1 === 10 : quota.M1 === 4 && quota.M2 === 3 && quota.M3 === 3, "Intended cognition quota mismatch");
+  need(corpus ? quota.M1 === response.questions.length : quota.M1 === 4 && quota.M2 === 3 && quota.M3 === 3, "Intended cognition quota mismatch");
   assertTextOnly([{ type: "text", text: source.text }]);
   need(Boolean(artifacts.criticResponse) === Boolean(artifacts.criticDeclaration)
     && (!artifacts.criticNotes || artifacts.criticResponse), "Critic pair required");

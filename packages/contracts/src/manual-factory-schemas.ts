@@ -9,6 +9,7 @@ import {
 export const MANUAL_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 export const MANUAL_HASH = /^sha256:[0-9a-f]{64}$/;
 export const MANUAL_PROMPT_VERSION = "reading-evidence/1";
+export const MANUAL_MATH_PROMPT_VERSION = "corpus-math-transcription/1";
 export const MANUAL_CRITIC_PROMPT_VERSION = "reading-manual-blinded-critic/1";
 
 const nonblank = (value: string): boolean => value.trim().length > 0;
@@ -74,6 +75,10 @@ export const ManualInputSchema = z.object({
   sources: z.array(ManualSource).length(1),
 }).strict();
 
+export const ManualCorpusMathInputSchema = ManualInputSchema.extend({
+  schemaVersion: z.literal("corpus-math-input/1"),
+});
+
 export const ManualDeclarationSchema = z.object({
   schemaVersion: z.literal("manual-llm-declaration/1"),
   operatorId: z.string().uuid(),
@@ -108,6 +113,7 @@ export const ManualDraftSchema = z.object({
 }).strict();
 
 export const ManualResponseSchema = z.object({ questions: z.array(ManualDraftSchema).length(10) }).strict();
+export const ManualCorpusMathResponseSchema = z.object({ questions: z.array(ManualDraftSchema).min(1).max(20) }).strict();
 
 const PromptEvidenceSpan = z.object({
   start: z.number().int().nonnegative(),
@@ -116,9 +122,9 @@ const PromptEvidenceSpan = z.object({
 }).strict();
 
 export const ManualPromptSchema = z.object({
-  version: z.literal(MANUAL_PROMPT_VERSION),
+  version: z.enum([MANUAL_PROMPT_VERSION, MANUAL_MATH_PROMPT_VERSION]),
   instructions: z.array(BoundedText).min(1).max(20),
-  schemaVersion: z.literal("reading-draft-output/1"),
+  schemaVersion: z.enum(["reading-draft-output/1", "corpus-math-draft-output/1"]),
   skillId: BoundedText,
   sourceVersionId: Uuid,
   sourceData: ManualTextSchema,
@@ -140,7 +146,7 @@ export const ManualSourceDeclarationSchema = z.object({
   sourceCaptures: z.array(z.object({
     path: BoundedText.refine((value) => !value.startsWith("/") && !value.split(/[\\/]/u).includes("..")),
     hash: Hash,
-  }).strict()).length(10).optional(),
+  }).strict()).max(20).optional(),
   prompt: z.unknown().optional(),
 }).strict();
 
@@ -193,14 +199,14 @@ export const ManualArtifactRefsSchema = z.object({
 export const ManualRunSchema = z.object({
   schemaVersion: z.literal("manual-llm-run/1"),
   manualRunId: Uuid,
-  kind: z.enum(["MANUAL_LLM_OUTPUT", "DETERMINISTIC_CORPUS_EXTRACTION"]),
+  kind: z.enum(["MANUAL_LLM_OUTPUT", "DETERMINISTIC_CORPUS_EXTRACTION", "SUBSCRIPTION_VISION_TRANSCRIPTION"]),
   declaredOperatorId: BoundedText,
   declaredModel: BoundedText,
   exactModelRevision: BoundedText.nullable(),
   declaredAt: Instant,
   interface: BoundedText,
   timestampMeaning: z.literal("LOCAL_DECLARATION_ASSEMBLY"),
-  promptTemplateVersion: z.literal(MANUAL_PROMPT_VERSION),
+  promptTemplateVersion: z.enum([MANUAL_PROMPT_VERSION, MANUAL_MATH_PROMPT_VERSION]),
   sourceVersionIds: z.array(BoundedText).length(1),
   inputHash: Hash,
   promptHash: Hash,
@@ -252,7 +258,7 @@ export const ManualProvenanceSchema = z.object({
 
 export const ManualCandidateSchema = z.object({
   itemKey: BoundedText,
-  candidateOrdinal: z.number().int().min(0).max(9),
+  candidateOrdinal: z.number().int().min(0).max(19),
   contentHash: Hash,
   question: QuestionVersionSchema,
   provenance: ManualProvenanceSchema,
@@ -267,20 +273,20 @@ const MappingTaxonomyNodeSchema = z.object({
   registeredCode: BoundedText,
   registeredKind: z.enum(["DOMAIN", "SKILL"]),
   parentCode: BoundedText.nullable(),
-  section: z.literal("READING"),
+  section: z.enum(["READING", "MATH"]),
 }).strict();
 
 const MappingCandidateSchema = z.object({
   rawQuestionId: BoundedText,
-  candidateOrdinal: z.number().int().min(0).max(9),
+  candidateOrdinal: z.number().int().min(0).max(19),
   questionId: Uuid,
   questionVersionId: Uuid,
-  stimulusVersionId: Uuid,
+  stimulusVersionId: Uuid.nullable(),
 }).strict();
 
 export const ManualImportMappingSchema = z.object({
   schemaVersion: z.literal("manual-import-mapping/1"),
-  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1"]),
+  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1", "corpus-math-draft/1"]),
   producerNamespace: BoundedText,
   batchKey: BoundedText,
   declaredOperatorId: BoundedText,
@@ -292,7 +298,7 @@ export const ManualImportMappingSchema = z.object({
     registeredDefinitionHash: Hash,
     nodes: z.array(MappingTaxonomyNodeSchema).length(2),
   }).strict(),
-  candidates: z.array(MappingCandidateSchema).length(10),
+  candidates: z.array(MappingCandidateSchema).min(1).max(20),
 }).strict();
 
 export const ManualReferenceKindSchema = z.enum(["taxonomy", "stimulus", "provenance", "evidence", "source"]);
@@ -307,16 +313,23 @@ export const ManualReferenceNodeSchema = z.object({
 
 export const ManualFactoryPackageV3Schema = z.object({
   schemaVersion: z.literal("factory-package/3"),
-  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1"]),
+  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1", "corpus-math-draft/1"]),
   producerNamespace: BoundedText,
   batchKey: BoundedText,
   manualRun: ManualRunSchema,
   sourcePermissions: z.array(ManualPermissionSchema).length(1),
   sourceAuthoring: z.array(ManualAuthoringSchema).length(1),
-  candidates: z.array(ManualCandidateSchema).length(10),
+  candidates: z.array(ManualCandidateSchema).min(1).max(20),
   references: z.array(ManualReferenceNodeSchema).min(1).max(100),
   assets: z.array(z.never()).length(0),
-}).strict();
+}).strict().superRefine((pkg, context) => {
+  if (pkg.profile !== "corpus-math-draft/1" && pkg.candidates.length !== 10) {
+    context.addIssue({ code: "custom", path: ["candidates"], message: "Reading packages require ten candidates" });
+  }
+  if (pkg.profile !== "corpus-math-draft/1" && pkg.candidates.some((candidate) => candidate.candidateOrdinal > 9)) {
+    context.addIssue({ code: "custom", path: ["candidates"], message: "Reading candidate ordinal out of range" });
+  }
+});
 
 export type ManualInput = z.infer<typeof ManualInputSchema>;
 export type ManualPrompt = z.infer<typeof ManualPromptSchema>;

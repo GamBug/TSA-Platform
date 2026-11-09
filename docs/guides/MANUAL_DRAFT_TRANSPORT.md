@@ -161,6 +161,49 @@ Focused checks: `node --test tests/ai/corpus-reading.test.mjs` and
 `node --test tests/ai/corpus-reading-import.test.mjs`. The latter needs local PostgreSQL sockets.
 Run the existing manual transport and critical privacy suites for shared-boundary regression checks.
 
+## Corpus Math DRAFTs
+
+The additive private `corpus-math-draft/1` profile reuses the v3 parser, mapping,
+activation, admission journal and coordinator. It accepts up to twenty independent
+Math items with null stimuli, imported provenance, and per-capture relative paths and
+hashes. Reading bundles remain exactly ten questions. Subscription-native transcription
+is recorded as `SUBSCRIPTION_VISION_TRANSCRIPTION`, with no provider API call or verified
+token usage. Source explanations are preserved if supplied; absent explanations remain explicit.
+
+[Math package construction](../../tools/corpus-ingest/math-package.mjs) supports the existing
+single-choice, multiple-choice and true/false interactions. Text blocks retain LaTeX.
+Multiple-choice public selection limits do not disclose the private key's answer count.
+Numeric, cloze/matching and diagram-dependent items are deferred by this ingestion run;
+they are not converted to choices. Complete diagram crops remain private inspection evidence.
+Only clipped/unreadable captures need owner attention. Source-key disagreements never become
+owner-review doubts: a blind check requires image recomparison, then the source key stays authoritative.
+
+Private run files live in the ignored `data/corpus-ingest/` directory. The
+[batch reader](../../tools/corpus-ingest/math-batches.mjs) validates each twenty-capture scan,
+its saved transcription hash, full source manifest, coverage/classifications and independent
+blind-check coverage before import. `batch-log.json` retains completed scans and per-run import
+progress. Do not regenerate completed transcriptions or overwrite failed-run evidence to resume.
+The record and item shapes are owned by these tools; no provider adapter is invoked.
+
+After `npm run build`, verify the saved CP3b eighty-item selection with a new private output path:
+
+```sh
+node tools/corpus-ingest/verify-math.mjs TSA_Example_Questions data/corpus-ingest/cp3b-2026-11-09 data/corpus-ingest/cp3b-2026-11-09/new-verification
+```
+
+This creates a backed-up disposable database, registers provisional Math taxonomy and imports
+four twenty-item batches, checking exact replay, all staff DRAFT review contexts, source keys,
+zero reviews/rights/eligibility and unchanged source hashes. It reuses CP3a's activation helper.
+Each invocation uses a fresh disposable database and configurations; saved progress does not
+claim durable retained-bank rows. A resumed verification rechecks the saved selection in that
+fresh database. Retained-bank import requires separate authorization and fresh activation pins.
+The private output includes receipts, queue/topic counts, deferral/attention indexes, and ten
+LaTeX-rendered samples in `samples.html`, with private keys inside disclosure controls.
+
+Focused checks: `node tests/ai/corpus-math.test.mjs` and
+`node tests/ai/corpus-math-batches.test.mjs`. Run manual transport and critical privacy regression
+suites for the shared boundary. The human approval and permission-evidence publication gates remain.
+
 ## Retained CP3a review queue
 
 The [retained import report](../../plans/reports/codex-261109-1615-cp3a-import.md) records

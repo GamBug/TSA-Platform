@@ -18,7 +18,7 @@ function bindActivation(pkg, configuration) {
   const activation = configuration.activation;
   const permission = pkg.sourcePermissions?.[0];
   const authoring = pkg.sourceAuthoring?.[0];
-  if (pkg.schemaVersion !== 'factory-package/3' || !['manual-reading-draft/1', 'corpus-reading-draft/1'].includes(pkg.profile) || pkg.profile !== activation.profile
+  if (pkg.schemaVersion !== 'factory-package/3' || !['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1'].includes(pkg.profile) || pkg.profile !== activation.profile
       || pkg.producerNamespace !== activation.producerNamespace
       || pkg.manualRun?.declaredOperatorId !== activation.declaredOperatorId
       || pkg.manualRun?.sourceVersionIds?.length !== 1 || pkg.manualRun.sourceVersionIds[0] !== activation.sourceVersionId

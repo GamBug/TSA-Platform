@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { types } from "node:util";
 import { QuestionVersionSchema } from "./index.ts";
 import { canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, createReferenceHash, type JsonValue, type ReferenceNode } from "./identity.ts";
-import { ManualFactoryPackageV3Schema as Package, ManualImportMappingSchema as Mapping, ManualArtifactSchema as Artifact, ManualInputSchema, type ManualArtifactKind } from "./manual-factory-schemas.ts";
+import { ManualFactoryPackageV3Schema as Package, ManualImportMappingSchema as Mapping, ManualArtifactSchema as Artifact, ManualCorpusMathInputSchema, ManualInputSchema, type ManualArtifactKind } from "./manual-factory-schemas.ts";
 import { assertManualJson, copyManualBytes, parseManualJsonBytes, parseManualJsonInput, sameManualValue } from "./manual-json.ts";
 import { validateManualRawArtifacts, validateManualTaxonomy } from "./manual-factory-validation.ts";
 export { parseManualJsonBytes } from "./manual-json.ts";
@@ -102,7 +102,7 @@ function finalize(nodes: ReferenceNode[]): ReferenceNode[] {
 function roots(question: FactoryPackageV3["candidates"][number]["question"]) {
     return [
         { kind: "taxonomy" as const, id: question.taxonomyVersionId },
-        { kind: "stimulus" as const, id: question.stimulusVersionId! },
+    ...(question.stimulusVersionId ? [{ kind: "stimulus" as const, id: question.stimulusVersionId }] : []),
         ...question.provenanceIds.map(id => ({ kind: "provenance" as const, id })),
         ...question.private.evidenceRefs.map(id => ({ kind: "evidence" as const, id })),
     ];
@@ -126,14 +126,26 @@ function reachable(n: ReferenceNode, map: Map<string, ReferenceNode>, refs: {
 }
 export function parseManualImportMapping(input: unknown): ManualImportMapping {
     const m = Mapping.parse(parseManualJsonInput(input, "mapping"));
+    const math = m.profile === "corpus-math-draft/1";
+    const domainCode = math ? "MATH" : "READING";
+    const section = domainCode;
+    need(math ? m.candidates.length >= 1 && m.candidates.length <= 20 : m.candidates.length === 10,
+        "Invalid candidate count for profile");
+    if (!math)
+        need(m.candidates.every(c => c.candidateOrdinal <= 9), "Reading candidate ordinal out of range");
     for (const field of [
         "candidateOrdinal", "rawQuestionId", "questionId", "questionVersionId"
     ] as const)
-        need(new Set(m.candidates.map(c => c[field])).size === 10, "Duplicate mapping identities");
-    need(new Set(m.candidates.map(c => c.stimulusVersionId)).size === 1, "One complete stimulus required");
+        need(new Set(m.candidates.map(c => c[field])).size === m.candidates.length, "Duplicate mapping identities");
+    if (math)
+        need(m.candidates.every(c => c.stimulusVersionId === null), "Independent Math items cannot share a stimulus");
+    else
+        need(m.candidates[0]!.stimulusVersionId !== null
+            && m.candidates.every(c => c.stimulusVersionId === m.candidates[0]!.stimulusVersionId), "One complete stimulus required");
     need(!m.candidates.some(c => m.candidates.some(v => v.questionId === c.questionVersionId)), "Stable/version identities overlap");
     const domain = m.taxonomy.nodes.find(n => n.stagingKind === "DOMAIN"), skill = m.taxonomy.nodes.find(n => n.stagingKind === "SKILL");
-    need(domain?.stagingCode === "READING" && domain.parentCode === null && skill?.parentCode === "READING", "Reading mapping closure required");
+    need(domain?.stagingCode === domainCode && domain.section === section && domain.parentCode === null
+        && skill?.section === section && skill.parentCode === domainCode, "Domain mapping closure required");
     need(new Set(m.taxonomy.nodes.map(n => n.registeredNodeId)).size === 2, "Duplicate taxonomy mapping");
     return m;
 }
@@ -160,13 +172,15 @@ export function parseManualFactoryPackageV3(input: unknown): FactoryPackageV3 {
         need(a.artifactKind === ARTIFACT_KINDS[name] && b.toString("base64") === a.bytesBase64 && b.length === a.byteLength && hash(b) === a.bytesHash && ref!.bytesHash === a.bytesHash, "Raw artifact mismatch");
         artifacts[name] = b;
     }
-    const rawInput = ManualInputSchema.parse(parseManualJsonBytes(artifacts.input!, "input"));
+    const math = pkg.profile === "corpus-math-draft/1";
+    const rawInput = (math ? ManualCorpusMathInputSchema : ManualInputSchema).parse(parseManualJsonBytes(artifacts.input!, "input"));
     const source = rawInput.sources[0]!, tax = pkg.references.filter(n => n.kind === "taxonomy");
     need(tax.length === 1, "One taxonomy required");
     const taxonomy = validateManualTaxonomy(tax[0]!.payload);
     const maps = pkg.candidates.map(c => { const nodes = pkg.references.filter(n => n.kind === "evidence" && n.id === "manual-map-" + c.candidateOrdinal); need(nodes.length === 1, "Mapping node missing"); return nodes[0]!.payload; });
-    const nodes = ["READING", source.skillId].map(code => { const from = rawInput.taxonomy.nodes.find(n => n.code === code), to = taxonomy.nodes.find(n => n.code === code); need(from && to, "Missing taxonomy code"); return {
-        stagingCode: code, stagingKind: from!.kind, registeredNodeId: to!.id, registeredCode: code, registeredKind: to!.kind, parentCode: code === "READING" ? null : "READING", section: "READING"
+    const domainCode = math ? "MATH" : "READING";
+    const nodes = [domainCode, source.skillId].map(code => { const from = rawInput.taxonomy.nodes.find(n => n.code === code), to = taxonomy.nodes.find(n => n.code === code); need(from && to, "Missing taxonomy code"); return {
+        stagingCode: code, stagingKind: from!.kind, registeredNodeId: to!.id, registeredCode: code, registeredKind: to!.kind, parentCode: code === domainCode ? null : domainCode, section: domainCode
     }; });
     const mapping = {
         schemaVersion: "manual-import-mapping/1", profile: pkg.profile, producerNamespace: pkg.producerNamespace, batchKey: pkg.batchKey, declaredOperatorId: pkg.manualRun.declaredOperatorId, registeredAuthorId: pkg.candidates[0]!.question.createdBy, sourceVersionId: source.sourceVersionId, taxonomy: {
@@ -248,7 +262,8 @@ function construct(input: {
     const ref = (id: string) => ({
         id, bytesHash: (artifacts.find(a => a.id === id)!.payload as any).bytesHash
     });
-    const corpus = mapping.profile === "corpus-reading-draft/1";
+    const math = mapping.profile === "corpus-math-draft/1";
+    const corpus = mapping.profile === "corpus-reading-draft/1" || math;
     const sourceHash = hash(new TextEncoder().encode(source.text));
     const permission = {
         schemaVersion: "internal-source-permission/1", id: input.permissionId, sourceVersionId: source.sourceVersionId, sourceTextHash: sourceHash, state: "INTERNAL_EXPERIMENT_AUTHORIZED", allowedUses: ["DISPLAY", "GENERATE"], scope: "LOCAL_PRIVATE_DRAFT_REVIEW", territories: source.rights.territories, validFrom: source.rights.validFrom, validUntil: source.rights.validUntil, authorizationEvidenceRef: source.rights.evidence, copyrightVerification: "UNVERIFIED", publicationPermission: false
@@ -259,8 +274,10 @@ function construct(input: {
     const promptHash = digestManualCanonical(prompt), inputHash = digestManualCanonical(rawInput), responseHash = hash(input.artifacts.response);
     if (declaration.promptHash !== promptHash)
         fail("declaration prompt hash mismatch");
+    if (math && sourceDeclaration.kind !== "CORPUS_IMPORTED")
+        fail("Math corpus source authorship required");
     const run = {
-        schemaVersion: "manual-llm-run/1", manualRunId: input.manualRunId, kind: corpus ? "DETERMINISTIC_CORPUS_EXTRACTION" : "MANUAL_LLM_OUTPUT", declaredOperatorId: rawInput.operatorId, declaredModel: declaration.model, exactModelRevision: declaration.exactModelRevision, declaredAt: declaration.generatedAt, interface: declaration.interface, timestampMeaning: "LOCAL_DECLARATION_ASSEMBLY", promptTemplateVersion: prompt.version, sourceVersionIds: [source.sourceVersionId], inputHash, promptHash, responseHash, artifactRefs: {
+        schemaVersion: "manual-llm-run/1", manualRunId: input.manualRunId, kind: math ? "SUBSCRIPTION_VISION_TRANSCRIPTION" : corpus ? "DETERMINISTIC_CORPUS_EXTRACTION" : "MANUAL_LLM_OUTPUT", declaredOperatorId: rawInput.operatorId, declaredModel: declaration.model, exactModelRevision: declaration.exactModelRevision, declaredAt: declaration.generatedAt, interface: declaration.interface, timestampMeaning: "LOCAL_DECLARATION_ASSEMBLY", promptTemplateVersion: prompt.version, sourceVersionIds: [source.sourceVersionId], inputHash, promptHash, responseHash, artifactRefs: {
             input: ref("artifact-input"), prompt: ref("artifact-prompt"), response: ref("artifact-response"), declaration: ref("artifact-declaration"), sourceDeclaration: ref("artifact-source-declaration"), ...(input.artifacts.criticResponse ? {
                 criticResponse: ref("artifact-critic-response"), criticDeclaration: ref("artifact-critic-declaration"), ...(input.artifacts.criticNotes ? { criticNotes: ref("artifact-critic-notes") } : {})
             } : {})
@@ -322,7 +339,7 @@ function construct(input: {
         ], contentHash: ""
     };
     const zId = mapping.candidates[0]!.stimulusVersionId;
-    const stimulus = {
+    const stimulus = zId ? {
         kind: "stimulus" as const, id: zId, payload: {
             content: [{
                     type: "text", text: source.text
@@ -330,10 +347,11 @@ function construct(input: {
         } as any, references: [{
                 kind: "provenance" as const, id: vNode.id
             }], contentHash: ""
-    };
+    } : null;
     const nodes: ReferenceNode[] = [
-        taxonomyNode, sourceNode, ...artifacts, pNode, aNode, runNode, vNode, stimulus
+        taxonomyNode, sourceNode, ...artifacts, pNode, aNode, runNode, vNode, ...(stimulus ? [stimulus] : [])
     ];
+    const domainCode = math ? "MATH" : "READING";
     const candidates: any[] = [];
     for (const m of mapping.candidates) {
         const raw = response.questions[m.candidateOrdinal];
@@ -342,7 +360,7 @@ function construct(input: {
         if (raw.evidence?.end <= raw.evidence?.start || source.text.slice(raw.evidence.start, raw.evidence.end) !== raw.evidence.quote)
             fail("raw evidence mismatch");
         const x = {
-            schemaVersion: "manual-candidate-map/1", rawQuestionId: m.rawQuestionId, candidateOrdinal: m.candidateOrdinal, responseArtifactId: "artifact-response", responseHash, declaredOperatorId: rawInput.operatorId, registeredAuthorId: mapping.registeredAuthorId, stagingTaxonomyVersionId: mapping.taxonomy.stagingVersionId, registeredTaxonomyVersionId: mapping.taxonomy.registeredVersionId, taxonomyMappingHash: digestManualCanonical(mapping.taxonomy), questionId: m.questionId, questionVersionId: m.questionVersionId, versionNo: 1, parentVersionId: null, stimulusVersionId: m.stimulusVersionId, targetDomainId: "READING", targetSkillIds: [mapping.taxonomy.nodes.find(n => n.stagingCode === raw.skillId)?.registeredCode ?? fail("missing skill mapping")], createdAt: declaration.generatedAt
+            schemaVersion: "manual-candidate-map/1", rawQuestionId: m.rawQuestionId, candidateOrdinal: m.candidateOrdinal, responseArtifactId: "artifact-response", responseHash, declaredOperatorId: rawInput.operatorId, registeredAuthorId: mapping.registeredAuthorId, stagingTaxonomyVersionId: mapping.taxonomy.stagingVersionId, registeredTaxonomyVersionId: mapping.taxonomy.registeredVersionId, taxonomyMappingHash: digestManualCanonical(mapping.taxonomy), questionId: m.questionId, questionVersionId: m.questionVersionId, versionNo: 1, parentVersionId: null, stimulusVersionId: m.stimulusVersionId, targetDomainId: domainCode, targetSkillIds: [mapping.taxonomy.nodes.find(n => n.stagingCode === raw.skillId)?.registeredCode ?? fail("missing skill mapping")], createdAt: declaration.generatedAt
         };
         const xid = "manual-map-" + m.candidateOrdinal, eid = "manual-evidence-" + m.candidateOrdinal;
         nodes.push({
@@ -361,9 +379,9 @@ function construct(input: {
                 }], contentHash: ""
         });
         const q: any = {
-            schemaVersion: "question/1", id: m.questionVersionId, questionId: m.questionId, versionNo: 1, parentVersionId: null, language: "vi-VN", section: "READING", taxonomyVersionId: taxonomyNode.id, domainId: "READING", skillIds: x.targetSkillIds, subskillIds: [], cognitiveLevel: raw.cognitiveLevel, difficulty: {
+            schemaVersion: "question/1", id: m.questionVersionId, questionId: m.questionId, versionNo: 1, parentVersionId: null, language: "vi-VN", section: domainCode, taxonomyVersionId: taxonomyNode.id, domainId: domainCode, skillIds: x.targetSkillIds, subskillIds: [], cognitiveLevel: raw.cognitiveLevel, difficulty: {
                 target: null, predicted: null, empiricalStudyId: null
-            }, content: raw.content, stimulusVersionId: zId, interaction: raw.interaction, private: {
+            }, content: raw.content, stimulusVersionId: m.stimulusVersionId, interaction: raw.interaction, private: {
                 answerKey: raw.answerKey, explanation: raw.explanation, evidenceRefs: [xid, eid], scoringPolicy: "practice-binary-v1"
             }, origin: corpus ? "IMPORTED" : "GENERATED", provenanceIds: [vNode.id], generationRunId: null, createdBy: mapping.registeredAuthorId, createdAt: declaration.generatedAt, contentHash: "sha256:" + "0".repeat(64)
         };
@@ -371,8 +389,8 @@ function construct(input: {
         const identity = computeQuestionIdentity(q, nodes.filter(n => reachable(n, new Map(nodes.map(n => [n.kind + "\0" + n.id, n])), roots(q))));
         q.contentHash = identity.contentHash;
         candidates.push({
-            itemKey: "manual-reading-bundle", candidateOrdinal: m.candidateOrdinal, contentHash: identity.contentHash, question: q, provenance, manualRunId: run.manualRunId, validations: [{
-                    validatorKind: corpus ? "CORPUS_READING_DETERMINISTIC" : "MANUAL_READING_DETERMINISTIC", validatorVersion: mapping.profile, inputHash: identity.contentHash, outcome: "PASS", evidencePointer: eid, at: declaration.generatedAt, actor: mapping.registeredAuthorId
+            itemKey: math ? "corpus-math-item" : "manual-reading-bundle", candidateOrdinal: m.candidateOrdinal, contentHash: identity.contentHash, question: q, provenance, manualRunId: run.manualRunId, validations: [{
+                    validatorKind: math ? "CORPUS_MATH_TRANSCRIPTION" : corpus ? "CORPUS_READING_DETERMINISTIC" : "MANUAL_READING_DETERMINISTIC", validatorVersion: mapping.profile, inputHash: identity.contentHash, outcome: "PASS", evidencePointer: eid, at: declaration.generatedAt, actor: mapping.registeredAuthorId
                 }]
         });
     }

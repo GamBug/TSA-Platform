@@ -31,9 +31,14 @@ section. This owner instruction overrides the startup read-list in ORCHESTRATION
    commands with one result line each, open issues. Update the Status column in plan.md. Add one
    line to `docs/agents/PROJECT_STATE.md` that links the report.
 
-**Stop and report (status BLOCKED)** in any of these cases: an owner gate from plan.md, two failed
-repairs on the same problem, a needed change outside the card, an unavailable model, or quota
-running low. Stop every process you started before ending.
+**Files the card did not list (owner rule, 2026-11-09).** If the card's goal needs an additive
+change in a file it did not list, and that file belongs to the same module or pipeline the card
+already touches, make the change. Keep the existing behavior and tests unchanged, and record the
+file in the report. Do not stop for this.
+
+**Stop and report (status BLOCKED)** in any of these cases: an owner gate from plan.md; a product
+decision; a breaking change to a frozen student, public or HTTP contract or to an applied
+migration; two failed repairs on the same problem; an unavailable model; or quota running low. Stop every process you started before ending.
 
 End your final message with:
 `Status: DONE | DONE_WITH_CONCERNS | BLOCKED` · one-sentence summary · the next CP to run.

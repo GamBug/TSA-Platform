@@ -96,7 +96,7 @@ export async function prepareManualDraftTransport({ bankPool, identityService, r
   await writeNew(resolve(directory, 'package.json'), pkg);
   await writeNew(resolve(directory, 'mapping.json'), mapping);
   const receipt = { schemaVersion: 'manual-draft-preparation/1', manifestHash: jsonDigest(pkg),
-    mappingHash: jsonDigest(mapping), questionCount: 10, workflowState: 'DRAFT',
+    mappingHash: jsonDigest(mapping), questionCount: pkg.candidates.length, workflowState: 'DRAFT',
     bankImported: false, providerCalled: false, humanApprovedQuestions: 0,
     usage: null, usageVerification: 'UNVERIFIED', publicationPermission: false };
   await writeNew(resolve(directory, 'preparation.json'), receipt);

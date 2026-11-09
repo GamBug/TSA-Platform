@@ -1,6 +1,6 @@
 # Codex autonomous run: university demo
 
-Status: CP2, CP3a and CP3a-import complete; CP3b Math blocked on parser/builder allowlist. Created 2026-11-08 (Asia/Bangkok).
+Status: CP2, CP3a, CP3a-import and CP3b complete. Created 2026-11-08 (Asia/Bangkok).
 Authority: owner decisions recorded 2026-11-07 at the top of `docs/decisions/OPEN_DECISIONS.md`.
 Background: `plans/reports/review-261107-2114-tsa-product-readiness-gap.md`.
 
@@ -30,7 +30,7 @@ Codex updates the Status column. Run one checkpoint per Codex session or goal.
 | CP0 Safe baseline | [cp0-safe-baseline.md](cp0-safe-baseline.md) | — | DONE: six baseline commits; required suites pass |
 | CP1 Lean docs | [cp1-lean-docs.md](cp1-lean-docs.md) | CP0 | DONE: compact navigation, verbatim archives and docs checks verified |
 | CP2 Full simulation | [cp2-full-simulation.md](cp2-full-simulation.md) | CP1 | DONE: migration, clocks, privacy, scoring and both browser journeys verified; [report](../reports/codex-261108-2238-cp2.md) |
-| CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | CP3a-import DONE: 100 Reading DRAFTs / ten passages in retained Track B; source keys preserved, blind doubts omitted; [import report](../reports/codex-261109-1615-cp3a-import.md). [Original verification](../reports/codex-261109-1435-cp3a.md). CP3b BLOCKED: shared v3 parser/builder is outside allowed files; [report](../reports/codex-261109-1636-cp3b.md) |
+| CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | CP3a-import DONE: 100 Reading DRAFTs / ten passages retained; [import report](../reports/codex-261109-1615-cp3a-import.md). [Original verification](../reports/codex-261109-1435-cp3a.md). CP3b DONE: 80 Math DRAFTs / four disposable batches, exit checks and independent review passed; [report](../reports/codex-261109-1721-cp3b.md) |
 | CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | TODO |
 | CP5 Science ingestion | [cp5-science-ingestion.md](cp5-science-ingestion.md) | CP3 + owner-supplied Science files | TODO |
 | CP6 Demo-ready | [cp6-demo-ready.md](cp6-demo-ready.md) | CP2, CP3 (CP4 and CP5 if done) | TODO |

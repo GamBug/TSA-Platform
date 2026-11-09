@@ -7,7 +7,7 @@ import { BankCommandError } from './common.mjs';
 
 const files = Object.freeze({ activation: 'activation.json', mapping: 'mapping.json', state: 'active-state.json', retired: 'retired-activations.ndjson', admissions: 'admissions.ndjson' });
 export const MANUAL_IMPORT_CONFIGURATION_LAYOUT = files;
-const PROFILES = new Set(['manual-reading-draft/1', 'corpus-reading-draft/1']);
+const PROFILES = new Set(['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1']);
 const activationKeys = ['schemaVersion', 'activationId', 'profile', 'ownerDecisionRef', 'producerNamespace', 'registeredAuthorId', 'declaredOperatorId', 'sourceVersionId', 'sourceTextHash', 'permissionHash', 'sourceAuthoringHash', 'responseHash', 'promptHash', 'mappingHash', 'taxonomyVersionId', 'taxonomyDefinitionHash', 'validFrom', 'validUntil'];
 const stateKeys = ['schemaVersion', 'activationId', 'activationHash', 'status'];
 const hashPattern = /^sha256:[0-9a-f]{64}$/;
@@ -111,7 +111,9 @@ async function retiredHashes(directory) {
   }
   return result;
 }
-async function admissionEvents(directory) {
+const validCandidateCount = (profile, count) => profile === 'corpus-math-draft/1'
+  ? count >= 1 && count <= 20 : count === 10;
+async function admissionEvents(directory, profile) {
   const path = await privateFile(directory, files.admissions, true); if (!path) return new Map();
   const text = await journalText(directory, files.admissions);
   if (text && !text.endsWith('\n')) fail('MANUAL_IMPORT_RECONCILIATION_REQUIRED');
@@ -127,7 +129,7 @@ async function admissionEvents(directory) {
       : ['schemaVersion', 'admissionId', 'activationHash', 'manifestHash', 'producerNamespace', 'batchKey', 'candidateVersionIds', 'admittedAt', 'status', 'outcome', 'reconciledAt']).sort();
     if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])
         || typeof event.producerNamespace !== 'string' || typeof event.batchKey !== 'string'
-        || !Array.isArray(event.candidateVersionIds) || event.candidateVersionIds.length !== 10
+        || !Array.isArray(event.candidateVersionIds) || !validCandidateCount(profile, event.candidateVersionIds.length)
         || event.candidateVersionIds.some((id) => typeof id !== 'string') || !Number.isFinite(Date.parse(event.admittedAt))
         || (event.status === 'RECONCILED' && (!['COMMITTED', 'ABSENT', 'ROLLED_BACK'].includes(event.outcome) || !Number.isFinite(Date.parse(event.reconciledAt))))) fail('MANUAL_IMPORT_RECONCILIATION_REQUIRED');
     if (event.status === 'PENDING') {
@@ -157,7 +159,7 @@ export async function loadManualImportConfiguration({ configurationDirectory, ap
   const scopeHash = manualImportConfigurationScopeHash(directory, activationHash);
   if (scopeHash !== approvedConfigurationScopeHash) fail('MANUAL_IMPORT_CONFIGURATION_UNAPPROVED', 403);
   if ((await retiredHashes(directory)).has(activationHash)) fail('MANUAL_IMPORT_ACTIVATION_RETIRED', 403);
-  const pendingAdmissions = await admissionEvents(directory);
+  const pendingAdmissions = await admissionEvents(directory, activation.profile);
   if (pendingAdmissions.size && !allowPending) fail('MANUAL_IMPORT_RECONCILIATION_REQUIRED');
   const fingerprint = await configurationFingerprint(directory);
   return Object.freeze({ directory, activation: Object.freeze(activation), mapping: Object.freeze(validateMapping(mapping, activation)), activationHash, scopeHash, fingerprint, pendingAdmissions });
@@ -198,7 +200,9 @@ async function appendAdmissionEvent(directory, event) {
 }
 export async function beginManualImportAdmission(configuration, manifest) {
   if (!configuration?.directory || await configurationFingerprint(configuration.directory) !== configuration.fingerprint) fail('MANUAL_IMPORT_CONFIGURATION_CHANGED');
-  if ((await admissionEvents(configuration.directory)).size !== 0) fail('MANUAL_IMPORT_RECONCILIATION_REQUIRED');
+  if ((await admissionEvents(configuration.directory, configuration.activation.profile)).size !== 0) fail('MANUAL_IMPORT_RECONCILIATION_REQUIRED');
+  if (manifest.profile !== configuration.activation.profile
+      || !validCandidateCount(configuration.activation.profile, manifest.candidates?.length)) fail('MANUAL_IMPORT_CONFIGURATION_INVALID');
   const event = Object.freeze({ schemaVersion: 'manual-import-admission/1', admissionId: randomUUID(), activationHash: configuration.activationHash,
     manifestHash: digest(manifest), producerNamespace: manifest.producerNamespace, batchKey: manifest.batchKey,
     candidateVersionIds: manifest.candidates.map((candidate) => candidate.question.id), admittedAt: new Date().toISOString(), status: 'PENDING' });
@@ -213,7 +217,7 @@ export async function reconcileManualImportAdmission({ configurationDirectory, a
   const directory = await privateDirectory(resolve(configurationDirectory));
   const activation = await jsonFile(directory, files.activation); const activationHash = validateActivation(activation, approvedActivationHash);
   if (manualImportConfigurationScopeHash(directory, activationHash) !== approvedConfigurationScopeHash) fail('MANUAL_IMPORT_CONFIGURATION_UNAPPROVED', 403);
-  const pending = await admissionEvents(directory); const event = pending.get(admissionId);
+  const pending = await admissionEvents(directory, activation.profile); const event = pending.get(admissionId);
   if (!event || event.activationHash !== activationHash || approvedReconciliationHash !== digest({ activationHash, admissionId, manifestHash: event.manifestHash })) fail('MANUAL_IMPORT_RECONCILIATION_UNAPPROVED', 403);
   const outcome = await verify(Object.freeze(event));
   if (!['COMMITTED', 'ABSENT', 'ROLLED_BACK'].includes(outcome)) fail('MANUAL_IMPORT_RECONCILIATION_UNCERTAIN');

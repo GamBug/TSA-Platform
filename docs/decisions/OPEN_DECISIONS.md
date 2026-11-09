@@ -7,9 +7,14 @@ Evidence: “I approve the 2026-11-09 revision in cp3-corpus-ingestion.md, inclu
 The owner also requires 20-item resumable batches, a clean quota stop/report, and reuse of
 CP3a corpus profile/verifier patterns. Scope is the revised CP3 card under the leader prompt;
 source keys, private DRAFT state and existing approval/publication gates remain unchanged.
-Inspection found that the required shared v3 parser/builder is outside the card's explicit
-allowlist. No scope expansion is inferred; [the blocker report](../../plans/reports/codex-261109-1636-cp3b.md)
-records the exact additional paths needed before implementation can resume.
+The initial [blocker report](../../plans/reports/codex-261109-1636-cp3b.md) identified the shared
+v3 parser/builder outside the earlier allowlist. The owner subsequently replied “Yes, approved”,
+expanded the card to the existing import pipeline and added the leader prompt's unlisted-files rule.
+The owner expressly directed committing those two edits with the implementation and continuing
+CP3b to its exit criteria. This authorizes additive shared parser/builder, namespace, admission,
+preparation, verification and regression changes while preserving Reading behavior and tests.
+The eighty-item selection is verified in a backed-up disposable database; this is not retained-bank
+activation or permission to approve/publish content.
 
 ## CP3a retained import — 2026-11-09
 

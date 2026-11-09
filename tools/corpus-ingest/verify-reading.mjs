@@ -38,10 +38,11 @@ export function compareBlindAnswers(corpus, blind) {
   });
 }
 
-async function configure(root, prepared, taxonomy) {
+export async function configureCorpusImport(root, prepared, taxonomy,
+  ownerDecisionRef = 'docs/decisions/OPEN_DECISIONS.md#cp3a-corpus-transport-compatibility--2026-11-09; disposable verification only') {
   const pkg = prepared.package;
   const activation = { schemaVersion: 'manual-import-activation/1', activationId: randomUUID(), profile: pkg.profile,
-    ownerDecisionRef: 'docs/decisions/OPEN_DECISIONS.md#cp3a-corpus-transport-compatibility--2026-11-09; disposable verification only',
+    ownerDecisionRef,
     producerNamespace: pkg.producerNamespace, registeredAuthorId: prepared.mapping.registeredAuthorId,
     declaredOperatorId: pkg.manualRun.declaredOperatorId, sourceVersionId: pkg.manualRun.sourceVersionIds[0],
     sourceTextHash: pkg.sourcePermissions[0].sourceTextHash, permissionHash: jsonDigest(pkg.sourcePermissions[0]),
@@ -97,7 +98,7 @@ export async function verifyCorpusReading({ sourceRoot, extractionDirectory, out
         assert.equal(JSON.stringify(publicFields).includes(group.items[i].private.extractedKeyText), false);
         assert.deepEqual(candidate.question.private.answerKey, group.items[i].private.answerKey);
       }
-      const config = await configure(outputDirectory, prepared, fixture.taxonomy); pins.push(config);
+      const config = await configureCorpusImport(outputDirectory, prepared, fixture.taxonomy); pins.push(config);
       const service = await createManualFactoryImportService({ bankPool: fixture.bankPool, identityService: fixture.identity,
         internalCapability: capability, enabled: true, env: fixture.env, ...config });
       fixture.services.push(service);

@@ -20,9 +20,11 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
-- 2026-11-09: CP3b stopped before implementation because the shared v3 parser/builder is outside the card allowlist; see the [CP3b blocker report](../../plans/reports/codex-261109-1636-cp3b.md).
+- 2026-11-09: CP3b completed: 80 private Math DRAFTs verified in four disposable batches of twenty, exit checks and independent review passed. See the [Math checkpoint report](../../plans/reports/codex-261109-1721-cp3b.md).
 
-[CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) and CP3a retained Reading import are complete. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP3b Math is next.
+- 2026-11-09: Earlier CP3b allowlist blocker was resolved by the owner's extension; see the historical [blocker report](../../plans/reports/codex-261109-1636-cp3b.md).
+
+[CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md), CP3a retained Reading import and CP3b disposable Math verification are complete. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP4 is next. Math retained-bank import remains a separate operation.
 
 - 2026-11-08: CP1 navigation and archives verified; docs validator repaired under owner resumption authorization. See the [CP1 completion report](../../plans/reports/codex-261108-2051-cp1.md).
 - 2026-11-08: CP2 completed under owner resumption authorization; migration preservation, required suites, and Chromium/Firefox 100-answer journeys passed. See the [CP2 completion report](../../plans/reports/codex-261108-2238-cp2.md).

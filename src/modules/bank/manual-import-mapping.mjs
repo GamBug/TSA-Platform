@@ -6,6 +6,7 @@ const need = (condition) => { if (!condition) reject(422, 'MANUAL_MAPPING_INVALI
 
 export async function loadRegisteredManualTaxonomy(client, input) {
   const mapping = parseManualImportMapping(input);
+  const section = mapping.profile === 'corpus-math-draft/1' ? 'MATH' : 'READING';
   const result = await client.query(`SELECT tv.id,tv.name,tv.version_no,tv.definition_hash,
     n.id AS node_id,n.code,n.kind,n.parent_id,n.metadata
     FROM tsa.taxonomy_versions tv LEFT JOIN tsa.taxonomy_nodes n ON n.taxonomy_version_id=tv.id
@@ -23,9 +24,9 @@ export async function loadRegisteredManualTaxonomy(client, input) {
     const node = nodes.get(declared.registeredCode);
     need(node && node.id === declared.registeredNodeId && node.kind === declared.registeredKind
       && declared.stagingCode === declared.registeredCode && declared.stagingKind === declared.registeredKind
-      && declared.section === 'READING');
-    if (node.kind === 'DOMAIN') need(node.code === 'READING' && node.parentId === null && declared.parentCode === null);
-    else need(node.kind === 'SKILL' && nodes.get('READING')?.id === node.parentId && declared.parentCode === 'READING');
+      && declared.section === section);
+    if (node.kind === 'DOMAIN') need(node.code === section && node.parentId === null && declared.parentCode === null);
+    else need(node.kind === 'SKILL' && nodes.get(section)?.id === node.parentId && declared.parentCode === section);
   }
   need(new Set(mapping.taxonomy.nodes.map((node) => node.registeredNodeId)).size === 2);
   return taxonomy;
@@ -34,6 +35,7 @@ export async function loadRegisteredManualTaxonomy(client, input) {
 /** Recheck current registered values inside the guarded import transaction. */
 export async function verifyManualRegisteredMapping(client, principal, pkg, input) {
   const mapping = parseManualImportMapping(input);
+  const section = mapping.profile === 'corpus-math-draft/1' ? 'MATH' : 'READING';
   need(principal.userId === mapping.registeredAuthorId
     && pkg.manualRun.declaredOperatorId === mapping.declaredOperatorId
     && pkg.producerNamespace === mapping.producerNamespace && pkg.batchKey === mapping.batchKey
@@ -44,7 +46,7 @@ export async function verifyManualRegisteredMapping(client, principal, pkg, inpu
   const tax = pkg.references.filter((node) => node.kind === 'taxonomy');
   need(tax.length === 1 && tax[0].id === taxonomy.taxonomyVersionId && same(tax[0].payload, taxonomy));
   const maps = pkg.references.filter((node) => node.kind === 'evidence' && node.payload.schemaVersion === 'manual-candidate-map/1');
-  need(maps.length === 10 && pkg.candidates.length === 10);
+  need(maps.length === mapping.candidates.length && pkg.candidates.length === mapping.candidates.length);
   for (const declared of mapping.candidates) {
     const candidate = pkg.candidates.find((item) => item.candidateOrdinal === declared.candidateOrdinal);
     need(candidate);
@@ -59,7 +61,7 @@ export async function verifyManualRegisteredMapping(client, principal, pkg, inpu
       && q.id === declared.questionVersionId && q.questionId === declared.questionId
       && q.stimulusVersionId === declared.stimulusVersionId
       && q.createdBy === principal.userId && q.taxonomyVersionId === taxonomy.taxonomyVersionId
-      && q.domainId === 'READING' && q.skillIds.length === 1 && q.subskillIds.length === 0
+      && q.section === section && q.domainId === section && q.skillIds.length === 1 && q.subskillIds.length === 0
       && mapping.taxonomy.nodes.some((node) => node.registeredKind === 'SKILL' && node.registeredCode === q.skillIds[0]));
   }
   return { mapping, taxonomy };
