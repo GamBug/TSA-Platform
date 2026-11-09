@@ -1,5 +1,16 @@
 # Architectural decisions and open questions
 
+## CP3b revised Math ingestion authority — 2026-11-09
+
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
+Evidence: “I approve the 2026-11-09 revision in cp3-corpus-ingestion.md, including the additive Math import path.”
+The owner also requires 20-item resumable batches, a clean quota stop/report, and reuse of
+CP3a corpus profile/verifier patterns. Scope is the revised CP3 card under the leader prompt;
+source keys, private DRAFT state and existing approval/publication gates remain unchanged.
+Inspection found that the required shared v3 parser/builder is outside the card's explicit
+allowlist. No scope expansion is inferred; [the blocker report](../../plans/reports/codex-261109-1636-cp3b.md)
+records the exact additional paths needed before implementation can resume.
+
 ## CP3a retained import — 2026-11-09
 
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok.

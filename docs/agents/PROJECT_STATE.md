@@ -20,6 +20,8 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-09: CP3b stopped before implementation because the shared v3 parser/builder is outside the card allowlist; see the [CP3b blocker report](../../plans/reports/codex-261109-1636-cp3b.md).
+
 [CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) and CP3a retained Reading import are complete. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP3b Math is next.
 
 - 2026-11-08: CP1 navigation and archives verified; docs validator repaired under owner resumption authorization. See the [CP1 completion report](../../plans/reports/codex-261108-2051-cp1.md).
