@@ -37,3 +37,5 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 Follow the [supervisor demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md) for prerequisites and commands.
 
 - 2026-11-09: CP3 BLOCKED before implementation: 136 explicit-key Reading choices fall short of 150; true/false keys need owner source evidence. [Report](../../plans/reports/codex-261109-0913-cp3.md).
+
+- 2026-11-09: Owner approved CP3a’s 100-item target; CP3a BLOCKED on v3 AI-authorship literals outside its allowed contract scope. [Report](../../plans/reports/codex-261109-1342-cp3a.md).

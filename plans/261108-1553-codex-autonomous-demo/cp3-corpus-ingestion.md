@@ -4,13 +4,33 @@ Goal: turn the permitted corpus into structured DRAFT questions that the owner c
 quickly. Codex never approves or publishes questions.
 Leader reasoning: medium. Reading builder: `tsa_light_builder`. Math builder: `tsa_builder`.
 
+## Revision 2026-11-09 (takes effect when the owner's launch prompt approves it)
+The first run stopped because the "150 Reading DRAFTs" minimum was an arbitrary planning number.
+The corpus audit (`plans/reports/codex-261109-0913-cp3.md`) found 20 passages × 10 questions:
+10 passages are fully keyed choice questions (100 items), 22 true/false items have no recoverable
+key, and 42 items are other types. The revision has four parts:
+
+- CP3 is split into **CP3a Reading** and **CP3b Math**. Each one is a separate Codex session and
+  each has its own exit.
+- **Reading target = the 10 fully keyed passages (100 DRAFTs).** The other 10 passages are deferred
+  whole, so that ten-question bundles stay intact. True/false items without keys go to a
+  `needs_owner_keys` list, and cloze and matching items go to CP4. Do not infer keys.
+- **Math needs its own import path,** because the manual coordinator accepts only
+  `manual-reading-draft/1`. Adding a Math draft schema, mapping and coordinator support, with
+  tests, is in scope. It stays additive: the Reading path and the frozen contracts are unchanged.
+- **Quota:** do small audits inline instead of spawning subagents and polling them. Pipe large
+  outputs through `head` or counts. Math runs in batches of 20, and the session stops cleanly with a
+  report when quota runs low; the next session resumes from the batch log.
+
 ## Read first (only these)
 `plans/reports/research-261106-1827-tsa-example-questions.md`, `docs/guides/MANUAL_DRAFT_TRANSPORT.md`,
 `docs/decisions/OPEN_DECISIONS.md` (top two entries), and `src/modules/bank/manual-import-*.mjs`.
 
 ## Allowed files
 New tools under `tools/corpus-ingest/`, their tests under `tests/ai/`, a generated private output
-under `data/` (gitignored), and the manual-import mapping/config only if the card step requires it.
+under `data/corpus-ingest/` (add it to `.gitignore` first), the manual-import mapping/config, and,
+for CP3b only, additive Math draft support in `packages/contracts/src/manual-factory-*.ts`,
+`src/modules/bank/manual-import-*.mjs` and their tests.
 The source files in `TSA_Example_Questions/` are read-only and never modified.
 
 ## Rules
@@ -27,12 +47,13 @@ The source files in `TSA_Example_Questions/` are read-only and never modified.
   are never silently fixed.
 
 ## Steps
-1. **Reading** (text, deterministic): parse the 200 captures, dedupe the 20 passages, emit v3
-   manual-transport packages for the choice and true/false items, defer the rest. Add unit tests
+1. **CP3a Reading** (text, deterministic): parse the 200 captures, dedupe the 20 passages, and emit
+   v3 manual-transport packages for the 10 fully keyed passages. Write the deferred lists
+   (`needs_owner_keys`, `cp4_types`). Add unit tests
    for answer stripping and for passage dedupe.
 2. Import the Reading packages as DRAFT into a disposable local database through the existing
    coordinator. Verify that DRAFTs appear in the staff review queue with correct passage grouping.
-3. **Math** (images): transcribe the PNGs into structured text with LaTeX. Use vision through the
+3. **CP3b Math** (images): first add the additive Math import path and its tests. Then transcribe the PNGs into structured text with LaTeX. Use vision through the
    owner's subscription UI or an allowed local capability; do not call a paid API. Run the blind
    solve and key comparison. Crop diagrams without answer marks into the private inspected-image
    path. Flag clipped figures.
@@ -40,7 +61,8 @@ The source files in `TSA_Example_Questions/` are read-only and never modified.
    `needs_owner_attention` list; and a sample of 10 items rendered for the owner to spot-check.
 
 ## Exit criteria
-- At least 150 Reading DRAFTs and at least 80 Math DRAFTs import cleanly. Their public fields pass
+- CP3a: 100 Reading DRAFTs (10 passages) import cleanly. CP3b: at least 80 Math DRAFTs import
+  cleanly. Their public fields pass
   the existing content-safety and leakage checks (`npm run test:critical:privacy`, plus a new test
   that asserts no extracted key text appears in a public field).
 - The corpus is unchanged (hash manifest before and after matches) and nothing from it is
