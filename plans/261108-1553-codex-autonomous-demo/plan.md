@@ -31,7 +31,7 @@ Codex updates the Status column. Run one checkpoint per Codex session or goal.
 | CP1 Lean docs | [cp1-lean-docs.md](cp1-lean-docs.md) | CP0 | DONE: compact navigation, verbatim archives and docs checks verified |
 | CP2 Full simulation | [cp2-full-simulation.md](cp2-full-simulation.md) | CP1 | DONE: migration, clocks, privacy, scoring and both browser journeys verified; [report](../reports/codex-261108-2238-cp2.md) |
 | CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | CP3a-import DONE: 100 Reading DRAFTs / ten passages retained; [import report](../reports/codex-261109-1615-cp3a-import.md). [Original verification](../reports/codex-261109-1435-cp3a.md). CP3b DONE: 80 Math DRAFTs / four disposable batches, exit checks and independent review passed; [report](../reports/codex-261109-1721-cp3b.md) |
-| CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | TODO |
+| CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | BLOCKED: matching captures omit the original target pool/reuse policy; owner decision needed before import design; [report](../reports/codex-261109-1958-cp4.md) |
 | CP5 Science ingestion | [cp5-science-ingestion.md](cp5-science-ingestion.md) | CP3 + owner-supplied Science files | TODO |
 | CP6 Demo-ready | [cp6-demo-ready.md](cp6-demo-ready.md) | CP2, CP3 (CP4 and CP5 if done) | TODO |
 
