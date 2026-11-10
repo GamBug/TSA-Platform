@@ -21,7 +21,7 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
-- 2026-11-10: CP4 completed, uncommitted: exit suites, Chromium/Firefox journeys and a recorded independent review passed. Commit grouping and a retained import of the 78 keyed Reading DRAFTs await the owner. See the [CP4 completion report](../../plans/reports/claude-261110-1215-cp4.md).
+- 2026-11-10: CP4 completed and committed (`46cbbb9`..`d7e71f6`): exit suites, Chromium/Firefox journeys and a recorded independent review passed. A retained import of the 78 keyed Reading DRAFTs awaits the owner. See the [CP4 completion report](../../plans/reports/claude-261110-1215-cp4.md).
 
 - 2026-11-09: CP3b completed: 80 private Math DRAFTs verified in four disposable batches of twenty, exit checks and independent review passed. See the [Math checkpoint report](../../plans/reports/codex-261109-1721-cp3b.md).
 

@@ -1,7 +1,7 @@
 # Current handoff — CP4 cloze and matching
 
 - Date/time and agent identity/role: 2026-11-10, Asia/Bangkok; Claude Code (Fable 5.2) as implementer, continuing a Codex session that stopped mid-checkpoint. Reviewer: Claude Haiku 5.5 `code-reviewer` subagent, read-only.
-- Task ID / status / accountable implementer: CP4 Cloze and matching; DONE, uncommitted; the owner decides commit grouping.
+- Task ID / status / accountable implementer: CP4 Cloze and matching; DONE; committed as five commits `46cbbb9`..`d7e71f6` on 2026-11-10 with the owner's approval.
 - Scope: the [CP4 card](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) and [design](../../plans/261108-1553-codex-autonomous-demo/cp4-design.md).
 - Starting repository state: `feat/track-b-data-auth` at `f091f7e` with Codex's uncommitted CP4 contracts, migration 031, runtime, corpus pipeline and student UI.
 - Current Git reference: `f091f7e`; the whole CP4 implementation is in the working tree only.

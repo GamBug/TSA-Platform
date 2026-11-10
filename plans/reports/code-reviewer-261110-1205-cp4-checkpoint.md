@@ -21,7 +21,7 @@ None found.
 **P2-1. Relaxed markdown-image check applies to every question/3 rendered string, outside the design.**
 - File: `src/modules/bank/content-safety.mjs:150-154` (`hasMarkdownImage`), with `allowInertBracketText` set at `:286`, `:300` and `:439`.
 - For `question/3` only, the scanner replaces `/!\s*\[/` with `/!\[|!\s+\[[^\]]*\]\s*(?:\(|\[)/`. The relaxation covers content text, explanations, and cloze/matching labels. The design does not mention it.
-- Practical impact is low: `![` is still rejected and `! [x](y)` is not a CommonMark image, but a security scanner loosened for a whole new schema without a design decision is scope drift. I found no test that exercises the relaxed rule. `tests/integration/bank/content-safety.test.mjs:207` covers a plain URL only.
+- Practical impact is low: `![` is still rejected and a space after `!` followed by bracket text and a parenthesised target is not a CommonMark image, but a security scanner loosened for a whole new schema without a design decision is scope drift. I found no test that exercises the relaxed rule. `tests/integration/bank/content-safety.test.mjs:207` covers a plain URL only.
 - Fix: remove the relaxation, or confine it to a documented need with a dedicated test and an owner decision recorded in `docs/decisions/OPEN_DECISIONS.md`.
 
 ### P3
