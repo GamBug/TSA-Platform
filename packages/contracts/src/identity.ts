@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { BlockSchema } from "./index.ts";
-import { SupportedQuestionVersionSchema, type SupportedQuestionVersion as QuestionVersion } from "./question-v2.ts";
+import { SupportedQuestionVersionSchema, type SupportedQuestionVersion as QuestionVersion } from "./question-v3.ts";
 
 export type ReferenceKind = "taxonomy" | "question" | "stimulus" | "asset" | "provenance" | "evidence" | "source";
 export type ReferenceKey = { kind: ReferenceKind; id: string };
@@ -352,7 +352,8 @@ export function computeQuestionIdentity(questionInput: unknown, referenceInput: 
   const validated = validateGraph(questionInput, referenceInput);
   const references = validated.closure.map(({ kind, id, contentHash }) => ({ kind, id, contentHash }));
   const bytes = canonicalize({
-    canonicalizationVersion: validated.question.schemaVersion === "question/2" ? "identity/2" : "identity/1",
+    canonicalizationVersion: validated.question.schemaVersion === "question/3" ? "identity/3"
+      : validated.question.schemaVersion === "question/2" ? "identity/2" : "identity/1",
     question: questionProjection(validated.question),
     references,
   });
@@ -396,6 +397,17 @@ function fingerprintInteraction(interaction: QuestionVersion["interaction"], nod
     };
   }
   if (interaction.type === "NUMERIC_RESPONSE") return { type: interaction.type, format: interaction.format, label: normalizeHumanStrings(interaction.label) };
+  if (interaction.type === "CLOZE") return {
+    type: interaction.type,
+    fields: interaction.fields.map(({ id: _id, label }) => ({ label: normalizeHumanStrings(label) })),
+    maxLength: interaction.maxLength,
+    normalization: interaction.normalization,
+  };
+  if (interaction.type === "MATCHING") return {
+    type: interaction.type,
+    rows: interaction.rows.map(({ id: _id, label }) => ({ label: normalizeHumanStrings(label) })),
+    targets: interaction.targets.map(({ id: _id, label, maxUses }) => ({ label: normalizeHumanStrings(label), maxUses })),
+  };
   const options = interaction.options.map(({ id: _id, content }) => ({ content: fingerprintBlocks(content, nodes) }));
   if (interaction.type === "SINGLE_CHOICE") return { type: interaction.type, options };
   return {
@@ -421,7 +433,8 @@ export function computeDuplicateFingerprint(questionInput: unknown, referenceInp
   const interaction = fingerprintInteraction(validated.question.interaction, validated.nodes);
   const normalizedStimulus = stimulus === null ? null : normalizeHumanStrings(stimulus);
   const bytes = canonicalize({
-    fingerprintVersion: validated.question.schemaVersion === "question/2" ? "fingerprint/2" : "fingerprint/1",
+    fingerprintVersion: validated.question.schemaVersion === "question/3" ? "fingerprint/3"
+      : validated.question.schemaVersion === "question/2" ? "fingerprint/2" : "fingerprint/1",
     content: normalizeHumanStrings(content),
     interaction: normalizeHumanStrings(interaction),
     stimulus: normalizedStimulus,

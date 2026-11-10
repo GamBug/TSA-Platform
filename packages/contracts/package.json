@@ -40,6 +40,18 @@
       "types": "./src/released-review-v3.ts",
       "default": "./src/released-review-v3.ts"
     },
+    "./student-v4": {
+      "types": "./src/student-v4.ts",
+      "default": "./src/student-v4.ts"
+    },
+    "./released-review-v4": {
+      "types": "./src/released-review-v4.ts",
+      "default": "./src/released-review-v4.ts"
+    },
+    "./staff-v3": {
+      "types": "./src/staff-v3.ts",
+      "default": "./src/staff-v3.ts"
+    },
     "./simulation": {
       "types": "./src/simulation.ts",
       "default": "./src/simulation.ts"

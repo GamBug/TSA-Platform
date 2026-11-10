@@ -1,11 +1,11 @@
 /** Private manual DRAFT transport, absent from student and public exports. */
 import { createHash } from "node:crypto";
-import { types } from "node:util";
 import { QuestionVersionSchema } from "./index.ts";
-import { canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, createReferenceHash, type JsonValue, type ReferenceNode } from "./identity.ts";
-import { ManualFactoryPackageV3Schema as Package, ManualImportMappingSchema as Mapping, ManualArtifactSchema as Artifact, ManualCorpusMathInputSchema, ManualInputSchema, type ManualArtifactKind } from "./manual-factory-schemas.ts";
-import { assertManualJson, copyManualBytes, parseManualJsonBytes, parseManualJsonInput, sameManualValue } from "./manual-json.ts";
+import { canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, type JsonValue, type ReferenceNode } from "./identity.ts";
+import { ManualFactoryPackageV3Schema as Package, ManualImportMappingSchema as Mapping, ManualCorpusMathInputSchema, ManualInputSchema, type ManualArtifactKind } from "./manual-factory-schemas.ts";
+import { assertManualJson, parseManualJsonBytes, parseManualJsonInput, sameManualValue } from "./manual-json.ts";
 import { validateManualRawArtifacts, validateManualTaxonomy } from "./manual-factory-validation.ts";
+import { copyManualArtifacts, createManualArtifactNode, decodeManualArtifacts, finalizeManualReferenceGraph, isManualReferenceReachable, manualQuestionRoots } from "./manual-factory-core.ts";
 export { parseManualJsonBytes } from "./manual-json.ts";
 export type ManualImportMapping = ReturnType<typeof Mapping.parse>;
 export type FactoryPackageV3 = ReturnType<typeof Package.parse>;
@@ -46,84 +46,6 @@ function need(condition: unknown, message: string): void {
 const key = (node: { kind: string; id: string }) => node.kind + "\0" + node.id;
 const same = sameManualValue;
 
-function copyArtifacts(value: unknown): any {
-    if (!value || typeof value !== "object" || types.isProxy(value) || Object.getPrototypeOf(value) !== Object.prototype)
-        fail("Plain artifact object required");
-    const result: Record<string, Uint8Array> = {};
-    for (const name of Reflect.ownKeys(value)) {
-        if (typeof name !== "string" || !ARTIFACT_FIELDS.includes(name as typeof ARTIFACT_FIELDS[number]))
-            fail("Unknown artifact field");
-        const descriptor = Object.getOwnPropertyDescriptor(value, name);
-        if (!descriptor?.enumerable || !Object.hasOwn(descriptor, "value"))
-            fail("Artifact accessors forbidden");
-        result[name] = copyManualBytes(descriptor.value);
-    }
-    for (const name of REQUIRED_ARTIFACT_FIELDS)
-        if (!result[name])
-            fail("Required artifact missing");
-    return result;
-}
-function artifact(id: string, kind: ManualArtifactKind, raw: Uint8Array): ReferenceNode {
-    const b = copyManualBytes(raw);
-    return {
-        kind: "evidence", id, payload: {
-            schemaVersion: "manual-artifact/1", artifactKind: kind, byteLength: b.length, bytesHash: hash(b), bytesBase64: Buffer.from(b).toString("base64")
-        }, references: [], contentHash: ""
-    };
-}
-function finalize(nodes: ReferenceNode[]): ReferenceNode[] {
-    const map = new Map(nodes.map(n => [key(n), n]));
-    const active = new Set<string>();
-    const cache = new Map<string, string>();
-    need(map.size === nodes.length && nodes.length <= 100, "Duplicate or excessive graph nodes");
-    const walk = (n: ReferenceNode, depth = 0): string => {
-        const k = key(n);
-        if (depth > 32 || active.has(k))
-            fail("Graph cycle or depth overflow");
-        const known = cache.get(k);
-        if (known)
-            return known;
-        need(new Set(n.references.map(key)).size === n.references.length, "Duplicate graph edge");
-        active.add(k);
-        const references = n.references.map(r => { const child = map.get(key(r)); need(child, "Missing graph reference"); return {
-            ...r, contentHash: walk(child!, depth + 1)
-        }; });
-        const value = createReferenceHash({
-            kind: n.kind, id: n.id, payload: n.payload, references
-        });
-        active.delete(k);
-        cache.set(k, value);
-        n.contentHash = value;
-        return value;
-    };
-    nodes.forEach(n => walk(n));
-    return nodes;
-}
-function roots(question: FactoryPackageV3["candidates"][number]["question"]) {
-    return [
-        { kind: "taxonomy" as const, id: question.taxonomyVersionId },
-    ...(question.stimulusVersionId ? [{ kind: "stimulus" as const, id: question.stimulusVersionId }] : []),
-        ...question.provenanceIds.map(id => ({ kind: "provenance" as const, id })),
-        ...question.private.evidenceRefs.map(id => ({ kind: "evidence" as const, id })),
-    ];
-}
-function reachable(n: ReferenceNode, map: Map<string, ReferenceNode>, refs: {
-    kind: string;
-    id: string;
-}[]): boolean {
-    const seen = new Set<string>();
-    const visit = (ref: { kind: string; id: string }) => {
-        const refKey = key(ref);
-        if (seen.has(refKey)) return;
-
-        seen.add(refKey);
-        const node = map.get(refKey);
-        need(node, "Missing root");
-        node!.references.forEach(visit);
-    };
-    refs.forEach(visit);
-    return seen.has(key(n));
-}
 export function parseManualImportMapping(input: unknown): ManualImportMapping {
     const m = Mapping.parse(parseManualJsonInput(input, "mapping"));
     const math = m.profile === "corpus-math-draft/1";
@@ -153,9 +75,9 @@ export function buildManualFactoryPackageV3(input: Parameters<typeof construct>[
     const pkg = construct(input);
     need(canonicalize(pkg).byteLength <= 1024 * 1024, "Package exceeds 1 MiB");
     need(canonicalize(pkg.manualRun).byteLength <= 16 * 1024, "Run summary too large");
-    const seen = new Set<string>(), map = new Map((pkg.references as ReferenceNode[]).map(n => [key(n), n]));
+    const seen = new Set<string>();
     for (const c of pkg.candidates) {
-        const closure = (pkg.references as ReferenceNode[]).filter(n => reachable(n, map, roots(c.question)));
+        const closure = (pkg.references as ReferenceNode[]).filter(n => isManualReferenceReachable(n, pkg.references as ReferenceNode[], manualQuestionRoots(c.question)));
         const fp = computeDuplicateFingerprint(c.question, closure).fingerprint;
         need(!seen.has(fp), "Duplicate fingerprint");
         seen.add(fp);
@@ -164,14 +86,7 @@ export function buildManualFactoryPackageV3(input: Parameters<typeof construct>[
 }
 export function parseManualFactoryPackageV3(input: unknown): FactoryPackageV3 {
     const pkg = Package.parse(parseManualJsonInput(input, "manual package"));
-    const artifacts: Record<string, Uint8Array> = {};
-    for (const [name, ref] of Object.entries(pkg.manualRun.artifactRefs)) {
-        const nodes = pkg.references.filter(n => n.kind === "evidence" && n.id === ref!.id);
-        need(nodes.length === 1 && nodes[0]!.references.length === 0, "Artifact must be one leaf");
-        const a = Artifact.parse(nodes[0]!.payload), b = Buffer.from(a.bytesBase64, "base64");
-        need(a.artifactKind === ARTIFACT_KINDS[name] && b.toString("base64") === a.bytesBase64 && b.length === a.byteLength && hash(b) === a.bytesHash && ref!.bytesHash === a.bytesHash, "Raw artifact mismatch");
-        artifacts[name] = b;
-    }
+    const artifacts = decodeManualArtifacts(pkg.manualRun.artifactRefs, pkg.references, ARTIFACT_KINDS);
     const math = pkg.profile === "corpus-math-draft/1";
     const rawInput = (math ? ManualCorpusMathInputSchema : ManualInputSchema).parse(parseManualJsonBytes(artifacts.input!, "input"));
     const source = rawInput.sources[0]!, tax = pkg.references.filter(n => n.kind === "taxonomy");
@@ -221,7 +136,7 @@ function construct(input: {
     transformation: string;
 }): FactoryPackageV3 {
     const mapping = parseManualImportMapping(input.mapping);
-    const copied = copyArtifacts(input.artifacts);
+    const copied = copyManualArtifacts(input.artifacts, ARTIFACT_FIELDS, REQUIRED_ARTIFACT_FIELDS);
     input = {
         ...input, artifacts: copied
     };
@@ -258,7 +173,7 @@ function construct(input: {
                 "artifact-critic-notes", "CRITIC_NOTES", input.artifacts.criticNotes
             ]);
     }
-    const artifacts = art.map(([id, k, b]) => artifact(id, k, b));
+    const artifacts = art.map(([id, k, b]) => createManualArtifactNode(id, k, b));
     const ref = (id: string) => ({
         id, bytesHash: (artifacts.find(a => a.id === id)!.payload as any).bytesHash
     });
@@ -385,8 +300,8 @@ function construct(input: {
                 answerKey: raw.answerKey, explanation: raw.explanation, evidenceRefs: [xid, eid], scoringPolicy: "practice-binary-v1"
             }, origin: corpus ? "IMPORTED" : "GENERATED", provenanceIds: [vNode.id], generationRunId: null, createdBy: mapping.registeredAuthorId, createdAt: declaration.generatedAt, contentHash: "sha256:" + "0".repeat(64)
         };
-        finalize(nodes);
-        const identity = computeQuestionIdentity(q, nodes.filter(n => reachable(n, new Map(nodes.map(n => [n.kind + "\0" + n.id, n])), roots(q))));
+        finalizeManualReferenceGraph(nodes);
+        const identity = computeQuestionIdentity(q, nodes.filter(n => isManualReferenceReachable(n, nodes, manualQuestionRoots(q))));
         q.contentHash = identity.contentHash;
         candidates.push({
             itemKey: math ? "corpus-math-item" : "manual-reading-bundle", candidateOrdinal: m.candidateOrdinal, contentHash: identity.contentHash, question: q, provenance, manualRunId: run.manualRunId, validations: [{
@@ -394,7 +309,7 @@ function construct(input: {
                 }]
         });
     }
-    finalize(nodes);
+    finalizeManualReferenceGraph(nodes);
     return Package.parse({
         schemaVersion: "factory-package/3", profile: mapping.profile, producerNamespace: mapping.producerNamespace, batchKey: mapping.batchKey, manualRun: run, sourcePermissions: [permission], sourceAuthoring: [authoring], candidates, references: nodes, assets: []
     });

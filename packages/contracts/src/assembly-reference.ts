@@ -9,6 +9,7 @@ import {
   type BlueprintConfig,
 } from "./index.ts";
 import { BlueprintConfigV2Schema, InteractionTypeV2Schema } from "./blueprint-v2.ts";
+import { BlueprintConfigV4Schema, InteractionTypeV4Schema } from "./blueprint-v4.ts";
 import { canonicalize } from "./identity.ts";
 import { BlueprintConfigV3Schema } from "./blueprint-v3.ts";
 import { shuffleAssemblyUnitsV1 } from "./assembly-random.ts";
@@ -97,6 +98,15 @@ export type AssemblyManifestV2 = z.infer<typeof ManifestV2Schema>;
 export type ParsedAssemblyManifestV2 = { manifest: AssemblyManifestV2; bytes: Uint8Array; manifestHash: string };
 const ManifestV3Schema = ManifestSchema.extend({ schemaVersion: z.literal("assembly-manifest/3"), blueprint: BlueprintConfigV3Schema, reuseMode: z.literal("NEW_ONLY") });
 export type AssemblyManifestV3 = z.infer<typeof ManifestV3Schema>;
+const MemberV4Schema = MemberSchema.extend({ interactionType: InteractionTypeV4Schema });
+const UnitV4Schema = UnitSchema.extend({ members: z.array(MemberV4Schema).min(1).max(MAX_MEMBERS_PER_UNIT) });
+const ManifestV4Schema = ManifestSchema.extend({
+  schemaVersion: z.literal("assembly-manifest/4"),
+  blueprint: BlueprintConfigV4Schema,
+  units: z.array(UnitV4Schema).max(MAX_RAW_UNITS),
+});
+export type AssemblyManifestV4 = z.infer<typeof ManifestV4Schema>;
+export type ParsedAssemblyManifestV4 = { manifest: AssemblyManifestV4; bytes: Uint8Array; manifestHash: string };
 export function parseAssemblyManifestV3(input: unknown) {
   return finishManifest(ManifestV3Schema.parse(copyAndCheckRawManifest(input)), normalizeManifest);
 }
@@ -107,9 +117,9 @@ export function runAssemblyReferenceV3(input: unknown): AssemblyResult {
   const slots = result.slots.map((slot, ordinal) => ({ ...slot, ordinal }));
   return { ...result, slots, slotsHash: sha256(canonicalize(slots)) };
 }
-type SupportedPersonalManifest = AssemblyManifest | AssemblyManifestV2 | AssemblyManifestV3;
-type SupportedMember = AssemblyMember | z.infer<typeof MemberV2Schema>;
-type SupportedUnit = AssemblyUnit | z.infer<typeof UnitV2Schema>;
+type SupportedPersonalManifest = AssemblyManifest | AssemblyManifestV2 | AssemblyManifestV3 | AssemblyManifestV4;
+type SupportedMember = AssemblyMember | z.infer<typeof MemberV2Schema> | z.infer<typeof MemberV4Schema>;
+type SupportedUnit = AssemblyUnit | z.infer<typeof UnitV2Schema> | z.infer<typeof UnitV4Schema>;
 
 export type AssemblyMember = z.infer<typeof MemberSchema>;
 export type AssemblyUnit = z.infer<typeof UnitSchema>;
@@ -308,6 +318,12 @@ export function parseAssemblyManifest(input: unknown): ParsedAssemblyManifest {
 export function parseAssemblyManifestV2(input: unknown): ParsedAssemblyManifestV2 {
   const copied = copyAndCheckRawManifest(input);
   return finishManifest(ManifestV2Schema.parse(copied), normalizeManifest);
+}
+
+/** Additive personal manifest for cloze/matching practice; selection ordering remains assembly/1. */
+export function parseAssemblyManifestV4(input: unknown): ParsedAssemblyManifestV4 {
+  const copied = copyAndCheckRawManifest(input);
+  return finishManifest(ManifestV4Schema.parse(copied), normalizeManifest);
 }
 
 /** Parse, validate and canonicalize a complete fixed /1 snapshot. */
@@ -623,6 +639,11 @@ export function runAssemblyReference(input: unknown): AssemblyResult {
 
 export function runAssemblyReferenceV2(input: unknown): AssemblyResult {
   const { manifest, manifestHash } = parseAssemblyManifestV2(input);
+  return runPersonalReference(manifest, manifestHash);
+}
+
+export function runAssemblyReferenceV4(input: unknown): AssemblyResult {
+  const { manifest, manifestHash } = parseAssemblyManifestV4(input);
   return runPersonalReference(manifest, manifestHash);
 }
 
