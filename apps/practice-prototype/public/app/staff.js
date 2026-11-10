@@ -727,8 +727,119 @@ function validNumericLabel(value) {
     && !/[\u0000-\u001f\u007f-\u009f<>]/u.test(value);
 }
 
+// These mirror the private cloze/matching contract limits so previews and drafts fail closed here.
+const STAFF_STABLE_ID = /^[a-z][a-z0-9_-]{0,39}$/;
+const scalarLength = (value) => [...value].length;
+const normalizeStaffClozeText = (value) => value.normalize('NFC').trim();
+
+function validPlainLabel(value) {
+  return typeof value === 'string' && value.trim().length > 0 && scalarLength(value) <= 2000
+    && !/[\u0000-\u001f\u007f-\u009f<>]/u.test(value);
+}
+
+function validStableEntries(entries, maximum) {
+  return Array.isArray(entries) && entries.length >= 1 && entries.length <= maximum
+    && entries.every((entry) => entry && STAFF_STABLE_ID.test(entry.id) && validPlainLabel(entry.label))
+    && new Set(entries.map((entry) => entry.id)).size === entries.length;
+}
+
+function plainRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validClozeVariants(variants, maxLength) {
+  if (!Array.isArray(variants) || variants.length < 1 || variants.length > 16) return false;
+  const normalized = new Set();
+  for (const variant of variants) {
+    if (typeof variant !== 'string' || scalarLength(variant) > maxLength) return false;
+    const value = normalizeStaffClozeText(variant);
+    if (!value || normalized.has(value)) return false;
+    normalized.add(value);
+  }
+  return true;
+}
+
+function supportedCloze(interaction, answerKey) {
+  if (!validStableEntries(interaction.fields, 20) || !Number.isSafeInteger(interaction.maxLength)
+    || interaction.maxLength < 1 || interaction.maxLength > 256 || !plainRecord(answerKey.acceptedValues)) return false;
+  return Object.keys(answerKey.acceptedValues).length === interaction.fields.length
+    && interaction.fields.every((field) => validClozeVariants(answerKey.acceptedValues[field.id], interaction.maxLength));
+}
+
+function supportedMatching(interaction, answerKey) {
+  if (!validStableEntries(interaction.rows, 40) || !validStableEntries(interaction.targets, 40)
+    || !interaction.targets.every((target) => Number.isSafeInteger(target.maxUses) && target.maxUses >= 1 && target.maxUses <= 40)
+    || !plainRecord(answerKey.answers) || Object.keys(answerKey.answers).length !== interaction.rows.length) return false;
+  const remaining = new Map(interaction.targets.map((target) => [target.id, target.maxUses]));
+  return interaction.rows.every((row) => {
+    const targetId = answerKey.answers[row.id];
+    if (!remaining.has(targetId) || remaining.get(targetId) < 1) return false;
+    remaining.set(targetId, remaining.get(targetId) - 1);
+    return true;
+  });
+}
+
+// Author entry format: one cloze field per line, "label | accepted answer | further accepted answer".
+function parseClozeDraft(text, maxLength) {
+  const lines = String(text).split('\n').map((line) => line.trim()).filter(Boolean);
+  if (!Number.isSafeInteger(maxLength) || maxLength < 1 || maxLength > 256) return { error: 'Độ dài tối đa phải là số nguyên từ 1 đến 256.' };
+  if (lines.length < 1 || lines.length > 20) return { error: 'Nhập từ 1 đến 20 ô, mỗi ô một dòng.' };
+  const fields = [];
+  const acceptedValues = {};
+  for (const [index, line] of lines.entries()) {
+    const [label, ...variants] = line.split('|').map((part) => part.trim());
+    if (!validPlainLabel(label)) return { error: `Dòng ${index + 1}: nhãn ô phải là văn bản thuần.` };
+    if (!validClozeVariants(variants, maxLength)) {
+      return { error: `Dòng ${index + 1}: cần 1 đến 16 đáp án khác nhau, không rỗng, mỗi đáp án tối đa ${maxLength} ký tự.` };
+    }
+    const id = `field-${index + 1}`;
+    fields.push({ id, label });
+    acceptedValues[id] = variants;
+  }
+  return {
+    interaction: { type: 'CLOZE', fields, maxLength,
+      normalization: { unicode: 'NFC', trim: 'OUTER', caseSensitive: true, diacritics: 'PRESERVE' } },
+    answerKey: { type: 'CLOZE', acceptedValues },
+  };
+}
+
+// Author entry format: one row per line, "row label | correct target label". Targets are ordered by
+// label rather than by first use so the rendered target list never mirrors the private key order.
+function parseMatchingDraft(text, extraTargets, maxUses) {
+  const lines = String(text).split('\n').map((line) => line.trim()).filter(Boolean);
+  const extras = String(extraTargets).split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 1 || lines.length > 40) return { error: 'Nhập từ 1 đến 40 hàng, mỗi hàng một dòng.' };
+  if (!Number.isSafeInteger(maxUses) || maxUses < 1 || maxUses > 40) return { error: 'Số lần dùng tối đa phải là số nguyên từ 1 đến 40.' };
+  const pairs = [];
+  for (const [index, line] of lines.entries()) {
+    const parts = line.split('|').map((part) => part.trim());
+    if (parts.length !== 2 || !validPlainLabel(parts[0]) || !validPlainLabel(parts[1])) {
+      return { error: `Dòng ${index + 1}: nhập đúng dạng "nhãn hàng | nhãn đích đúng" bằng văn bản thuần.` };
+    }
+    pairs.push(parts);
+  }
+  if (!extras.every(validPlainLabel)) return { error: 'Mỗi đích gây nhiễu phải là một dòng văn bản thuần.' };
+  const labels = [...new Set([...pairs.map(([, target]) => target), ...extras])].sort();
+  if (labels.length > 40) return { error: 'Tối đa 40 đích.' };
+  for (const label of labels) {
+    if (pairs.filter(([, target]) => target === label).length > maxUses) {
+      return { error: `Đích "${label}" được dùng nhiều hơn ${maxUses} lần.` };
+    }
+  }
+  const targetIds = new Map(labels.map((label, index) => [label, `target-${index + 1}`]));
+  return {
+    interaction: { type: 'MATCHING',
+      rows: pairs.map(([label], index) => ({ id: `row-${index + 1}`, label })),
+      targets: labels.map((label) => ({ id: targetIds.get(label), label, maxUses })) },
+    answerKey: { type: 'MATCHING',
+      answers: Object.fromEntries(pairs.map(([, target], index) => [`row-${index + 1}`, targetIds.get(target)])) },
+  };
+}
+
 function supportedInteraction(interaction, answerKey) {
   if (!interaction || !answerKey || interaction.type !== answerKey.type) return false;
+  if (interaction.type === 'CLOZE') return supportedCloze(interaction, answerKey);
+  if (interaction.type === 'MATCHING') return supportedMatching(interaction, answerKey);
   if (interaction.type === 'NUMERIC_RESPONSE') {
     return interaction.format === 'DECIMAL' && validNumericLabel(interaction.label)
       && typeof answerKey.value === 'string' && normalizeStaffDecimal(answerKey.value) === answerKey.value;
@@ -1288,7 +1399,24 @@ function renderPrivateQuestion(question) {
   }
 
   const interaction = question.interaction;
-  if (interaction.type === 'NUMERIC_RESPONSE') {
+  if (interaction.type === 'CLOZE') {
+    article.append(node('p', 'question-instruction',
+      `Điền khuyết · tối đa ${interaction.maxLength} ký tự mỗi ô · so khớp phân biệt hoa thường và giữ nguyên dấu.`));
+    const fields = node('ol', 'review-options');
+    for (const field of interaction.fields) fields.append(node('li', '', `${field.label} · ${field.id}`));
+    article.append(fields);
+  } else if (interaction.type === 'MATCHING') {
+    article.append(node('p', 'question-instruction', 'Ghép nối · mỗi hàng chọn đúng một đích.'));
+    article.append(node('h4', '', 'Các hàng'));
+    const rows = node('ol', 'review-options');
+    for (const row of interaction.rows) rows.append(node('li', '', `${row.label} · ${row.id}`));
+    article.append(rows, node('h4', '', 'Các đích'));
+    const targets = node('ol', 'review-options');
+    for (const target of interaction.targets) {
+      targets.append(node('li', '', `${target.label} · ${target.id} · dùng tối đa ${target.maxUses} lần`));
+    }
+    article.append(targets);
+  } else if (interaction.type === 'NUMERIC_RESPONSE') {
     article.append(node('p', 'question-instruction', `${interaction.label} · Số thập phân`));
   } else if (interaction.type === 'TRUE_FALSE_GROUP') {
     const statements = node('ol', 'tf-review-statements');
@@ -1314,7 +1442,12 @@ function renderPrivateQuestion(question) {
   }
 
   let keyText;
-  if (question.answerKey.type === 'NUMERIC_RESPONSE') keyText = question.answerKey.value;
+  if (question.answerKey.type === 'CLOZE') {
+    keyText = interaction.fields.map((field) => `${field.label}: ${question.answerKey.acceptedValues[field.id].join(' | ')}`).join(' · ');
+  } else if (question.answerKey.type === 'MATCHING') {
+    const targetLabels = new Map(interaction.targets.map((target) => [target.id, target.label]));
+    keyText = interaction.rows.map((row) => `${row.label} → ${targetLabels.get(question.answerKey.answers[row.id])}`).join(' · ');
+  } else if (question.answerKey.type === 'NUMERIC_RESPONSE') keyText = question.answerKey.value;
   else if (question.answerKey.type === 'SINGLE_CHOICE') keyText = question.answerKey.optionId;
   else if (question.answerKey.type === 'MULTIPLE_CHOICE') keyText = question.answerKey.optionIds.join(', ');
   else keyText = interaction.statements.map((statement) => `${statement.id}: ${question.answerKey.values[statement.id] ? 'Đúng' : 'Sai'}`).join(' · ');
@@ -1376,6 +1509,8 @@ export async function openStaffWorkspace(container, onBack) {
     sessionRequestId: 0,
     template: null,
     numericQuestions: false,
+    clozeMatchingQuestions: false,
+    questionProtocol: 'legacy',
     items: [],
     nextCursor: null,
     filters: { state: 'DRAFT', section: '' },
@@ -1431,7 +1566,10 @@ export async function openStaffWorkspace(container, onBack) {
     datasetPreflightControls: null,
   };
 
-  const questionApi = () => state.numericQuestions ? '/api/v2' : '/api/v1';
+  // The cloze/matching Bank route lists and reviews only its own question protocol, so the
+  // workspace switches the whole list scope instead of mixing pages from two routes.
+  const questionApi = () => state.clozeMatchingQuestions && state.questionProtocol === 'cloze-matching' ? '/api/v4'
+    : state.numericQuestions ? '/api/v2' : '/api/v1';
 
   function sessionChangedError() {
     const error = new Error('The local session changed. Reload its current state before continuing.');
@@ -1448,6 +1586,8 @@ export async function openStaffWorkspace(container, onBack) {
     state.principal = null;
     state.template = null;
     state.numericQuestions = false;
+    state.clozeMatchingQuestions = false;
+    state.questionProtocol = 'legacy';
     state.pendingCreate = null;
     state.canReadList = false;
     state.items = [];
@@ -4739,6 +4879,13 @@ export async function openStaffWorkspace(container, onBack) {
         option.value = 'NUMERIC_RESPONSE';
         interactionType.append(option);
       }
+      if (state.clozeMatchingQuestions) {
+        for (const [value, labelText] of [['CLOZE', 'Điền khuyết'], ['MATCHING', 'Ghép nối']]) {
+          const option = node('option', '', labelText);
+          option.value = value;
+          interactionType.append(option);
+        }
+      }
       interactionTypeField.append(interactionTypeLabel, interactionType);
       const interactionHelp = node('p', 'staff-form-help', 'Chuyển loại sẽ xóa các đáp án đã chọn. Hãy chọn lại đáp án cho loại mới trước khi tạo bản nháp.');
       interactionHelp.id = 'draft-interaction-help';
@@ -4750,10 +4897,11 @@ export async function openStaffWorkspace(container, onBack) {
         answerField.replaceChildren();
         const type = interactionType.value;
         const numeric = type === 'NUMERIC_RESPONSE' && state.numericQuestions;
+        const clozeMatching = (type === 'CLOZE' || type === 'MATCHING') && state.clozeMatchingQuestions;
         for (const option of [firstOption, secondOption]) {
-          option.field.hidden = numeric;
-          option.input.disabled = numeric;
-          option.input.required = !numeric;
+          option.field.hidden = numeric || clozeMatching;
+          option.input.disabled = numeric || clozeMatching;
+          option.input.required = !numeric && !clozeMatching;
           option.input.setCustomValidity('');
         }
         firstOption.label.textContent = type === 'TRUE_FALSE_GROUP' ? 'Mệnh đề A' : 'Lựa chọn A';
@@ -4778,6 +4926,51 @@ export async function openStaffWorkspace(container, onBack) {
           answer.input.addEventListener('input', validate);
           answerField.append(label.field, answer.field, help);
           activeAnswerControls = { type, label: label.input, answer: answer.input, validate };
+          return;
+        }
+
+        if (clozeMatching && type === 'CLOZE') {
+          answerField.append(node('legend', '', 'Các ô điền khuyết và đáp án được chấp nhận'));
+          const fields = labeledInput('Mỗi dòng một ô: nhãn | đáp án | đáp án khác', 'draft-cloze-fields', '', true);
+          fields.input.rows = 4;
+          const maxLength = labeledInput('Độ dài tối đa của mỗi ô (ký tự)', 'draft-cloze-max-length', '40');
+          maxLength.input.inputMode = 'numeric';
+          const help = node('p', 'staff-form-help', 'So khớp phân biệt hoa thường và giữ nguyên dấu tiếng Việt; chỉ bỏ khoảng trắng đầu và cuối. Thêm mỗi cách viết được chấp nhận thành một đáp án riêng.');
+          help.id = 'draft-cloze-help';
+          fields.input.setAttribute('aria-describedby', help.id);
+          const controls = { type, parsed: null };
+          controls.validate = () => {
+            controls.parsed = parseClozeDraft(fields.input.value, /^[0-9]{1,3}$/.test(maxLength.input.value.trim())
+              ? Number(maxLength.input.value.trim()) : Number.NaN);
+            fields.input.setCustomValidity(controls.parsed.error ?? '');
+          };
+          fields.input.addEventListener('input', controls.validate);
+          maxLength.input.addEventListener('input', controls.validate);
+          answerField.append(fields.field, maxLength.field, help);
+          activeAnswerControls = controls;
+          return;
+        }
+
+        if (clozeMatching && type === 'MATCHING') {
+          answerField.append(node('legend', '', 'Các hàng, đích và đáp án ghép nối'));
+          const rows = labeledInput('Mỗi dòng một hàng: nhãn hàng | nhãn đích đúng', 'draft-matching-rows', '', true);
+          rows.input.rows = 4;
+          const extras = labeledInput('Đích gây nhiễu, mỗi dòng một đích (không bắt buộc)', 'draft-matching-extra-targets', '', true);
+          extras.input.rows = 2;
+          const maxUses = labeledInput('Số lần tối đa mỗi đích được dùng', 'draft-matching-max-uses', '1');
+          maxUses.input.inputMode = 'numeric';
+          const help = node('p', 'staff-form-help', 'Danh sách đích hiển thị cho thí sinh được sắp theo nhãn, không theo thứ tự hàng.');
+          help.id = 'draft-matching-help';
+          rows.input.setAttribute('aria-describedby', help.id);
+          const controls = { type, parsed: null };
+          controls.validate = () => {
+            controls.parsed = parseMatchingDraft(rows.input.value, extras.input.value,
+              /^[0-9]{1,2}$/.test(maxUses.input.value.trim()) ? Number(maxUses.input.value.trim()) : Number.NaN);
+            rows.input.setCustomValidity(controls.parsed.error ?? '');
+          };
+          for (const input of [rows.input, extras.input, maxUses.input]) input.addEventListener('input', controls.validate);
+          answerField.append(rows.field, extras.field, maxUses.field, help);
+          activeAnswerControls = controls;
           return;
         }
 
@@ -4898,7 +5091,10 @@ export async function openStaffWorkspace(container, onBack) {
           }));
           let interaction;
           let answerKey;
-          if (type === 'NUMERIC_RESPONSE' && state.numericQuestions) {
+          const clozeMatching = (type === 'CLOZE' || type === 'MATCHING') && state.clozeMatchingQuestions;
+          if (clozeMatching) {
+            ({ interaction, answerKey } = activeAnswerControls.parsed);
+          } else if (type === 'NUMERIC_RESPONSE' && state.numericQuestions) {
             interaction = { type, label: activeAnswerControls.label.value, format: 'DECIMAL' };
             answerKey = { type, value: activeAnswerControls.answer.value };
           } else if (type === 'SINGLE_CHOICE') {
@@ -4921,7 +5117,7 @@ export async function openStaffWorkspace(container, onBack) {
             };
           }
           const draft = {
-            schemaVersion: type === 'NUMERIC_RESPONSE' ? 'question/2' : 'question/1',
+            schemaVersion: clozeMatching ? 'question/3' : type === 'NUMERIC_RESPONSE' ? 'question/2' : 'question/1',
             language: 'vi-VN',
             section: selectors.section.value,
             taxonomyVersionId: selectors.taxonomy.value,
@@ -4943,11 +5139,17 @@ export async function openStaffWorkspace(container, onBack) {
           if (!state.pendingCreate || state.pendingCreate.bodySignature !== bodySignature) {
             state.pendingCreate = { bodySignature, key: crypto.randomUUID() };
           }
-          const result = await request(`${questionApi()}/questions`, {
+          // A draft is created on, and afterwards listed from, the route that owns its question protocol.
+          const draftProtocol = clozeMatching ? 'cloze-matching' : 'legacy';
+          const draftApi = clozeMatching ? '/api/v4' : state.numericQuestions ? '/api/v2' : '/api/v1';
+          const result = await request(`${draftApi}/questions`, {
             method: 'POST', body: draft, csrf: true, idempotencyKey: state.pendingCreate.key,
           });
           if (!submissionIsCurrent()) return;
           state.pendingCreate = null;
+          state.questionProtocol = draftProtocol;
+          const protocolFilter = container.querySelector('[data-testid="staff-protocol-filter"]');
+          if (protocolFilter) protocolFilter.value = draftProtocol;
           state.filters = { state: 'DRAFT', section: '' };
           const stateFilter = container.querySelector('[data-testid="staff-state-filter"]');
           const sectionFilter = container.querySelector('[data-testid="staff-section-filter"]');
@@ -4983,6 +5185,15 @@ export async function openStaffWorkspace(container, onBack) {
         state.filters.section = value;
         void loadQuestionList({ reset: true });
       }));
+      if (state.clozeMatchingQuestions) {
+        filters.append(questionFilter('Nhóm loại câu hỏi', 'staff-protocol-filter', [
+          ['legacy', 'Trắc nghiệm, đúng/sai và trả lời số'],
+          ['cloze-matching', 'Điền khuyết và ghép nối'],
+        ], state.questionProtocol, (value) => {
+          state.questionProtocol = value;
+          void loadQuestionList({ reset: true });
+        }));
+      }
       if (state.principal.roles.includes('BANK_MANAGER')) listCard.append(datasetPreflightControls());
       listCard.append(filters);
       const status = node('p', 'notice-panel', 'Đang tải danh sách metadata…');
@@ -5038,11 +5249,24 @@ export async function openStaffWorkspace(container, onBack) {
       if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
       state.template = result.template;
       state.numericQuestions = result.capabilities?.numericQuestions === true;
+      state.clozeMatchingQuestions = result.capabilities?.clozeMatching === true;
       state.taxonomies = Array.isArray(result.taxonomies) ? result.taxonomies : [];
     } else {
       state.template = null;
       state.numericQuestions = false;
+      state.clozeMatchingQuestions = false;
+      if (state.canReadList) {
+        // Reviewers cannot read the author template, so the route itself reports whether it is enabled.
+        try {
+          await request('/api/v4/questions?limit=1');
+          if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
+          state.clozeMatchingQuestions = true;
+        } catch (error) {
+          if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
+        }
+      }
     }
+    if (!state.clozeMatchingQuestions) state.questionProtocol = 'legacy';
     if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
     if (state.canReadList) await loadQuestionList({ reset: true });
     if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;

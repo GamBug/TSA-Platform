@@ -16,6 +16,8 @@ import { createFactoryImportService } from '../src/modules/bank/factory-import.m
 const artifacts = path.resolve(process.env.TRACK_B_ARTIFACT_DIR ?? path.join(tmpdir(), 'tsa-track-b-browser-evidence'));
 const browserExecutable = process.env.TRACK_B_BROWSER ?? '/snap/bin/chromium';
 const numericStaff = process.env.TRACK_B_NUMERIC_TEST === 'true';
+const clozeMatchingStaff = process.env.TRACK_B_CLOZE_MATCHING_TEST === 'true';
+if (numericStaff && clozeMatchingStaff) throw new Error('Numeric and cloze/matching staff verification run separately');
 const timeoutMs = 120_000;
 const scratch = await mkdtemp(path.join(tmpdir(), 'tsa-track-b-browser-'));
 await chmod(scratch, 0o700);
@@ -133,7 +135,8 @@ try {
   await mkdir(artifacts, { recursive: true });
   runtime = await createTrackBRuntime({
     env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true',
-      ...(numericStaff ? {LOCAL_STUDENT_ENABLED:'true',LOCAL_NUMERIC_PRACTICE_ENABLED:'true'} : {}) },
+      ...(numericStaff ? {LOCAL_STUDENT_ENABLED:'true',LOCAL_NUMERIC_PRACTICE_ENABLED:'true'} : {}),
+      ...(clozeMatchingStaff ? { LOCAL_STUDENT_ENABLED: 'true', LOCAL_CLOZE_MATCHING_ENABLED: 'true' } : {}) },
     dataDirectory: path.join(scratch, 'cluster'),
     port: 0,
   });
@@ -191,7 +194,50 @@ try {
   await waitFor(`Boolean(${query('draft-create')} && ${query('staff-question-list')})`, 'AUTHOR draft workspace');
   assert.match(await evaluate('document.body.innerText'), /LOCAL_SYNTHETIC_ONLY/);
 
-  if (numericStaff) {
+  if (clozeMatchingStaff) {
+    const setValue = (id, value, eventName = 'input') => evaluate(`(()=>{const e=${query(id)};e.value=${JSON.stringify(value)};e.dispatchEvent(new Event(${JSON.stringify(eventName)},{bubbles:true}));return true;})()`);
+    const draftItems = (api) => evaluate(`fetch('${api}/questions?state=DRAFT&limit=100').then(r=>r.json()).then(r=>r.items)`);
+    assert.equal(await evaluate(`${query('staff-protocol-filter')}.value`), 'legacy');
+    await setValue('draft-interaction-type', 'CLOZE', 'change');
+    await waitFor(`Boolean(${query('draft-cloze-fields')})`, 'cloze staff editor capability');
+    assert.equal(await evaluate(`${query('draft-option-a')}.disabled`), true);
+    await setValue('draft-cloze-fields', 'Thành phố');
+    assert.equal(await evaluate(`${query('draft-cloze-fields')}.checkValidity()`), false, 'a cloze field without an accepted answer is rejected');
+    await setValue('draft-cloze-fields', 'Thành phố | Hà Nội | Ha Noi\nTỉ lệ | 3:2');
+    assert.equal(await evaluate(`${query('draft-cloze-fields')}.checkValidity()`), true);
+    await screenshot('cloze-staff-editor-desktop');
+    await click('draft-create');
+    await waitFor(`${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===1`, 'cloze immutable draft listed');
+    assert.equal(await evaluate(`${query('staff-protocol-filter')}.value`), 'cloze-matching', 'the list follows the new draft to its route');
+
+    await setValue('draft-interaction-type', 'MATCHING', 'change');
+    await waitFor(`Boolean(${query('draft-matching-rows')})`, 'matching staff editor');
+    await setValue('draft-matching-rows', 'Hàng một | Xanh\nHàng hai | Xanh');
+    assert.equal(await evaluate(`${query('draft-matching-rows')}.checkValidity()`), false, 'reuse beyond the per-target limit is rejected');
+    await setValue('draft-matching-rows', 'Hàng một | Xanh\nHàng hai | Đỏ');
+    await setValue('draft-matching-extra-targets', 'Vàng');
+    assert.equal(await evaluate(`${query('draft-matching-rows')}.checkValidity()`), true);
+    await screenshot('matching-staff-editor-desktop');
+    await click('draft-create');
+    await waitFor(`${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===2`, 'matching immutable draft listed');
+
+    const listing = await draftItems('/api/v4');
+    assert.deepEqual(listing.map((item) => item.interactionType).sort(), ['CLOZE', 'MATCHING']);
+    assert.equal((await draftItems('/api/v1')).length, 0, 'question/3 drafts stay out of the v1 metadata list');
+    for (const item of listing) {
+      await evaluate(`document.querySelector('[data-testid="staff-review-inspect"][data-version-id="${item.versionId}"]').click()`);
+      await waitFor(`Boolean(${query('staff-review-context')})`, `${item.interactionType} versioned staff context`);
+      const context = await evaluate(`fetch('/api/v4/question-versions/${item.versionId}/review-context').then(r=>r.json())`);
+      assert.equal(context.schemaVersion, 'staff-review-context/3');
+      assert.equal(context.preview.status, 'BLOCKED');
+      assert.equal(context.preview.reason, 'RIGHTS_BLOCKED', 'synthetic UNKNOWN source remains unapproved');
+      assert.equal(/Hà Nội|Ha Noi|acceptedValues|"answers"/.test(JSON.stringify(context)), false, 'blocked preview discloses no private key');
+    }
+    await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: true });
+    await noHorizontalOverflow();
+    await screenshot('cloze-matching-staff-context-mobile');
+    report.checks.push('Explicit cloze/matching staff capability, draft-entry validation, immutable question/3 CLOZE and MATCHING DRAFTs on /api/v4, v1 metadata exclusion and rights-blocked staff-review-context/3 verified against PostgreSQL; no approval or publication.');
+  } else if (numericStaff) {
     await evaluate(`(()=>{const type=${query('draft-interaction-type')};type.value='NUMERIC_RESPONSE';type.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
     await waitFor(`Boolean(${query('draft-numeric-answer')})`,'numeric staff editor capability');
     assert.equal(await evaluate(`${query('draft-option-a')}.disabled`),true);

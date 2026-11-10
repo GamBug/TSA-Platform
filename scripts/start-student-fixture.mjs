@@ -10,6 +10,7 @@ import { createDomainStudentFixture } from '../tests/integration/student-runtime
 import { createMixedStudentFixture } from '../tests/integration/student-runtime/mixed-fixture.mjs';
 import { createSimulationFixture } from '../tests/integration/student-runtime/simulation-fixture.mjs';
 import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
+import { createClozeMatchingFixture } from '../tests/integration/student-runtime/cloze-matching-fixture.mjs';
 import { createStudentRuntime } from '../src/local/student.mjs';
 import { createDatabasePool } from '../src/modules/database/pool.mjs';
 
@@ -18,13 +19,15 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
       || env.LOCAL_SYNTHETIC_ONLY !== 'true' || env.STUDENT_FIXTURE_DEMO !== 'true') {
     throw new Error('Disposable student demo requires NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true');
   }
-  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT', 'STUDENT_FIXTURE_NUMERIC', 'STUDENT_FIXTURE_SIMULATION']) {
+  for (const flag of ['STUDENT_FIXTURE_DOMAINS', 'STUDENT_FIXTURE_READING', 'STUDENT_FIXTURE_FIXED', 'STUDENT_FIXTURE_SHORT', 'STUDENT_FIXTURE_NUMERIC', 'STUDENT_FIXTURE_CLOZE_MATCHING', 'STUDENT_FIXTURE_SIMULATION']) {
     if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) throw new Error(`${flag} must be true or false`);
   }
   const domains = env.STUDENT_FIXTURE_DOMAINS === 'true', reading = env.STUDENT_FIXTURE_READING === 'true';
   const fixed = env.STUDENT_FIXTURE_FIXED === 'true', short = env.STUDENT_FIXTURE_SHORT === 'true';
-  const numeric = env.STUDENT_FIXTURE_NUMERIC === 'true', simulation = env.STUDENT_FIXTURE_SIMULATION === 'true';
-  if (simulation && (numeric || domains || reading || fixed || short)) throw new Error('Full simulation requires its own disposable fixture');
+  const numeric = env.STUDENT_FIXTURE_NUMERIC === 'true', clozeMatching = env.STUDENT_FIXTURE_CLOZE_MATCHING === 'true';
+  const simulation = env.STUDENT_FIXTURE_SIMULATION === 'true';
+  if (simulation && (numeric || clozeMatching || domains || reading || fixed || short)) throw new Error('Full simulation requires its own disposable fixture');
+  if (clozeMatching && (numeric || domains || reading || fixed || short)) throw new Error('Cloze/matching demonstration requires its own disposable fixture profile');
   if (numeric && (domains || reading || fixed || short)) throw new Error('Numeric demonstration requires its own disposable fixture profile');
   if (short && !domains) throw new Error('Short student demonstration requires the three-domain fixture');
   if (fixed && !domains) throw new Error('Fixed student demonstration requires the three-domain fixture');
@@ -42,7 +45,7 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     return closing;
   };
   try {
-    fixture = simulation ? await createSimulationFixture() : numeric ? await createNumericFixture() : reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
+    fixture = simulation ? await createSimulationFixture() : clozeMatching ? await createClozeMatchingFixture({ includeLegacyGroups: true }) : numeric ? await createNumericFixture() : reading ? await createSharedReadingFixture() : domains ? await createDomainStudentFixture({extraPerLargeDomain:short?2:0}) : await createMixedStudentFixture();
     if (fixed) await seedFixedStudentForms(fixture);
     if (short) await seedShortStudentProfiles(fixture);
     const login = `fixture_worker_${randomUUID().replaceAll('-', '')}`;
@@ -52,10 +55,10 @@ export async function startStudentFixtureDemo({ env = process.env } = {}) {
     const rate = { capacity: 100, refillPerSecond: 10 };
     runtime = await createStudentRuntime({ identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool,
       env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: simulation ? Number(env.STUDENT_FIXTURE_PORT ?? 3234) : 0,
-      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, enableNumericPractice: numeric, enableFullSimulation: simulation, imageStore: simulation ? fixture.imageStore : null, leaseSeconds: 30, retrySeconds: 1,
+      pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'disposable-student-demo', enableReviewPractice: true, enableFixedPractice: fixed, enableShortPractice: short, enableNumericPractice: numeric, enableClozeMatching: clozeMatching, enableFullSimulation: simulation, imageStore: simulation ? fixture.imageStore : null, leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate } });
-    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, numericPractice: numeric, fullSimulation: simulation,
-      fixtureProfile: simulation ? 'FULL_SIMULATION' : numeric ? 'NUMERIC_MATH' : reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
+    return { origin: runtime.origin, fixedPractice: fixed, shortPractice: short, numericPractice: numeric, clozeMatchingPractice: clozeMatching, fullSimulation: simulation,
+      fixtureProfile: simulation ? 'FULL_SIMULATION' : clozeMatching ? 'SYNTHETIC_CLOZE_MATCHING_WITH_LEGACY_GROUPS' : numeric ? 'NUMERIC_MATH' : reading ? 'SHARED_READING' : domains ? 'THREE_DOMAINS' : 'MIXED_MATH', close };
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Demo startup and cleanup failed'); }
     throw error;
@@ -78,7 +81,7 @@ async function runWorker() {
     demo = await startStudentFixtureDemo();
     if (stopRequested) await stop();
     else {
-      const url = `${demo.origin}/?student=${demo.fullSimulation ? 'postgres-v3' : demo.numericPractice ? 'postgres-v2' : 'postgres'}`;
+      const url = `${demo.origin}/?student=${demo.fullSimulation ? 'postgres-v3' : demo.clozeMatchingPractice ? 'postgres-v4' : demo.numericPractice ? 'postgres-v2' : 'postgres'}`;
       process.stdout.write(`${JSON.stringify({ event: 'ready', url,
         mode: 'DISPOSABLE_SYNTHETIC_ONLY', fixtureProfile: demo.fixtureProfile, note: 'Original engineering fixtures; no human content approval or production publication. Stop with Ctrl+C; data is discarded.' })}\n`);
       process.stdout.write(`\nTSA Practice — local synthetic demonstration\nOpen: ${url}\nChoose synthetic candidate A explicitly; no password or personal data is needed.\n`);

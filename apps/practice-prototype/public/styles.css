@@ -1560,3 +1560,25 @@ body.review-active { overflow: hidden; background: #fff; }
   .numeric-response-input { width: 100%; }
   .numeric-answer-actions .button { flex: 1 1 160px; }
 }
+.cloze-response-control, .matching-response-control { display: grid; gap: 14px; min-width: 0; margin-top: 22px; }
+.cloze-field-label { display: grid; gap: 7px; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.cloze-field-input, .matching-row-select { width: 100%; min-width: 0; min-height: 48px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--ink); background: var(--surface); font: inherit; }
+.cloze-field-input:focus-visible, .matching-row-select:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+.cloze-field-input[aria-invalid="true"], .matching-row-select[aria-invalid="true"] { border-color: var(--brand); }
+.cloze-answer-help, .cloze-answer-error, .cloze-field-error, .matching-answer-error { margin: 0; font-size: .85rem; line-height: 1.55; }
+.cloze-answer-help { color: var(--muted); }
+.cloze-answer-error, .cloze-field-error, .matching-answer-error { color: var(--brand); }
+.cloze-field-error:empty, .cloze-answer-error:empty, .matching-answer-error:empty { display: none; }
+.interaction-answer-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.interaction-answer-actions .button { min-height: 44px; }
+.matching-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 42%); align-items: center; gap: 12px; min-width: 0; }
+.matching-row-label { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.interaction-review { display: grid; gap: 10px; margin: 16px 0; min-width: 0; }
+.interaction-review-row { display: grid; gap: 5px; min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 9px; }
+.interaction-review-label { overflow-wrap: anywhere; }
+.interaction-review-response, .interaction-review-key { margin: 0; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+.interaction-review-key { color: var(--green); font-weight: 650; }
+@media (max-width: 520px) {
+  .matching-row { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .interaction-answer-actions .button { flex: 1 1 150px; }
+}

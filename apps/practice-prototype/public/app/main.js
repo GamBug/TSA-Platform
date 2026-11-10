@@ -11,9 +11,10 @@ const productHeader = document.querySelector("#product-header");
 const announcements = document.querySelector("#announcements");
 const studentMode = new URLSearchParams(window.location.search).get("student");
 const numericMode = studentMode === "postgres-v2";
-const persistentMode = numericMode || studentMode === "postgres";
+const v4Mode = studentMode === "postgres-v4";
+const persistentMode = numericMode || v4Mode || studentMode === "postgres";
 productHeader.dataset.persistent = String(persistentMode);
-const api = persistentMode ? createPersistentApi({ apiVersion: numericMode ? "v2" : "v1" }) : demoApi;
+const api = persistentMode ? createPersistentApi({ apiVersion: numericMode ? "v2" : v4Mode ? "v4" : "v1" }) : demoApi;
 let characterShortcutsEnabled = true;
 
 // Browse navigation belongs to the product shell, independent of route content.
@@ -21,7 +22,8 @@ let characterShortcutsEnabled = true;
 function updateProductHeader(content) {
   const next = [...(content.children ?? [])].find(node => node.matches("header.topbar"));
   productHeader.hidden = !next;
-  if (!next) return;
+  // A hidden header must not keep stale controls that duplicate the visible screen's actions.
+  if (!next) { productHeader.replaceChildren(); return; }
   next.remove();
   const current = productHeader.firstElementChild;
   if (!current) {
@@ -115,6 +117,7 @@ const state = {
   savingSlotId: null,
   pendingAnswer: null,
   numericDraft: null,
+  interactionDraft: null,
   pendingMultipleChoice: null,
   busy: false,
   clockAttemptId: null,
@@ -141,7 +144,7 @@ const state = {
   fixedDialog: null,
 };
 
-const REVIEW_MARKS_STORAGE_PREFIX = "tsa-practice:attempt-review:";
+const REVIEW_MARKS_STORAGE_PREFIX = v4Mode ? "tsa-practice:v4:attempt-review:" : "tsa-practice:attempt-review:";
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -664,6 +667,7 @@ function clearAttemptState() {
   state.savingSlotId = null;
   state.pendingAnswer = null;
   state.numericDraft = null;
+  state.interactionDraft = null;
   state.pendingMultipleChoice = null;
   state.busy = false;
   state.review = null;
@@ -675,6 +679,7 @@ function acceptAttempt(attempt) {
   const previousState = state.attempt?.state;
   const hadPendingChanges = hasUnacknowledgedChanges();
   state.numericDraft = null;
+  state.interactionDraft = null;
   if (previousAttemptId !== attempt.attemptId) {
     state.currentIndex = 0;
     state.pendingAnswer = null;
@@ -2827,6 +2832,30 @@ function selectedAnswer(slotId) {
   return state.attempt.answers.find((answer) => answer.slotId === slotId) ?? null;
 }
 
+function selectedV4Response(slotId, type) {
+  if (state.pendingAnswer?.slotId === slotId && state.pendingAnswer.value?.type === type) return state.pendingAnswer.value;
+  if (state.interactionDraft?.slotId === slotId && state.interactionDraft.type === type) return state.interactionDraft.value;
+  const answer = selectedAnswer(slotId);
+  return answer?.type === type ? answer : null;
+}
+
+function sameOwnMap(left, right) {
+  const a = left && typeof left === "object" ? Object.keys(left) : [];
+  const b = right && typeof right === "object" ? Object.keys(right) : [];
+  return a.length === b.length && a.every((key) => Object.hasOwn(right, key) && left[key] === right[key]);
+}
+
+function hasInteractionDraft(slotId = state.interactionDraft?.slotId) {
+  const draft = state.interactionDraft;
+  if (!draft || draft.slotId !== slotId) return false;
+  const saved = acknowledgedAnswer(slotId);
+  const savedMap = saved?.type === draft.type
+    ? draft.type === "CLOZE" ? saved.values : saved.assignments
+    : null;
+  const draftMap = draft.type === "CLOZE" ? draft.value.values : draft.value.assignments;
+  return !sameOwnMap(draftMap, savedMap);
+}
+
 function acknowledgedAnswer(slotId) {
   return state.attempt.answers.find((answer) => answer.slotId === slotId) ?? null;
 }
@@ -2865,11 +2894,13 @@ function selectedOptions(slotId) {
 
 function hasUnacknowledgedChanges() {
   return state.pendingAnswer !== null || state.pendingMultipleChoice !== null
-    || (state.numericDraft !== null && hasNumericDraft(state.numericDraft.slotId));
+    || (state.numericDraft !== null && hasNumericDraft(state.numericDraft.slotId))
+    || hasInteractionDraft();
 }
 
 function hasPendingForSlot(slotId) {
-  return state.pendingAnswer?.slotId === slotId || state.pendingMultipleChoice?.slotId === slotId || hasNumericDraft(slotId);
+  return state.pendingAnswer?.slotId === slotId || state.pendingMultipleChoice?.slotId === slotId
+    || hasNumericDraft(slotId) || hasInteractionDraft(slotId);
 }
 
 function selectedStatementValues(slotId) {
@@ -2897,6 +2928,27 @@ function isQuestionAnswered(slot) {
     const count = acknowledgedOptions(slot.slotId).length;
     return count >= slot.interaction.minSelections && count <= slot.interaction.maxSelections;
   }
+  if (slot.interaction.type === "CLOZE") {
+    const answer = acknowledgedAnswer(slot.slotId);
+    return answer?.type === "CLOZE" && slot.interaction.fields.length > 0
+      && slot.interaction.fields.every(({ id }) => Object.hasOwn(answer.values ?? {}, id)
+        && typeof answer.values[id] === "string" && answer.values[id].trim().length > 0);
+  }
+  if (slot.interaction.type === "MATCHING") {
+    const answer = acknowledgedAnswer(slot.slotId);
+    if (answer?.type !== "MATCHING" || slot.interaction.rows.length === 0) return false;
+    const limits = new Map(slot.interaction.targets.map(({ id, maxUses }) => [id, maxUses]));
+    const uses = new Map();
+    for (const { id } of slot.interaction.rows) {
+      if (!Object.hasOwn(answer.assignments ?? {}, id)) return false;
+      const targetId = answer.assignments[id];
+      if (typeof targetId !== "string" || !limits.has(targetId)) return false;
+      const count = (uses.get(targetId) ?? 0) + 1;
+      if (count > limits.get(targetId)) return false;
+      uses.set(targetId, count);
+    }
+    return true;
+  }
   if (slot.interaction.type !== "TRUE_FALSE_GROUP") return acknowledgedAnswer(slot.slotId)?.optionId != null;
   const values = acknowledgedStatementValues(slot.slotId);
   return slot.interaction.statements.length > 0 && slot.interaction.statements.every(({ id }) => Object.hasOwn(values, id));
@@ -2904,6 +2956,8 @@ function isQuestionAnswered(slot) {
 
 function hasAnySavedAnswer(slotId) {
   const answer = acknowledgedAnswer(slotId);
+  if (answer?.type === "CLOZE") return Object.values(answer.values ?? {}).some((value) => typeof value === "string" && value.length > 0);
+  if (answer?.type === "MATCHING") return Object.values(answer.assignments ?? {}).some((value) => typeof value === "string");
   if (answer?.type === "NUMERIC_RESPONSE") return typeof answer.value === "string";
   if (answer?.type === "TRUE_FALSE_GROUP") return Array.isArray(answer.statementValues) && answer.statementValues.length > 0;
   if (answer?.type === "MULTIPLE_CHOICE") return Array.isArray(answer.optionIds) && answer.optionIds.length > 0;
@@ -2950,6 +3004,7 @@ function discardPendingMultipleChoice() {
   state.pendingAnswer = null;
   state.pendingMultipleChoice = null;
   state.numericDraft = null;
+  state.interactionDraft = null;
   renderExam();
   app.querySelector("[data-testid='question-title']")?.focus();
   announce("Đã bỏ thay đổi chưa lưu. Các câu trả lời đã xác nhận vẫn được giữ.");
@@ -3114,6 +3169,261 @@ function renderNumericResponse(question, saving) {
   return control;
 }
 
+function wellFormedUnicode(value) {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
+  }
+  return true;
+}
+
+function clozeValueError(interaction, values) {
+  for (const field of interaction.fields) {
+    const value = Object.hasOwn(values, field.id) ? values[field.id] : null;
+    if (typeof value !== "string") continue;
+    if (!wellFormedUnicode(value)) return { fieldId: field.id, message: "Nhập văn bản hợp lệ." };
+    if ([...value].length > interaction.maxLength) {
+      return { fieldId: field.id, message: `Câu trả lời không được vượt quá ${interaction.maxLength} ký tự.` };
+    }
+  }
+  return null;
+}
+
+function matchingValueError(interaction, assignments) {
+  const rows = new Set(interaction.rows.map(({ id }) => id));
+  const limits = new Map(interaction.targets.map(({ id, maxUses }) => [id, maxUses]));
+  const uses = new Map();
+  for (const [rowId, targetId] of Object.entries(assignments)) {
+    if (!rows.has(rowId)) return "Lựa chọn không còn khớp với hàng hiện tại.";
+    if (targetId === null) continue;
+    if (typeof targetId !== "string" || !limits.has(targetId)) return "Chọn một mục có trong danh sách.";
+    const count = (uses.get(targetId) ?? 0) + 1;
+    if (count > limits.get(targetId)) return "Mục này đã đạt giới hạn số hàng được ghép.";
+    uses.set(targetId, count);
+  }
+  return null;
+}
+
+function setInteractionDraft(question, type, value, mapName) {
+  const saved = acknowledgedAnswer(question.slotId);
+  const savedMap = saved?.type === type ? saved[mapName] : null;
+  state.interactionDraft = sameOwnMap(value[mapName], savedMap)
+    ? null : { slotId: question.slotId, type, value };
+}
+
+function updateInteractionDraftStatus(slotId) {
+  const status = app.querySelector('[data-testid="save-status"]');
+  if (!status || state.savingSlotId === slotId) return;
+  const dirty = hasInteractionDraft(slotId);
+  const saved = hasAnySavedAnswer(slotId);
+  status.className = `save-row compact-save-row${dirty ? " unsaved" : saved ? " saved" : ""}`;
+  status.replaceChildren(element("span", "save-dot"), element("span", "", dirty ? "Chưa lưu" : saved ? "Đã lưu" : "Chưa trả lời"));
+  app.querySelector('[data-testid="save-error"]')?.remove();
+  let notice = app.querySelector('[data-testid="interaction-unsaved"]');
+  if (dirty && !notice) {
+    notice = element("p", "exam-save-error", "Thay đổi chưa được lưu. Lưu câu trả lời hoặc bỏ thay đổi trước khi chuyển câu.");
+    notice.dataset.testid = "interaction-unsaved";
+    const discard = actionButton("Bỏ thay đổi chưa lưu", "interaction-discard", discardPendingMultipleChoice, "button secondary small");
+    notice.append(discard);
+    app.querySelector('[data-testid="question-card"]')?.append(notice);
+  } else if (!dirty) notice?.remove();
+  const blocked = hasUnacknowledgedChanges();
+  const previous = app.querySelector('[data-testid="question-prev"]');
+  const counter = app.querySelector('[data-testid="question-counter"]');
+  const next = app.querySelector('[data-testid="question-next"]');
+  const submit = app.querySelector('[data-testid="submit-open"]');
+  const mark = app.querySelector('[data-testid="mark-for-review"]');
+  if (previous) previous.disabled = state.currentIndex === 0 || state.busy || state.savingSlotId !== null || blocked;
+  if (counter) counter.disabled = state.busy || state.savingSlotId !== null || blocked;
+  if (next) next.disabled = state.currentIndex === state.attempt.slots.length - 1 || state.busy || state.savingSlotId !== null || blocked;
+  if (submit) submit.disabled = state.busy || state.savingSlotId !== null || blocked;
+  if (mark) mark.disabled = state.busy || state.savingSlotId !== null || blocked;
+}
+
+function renderClozeResponse(question, saving) {
+  const { slotId, interaction } = question;
+  const control = element("div", "cloze-response-control");
+  control.dataset.testid = "cloze-response-control";
+  const selected = selectedV4Response(slotId, "CLOZE");
+  const initialValues = selected?.values ?? {};
+  const fields = new Map();
+  const pending = state.pendingAnswer?.slotId === slotId && state.pendingAnswer.value?.type === "CLOZE"
+    ? state.pendingAnswer : null;
+  const help = element("p", "cloze-answer-help", `Tối đa ${interaction.maxLength} ký tự cho mỗi ô. Câu trả lời phân biệt chữ hoa và chữ thường, giữ nguyên dấu tiếng Việt; khoảng trắng ở đầu hoặc cuối không ảnh hưởng khi chấm.`);
+  help.id = "cloze-answer-help";
+  const error = element("p", "cloze-answer-error");
+  error.id = "cloze-answer-error";
+  error.dataset.testid = "cloze-answer-error";
+  error.setAttribute("role", "status");
+  error.setAttribute("aria-live", "polite");
+  for (const field of interaction.fields) {
+    const label = element("label", "cloze-field-label", field.label);
+    const input = element("input", "cloze-field-input");
+    input.type = "text";
+    input.name = `answer-${slotId}-${field.id}`;
+    input.id = `cloze-${slotId}-${field.id}`;
+    input.value = Object.hasOwn(initialValues, field.id) && typeof initialValues[field.id] === "string"
+      ? initialValues[field.id] : "";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.disabled = saving || state.busy || pending?.saveAttempted === true;
+    input.dataset.testid = `cloze-answer-${field.id}`;
+    input.setAttribute("aria-describedby", `cloze-answer-help cloze-error-${field.id}`);
+    label.htmlFor = input.id;
+    const fieldError = element("p", "cloze-field-error");
+    fieldError.id = `cloze-error-${field.id}`;
+    fieldError.dataset.testid = `cloze-error-${field.id}`;
+    fieldError.setAttribute("role", "status");
+    fields.set(field.id, input);
+    input.addEventListener("input", () => {
+      if (state.pendingAnswer?.slotId === slotId && state.pendingAnswer.saveAttempted) return;
+      const values = Object.fromEntries(interaction.fields.map(({ id }) => [id, fields.get(id).value]));
+      const value = { type: "CLOZE", values };
+      setInteractionDraft(question, "CLOZE", value, "values");
+      const issue = clozeValueError(interaction, values);
+      for (const [id, fieldInput] of fields) {
+        const invalid = issue?.fieldId === id;
+        fieldInput.setAttribute("aria-invalid", String(invalid));
+        control.querySelector(`[data-testid="cloze-error-${id}"]`).textContent = invalid ? issue.message : "";
+      }
+      error.textContent = issue?.message ?? "";
+      save.disabled = state.busy || state.savingSlotId !== null || !hasInteractionDraft(slotId) || Boolean(issue);
+      clear.disabled = state.busy || state.savingSlotId !== null || !hasAnySavedAnswer(slotId) && !hasInteractionDraft(slotId);
+      updateInteractionDraftStatus(slotId);
+    });
+    control.append(label, input, fieldError);
+  }
+  const actions = element("div", "interaction-answer-actions");
+  const save = actionButton(saving ? "Đang lưu…" : pending ? "Thử lưu lại" : "Lưu câu trả lời",
+    "cloze-answer-save", () => {
+      const value = pending?.value ?? state.interactionDraft?.value;
+      if (!value || value.type !== "CLOZE") return;
+      const issue = clozeValueError(interaction, value.values);
+      if (issue) {
+        error.textContent = issue.message;
+        fields.get(issue.fieldId)?.focus();
+        return;
+      }
+      state.interactionDraft = null;
+      void saveSelectedAnswer(slotId, value, "cloze-answer-save");
+    }, "button interaction-answer-save");
+  save.dataset.testid = "cloze-answer-save";
+  const clear = actionButton("Xóa câu trả lời", "cloze-answer-clear", () => {
+    if (pending?.saveAttempted) return;
+    const values = Object.fromEntries(interaction.fields.map(({ id }) => [id, null]));
+    state.interactionDraft = null;
+    void saveSelectedAnswer(slotId, { type: "CLOZE", values }, "cloze-answer-clear");
+  }, "button secondary interaction-answer-clear");
+  clear.dataset.testid = "cloze-answer-clear";
+  const issue = clozeValueError(interaction, initialValues);
+  if (issue) {
+    fields.get(issue.fieldId)?.setAttribute("aria-invalid", "true");
+    control.querySelector(`[data-testid="cloze-error-${issue.fieldId}"]`).textContent = issue.message;
+    error.textContent = issue.message;
+  }
+  save.disabled = saving || state.busy || (pending?.saveAttempted === true
+    ? false : !hasInteractionDraft(slotId) || Boolean(issue));
+  clear.disabled = saving || state.busy || pending?.saveAttempted === true
+    || !hasAnySavedAnswer(slotId) && !hasInteractionDraft(slotId);
+  actions.append(save, clear);
+  control.prepend(help);
+  control.append(error, actions);
+  return control;
+}
+
+function renderMatchingResponse(question, saving) {
+  const { slotId, interaction } = question;
+  const control = element("div", "matching-response-control");
+  control.dataset.testid = "matching-response-control";
+  const selected = selectedV4Response(slotId, "MATCHING");
+  const initialAssignments = selected?.assignments ?? {};
+  const selects = new Map();
+  const pending = state.pendingAnswer?.slotId === slotId && state.pendingAnswer.value?.type === "MATCHING"
+    ? state.pendingAnswer : null;
+  const error = element("p", "matching-answer-error");
+  error.dataset.testid = "matching-answer-error";
+  error.setAttribute("role", "status");
+  error.setAttribute("aria-live", "polite");
+  const currentAssignments = () => Object.fromEntries(interaction.rows.map(({ id }) => [id, selects.get(id).value || null]));
+  const refreshTargetOptions = (assignments) => {
+    for (const row of interaction.rows) {
+      for (const target of interaction.targets) {
+        const option = selects.get(row.id)?.querySelector(`option[value="${CSS.escape(target.id)}"]`);
+        const usesElsewhere = interaction.rows.reduce((count, other) => count
+          + Number(other.id !== row.id && Object.hasOwn(assignments, other.id) && assignments[other.id] === target.id), 0);
+        if (option) option.disabled = target.id !== assignments[row.id] && usesElsewhere >= target.maxUses;
+      }
+    }
+  };
+  for (const row of interaction.rows) {
+    const label = element("label", "matching-row");
+    const rowName = element("span", "matching-row-label", row.label);
+    const select = element("select", "matching-row-select");
+    select.name = `answer-${slotId}-${row.id}`;
+    select.dataset.testid = `matching-answer-${row.id}`;
+    select.setAttribute("aria-label", row.label);
+    const blank = element("option", "", "Chọn một mục");
+    blank.value = "";
+    select.append(blank);
+    for (const target of interaction.targets) {
+      const option = element("option", "", target.label);
+      option.value = target.id;
+      select.append(option);
+    }
+    select.value = Object.hasOwn(initialAssignments, row.id) && typeof initialAssignments[row.id] === "string"
+      ? initialAssignments[row.id] : "";
+    select.disabled = saving || state.busy || pending?.saveAttempted === true;
+    selects.set(row.id, select);
+    label.append(rowName, select);
+    control.append(label);
+    select.addEventListener("change", () => {
+      if (state.pendingAnswer?.slotId === slotId && state.pendingAnswer.saveAttempted) return;
+      const assignments = currentAssignments();
+      const value = { type: "MATCHING", assignments };
+      setInteractionDraft(question, "MATCHING", value, "assignments");
+      const issue = matchingValueError(interaction, assignments);
+      refreshTargetOptions(assignments);
+      error.textContent = issue ?? "";
+      for (const [id, field] of selects) field.setAttribute("aria-invalid", String(Boolean(issue) && id === row.id));
+      save.disabled = state.busy || state.savingSlotId !== null || !hasInteractionDraft(slotId) || Boolean(issue);
+      clear.disabled = state.busy || state.savingSlotId !== null || !hasAnySavedAnswer(slotId) && !hasInteractionDraft(slotId);
+      updateInteractionDraftStatus(slotId);
+    });
+  }
+  refreshTargetOptions(initialAssignments);
+  const actions = element("div", "interaction-answer-actions");
+  const save = actionButton(saving ? "Đang lưu…" : pending ? "Thử lưu lại" : "Lưu ghép nối",
+    "matching-answer-save", () => {
+      const value = pending?.value ?? state.interactionDraft?.value;
+      if (!value || value.type !== "MATCHING") return;
+      const issue = matchingValueError(interaction, value.assignments);
+      if (issue) { error.textContent = issue; return; }
+      state.interactionDraft = null;
+      void saveSelectedAnswer(slotId, value, "matching-answer-save");
+    }, "button interaction-answer-save");
+  save.dataset.testid = "matching-answer-save";
+  const clear = actionButton("Xóa ghép nối", "matching-answer-clear", () => {
+    if (pending?.saveAttempted) return;
+    const assignments = Object.fromEntries(interaction.rows.map(({ id }) => [id, null]));
+    state.interactionDraft = null;
+    void saveSelectedAnswer(slotId, { type: "MATCHING", assignments }, "matching-answer-clear");
+  }, "button secondary interaction-answer-clear");
+  clear.dataset.testid = "matching-answer-clear";
+  const issue = matchingValueError(interaction, initialAssignments);
+  error.textContent = issue ?? "";
+  save.disabled = saving || state.busy || (pending?.saveAttempted === true
+    ? false : !hasInteractionDraft(slotId) || Boolean(issue));
+  clear.disabled = saving || state.busy || pending?.saveAttempted === true
+    || !hasAnySavedAnswer(slotId) && !hasInteractionDraft(slotId);
+  actions.append(save, clear);
+  control.append(error, actions);
+  return control;
+}
+
 function renderTrueFalseGroup(question, saving) {
   const group = element("div", "true-false-group");
   group.dataset.testid = "true-false-group";
@@ -3239,6 +3549,7 @@ async function saveSelectedAnswer(slotId, answer, restoreFocusTestId) {
     if (state.pendingMultipleChoice?.slotId === slotId) state.pendingMultipleChoice = null;
     if (state.pendingAnswer?.slotId === slotId) state.pendingAnswer = null;
     if (state.numericDraft?.slotId === slotId) state.numericDraft = null;
+    if (state.interactionDraft?.slotId === slotId) state.interactionDraft = null;
     renderExam();
     const savedMessage = response.message || "Máy chủ đã xác nhận lưu lựa chọn.";
     updateSaveStatus(savedMessage, "saved");
@@ -3660,7 +3971,9 @@ function renderExam() {
   const questionKind = question.interaction.type === "TRUE_FALSE_GROUP"
     ? "Đúng / sai"
     : question.interaction.type === "MULTIPLE_CHOICE" ? "Chọn nhiều phương án"
-      : question.interaction.type === "NUMERIC_RESPONSE" ? "Trả lời bằng số" : "Trắc nghiệm";
+      : question.interaction.type === "NUMERIC_RESPONSE" ? "Trả lời bằng số"
+        : question.interaction.type === "CLOZE" ? "Điền vào chỗ trống"
+          : question.interaction.type === "MATCHING" ? "Nối nội dung" : "Trắc nghiệm";
   toolbar.append(element("span", "question-kind", questionKind));
   const markedForReview = state.markedSlotIds.has(question.slotId);
   const markButton = actionButton(
@@ -3708,12 +4021,20 @@ function renderExam() {
       ? `Chọn từ ${question.interaction.minSelections} đến ${question.interaction.maxSelections} phương án.`
       : question.interaction.type === "NUMERIC_RESPONSE"
         ? "Nhập đáp án số rồi chọn Lưu câu trả lời."
-        : "Chọn một phương án bạn cho là đúng nhất.";
+        : question.interaction.type === "CLOZE"
+          ? "Điền các ô rồi chọn Lưu câu trả lời. Câu chỉ hoàn tất khi mọi ô có nội dung."
+          : question.interaction.type === "MATCHING"
+            ? "Chọn một mục cho mỗi hàng. Câu chỉ hoàn tất khi mọi hàng đã được nối."
+            : "Chọn một phương án bạn cho là đúng nhất.";
   const answerControl = question.interaction.type === "TRUE_FALSE_GROUP"
     ? renderTrueFalseGroup(question, state.savingSlotId === question.slotId)
     : question.interaction.type === "NUMERIC_RESPONSE"
       ? renderNumericResponse(question, state.savingSlotId === question.slotId)
-      : renderOptions(question, state.savingSlotId === question.slotId);
+      : question.interaction.type === "CLOZE"
+        ? renderClozeResponse(question, state.savingSlotId === question.slotId)
+        : question.interaction.type === "MATCHING"
+          ? renderMatchingResponse(question, state.savingSlotId === question.slotId)
+          : renderOptions(question, state.savingSlotId === question.slotId);
   card.append(title);
   if (question.stimulus?.content) card.append(renderContentBlocks(question.stimulus.content));
   if (!simpleText) card.append(renderContentBlocks(question.content));
@@ -3733,16 +4054,20 @@ function renderExam() {
   }, "text-button clear-answer");
   clear.disabled = !hasAnySavedAnswer(question.slotId) || state.busy || state.savingSlotId !== null;
   clear.setAttribute("aria-label", "Xóa lựa chọn đã ghi nhận cho vị trí hiện tại");
-  if (question.interaction.type !== "NUMERIC_RESPONSE") card.append(clear);
+  if (!["NUMERIC_RESPONSE", "CLOZE", "MATCHING"].includes(question.interaction.type)) card.append(clear);
   if (pending) {
     const multipleChoiceDraft = state.pendingMultipleChoice?.slotId === question.slotId;
-    const pendingMessage = multipleChoiceDraft && !state.pendingMultipleChoice.clearRequested
+    const interactionDraft = state.interactionDraft?.slotId === question.slotId;
+    const pendingMessage = interactionDraft
+      ? "Thay đổi chưa được lưu. Lưu câu trả lời hoặc bỏ thay đổi trước khi chuyển câu."
+      : multipleChoiceDraft && !state.pendingMultipleChoice.clearRequested
       && state.pendingMultipleChoice.optionIds.length < question.interaction.minSelections
       ? `Chưa lưu. Cần ít nhất ${question.interaction.minSelections} phương án được chọn.`
       : "Thay đổi chưa được máy chủ xác nhận. Hãy thử lưu lại hoặc tải trạng thái đã lưu trước khi tiếp tục.";
     const draftNote = element("p", "exam-save-error", pendingMessage);
-    draftNote.dataset.testid = multipleChoiceDraft ? "multiple-choice-unsaved" : "answer-unsaved";
-    const discard = actionButton("Bỏ thay đổi chưa lưu", "multiple-choice-discard", discardPendingMultipleChoice, "button secondary small");
+    draftNote.dataset.testid = interactionDraft ? "interaction-unsaved" : multipleChoiceDraft ? "multiple-choice-unsaved" : "answer-unsaved";
+    const discard = actionButton("Bỏ thay đổi chưa lưu", interactionDraft ? "interaction-discard" : "multiple-choice-discard",
+      discardPendingMultipleChoice, "button secondary small");
     discard.disabled = state.busy || state.savingSlotId !== null;
     draftNote.append(discard);
     card.append(draftNote);
@@ -3881,6 +4206,24 @@ function releasedAnswerStatus(released) {
     return released.numericResponseValue === null ? "Bỏ trống" : released.earned === 1 ? "Đúng" : "Sai";
   }
   const sourceSlot = state.attempt.slots.find((slot) => slot.slotId === released.slotId && slot.ordinal === released.ordinal);
+  if (released.type === "CLOZE" && sourceSlot?.interaction.type === "CLOZE") {
+    const values = released.clozeResponseValues ?? {};
+    const complete = sourceSlot.interaction.fields.every(({ id }) => Object.hasOwn(values, id)
+      && typeof values[id] === "string" && values[id].trim().length > 0);
+    const anyValue = sourceSlot.interaction.fields.some(({ id }) => Object.hasOwn(values, id)
+      && typeof values[id] === "string" && values[id].length > 0);
+    return complete ? released.earned === 1 ? "Đúng" : "Sai" : anyValue ? "Chưa hoàn tất" : "Bỏ trống";
+  }
+  if (released.type === "MATCHING" && sourceSlot?.interaction.type === "MATCHING") {
+    const assignments = released.matchingAssignments ?? {};
+    const complete = !matchingValueError(sourceSlot.interaction, assignments)
+      && sourceSlot.interaction.rows.every(({ id }) => Object.hasOwn(assignments, id)
+      && typeof assignments[id] === "string"
+      && sourceSlot.interaction.targets.some((target) => target.id === assignments[id]));
+    const anyValue = sourceSlot.interaction.rows.some(({ id }) => Object.hasOwn(assignments, id)
+      && typeof assignments[id] === "string");
+    return complete ? released.earned === 1 ? "Đúng" : "Sai" : anyValue ? "Chưa hoàn tất" : "Bỏ trống";
+  }
   if (released.type === "TRUE_FALSE_GROUP" && sourceSlot?.interaction.type === "TRUE_FALSE_GROUP") {
     const selected = Object.fromEntries((released.statementValues ?? []).map(({ statementId, value }) => [statementId, value]));
     const correct = Object.fromEntries((released.correctStatementValues ?? []).map(({ statementId, value }) => [statementId, value]));
@@ -3914,6 +4257,39 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
     response.dataset.testid = "numeric-review";
     response.append(element("p", "", released.numericResponseValue === null ? "Bạn chưa trả lời" : `Bạn đã nhập: ${released.numericResponseValue}`),
       element("p", "", `Đáp án đúng: ${released.correctNumericValue}`));
+    item.append(response);
+  } else if (released.type === "CLOZE" && sourceSlot.interaction.type === "CLOZE") {
+    const response = element("div", "interaction-review cloze-review");
+    response.dataset.testid = "cloze-review";
+    const submitted = released.clozeResponseValues ?? {};
+    const accepted = released.clozeAcceptedValues ?? {};
+    for (const field of sourceSlot.interaction.fields) {
+      const row = element("div", "interaction-review-row");
+      const hasValue = Object.hasOwn(submitted, field.id) && typeof submitted[field.id] === "string";
+      const variants = Object.hasOwn(accepted, field.id) && Array.isArray(accepted[field.id]) ? accepted[field.id] : [];
+      row.append(element("strong", "interaction-review-label", field.label));
+      row.append(element("p", "interaction-review-response", hasValue && submitted[field.id].length > 0
+        ? `Bạn đã nhập: ${submitted[field.id]}` : "Bạn chưa điền"));
+      row.append(element("p", "interaction-review-key", `Đáp án được chấp nhận: ${variants.join(" · ")}`));
+      response.append(row);
+    }
+    item.append(response);
+  } else if (released.type === "MATCHING" && sourceSlot.interaction.type === "MATCHING") {
+    const response = element("div", "interaction-review matching-review");
+    response.dataset.testid = "matching-review";
+    const assignments = released.matchingAssignments ?? {};
+    const correct = released.correctMatchingAnswers ?? {};
+    for (const rowDefinition of sourceSlot.interaction.rows) {
+      const row = element("div", "interaction-review-row");
+      const selectedId = Object.hasOwn(assignments, rowDefinition.id) ? assignments[rowDefinition.id] : null;
+      const correctId = Object.hasOwn(correct, rowDefinition.id) ? correct[rowDefinition.id] : null;
+      const targetLabel = (targetId) => sourceSlot.interaction.targets.find((target) => target.id === targetId)?.label ?? "";
+      row.append(element("strong", "interaction-review-label", rowDefinition.label));
+      row.append(element("p", "interaction-review-response", typeof selectedId === "string"
+        ? `Bạn đã chọn: ${targetLabel(selectedId)}` : "Bạn chưa chọn"));
+      row.append(element("p", "interaction-review-key", `Đáp án đúng: ${targetLabel(correctId)}`));
+      response.append(row);
+    }
     item.append(response);
   } else if (released.type === "TRUE_FALSE_GROUP" && sourceSlot.interaction.type === "TRUE_FALSE_GROUP") {
     const selected = Object.fromEntries((released.statementValues ?? []).map(({ statementId, value }) => [statementId, value]));

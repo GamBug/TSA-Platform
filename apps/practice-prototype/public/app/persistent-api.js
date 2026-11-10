@@ -19,7 +19,7 @@ const STATE_ORDER = { CREATED: 0, IN_PROGRESS: 1, SUBMITTED: 2, EXPIRED: 2, GRAD
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DOMAINS = new Set(['MATH', 'READING', 'SCIENCE']);
 const PROFILE_KINDS = new Set(['INDEPENDENT_PRACTICE', 'PUBLIC_REFERENCE']);
-const API_VERSIONS = new Set(['v1', 'v2']);
+const API_VERSIONS = new Set(['v1', 'v2', 'v4']);
 const NUMERIC_DECIMAL = /^[+-]?[0-9]{1,40}(?:[.,][0-9]{1,20})?$/u;
 
 function validNumericResponse(value) {
@@ -31,6 +31,31 @@ function exactRecord(value, keys) {
     && Object.getPrototypeOf(value) === Object.prototype
     && Object.keys(value).length === keys.length
     && keys.every((key) => Object.hasOwn(value, key));
+}
+
+function plainDataRecord(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  return Reflect.ownKeys(value).every((key) => {
+    if (typeof key !== 'string') return false;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return Boolean(descriptor && descriptor.enumerable && Object.hasOwn(descriptor, 'value'));
+  });
+}
+
+function scalarLength(value) { return [...value].length; }
+
+function wellFormedUnicode(value) {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
+  }
+  return true;
 }
 
 function failure(code, status = 503, details = {}) {
@@ -52,6 +77,8 @@ function group(values = {}) {
 }
 function answer(slotId, value, revision = 0) {
   if (value?.type === 'NUMERIC_RESPONSE') return { slotId, type: value.type, value: value.value, revision };
+  if (value?.type === 'CLOZE') return { slotId, type: value.type, values: clone(value.values), revision };
+  if (value?.type === 'MATCHING') return { slotId, type: value.type, assignments: clone(value.assignments), revision };
   if (value?.type === 'TRUE_FALSE_GROUP') return { slotId, type: value.type, statementValues: group(value.values), revision };
   if (value?.type === 'MULTIPLE_CHOICE') return { slotId, type: value.type, optionIds: clone(value.optionIds), revision };
   return { slotId, type: 'SINGLE_CHOICE', optionId: value?.optionId ?? null, revision };
@@ -66,6 +93,25 @@ function answered(slot, value) {
   }
   if (slot.interaction.type === 'MULTIPLE_CHOICE') {
     return Array.isArray(value.optionIds) && value.optionIds.length >= slot.interaction.minSelections;
+  }
+  if (slot.interaction.type === 'CLOZE') {
+    return value.type === 'CLOZE' && slot.interaction.fields.length > 0
+      && slot.interaction.fields.every(({ id }) => Object.hasOwn(value.values ?? {}, id)
+        && typeof value.values[id] === 'string' && value.values[id].trim().length > 0);
+  }
+  if (slot.interaction.type === 'MATCHING') {
+    if (value.type !== 'MATCHING' || slot.interaction.rows.length === 0) return false;
+    const limits = new Map(slot.interaction.targets.map(({ id, maxUses }) => [id, maxUses]));
+    const uses = new Map();
+    for (const { id } of slot.interaction.rows) {
+      if (!Object.hasOwn(value.assignments ?? {}, id)) return false;
+      const targetId = value.assignments[id];
+      if (typeof targetId !== 'string' || !limits.has(targetId)) return false;
+      const count = (uses.get(targetId) ?? 0) + 1;
+      if (count > limits.get(targetId)) return false;
+      uses.set(targetId, count);
+    }
+    return true;
   }
   return typeof value.optionId === 'string';
 }
@@ -105,7 +151,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
 
   async function request(path, { method = 'GET', body, key, csrfToken = null } = {}) {
     const generation = identityGeneration;
-    const studentRequest = /^\/api\/v[12]\//u.test(path);
+    const studentRequest = /^\/api\/v[124]\//u.test(path);
     const sessionNonce = studentRequest ? readCookie('tsa_local_csrf') : null;
     const headers = new Headers({ accept: 'application/json' });
     if (body !== undefined) headers.set('content-type', 'application/json');
@@ -204,8 +250,15 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
           || view.sections.reduce((sum,section)=>sum+section.count,0)!==expected.questionCount))))) {
       throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
     }
+    const interactionTypes = new Set(Array.isArray(view?.slots)
+      ? view.slots.map((slot) => slot?.interaction?.type) : []);
+    const hasV3OnlyInteraction = [...interactionTypes].some((type) => ['CLOZE', 'MATCHING'].includes(type));
+    const invalidV4Interaction = apiVersion === 'v4'
+      && [...interactionTypes].some((type) => !['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE_GROUP',
+        'NUMERIC_RESPONSE', 'CLOZE', 'MATCHING'].includes(type));
     if (!STATES.has(view.state) || !Array.isArray(view.slots) || !Array.isArray(view.answers)
-        || (apiVersion === 'v1' && view.slots.some((slot) => slot?.interaction?.type === 'NUMERIC_RESPONSE'))) {
+        || (apiVersion === 'v1' && view.slots.some((slot) => slot?.interaction?.type === 'NUMERIC_RESPONSE'))
+        || (apiVersion !== 'v4' && hasV3OnlyInteraction) || invalidV4Interaction) {
       throw failure('TEMPORARILY_UNAVAILABLE');
     }
     let released = null;
@@ -487,10 +540,41 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     if (!slot || cached.view.state !== 'IN_PROGRESS') throw failure('ATTEMPT_CLOSED', 409);
     let value;
     if (slot.interaction.type === 'NUMERIC_RESPONSE') {
-      if (apiVersion !== 'v2' || !exactRecord(input, ['type', 'value'])
+      if (!['v2', 'v4'].includes(apiVersion) || !exactRecord(input, ['type', 'value'])
           || input.type !== 'NUMERIC_RESPONSE'
           || !(input.value === null || validNumericResponse(input.value))) throw failure('VALIDATION_ERROR', 422);
       value = { type: 'NUMERIC_RESPONSE', value: input.value };
+    } else if (slot.interaction.type === 'CLOZE') {
+      const fields = new Set(slot.interaction.fields.map(({ id }) => id));
+      if (apiVersion !== 'v4' || !exactRecord(input, ['type', 'values']) || input.type !== 'CLOZE'
+          || !plainDataRecord(input.values)
+          || Reflect.ownKeys(input.values).some((id) => !fields.has(id)
+            || !(input.values[id] === null || typeof input.values[id] === 'string')
+            || typeof input.values[id] === 'string' && (!wellFormedUnicode(input.values[id])
+              || scalarLength(input.values[id]) > slot.interaction.maxLength))) {
+        throw failure('VALIDATION_ERROR', 422);
+      }
+      value = { type: 'CLOZE', values: Object.fromEntries(Reflect.ownKeys(input.values)
+        .map((id) => [id, input.values[id]])) };
+    } else if (slot.interaction.type === 'MATCHING') {
+      const rows = new Set(slot.interaction.rows.map(({ id }) => id));
+      const limits = new Map(slot.interaction.targets.map(({ id, maxUses }) => [id, maxUses]));
+      const uses = new Map();
+      if (apiVersion !== 'v4' || !exactRecord(input, ['type', 'assignments']) || input.type !== 'MATCHING'
+          || !plainDataRecord(input.assignments)
+          || Reflect.ownKeys(input.assignments).some((id) => !rows.has(id)
+            || !(input.assignments[id] === null || typeof input.assignments[id] === 'string'))) {
+        throw failure('VALIDATION_ERROR', 422);
+      }
+      for (const targetId of Object.values(input.assignments)) {
+        if (targetId === null) continue;
+        if (!limits.has(targetId)) throw failure('VALIDATION_ERROR', 422);
+        const count = (uses.get(targetId) ?? 0) + 1;
+        if (count > limits.get(targetId)) throw failure('VALIDATION_ERROR', 422);
+        uses.set(targetId, count);
+      }
+      value = { type: 'MATCHING', assignments: Object.fromEntries(Reflect.ownKeys(input.assignments)
+        .map((id) => [id, input.assignments[id]])) };
     } else if (input?.type === 'NUMERIC_RESPONSE' || apiVersion === 'v1' && slot.interaction.type === 'NUMERIC_RESPONSE') {
       throw failure('VALIDATION_ERROR', 422);
     } else if (slot.interaction.type === 'TRUE_FALSE_GROUP') {
@@ -505,6 +589,15 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       if (!Array.isArray(ids) || new Set(ids).size !== ids.length
           || ids.some((id) => !slot.interaction.options.some((item) => item.id === id))) throw failure('VALIDATION_ERROR', 422);
       value = { type: 'MULTIPLE_CHOICE', optionIds: slot.interaction.options.filter((item) => ids.includes(item.id)).map((item) => item.id) };
+    } else if (apiVersion === 'v4') {
+      const optionIds = new Set(slot.interaction.type === 'SINGLE_CHOICE'
+        ? slot.interaction.options.map(({ id }) => id) : []);
+      if (slot.interaction.type !== 'SINGLE_CHOICE'
+          || !(exactRecord(input, ['optionId']) || exactRecord(input, ['type', 'optionId']) && input.type === 'SINGLE_CHOICE')
+          || !(input.optionId === null || typeof input.optionId === 'string' && optionIds.has(input.optionId))) {
+        throw failure('VALIDATION_ERROR', 422);
+      }
+      value = { type: 'SINGLE_CHOICE', optionId: input.optionId };
     } else value = { type: 'SINGLE_CHOICE', optionId: typeof input === 'string' ? input : input?.optionId ?? null };
     const expectedRevision = cached.view.answers.find((item) => item.slotId === slotId)?.revision ?? 0;
     const ack = await mutation(`${apiRoot}/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(slotId)}`,
@@ -566,7 +659,15 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
         ...(item.correctAnswer.type === 'SINGLE_CHOICE' ? { correctOptionId: item.correctAnswer.optionId } : {}),
         ...(item.correctAnswer.type === 'MULTIPLE_CHOICE' ? { correctOptionIds: clone(item.correctAnswer.optionIds) } : {}),
         ...(item.correctAnswer.type === 'TRUE_FALSE_GROUP' ? { correctStatementValues: group(item.correctAnswer.values),
-          statementValues: group(item.response?.values) } : {}), explanation: clone(item.explanation) })) } };
+          statementValues: group(item.response?.values) } : {}),
+        ...(item.correctAnswer.type === 'CLOZE' ? {
+          clozeResponseValues: clone(item.response?.values ?? {}),
+          clozeAcceptedValues: clone(item.correctAnswer.acceptedValues),
+        } : {}),
+        ...(item.correctAnswer.type === 'MATCHING' ? {
+          matchingAssignments: clone(item.response?.assignments ?? {}),
+          correctMatchingAnswers: clone(item.correctAnswer.answers),
+        } : {}), explanation: clone(item.explanation) })) } };
   }
   return Object.freeze({ persistent: true, openDemoSession, loginCandidate, logout, loadCatalog, loadTopics, createTopicAttempt,
     startDemo, prepareReviewAttempt, createReviewAttempt, readReviewAttempt,

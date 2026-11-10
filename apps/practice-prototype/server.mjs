@@ -110,11 +110,11 @@ async function readRequestBody(request, maxRequestBytes) {
 
 function requestLike(method, pathname) {
   return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/workspace/")
-    || /^\/api\/v[123](?:\/|$)/.test(pathname);
+    || /^\/api\/v[1234](?:\/|$)/.test(pathname);
 }
 
 function tooLargeResponse(url) {
-  if (/^\/api\/v[123](?:\/|$|\?)/.test(url)) {
+  if (/^\/api\/v[1234](?:\/|$|\?)/.test(url)) {
     const requestId = randomUUID();
     return {
       status: 413,
@@ -200,7 +200,7 @@ export function createPrototypeServer({
       await sendResponse(outgoing, method, response);
     } catch {
       const requestUrl = incoming.url ?? "/";
-      if (/^\/api\/v[123](?:\/|$|\?)/.test(requestUrl)) {
+      if (/^\/api\/v[1234](?:\/|$|\?)/.test(requestUrl)) {
         const requestId = randomUUID();
         outgoing.writeHead(503, {
           "Content-Type": "application/json; charset=utf-8",

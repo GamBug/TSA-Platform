@@ -1,5 +1,7 @@
 import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
 import { runNumericJourney } from './student-numeric-journey.mjs';
+import { createClozeMatchingFixture } from '../tests/integration/student-runtime/cloze-matching-fixture.mjs';
+import { runClozeMatchingJourney } from './student-cloze-matching-journey.mjs';
 import { runTopicPracticeJourney } from './student-topic-practice-journey.mjs';
 import { runShortPracticeJourney } from './student-short-practice-journey.mjs';
 import { seedShortStudentProfiles } from '../tests/integration/student-runtime/short-fixture.mjs';
@@ -61,8 +63,9 @@ const domainsTest = process.env.STUDENT_DOMAINS_TEST === 'true';
 const topicTest = process.env.STUDENT_TOPIC_TEST === 'true';
 const imageTest = process.env.STUDENT_IMAGE_TEST === 'true';
 const numericTest = process.env.STUDENT_NUMERIC_TEST === 'true';
-assert.ok([numericTest, imageTest, topicTest, shortPracticeTest, fixedPracticeTest, gradeFailureTest, newOnlyTest, allocationRaceTest, admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
-const defaultArtifacts = numericTest ? '/tmp/tsa-student-browser-evidence/numeric' : imageTest ? '/tmp/tsa-student-browser-evidence/images' : topicTest ? '/tmp/tsa-student-browser-evidence/topics' : shortPracticeTest ? '/tmp/tsa-student-browser-evidence/short-practice' : fixedPracticeTest ? '/tmp/tsa-student-browser-evidence/fixed-practice' : reviewPracticeTest ? '/tmp/tsa-student-browser-evidence/review-practice' : gradeFailureTest ? '/tmp/tsa-student-browser-evidence/grading-failure' : newOnlyTest ? '/tmp/tsa-student-browser-evidence/new-only' : allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
+const clozeMatchingTest = process.env.STUDENT_CLOZE_MATCHING_TEST === 'true';
+assert.ok([clozeMatchingTest, numericTest, imageTest, topicTest, shortPracticeTest, fixedPracticeTest, gradeFailureTest, newOnlyTest, allocationRaceTest, admissionTest, warningResumeTest, reservationTest, expiryTest, accessibilityTest, closedSaveTest, domainsTest, readingTest, rateLimitTest].filter(Boolean).length <= 1, 'browser scenario modes run separately');
+const defaultArtifacts = clozeMatchingTest ? '/tmp/tsa-student-browser-evidence/cloze-matching' : numericTest ? '/tmp/tsa-student-browser-evidence/numeric' : imageTest ? '/tmp/tsa-student-browser-evidence/images' : topicTest ? '/tmp/tsa-student-browser-evidence/topics' : shortPracticeTest ? '/tmp/tsa-student-browser-evidence/short-practice' : fixedPracticeTest ? '/tmp/tsa-student-browser-evidence/fixed-practice' : reviewPracticeTest ? '/tmp/tsa-student-browser-evidence/review-practice' : gradeFailureTest ? '/tmp/tsa-student-browser-evidence/grading-failure' : newOnlyTest ? '/tmp/tsa-student-browser-evidence/new-only' : allocationRaceTest ? '/tmp/tsa-student-browser-evidence/allocation-race' : admissionTest ? '/tmp/tsa-student-browser-evidence/admission' : warningResumeTest ? '/tmp/tsa-student-browser-evidence/warning-resume' : reservationTest ? `/tmp/tsa-student-browser-evidence/reservation${reservationLateTest ? '-late' : ''}` : rateLimitTest ? `/tmp/tsa-student-browser-evidence/rate-limit-${rateLimitExpiryTest ? 'expiry-' : ''}${rateScope.toLowerCase()}` : readingTest ? '/tmp/tsa-student-browser-evidence/reading' : domainsTest ? '/tmp/tsa-student-browser-evidence/domains' : closedSaveTest ? '/tmp/tsa-student-browser-evidence/closed-save' : accessibilityTest
   ? '/tmp/tsa-student-browser-evidence/accessibility'
   : expiryTest ? '/tmp/tsa-student-browser-evidence/expiry' : '/tmp/tsa-student-browser-evidence';
 const artifacts = path.resolve(process.env.STUDENT_ARTIFACT_DIR ?? defaultArtifacts);
@@ -136,7 +139,7 @@ function observePage(targetSocket, sendCommand) {
     if (data.method === 'Network.responseReceived') {
       responseRecords.push({ url: data.params.response.url, status: data.params.response.status });
     }
-    if (data.method === 'Network.responseReceived' && /\/api\/v[12]\//.test(data.params.response.url)) {
+    if (data.method === 'Network.responseReceived' && /\/api\/v[124]\//.test(data.params.response.url)) {
       network.set(data.params.requestId, data.params.response);
     }
     if (data.method === 'Network.loadingFinished' && network.has(data.params.requestId)) {
@@ -194,6 +197,8 @@ async function pressKey(key, { shift = false, ctrl = false } = {}) {
     ' ': { code: 'Space', windowsVirtualKeyCode: 32, text: ' ' },
     Escape: { code: 'Escape', windowsVirtualKeyCode: 27 },
     ArrowDown: { code: 'ArrowDown', windowsVirtualKeyCode: 40 },
+    a: { code: 'KeyA', windowsVirtualKeyCode: 65, text: 'a' },
+    d: { code: 'KeyD', windowsVirtualKeyCode: 68, text: 'd' },
     n: { code: 'KeyN', windowsVirtualKeyCode: 78, text: 'n' },
     p: { code: 'KeyP', windowsVirtualKeyCode: 80, text: 'p' },
     m: { code: 'KeyM', windowsVirtualKeyCode: 77, text: 'm' },
@@ -210,6 +215,11 @@ async function pressKey(key, { shift = false, ctrl = false } = {}) {
   const { text, ...physical } = definition;
   await command('Input.dispatchKeyEvent', { type: 'keyDown', key, modifiers, ...physical, ...(text ? { text } : {}) });
   await command('Input.dispatchKeyEvent', { type: 'keyUp', key, modifiers, ...physical });
+}
+async function typeText(id, text) {
+  await waitFor(`Boolean(${query(id)} && !${query(id)}.disabled)`, `type into ${id}`);
+  await evaluate(`${query(id)}.focus()`);
+  await command('Input.insertText', { text });
 }
 async function focusSnapshot() {
   return evaluate(`(()=>{
@@ -492,7 +502,7 @@ async function runAccessibilityJourney() {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = numericTest ? await createNumericFixture() : imageTest ? await createImageFixture({after(){}}, {largeImages:true}) : gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture({ durationSeconds: warningResumeTest ? 45 : rateLimitExpiryTest ? 8 : 180, bundleCount: newOnlyTest ? 2 : 1 }) : (topicTest || domainsTest || fixedPracticeTest || shortPracticeTest) ? await createDomainStudentFixture({extraPerLargeDomain:shortPracticeTest?2:0}) : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
+  fixture = clozeMatchingTest ? await createClozeMatchingFixture({ includeLegacyGroups: true }) : numericTest ? await createNumericFixture() : imageTest ? await createImageFixture({after(){}}, {largeImages:true}) : gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || warningResumeTest || reservationTest || readingTest || rateLimitTest ? await createSharedReadingFixture({ durationSeconds: warningResumeTest ? 45 : rateLimitExpiryTest ? 8 : 180, bundleCount: newOnlyTest ? 2 : 1 }) : (topicTest || domainsTest || fixedPracticeTest || shortPracticeTest) ? await createDomainStudentFixture({extraPerLargeDomain:shortPracticeTest?2:0}) : await createMixedStudentFixture(expiryTest ? { durationSeconds: 8 } : {});
   assert.equal(fixture.blueprint.config.sections[0].durationSeconds, warningResumeTest ? 45 : (expiryTest || rateLimitExpiryTest) ? 8 : (gradeFailureTest || newOnlyTest || allocationRaceTest || admissionTest || reservationTest || readingTest || rateLimitTest) ? 180 : (topicTest || domainsTest || fixedPracticeTest || shortPracticeTest) ? 360 : 600,
     'scenario-specific duration is explicit; ordinary mixed fixture retains its default');
   if(shortPracticeTest)await seedShortStudentProfiles(fixture);
@@ -506,7 +516,7 @@ try {
     return workerPool.connect();
   } };
   const rate = { capacity: 100, refillPerSecond: 10 };
-  const options = { enableNumericPractice: numericTest, imageStore: imageTest ? fixture.imageStore : null, identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool: workerProxy,
+  const options = { enableNumericPractice: numericTest, enableClozeMatching: clozeMatchingTest, imageStore: imageTest ? fixture.imageStore : null, identityPool: fixture.harness.authPool, examPool: fixture.examPool, workerPool: workerProxy,
     env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0, pollMilliseconds: 30,
     sweepBatchSize: 10, executorId: 'student-browser', enableReviewPractice: reviewPracticeTest || shortPracticeTest, enableFixedPractice: fixedPracticeTest, enableShortPractice:shortPracticeTest, leaseSeconds: 30, retrySeconds: 1,
     createRate: rate, saveRate: { user: rateLimitTest && rateScope === 'USER_SAVE' ? { capacity: 1, refillPerSecond: rateLimitExpiryTest ? 0.01 : 0.1 } : rate,
@@ -582,7 +592,7 @@ try {
     await secondWaitFor(expectCatalog ? `Boolean(${query('catalog-grid')})` : "Boolean(document.getElementById('question-title'))", expectCatalog ? 'same candidate opens empty catalog in second tab' : 'same candidate resumes attempt in second tab');
   }
   await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-  await command('Page.navigate', { url: `${runtime.origin}/?student=${numericTest ? 'postgres-v2' : 'postgres'}` });
+  await command('Page.navigate', { url: `${runtime.origin}/?student=${clozeMatchingTest ? 'postgres-v4' : numericTest ? 'postgres-v2' : 'postgres'}` });
   await waitFor(`Boolean(${query('persistent-login')})`, 'explicit candidate login');
   await capture('candidate-login');
   if (accessibilityTest) {
@@ -591,7 +601,15 @@ try {
     await click('persistent-login-studentA');
     await waitFor(`Boolean(${query('demo-start')})`, 'real catalog');
     await assertTimingNotice('demo-start');
-    if(numericTest){
+    if (clozeMatchingTest) {
+      workerState.available = true;
+      await runClozeMatchingJourney({ evaluate, command, click, query, waitFor, capture, report, fixture,
+        reload: () => command('Page.reload', { ignoreCache: true }),
+        viewport: (width, height) => command('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }),
+        pressKey,
+        typeText,
+      });
+    } else if(numericTest){
       workerState.available=true;
       await runNumericJourney({evaluate,command,click,query,waitFor,capture,report});
     } else if(imageTest){

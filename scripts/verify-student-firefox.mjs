@@ -1,5 +1,7 @@
 import { createNumericFixture } from '../tests/integration/student-runtime/numeric-fixture.mjs';
 import { runNumericJourney } from './student-numeric-journey.mjs';
+import { createClozeMatchingFixture } from '../tests/integration/student-runtime/cloze-matching-fixture.mjs';
+import { runClozeMatchingJourney } from './student-cloze-matching-journey.mjs';
 import { createImageFixture } from '../tests/integration/student-runtime/image-fixture.mjs';
 import { runImageJourney } from './student-image-journey.mjs';
 import { runTopicPracticeJourney } from './student-topic-practice-journey.mjs';
@@ -32,6 +34,12 @@ const enableShortPractice=process.env.STUDENT_SHORT_PRACTICE_FIREFOX==='true';
 const enableTopics = process.env.STUDENT_TOPIC_FIREFOX === 'true';
 const enableImages = process.env.STUDENT_IMAGE_FIREFOX === 'true';
 const enableNumeric = process.env.STUDENT_NUMERIC_FIREFOX === 'true';
+const enableClozeMatching = process.env.STUDENT_CLOZE_MATCHING_FIREFOX === 'true';
+if (enableClozeMatching && (enableNumeric || enableImages || enableTopics || enableShortPractice
+    || process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true'
+    || process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true' || process.env.STAFF_REVIEW_FIREFOX === 'true')) {
+  throw new Error('Cloze/matching verification runs separately');
+}
 if (enableNumeric && (enableImages || enableTopics || enableShortPractice || process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true' || process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true' || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Numeric verification runs separately');
 if (enableImages && (enableTopics || enableShortPractice || process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true' || process.env.STUDENT_REVIEW_PRACTICE_FIREFOX === 'true' || process.env.STAFF_REVIEW_FIREFOX === 'true')) throw new Error('Image verification runs separately');
 const enableFixedPractice = process.env.STUDENT_FIXED_PRACTICE_FIREFOX === 'true';
@@ -73,9 +81,10 @@ const query = (id) => `document.querySelector(${JSON.stringify(`[data-testid="${
 async function click(id) {
   await waitFor(`Boolean(${query(id)} && !${query(id)}.disabled)`, id);
   const selector = `[data-testid="${id}"]`;
-  const isInput = await evaluate(`${query(id)}.matches('input')`);
+  const inputLabels = await evaluate(`${query(id)}.matches('input')?{nested:Boolean(${query(id)}.closest('label')),labelFor:${query(id)}.labels?.[0]?.htmlFor??null}:null`);
   const element = await wd('POST', '/element', { using: 'css selector',
-    value: isInput ? `label:has(${selector})` : selector });
+    value: inputLabels?.nested ? `label:has(${selector})`
+      : inputLabels?.labelFor ? `label[for=${JSON.stringify(inputLabels.labelFor)}]` : selector });
   await wd('POST', `/element/${element['element-6066-11e4-a52e-4f735466cecf']}/click`, {});
 }
 async function capture(name) {
@@ -972,7 +981,7 @@ function checkPrivate(value) {
 }
 try {
   await mkdir(artifacts, { recursive: true });
-  fixture = enableNumeric ? await createNumericFixture() : enableImages ? await createImageFixture({after(){}}, {largeImages:true}) : enableTopics || enableFixedPractice || enableShortPractice ? await createDomainStudentFixture({extraPerLargeDomain:enableShortPractice?2:0}) : await createMixedStudentFixture();
+  fixture = enableClozeMatching ? await createClozeMatchingFixture({ includeLegacyGroups: true }) : enableNumeric ? await createNumericFixture() : enableImages ? await createImageFixture({after(){}}, {largeImages:true}) : enableTopics || enableFixedPractice || enableShortPractice ? await createDomainStudentFixture({extraPerLargeDomain:enableShortPractice?2:0}) : await createMixedStudentFixture();
   if(enableImages)await fixture.approveImage();
   if(enableShortPractice)await seedShortStudentProfiles(fixture);
   if (enableFixedPractice) { await seedFixedStudentForms(fixture); await seedFixedStudentForms({...fixture,domainBlueprints:{MATH:fixture.domainBlueprints.MATH}}); }
@@ -984,7 +993,7 @@ try {
     return workerPool.connect();
   } };
   const rate = { capacity: 100, refillPerSecond: 10 };
-  runtime = await createStudentRuntime({ enableNumericPractice: enableNumeric, imageStore: enableImages ? fixture.imageStore : null, identityPool: fixture.harness.authPool, examPool: fixture.examPool,
+  runtime = await createStudentRuntime({ enableNumericPractice: enableNumeric, enableClozeMatching, imageStore: enableImages ? fixture.imageStore : null, identityPool: fixture.harness.authPool, examPool: fixture.examPool,
     workerPool: workerProxy, env: { NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true' }, port: 0,
     pollMilliseconds: 30, sweepBatchSize: 10, executorId: 'firefox-browser', leaseSeconds: 30, retrySeconds: 1,
     enableReviewPractice:enableReviewPractice||enableShortPractice, enableFixedPractice, enableShortPractice,
@@ -1009,12 +1018,30 @@ try {
   sessionId = session.sessionId; report.browser = `${session.capabilities.browserName}/${session.capabilities.browserVersion}`;
   assert.equal(session.capabilities.browserName, 'firefox');
   await wd('POST', '/window/rect', { width: 1280, height: 900 });
-  await wd('POST', '/url', { url: `${runtime.origin}/?student=${enableNumeric ? 'postgres-v2' : 'postgres'}` });
+  await wd('POST', '/url', { url: `${runtime.origin}/?student=${enableClozeMatching ? 'postgres-v4' : enableNumeric ? 'postgres-v2' : 'postgres'}` });
   await waitFor(`Boolean(${query('persistent-login-studentA')})`, 'explicit candidate login');
   if (enableNativeZoom) await setNativeZoom();
-  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/')||url.pathname.startsWith('/api/v2/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
+  await evaluate(`(()=>{const original=window.fetch.bind(window);window.__responses=[];window.fetch=async(...args)=>{const response=await original(...args);const url=new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href);if(url.pathname.startsWith('/api/v1/')||url.pathname.startsWith('/api/v2/')||url.pathname.startsWith('/api/v4/'))window.__responses.push({path:url.pathname,status:response.status,body:await response.clone().json()});return response;};return true})()`);
   await capture('login'); await click('persistent-login-studentA');
-  if (enableNumeric) {
+  if (enableClozeMatching) {
+    workerState.available = true;
+    await waitFor(`Boolean(${query('demo-start')})`, 'q3 cloze/matching catalog');
+    const typeText = async (id, text) => {
+      const selector = `[data-testid="${id}"]`;
+      const element = await wd('POST', '/element', { using: 'css selector', value: selector });
+      const elementId = element['element-6066-11e4-a52e-4f735466cecf'];
+      await wd('POST', `/element/${elementId}/clear`, {});
+      await wd('POST', `/element/${elementId}/value`, { text, value: Array.from(text) });
+    };
+    await runClozeMatchingJourney({ evaluate, click, query, waitFor, capture, report, fixture,
+      reload: () => wd('POST', '/refresh', {}),
+      viewport: (width, height) => setViewport(width, height, 'cloze-matching'),
+      pressKey: value => nativeKey(({ ArrowDown: '\uE015', Enter: '\uE007' })[value] ?? value),
+      typeText,
+      focusControl: async (id) => { await waitFor(`Boolean(${query(id)} && !${query(id)}.disabled)`, id); await evaluate(`(()=>{${query(id)}.focus();return true})()`); },
+      narrowWidth: 500,
+    });
+  } else if (enableNumeric) {
     workerState.available = true;
     await waitFor(`Boolean(${query('demo-start')})`, 'numeric catalog');
     await runNumericJourney({ evaluate, click, query, waitFor, capture, report, narrowWidth: 500,
