@@ -1,5 +1,23 @@
 # Architectural decisions and open questions
 
+## CP4 derived matching DRAFTs — 2026-11-09
+
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
+Evidence: “ok approve. resume cp4”, followed by the explicit policy selection:
+“Derive targets from explicitly captured correct texts; retain as DRAFTs for owner review”.
+Scope: resume the [CP4 card](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md),
+using only explicitly captured correct texts to derive missing matching target choices.
+Mark the derived pool as an adaptation requiring owner review; do not claim fidelity to the
+uncaptured original pool or invent distractors, answers or accepted variants. Use an explicit
+bounded reuse rule that allows the captured key, without asserting an original source rule.
+All imports remain private DRAFTs. Approval, publication and rights gates remain unchanged.
+The owner subsequently selected “Import the 78 keyed DRAFTs; keep 22 deferred”. This
+authorizes partially keyed passage groups: preserve the ten shared passages, import only
+explicitly keyed captures, and report the 22 true/false captures without inferred keys.
+The owner also approved the previously proposed four-file documentation commit; subsequent
+implementation commits still require a concrete grouping plan and the owner's `ok`.
+Initial blocker evidence: [report](../../plans/reports/codex-261109-1958-cp4.md).
+
 ## CP3b revised Math ingestion authority — 2026-11-09
 
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok.

@@ -1,30 +1,22 @@
-# Current handoff — CP1 lean docs
+# Current handoff — CP4 cloze and matching
 
-- Date/time and agent identity/role: 2026-11-08, Asia/Bangkok; Codex coordinator, `tsa_light_builder` implementer.
-- Task ID / status / accountable implementer: CP1 Lean docs; DONE; coordinator owns final integration.
-- Scope: compact navigation, verbatim archives, startup read-lists, and the docs validator/tests authorized by the owner's “complete CP1” resumption.
-- Starting repository state: `feat/track-b-data-auth` at `dd30bc9`, with the prior partial CP1 changes preserved.
-- Current Git reference: baseline `dd30bc9`; this handoff accompanies the local checkpoint commit with subject `docs: compact agent navigation and preserve history`.
-- Files changed: three archive/current record pairs; onboarding and orchestration §1; three historical backlog links; docs checker/tests; checkpoint card/plan/reports.
-- Decisions: the [2026-11-07 owner direction](../decisions/OPEN_DECISIONS.md#university-demo-product-direction--2026-11-07) remains unchanged. No application, contract, research or AGENTS rule edits.
-- Outcome: compact navigation and byte-identical history pass CP1's exit checks; the validator resolves historical links from their original source directories and reads both task registries.
+- Date/time and agent identity/role: 2026-11-10, Asia/Bangkok; Claude Code (Fable 5.2) as implementer, continuing a Codex session that stopped mid-checkpoint. Reviewer: Claude Haiku 5.5 `code-reviewer` subagent, read-only.
+- Task ID / status / accountable implementer: CP4 Cloze and matching; DONE, uncommitted; the owner decides commit grouping.
+- Scope: the [CP4 card](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) and [design](../../plans/261108-1553-codex-autonomous-demo/cp4-design.md).
+- Starting repository state: `feat/track-b-data-auth` at `f091f7e` with Codex's uncommitted CP4 contracts, migration 031, runtime, corpus pipeline and student UI.
+- Current Git reference: `f091f7e`; the whole CP4 implementation is in the working tree only.
+- Files changed in this session: staff UI and its tests, the two browser harnesses and the cloze/matching journey, `updateProductHeader` in the student UI, the Reading interaction parser and its test, two Bank migration-list expectations, `package.json` scripts, the new guide, and plan/state records.
+- Decisions: none new. The [derived matching DRAFT decision](../decisions/OPEN_DECISIONS.md#cp4-derived-matching-drafts--2026-11-09) is unchanged. No approval, publication, push or retained-database change.
+- Outcome: all card exit criteria pass. Evidence, review disposition and limits are in the [completion report](../../plans/reports/claude-261110-1215-cp4.md).
 
 ## Verification evidence
 
-| Executed command/check | Environment and date | Observed result | Limitations |
-|---|---|---|---|
-| `git show dd30bc9:<original-path>` versus each archive | Local Linux, 2026-11-08 | All three byte-identical | Preserve archives verbatim |
-| `wc -lc` for AGENTS plus three compact records | Local Linux, 2026-11-08 | Under 20 KB; card line limits pass | Exact final values in report |
-| `npm run docs:check` | Local Linux, 2026-11-08 | PASS; zero errors, 68 historical task IDs | Heading anchors NOT_CHECKED; pinned historical warnings remain |
-| `npm run test:docs` | Approved local Git subprocess access, 2026-11-08 | PASS; 13 tests, zero failures/skips | Documentation tooling only |
-
-Tests not executed: application/runtime suites, because no runtime behavior changed. Independent checkpoint review and final Git results are recorded in the [completion report](../../plans/reports/codex-261108-2051-cp1.md).
+The completion report lists every executed command with its observed result. Not executed: the Firefox full-simulation journey, optional student browser profiles unrelated to CP4, and any retained-database import.
 
 ## Continuation
 
-- Known issues: four historical temporary screenshot references are not current evidence; exact pinned inputs preserve them with warnings. No CP1 acceptance gap remains.
-- Remaining work: CP2 full simulation; CP3 corpus DRAFT ingestion is also eligible. Question publication still requires owner approval and rights evidence.
-- Recommended next action: run the [CP2 card](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) through the leader prompt.
-- Ownership transfer: builder released checker/tests; coordinator owns checkpoint commit; no background processes started.
-- State updates: plan, active backlog and project state link the completion report; earlier blocker reports remain historical.
-- Recovery notes: archives must remain byte-identical to `dd30bc9` originals. Read them on demand; their relative links retain the original source context.
+- Known issues: the review's P3 items are open; the `question/3` image-guard relaxation for inert bracket text awaits an owner decision.
+- Remaining work: commit the working tree in owner-approved groups; decide on a retained import of the 78 keyed Reading DRAFTs (backup first); then CP6. CP5 waits for owner-supplied Science files.
+- Recommended next action: approve the commit grouping, then run the [CP6 card](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md).
+- Ownership transfer: no background processes remain from this session; temporary files live outside the repository.
+- Recovery notes: migration 031 is unapplied on any retained database. The feature is off unless `LOCAL_CLOZE_MATCHING_ENABLED=true`; see the [guide](../guides/TRACK_B_CLOZE_MATCHING.md).

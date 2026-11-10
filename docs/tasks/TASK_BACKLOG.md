@@ -8,7 +8,7 @@ CP0 and CP1 are complete; see the [baseline report](../../plans/reports/codex-26
 |---|---|---|---|
 | [CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) | Build the 100-question timed simulation | TODO | Depends on CP1 |
 | [CP3 Corpus ingestion](../../plans/261108-1553-codex-autonomous-demo/cp3-corpus-ingestion.md) | Prepare permitted-corpus DRAFT ingestion | TODO | Depends on CP1; no publication before rights evidence and owner approval |
-| [CP4 Cloze and matching](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) | Add cloze and matching interactions | TODO | Depends on CP2 |
+| [CP4 Cloze and matching](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) | Add cloze and matching interactions | DONE (uncommitted) | [Report](../../plans/reports/claude-261110-1215-cp4.md); commits and retained import await the owner |
 | [CP5 Science ingestion](../../plans/261108-1553-codex-autonomous-demo/cp5-science-ingestion.md) | Prepare Science ingestion | TODO | Depends on CP3 and owner-supplied Science files |
 | [CP6 Demo-ready](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md) | Verify the integrated local demo | TODO | Depends on CP2 and CP3; CP4/CP5 if completed |
 

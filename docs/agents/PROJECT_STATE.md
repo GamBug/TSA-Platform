@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-09. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-10. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -13,6 +13,7 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 - Topic catalog and owner-bound topic practice are integrated with the student experience.
 - The opt-in v3 full simulation delivers 100 questions with server-side section clocks, return navigation, read-only exhaustion, and per-section/total correct counts.
 - Versioned numeric practice and binary per-section/total scoring are implemented.
+- Opt-in cloze and matching practice (`question/3`, `/api/v4`) works end to end, including staff authoring and preview; see the [guide](../guides/TRACK_B_CLOZE_MATCHING.md).
 - Private inspected-image delivery is implemented behind a default-off feature flag.
 - Keyboard shortcuts support per-page opt-out and modal focus restoration.
 - Reading research/factory and manual draft transport support validated, unpublished DRAFT intake.
@@ -20,11 +21,13 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-10: CP4 completed, uncommitted: exit suites, Chromium/Firefox journeys and a recorded independent review passed. Commit grouping and a retained import of the 78 keyed Reading DRAFTs await the owner. See the [CP4 completion report](../../plans/reports/claude-261110-1215-cp4.md).
+
 - 2026-11-09: CP3b completed: 80 private Math DRAFTs verified in four disposable batches of twenty, exit checks and independent review passed. See the [Math checkpoint report](../../plans/reports/codex-261109-1721-cp3b.md).
 
 - 2026-11-09: Earlier CP3b allowlist blocker was resolved by the owner's extension; see the historical [blocker report](../../plans/reports/codex-261109-1636-cp3b.md).
 
-[CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md), CP3a retained Reading import and CP3b disposable Math verification are complete. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP4 is next. Math retained-bank import remains a separate operation.
+[CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md), CP3a retained Reading import and CP3b disposable Math verification are complete. The [checkpoint plan](../../plans/261108-1553-codex-autonomous-demo/plan.md) tracks the remaining work; CP6 is next, and CP5 waits for owner-supplied Science files. Math retained-bank import remains a separate operation.
 
 - 2026-11-08: CP1 navigation and archives verified; docs validator repaired under owner resumption authorization. See the [CP1 completion report](../../plans/reports/codex-261108-2051-cp1.md).
 - 2026-11-08: CP2 completed under owner resumption authorization; migration preservation, required suites, and Chromium/Firefox 100-answer journeys passed. See the [CP2 completion report](../../plans/reports/codex-261108-2238-cp2.md).

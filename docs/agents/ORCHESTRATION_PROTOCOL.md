@@ -176,3 +176,33 @@ task prompt. If that is unavailable too, the owner opens a separate subscription
 client session and pastes the same complete prompt. Confirm its model and return
 its real output/diff; report manual dispatch, never simulated review or automatic
 role loading. Do not launch a paid API runner as a fallback.
+
+## 9. Claude Code dispatch mapping
+
+Owner instruction, 2026-11-10: when the work runs in Claude Code, follow the same workflow,
+authority, limits and handoff rules as section 8. Only the models differ. A Claude Code
+session never relaxes a Codex-era rule; where section 8 names a Codex role, use its mapping here.
+
+| Role in section 8 | Claude Code equivalent | Model | Notes |
+|---|---|---|---|
+| Coordinator and integrator (Sol 6.1) | The main session | Fable, or Opus when Fable is unavailable | Owns shared contracts, migrations, backlog, state, handoff and decision updates. |
+| `tsa_scout`, `tsa_builder`, `tsa_light_builder` (Luna) | Subagent with `model: haiku` | Haiku 5.5 | Default for discovery, implementation, debugging and test development. One writer by default. |
+| `tsa_complex_builder` (Terra) | Subagent with `model: opus` | Opus | Only for a demonstrated complexity or capability reason recorded in the dispatch prompt. |
+| `tsa_reviewer` (Sol 6.1, read-only) | Read-only subagent with `model: opus` | Opus (or Fable) | Independent of the implementing session; never reviews its own work. |
+
+Rules that carry over unchanged:
+
+- Lead with the Fable or Opus main session; delegate bounded work to Haiku subagents. Do not spawn
+  subagents the owner did not ask for, and do not use a stronger model merely because it is available.
+- Keep at most two open subagents and default to one writing implementer. Give each subagent only its
+  task inputs, an explicit file allowlist, acceptance commands, stop conditions and the handoff status
+  line (`DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT`).
+- Every task prompt still carries the recommended agent/platform, model, reasoning setting and reason.
+  A model-routing claim needs the actual model evidence; do not simulate a review or silently
+  substitute a model. If a subagent is unavailable (for example at a usage limit), record that, then
+  resume it or hand the prompt to the owner.
+- The owner's `ok` is still required before commits, and the prohibitions on push, merge, approval,
+  publication, paid API calls and retained-database changes without a backup stay in force.
+- Run long verification suites in the background once the code is stable, and record exact commands
+  and results. A one-time budget instruction (such as spending tokens until a reset time) applies to
+  that session only and is not a standing permission.
