@@ -136,7 +136,7 @@ function validateLoad(raw, lease) {
     result.status !== "READY" ||
     result.attemptId !== lease.attemptId ||
     !hasUuid(result.formId) ||
-    !["practice-binary-v1", "practice-binary-v2"].includes(result.policyVersion) ||
+    !["practice-binary-v1", "practice-binary-v2", "practice-binary-v3"].includes(result.policyVersion) ||
     typeof result.inputHash !== "string" ||
     !SHA256.test(result.inputHash) ||
     !Array.isArray(result.slots) ||

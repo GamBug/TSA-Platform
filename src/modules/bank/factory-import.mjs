@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
-  QuestionVersionSchema, canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, createReferenceHash,
+  QuestionVersionSchema, QuestionVersionV3Schema, canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, createReferenceHash,
   parseFactoryPackageV2,
 } from '../../../packages/contracts/dist/internal.js';
 import { withTransaction } from '../database/pool.mjs';
@@ -177,7 +177,7 @@ function comparableNode(node) {
   };
 }
 
-async function loadPersistedQuestion(client, versionId, producerNamespace) {
+async function loadPersistedQuestion(client, versionId, producerNamespace, allowQuestionV3 = false) {
   const result = await client.query(
     `SELECT qv.id, qv.question_id, qv.version_no, qv.parent_version_id,
             qv.schema_version, qv.language, qv.section, qv.taxonomy_version_id,
@@ -204,7 +204,11 @@ async function loadPersistedQuestion(client, versionId, producerNamespace) {
   }
   let question;
   try {
-    question = QuestionVersionSchema.parse({
+    const schema = row.schema_version === 'question/3'
+      ? (allowQuestionV3 ? QuestionVersionV3Schema : null)
+      : QuestionVersionSchema;
+    if (!schema) reject(409, 'IMPORT_INTEGRITY_CONFLICT');
+    question = schema.parse({
       schemaVersion: row.schema_version,
       id: row.id,
       questionId: row.question_id,
@@ -240,8 +244,8 @@ async function loadPersistedQuestion(client, versionId, producerNamespace) {
   return { row, question };
 }
 
-async function verifyPersistedQuestion(client, versionId, producerNamespace, expectedQuestion, expectedNode) {
-  const { row, question } = await loadPersistedQuestion(client, versionId, producerNamespace);
+async function verifyPersistedQuestion(client, versionId, producerNamespace, expectedQuestion, expectedNode, allowQuestionV3 = false) {
+  const { row, question } = await loadPersistedQuestion(client, versionId, producerNamespace, allowQuestionV3);
   const graph = await resolveReferenceGraph(client, row.reference_namespace, [{ kind: 'question', id: versionId }]);
   const questionNode = graph.find((node) => node.kind === 'question' && node.id === versionId);
   integrity(questionNode);
@@ -407,9 +411,10 @@ export async function verifyStoredFactoryPackage(client, pkg, { requireDraftRece
       pkg.producerNamespace,
       candidate?.question,
       node,
+      pkg.schemaVersion === 'factory-package/4',
     );
   }
-  if (pkg.schemaVersion === 'factory-package/3') {
+  if (pkg.schemaVersion === 'factory-package/3' || pkg.schemaVersion === 'factory-package/4') {
     for (const candidate of pkg.candidates) {
       const run = await client.query(`SELECT external_generation_run_id,run_metadata
         FROM tsa_private.factory_import_runs WHERE question_version_id=$1`, [candidate.question.id]);
@@ -471,9 +476,11 @@ async function importFactoryPackageV2(bankPool, identityService, principal, inpu
 // internal persistence primitive. It never checks out a different connection.
 export async function persistValidatedFactoryPackage(client, principal, pkg) {
     const manifestHash=digest(pkg); const namespace=namespaceFor(pkg);
-    if (pkg.schemaVersion === 'factory-package/3') {
+    if (pkg.schemaVersion === 'factory-package/3' || pkg.schemaVersion === 'factory-package/4') {
       const nodes = new Map(pkg.references.map((node) => [keyOf(node), node]));
-      for (const candidate of pkg.candidates) assertSafeQuestionContent(candidate.question, closure(candidate.question, nodes));
+      for (const candidate of pkg.candidates) assertSafeQuestionContent(candidate.question, closure(candidate.question, nodes), {
+        clozeMatching: pkg.schemaVersion === 'factory-package/4',
+      });
     }
     await client.query("SELECT set_config('tsa.bank_actor_id',$1,true)",[principal.userId]);
     await client.query('SELECT pg_advisory_xact_lock(1414742321,1)');

@@ -1,5 +1,6 @@
 import { StaffReviewContextSchema } from '../../../packages/contracts/dist/staff.js';
 import { StaffReviewContextV2Schema } from '../../../packages/contracts/dist/staff-v2.js';
+import { StaffReviewContextV3Schema } from '../../../packages/contracts/dist/staff-v3.js';
 import { assertBankConnection, reject, requireActor, UUID_PATTERN } from './common.mjs';
 import { assertSafeQuestionContent } from './content-safety.mjs';
 import { withTransaction } from '../database/pool.mjs';
@@ -42,7 +43,10 @@ async function readSnapshot(client, identityService, principal, versionId, optio
   let reason = ['QUARANTINED', 'RETIRED'].includes(target.state) ? 'WORKFLOW_HELD'
     : result.rows.some((row) => !row.permitted) ? 'RIGHTS_BLOCKED' : null;
   if (!reason) {
-    try { assertSafeQuestionContent(verified.question, verified.graph.filter((node) => !(node.kind === 'question' && node.id === target.id)), { numericQuestions: options.enableNumericQuestions }); }
+    try { assertSafeQuestionContent(verified.question,
+      verified.graph.filter((node) => !(node.kind === 'question' && node.id === target.id)), {
+        numericQuestions: options.enableNumericQuestions, clozeMatching: options.enableClozeMatching,
+      }); }
     catch { reason = 'CONTENT_UNSUPPORTED'; }
   }
   const preview = reason ? { status: 'BLOCKED', reason } : { status: 'AVAILABLE', question: {
@@ -51,25 +55,31 @@ async function readSnapshot(client, identityService, principal, versionId, optio
     scoringPolicyVersion: verified.question.private.scoringPolicy, stimulus: verified.stimulus,
   } };
   const payload = {
-    schemaVersion: verified.question.schemaVersion === 'question/2' ? 'staff-review-context/2' : 'staff-review-context/1', observedAt, accessBasis: basis, environment: 'LOCAL_SYNTHETIC_ONLY',
+    schemaVersion: verified.question.schemaVersion === 'question/3' ? 'staff-review-context/3'
+      : verified.question.schemaVersion === 'question/2' ? 'staff-review-context/2' : 'staff-review-context/1',
+    observedAt, accessBasis: basis, environment: 'LOCAL_SYNTHETIC_ONLY',
     version: { questionId: target.question_id, versionId: target.id, versionNo: target.version_no,
       parentVersionId: target.parent_version_id, section: target.section, contentHash: target.content_hash },
     workflow: { state: target.state, revision: Number(target.revision) }, sources, preview,
     rightsEvidenceIncluded: false, publicationEligibility: 'NOT_EVALUATED',
   };
   need(Buffer.byteLength(JSON.stringify(payload), 'utf8') <= LIMIT_BYTES);
-  return (payload.schemaVersion === 'staff-review-context/2' ? StaffReviewContextV2Schema : StaffReviewContextSchema).parse(payload);
+  const schema = payload.schemaVersion === 'staff-review-context/3' ? StaffReviewContextV3Schema
+    : payload.schemaVersion === 'staff-review-context/2' ? StaffReviewContextV2Schema : StaffReviewContextSchema;
+  return schema.parse(payload);
 }
 
-export async function createReviewContextService({ bankPool, identityService, enableNumericQuestions = false }) {
+export async function createReviewContextService({ bankPool, identityService, enableNumericQuestions = false, enableClozeMatching = false }) {
   if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('Numeric questions opt-in must be boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
+  if (enableNumericQuestions && enableClozeMatching) throw new TypeError('Question protocol opt-ins must be enabled separately');
   await assertBankConnection(bankPool);
   return Object.freeze({ async read(principal, versionId) {
     requireActor(identityService, principal, 'bank.question.read');
     if (!UUID_PATTERN.test(versionId)) reject(404, 'NOT_FOUND');
     return withTransaction(bankPool, async (client) => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
-      try { return await readSnapshot(client, identityService, principal, versionId, { enableNumericQuestions }); }
+      try { return await readSnapshot(client, identityService, principal, versionId, { enableNumericQuestions, enableClozeMatching }); }
       catch (error) {
         if (error?.status === 404 && error?.code === 'NOT_FOUND') throw error;
         fail();

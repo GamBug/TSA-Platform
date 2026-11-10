@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { assertSafeQuestionContent } from './content-safety.mjs';
 import { checkReferencedImages, INSPECTED_IMAGE_PROFILE } from './inspected-images.mjs';
-import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema } from '../../../packages/contracts/dist/internal.js';
-import { SupportedQuestionVersionSchema } from '../../../packages/contracts/dist/question-v2.js';
+import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema, QuestionVersionV3Schema } from '../../../packages/contracts/dist/internal.js';
+import { QuestionVersionV2Schema } from '../../../packages/contracts/dist/question-v2.js';
 import { reject, resolveReferenceGraph, UUID_PATTERN, jsonDigest } from './common.mjs';
 
 export async function loadWorkflowTarget(client, versionId) {
@@ -34,9 +34,13 @@ export function assertIndependentReviewer(identityService, principal, target) {
   })) reject(403, 'FORBIDDEN');
 }
 
-export async function validateWorkflowTarget(client, target, imageStore = null, { enableNumericQuestions = false } = {}) {
-  if (typeof enableNumericQuestions !== 'boolean') reject(422, 'VALIDATION_ERROR');
+export async function validateWorkflowTarget(client, target, imageStore = null,
+  { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
+  if (typeof enableNumericQuestions !== 'boolean' || typeof enableClozeMatching !== 'boolean'
+      || enableNumericQuestions && enableClozeMatching) reject(422, 'VALIDATION_ERROR');
   if (target.schema_version === 'question/2' && !enableNumericQuestions) reject(422, 'VALIDATION_ERROR');
+  if (target.schema_version === 'question/3' && !enableClozeMatching) reject(422, 'VALIDATION_ERROR');
+  if (!['question/1', 'question/2', 'question/3'].includes(target.schema_version)) reject(422, 'VALIDATION_ERROR');
   if (!target.reference_namespace || !target.authored_created_at) reject(422, 'VALIDATION_ERROR');
   const graph = await resolveReferenceGraph(client, target.reference_namespace,
     [{ kind: 'question', id: target.id }]);
@@ -45,9 +49,8 @@ export async function validateWorkflowTarget(client, target, imageStore = null, 
   const references = graph.filter((node) => node !== root);
   let question;
   try {
-    const schema = target.schema_version === 'question/2'
-      ? SupportedQuestionVersionSchema
-      : QuestionVersionSchema;
+    const schema = target.schema_version === 'question/3' ? QuestionVersionV3Schema
+      : target.schema_version === 'question/2' ? QuestionVersionV2Schema : QuestionVersionSchema;
     question = schema.parse({ ...root.payload, contentHash: target.content_hash });
     if (question.schemaVersion !== target.schema_version) reject(422, 'VALIDATION_ERROR');
     if (computeQuestionIdentity(question, references).contentHash !== target.content_hash
@@ -74,9 +77,14 @@ export async function validateWorkflowTarget(client, target, imageStore = null, 
   assertSafeQuestionContent(question, references, {
     inspectedImages: imageStore?.status?.().enabled === true,
     numericQuestions: enableNumericQuestions,
+    clozeMatching: enableClozeMatching,
   });
   const imageProfile = await checkReferencedImages(client, references, imageStore);
-  const profile = question.schemaVersion === 'question/2'
+  const profile = question.schemaVersion === 'question/3'
+    ? imageProfile === INSPECTED_IMAGE_PROFILE
+      ? 'text-math-table-inspected-image-cloze-matching/5'
+      : 'text-math-table-cloze-matching/4'
+    : question.schemaVersion === 'question/2'
     ? imageProfile === INSPECTED_IMAGE_PROFILE
       ? 'text-math-table-inspected-image-numeric/3'
       : 'text-math-table-numeric/2'
@@ -185,12 +193,12 @@ async function assertRights(client, target, references) {
 }
 
 export async function assertPublicationGates(client, target, principal, fixtureScopeId, imageStore = null,
-  { enableNumericQuestions = false } = {}) {
+  { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
   if (!fixtureScopeId || !UUID_PATTERN.test(fixtureScopeId)) reject(403, 'PUBLICATION_DISABLED');
   await client.query("SELECT set_config('tsa.bank_fixture_scope', $1, true)", [fixtureScopeId]);
   const fixture = await client.query('SELECT tsa.bank_fixture_scope_active() AS active');
   if (fixture.rows[0]?.active !== true) reject(403, 'PUBLICATION_DISABLED');
-  const { references } = await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions });
+  const { references } = await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions, enableClozeMatching });
   const validation = await client.query(`SELECT 1 FROM tsa.validation_runs
     WHERE question_version_id=$1 AND input_hash=$2 AND kind='BANK_IMMUTABLE'
       AND validator_version='bank-immutable/1' AND outcome='PASS'

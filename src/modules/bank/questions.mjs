@@ -4,6 +4,10 @@ import {
   BlockSchema,
   InteractionSchema,
   QuestionVersionSchema,
+  QuestionVersionV3Schema,
+  InteractionV3Schema,
+  AnswerKeyV3Schema,
+  validateAnswerKeyV3,
   canonicalize,
   computeDuplicateFingerprint,
   computeQuestionIdentity,
@@ -13,7 +17,6 @@ import {
   AnswerKeyV2Schema,
   InteractionV2Schema,
   QuestionVersionV2Schema,
-  SupportedQuestionVersionSchema,
 } from '../../../packages/contracts/dist/question-v2.js';
 import {
   MANUAL_REFERENCE_NAMESPACE,
@@ -45,8 +48,17 @@ const SECTIONS = new Set(['MATH', 'READING', 'SCIENCE']);
 const COGNITIVE_LEVELS = new Set(['M1', 'M2', 'M3']);
 const DIFFICULTIES = new Set(['EASY', 'MEDIUM', 'HARD']);
 
-function assertNumericQuestionsOption(value) {
-  if (typeof value !== 'boolean') throw new TypeError('enableNumericQuestions must be a boolean');
+function assertQuestionOptions(enableNumericQuestions, enableClozeMatching) {
+  if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('enableNumericQuestions must be a boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
+  if (enableNumericQuestions && enableClozeMatching) throw new TypeError('Question protocol opt-ins must be enabled separately');
+}
+
+function questionSchemaForVersion(schemaVersion, { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
+  if (schemaVersion === 'question/1') return QuestionVersionSchema;
+  if (schemaVersion === 'question/2' && (enableNumericQuestions || enableClozeMatching)) return QuestionVersionV2Schema;
+  if (schemaVersion === 'question/3' && enableClozeMatching) return QuestionVersionV3Schema;
+  return null;
 }
 
 function parseJson(value) {
@@ -199,11 +211,10 @@ async function loadQuestionRow(client, versionId) {
   return result.rows[0] ?? null;
 }
 
-function toQuestionVersion(row, { enableNumericQuestions = false } = {}) {
+function toQuestionVersion(row, options = {}) {
   if (!row.authored_created_at || !row.reference_namespace) reject(422, 'PARENT_REFERENCE_NOT_REGISTERED');
-  const schema = row.schema_version === 'question/2' && enableNumericQuestions
-    ? SupportedQuestionVersionSchema
-    : QuestionVersionSchema;
+  const schema = questionSchemaForVersion(row.schema_version, options);
+  if (!schema) reject(422, 'VALIDATION_ERROR');
   const parsed = schema.safeParse({
     schemaVersion: row.schema_version,
     id: row.id,
@@ -373,7 +384,8 @@ function buildDraftQuestion(draft, { questionId, versionId, versionNo, parentVer
       answerKey: draft.answerKey,
       explanation: draft.explanation,
       evidenceRefs: draft.evidenceRefs,
-      scoringPolicy: draft.schemaVersion === 'question/2' ? 'practice-binary-v2' : 'practice-binary-v1',
+      scoringPolicy: draft.schemaVersion === 'question/3' ? 'practice-binary-v3'
+        : draft.schemaVersion === 'question/2' ? 'practice-binary-v2' : 'practice-binary-v1',
     },
     origin: draft.origin,
     provenanceIds,
@@ -384,11 +396,15 @@ function buildDraftQuestion(draft, { questionId, versionId, versionNo, parentVer
   };
 }
 
-function validateDraftInput(draft, { enableNumericQuestions = false } = {}) {
-  assertNumericQuestionsOption(enableNumericQuestions);
+function validateDraftInput(draft, { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
+  assertQuestionOptions(enableNumericQuestions, enableClozeMatching);
   strictRecord(draft, QUESTION_DRAFT_KEYS, 'question draft');
   const isQuestionV2 = draft.schemaVersion === 'question/2';
-  if ((draft.schemaVersion !== 'question/1' && !(enableNumericQuestions && isQuestionV2)) || draft.language !== 'vi-VN'
+  const isQuestionV3 = draft.schemaVersion === 'question/3';
+  const versionEnabled = (!enableClozeMatching && draft.schemaVersion === 'question/1')
+    || (enableNumericQuestions && isQuestionV2)
+    || (enableClozeMatching && isQuestionV3);
+  if (!versionEnabled || draft.language !== 'vi-VN'
       || !SECTIONS.has(draft.section) || !UUID_PATTERN.test(draft.taxonomyVersionId)
       || !UUID_PATTERN.test(draft.domainId) || !['MANUAL', 'IMPORTED'].includes(draft.origin)
       || !(draft.cognitiveLevel === null || COGNITIVE_LEVELS.has(draft.cognitiveLevel))
@@ -405,11 +421,16 @@ function validateDraftInput(draft, { enableNumericQuestions = false } = {}) {
     ...(Array.isArray(draft.explanation) ? draft.explanation : [])]) {
     if (!BlockSchema.safeParse(block).success) reject(422, 'VALIDATION_ERROR');
   }
-  const interactionSchema = isQuestionV2 ? InteractionV2Schema : InteractionSchema;
-  const answerKeySchema = isQuestionV2 ? AnswerKeyV2Schema : AnswerKeySchema;
+  const interactionSchema = isQuestionV3 ? InteractionV3Schema : isQuestionV2 ? InteractionV2Schema : InteractionSchema;
+  const answerKeySchema = isQuestionV3 ? AnswerKeyV3Schema : isQuestionV2 ? AnswerKeyV2Schema : AnswerKeySchema;
   if (!Array.isArray(draft.content) || !Array.isArray(draft.explanation)
       || !interactionSchema.safeParse(draft.interaction).success
       || !answerKeySchema.safeParse(draft.answerKey).success) reject(422, 'VALIDATION_ERROR');
+  if (isQuestionV3) {
+    const issues = [];
+    validateAnswerKeyV3(draft.interaction, draft.answerKey, (path, message) => issues.push({ path, message }));
+    if (issues.length > 0) reject(422, 'VALIDATION_ERROR');
+  }
   for (const item of draft.provenance) {
     strictRecord(item, ['sourceVersionId', 'span', 'transformation'], 'provenance');
     if (!UUID_PATTERN.test(item.sourceVersionId) || !(item.span === null || typeof item.span === 'string')
@@ -418,9 +439,9 @@ function validateDraftInput(draft, { enableNumericQuestions = false } = {}) {
 }
 
 async function createDraftVersion(client, principal, draft, {
-  questionId = randomUUID(), parentVersionId = null, parent = null, enableNumericQuestions = false,
+  questionId = randomUUID(), parentVersionId = null, parent = null, enableNumericQuestions = false, enableClozeMatching = false,
 } = {}) {
-  validateDraftInput(draft, { enableNumericQuestions });
+  validateDraftInput(draft, { enableNumericQuestions, enableClozeMatching });
   const taxonomyNode = await loadTaxonomyNode(client, draft.taxonomyVersionId);
   const canonicalDraft = canonicalizeTaxonomyIds(draft, taxonomyNode);
   const versionId = randomUUID();
@@ -432,7 +453,8 @@ async function createDraftVersion(client, principal, draft, {
     questionId, versionId, versionNo: parent ? parent.version.versionNo + 1 : 1,
     parentVersionId, principal, createdAt, provenanceIds: provenance.persisted.map((item) => item.provenanceId),
   });
-  const questionSchema = draft.schemaVersion === 'question/2' ? QuestionVersionV2Schema : QuestionVersionSchema;
+  const questionSchema = questionSchemaForVersion(draft.schemaVersion, { enableNumericQuestions, enableClozeMatching });
+  if (!questionSchema) reject(422, 'VALIDATION_ERROR');
   const parsed = questionSchema.safeParse(question);
   if (!parsed.success) reject(422, 'VALIDATION_ERROR');
   const normalizedQuestion = parsed.data;
@@ -443,7 +465,7 @@ async function createDraftVersion(client, principal, draft, {
     parentDefinitions, taxonomyNode, assets.definitions);
   const roots = requiredRoots(normalizedQuestion);
   if (roots.length > MAX_REFERENCE_NODES) reject(422, 'INVALID_REFERENCE_GRAPH');
-  const namespace = `${PRIVATE_NAMESPACE_PREFIX}${versionId}`;
+  const namespace = `${normalizedQuestion.schemaVersion === 'question/3' ? 'question/3/' : PRIVATE_NAMESPACE_PREFIX}${versionId}`;
   const closure = await resolveReferenceGraph(client, namespace, roots, definitions);
   const identity = computeQuestionIdentity(normalizedQuestion, closure);
   const fingerprint = computeDuplicateFingerprint(normalizedQuestion, closure);
@@ -465,7 +487,8 @@ async function createDraftVersion(client, principal, draft, {
     }),
   };
 
-  const fingerprintVersion = storedQuestion.schemaVersion === 'question/2' ? 'fingerprint/2' : 'fingerprint/1';
+  const fingerprintVersion = storedQuestion.schemaVersion === 'question/3' ? 'fingerprint/3'
+    : storedQuestion.schemaVersion === 'question/2' ? 'fingerprint/2' : 'fingerprint/1';
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
     JSON.stringify([fingerprintVersion, storedQuestion.section, fingerprint.fingerprint]),
   ]);
@@ -568,32 +591,34 @@ async function createDraftVersion(client, principal, draft, {
   };
 }
 
-export async function createQuestionDraft(bankPool, identityService, principal, key, draft, { enableNumericQuestions = false } = {}) {
-  assertNumericQuestionsOption(enableNumericQuestions);
+export async function createQuestionDraft(bankPool, identityService, principal, key, draft,
+  { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
+  assertQuestionOptions(enableNumericQuestions, enableClozeMatching);
   requireActor(identityService, principal, 'bank.question.author');
-  const apiVersion = enableNumericQuestions ? 'v2' : 'v1';
+  const apiVersion = enableClozeMatching ? 'v4' : enableNumericQuestions ? 'v2' : 'v1';
   return withIdempotency(bankPool, principal, key, `POST /api/${apiVersion}/questions`, draft, async (client) => {
-    const body = await createDraftVersion(client, principal, draft, { enableNumericQuestions });
+    const body = await createDraftVersion(client, principal, draft, { enableNumericQuestions, enableClozeMatching });
     return { status: 201, body, resourceId: body.versionId };
   });
 }
 
 export async function createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input,
-  { enableNumericQuestions = false } = {}) {
-  assertNumericQuestionsOption(enableNumericQuestions);
+  { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
+  assertQuestionOptions(enableNumericQuestions, enableClozeMatching);
   requireActor(identityService, principal, 'bank.question.author');
   strictRecord(input, ['parentVersionId', 'draft'], 'question version');
   if (!UUID_PATTERN.test(questionId) || !UUID_PATTERN.test(input.parentVersionId)) reject(404, 'NOT_FOUND');
-  const apiVersion = enableNumericQuestions ? 'v2' : 'v1';
+  const apiVersion = enableClozeMatching ? 'v4' : enableNumericQuestions ? 'v2' : 'v1';
   return withIdempotency(bankPool, principal, key, `POST /api/${apiVersion}/questions/${questionId}/versions`, input, async (client) => {
     const lockedQuestion = await client.query('SELECT id FROM tsa.questions WHERE id = $1 FOR UPDATE', [questionId]);
     if (lockedQuestion.rowCount !== 1) reject(404, 'NOT_FOUND');
-    const parent = await loadParentGraph(client, input.parentVersionId, questionId, { enableNumericQuestions });
+    const parent = await loadParentGraph(client, input.parentVersionId, questionId, { enableNumericQuestions, enableClozeMatching });
     const body = await createDraftVersion(client, principal, input.draft, {
       questionId,
       parentVersionId: input.parentVersionId,
       parent,
       enableNumericQuestions,
+      enableClozeMatching,
     });
     return { status: 201, body, resourceId: body.versionId };
   });
@@ -622,8 +647,8 @@ function decodeCursor(cursor) {
 }
 
 export async function listQuestionSummaries(bankPool, identityService, principal, searchParams,
-  { enableNumericQuestions = false } = {}) {
-  assertNumericQuestionsOption(enableNumericQuestions);
+  { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
+  assertQuestionOptions(enableNumericQuestions, enableClozeMatching);
   requireActor(identityService, principal, 'bank.question.read');
   const allowed = new Set(['section', 'state', 'cursor', 'limit']);
   for (const key of searchParams.keys()) if (!allowed.has(key)) reject(422, 'VALIDATION_ERROR');
@@ -635,7 +660,9 @@ export async function listQuestionSummaries(bankPool, identityService, principal
   if (section !== null && !SECTIONS.has(section) || state !== null && !WORKFLOW_STATES.has(state)
       || !Number.isInteger(limit) || limit < 1 || limit > 100) reject(422, 'VALIDATION_ERROR');
   const cursor = decodeCursor(searchParams.get('cursor') ?? undefined);
-  const versionFilter = enableNumericQuestions ? '' : "AND qv.schema_version = 'question/1'";
+  const versionFilter = enableClozeMatching ? "AND qv.schema_version = 'question/3'"
+    : enableNumericQuestions ? "AND qv.schema_version IN ('question/1', 'question/2')"
+      : "AND qv.schema_version = 'question/1'";
   const result = await withTransaction(bankPool, (client) => client.query(
     `SELECT qv.question_id, qv.id AS version_id, qv.section, w.state,
             qv.interaction->>'type' AS interaction_type, qv.content_hash, qv.created_at,
@@ -663,16 +690,16 @@ export async function listQuestionSummaries(bankPool, identityService, principal
   return { items, nextCursor };
 }
 
-export async function createQuestionService({ bankPool, identityService, enableNumericQuestions = false }) {
+export async function createQuestionService({ bankPool, identityService, enableNumericQuestions = false, enableClozeMatching = false }) {
   if (!bankPool || !identityService) throw new TypeError('Bank pool and identity service are required');
-  assertNumericQuestionsOption(enableNumericQuestions);
+  assertQuestionOptions(enableNumericQuestions, enableClozeMatching);
   await assertBankConnection(bankPool);
   return Object.freeze({
     createQuestionDraft: (principal, key, draft) =>
-      createQuestionDraft(bankPool, identityService, principal, key, draft, { enableNumericQuestions }),
+      createQuestionDraft(bankPool, identityService, principal, key, draft, { enableNumericQuestions, enableClozeMatching }),
     createQuestionDraftVersion: (principal, questionId, key, input) =>
-      createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input, { enableNumericQuestions }),
+      createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input, { enableNumericQuestions, enableClozeMatching }),
     listQuestionSummaries: (principal, searchParams) =>
-      listQuestionSummaries(bankPool, identityService, principal, searchParams, { enableNumericQuestions }),
+      listQuestionSummaries(bankPool, identityService, principal, searchParams, { enableNumericQuestions, enableClozeMatching }),
   });
 }

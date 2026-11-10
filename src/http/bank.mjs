@@ -176,13 +176,14 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableNumericQuestions = false, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false, enableFixedSealing = false, enableFixedSealMetadata = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableNumericQuestions = false, enableClozeMatching = false, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false, enableFixedSealing = false, enableFixedSealMetadata = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
   if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('Numeric questions opt-in must be boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
   if (typeof enableReviewContext !== 'boolean') throw new TypeError('Private inspection opt-in must be boolean');
   if (typeof enableReviewEvidence !== 'boolean') throw new TypeError('Private evidence opt-in must be boolean');
   if (typeof enableReviewHistory !== 'boolean') throw new TypeError('Private review history opt-in must be boolean');
@@ -209,6 +210,12 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
     reviewContext: enableReviewContext
       ? await createReviewContextService({ bankPool, identityService, enableNumericQuestions: true }) : null,
   } : null;
+  const clozeMatchingServices = enableClozeMatching ? {
+    questions: await createQuestionService({ bankPool, identityService, enableClozeMatching: true }),
+    publication: await createPublicationService({ bankPool, identityService, enableClozeMatching: true }),
+    reviewContext: enableReviewContext
+      ? await createReviewContextService({ bankPool, identityService, enableClozeMatching: true }) : null,
+  } : null;
 
   return async function handleBankRequest(request) {
     const requestId = randomUUID();
@@ -217,6 +224,7 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
       const numericRoute = url.pathname.startsWith('/api/v2/');
+      const clozeMatchingRoute = url.pathname.startsWith('/api/v4/');
       if (numericRoute) {
         if (!numericServices || !(/^\/api\/v2\/questions$/.test(url.pathname)
           || /^\/api\/v2\/questions\/[0-9a-f-]+\/versions$/.test(url.pathname)
@@ -225,9 +233,20 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
         }
         url.pathname = url.pathname.replace('/api/v2/', '/api/v1/');
       }
-      const questions = numericRoute ? numericServices.questions : questionsV1;
-      const publication = numericRoute ? numericServices.publication : publicationV1;
-      const reviewContext = numericRoute ? numericServices.reviewContext : reviewContextV1;
+      if (clozeMatchingRoute) {
+        if (!clozeMatchingServices || !(/^\/api\/v4\/questions$/.test(url.pathname)
+          || /^\/api\/v4\/questions\/[0-9a-f-]+\/versions$/.test(url.pathname)
+          || /^\/api\/v4\/question-versions\/[0-9a-f-]+\/(submit-review|reviews|quarantine|review-context)$/.test(url.pathname))) {
+          return errorResponse(404, 'NOT_FOUND', requestId);
+        }
+        url.pathname = url.pathname.replace('/api/v4/', '/api/v1/');
+      }
+      const questions = clozeMatchingRoute ? clozeMatchingServices.questions
+        : numericRoute ? numericServices.questions : questionsV1;
+      const publication = clozeMatchingRoute ? clozeMatchingServices.publication
+        : numericRoute ? numericServices.publication : publicationV1;
+      const reviewContext = clozeMatchingRoute ? clozeMatchingServices.reviewContext
+        : numericRoute ? numericServices.reviewContext : reviewContextV1;
       if (fixedSeals && (url.pathname === '/api/v1/assemblies' || url.pathname === '/api/v1/fixed-forms'
           || /^\/api\/v1\/fixed-forms\/[^/]+$/.test(url.pathname))) {
         const command = method === 'POST' && url.pathname === '/api/v1/assemblies';

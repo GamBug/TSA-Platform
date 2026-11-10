@@ -90,7 +90,7 @@ function jsonResponse(status, payload) {
 }
 
 function unavailableResponse(pathname) {
-  if (/^\/api\/v[123](?:\/|$)/.test(pathname)) {
+  if (/^\/api\/v[1234](?:\/|$)/.test(pathname)) {
     const requestId = randomUUID();
     return new Response(JSON.stringify({ error: {
       code: 'TEMPORARILY_UNAVAILABLE',
@@ -194,12 +194,14 @@ export async function prepareStudentComponents({
   enableReadingExperiment = false,
   enableNumericPractice = false,
   enableFullSimulation = false,
+  enableClozeMatching = false,
   imageStore = null,
 } = {}) {
   if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
   if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
   if (typeof enableNumericPractice !== 'boolean') throw new TypeError('Numeric practice opt-in must be boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('Cloze/matching opt-in must be boolean');
   const config = validateConfig({
     env, port, pollMilliseconds, sweepBatchSize, executorId, leaseSeconds, retrySeconds, createRate, saveRate,
   });
@@ -218,10 +220,13 @@ export async function prepareStudentComponents({
         createRate: config.rates.createRate, saveRate: config.rates.saveRate }) : null;
       const simulation = enableFullSimulation ? createAttemptHandler({examPool,identityService,trustedOrigin,
         enableFullSimulation:true,imageStore,createRate:config.rates.createRate,saveRate:config.rates.saveRate}) : null;
+      const clozeMatching = enableClozeMatching ? createAttemptHandler({ examPool, identityService, trustedOrigin,
+        enableClozeMatching: true, imageStore, createRate: config.rates.createRate, saveRate: config.rates.saveRate }) : null;
       return (request) => {
         const pathname = new URL(request.url).pathname;
         if (simulation && pathname.startsWith('/api/v3/')) return simulation(request);
         if (numeric && pathname.startsWith('/api/v2/')) return numeric(request);
+        if (clozeMatching && pathname.startsWith('/api/v4/')) return clozeMatching(request);
         return ['/api/v1/topics', '/api/v1/topic-practice'].includes(pathname) ? topics(request) : attempts(request);
       };
     },
@@ -242,7 +247,7 @@ export async function createStudentRuntime(options = {}) {
     if (pathname === '/local-auth' || pathname.startsWith('/local-auth/')) {
       return routes.authHandler(request);
     }
-    if (/^\/api\/v[123](?:\/|$)/.test(pathname)) {
+    if (/^\/api\/v[1234](?:\/|$)/.test(pathname)) {
       return routes.attemptHandler(request);
     }
     return jsonResponse(404, { error: 'NOT_FOUND' });

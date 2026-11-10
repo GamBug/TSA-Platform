@@ -11,7 +11,7 @@ import {
 } from '../../../packages/contracts/dist/internal.js';
 import { buildAllocationPlan } from './snapshot-builder.mjs';
 import { captureStandaloneManifest } from './candidate-stock.mjs';
-import { parseNumericPracticeConfig } from './versioned-contracts.mjs';
+import { parseClozeMatchingConfig, parseNumericPracticeConfig } from './versioned-contracts.mjs';
 import { withTransaction } from '../database/pool.mjs';
 import { BankCommandError, jsonDigest, reject, requireActor } from '../bank/common.mjs';
 
@@ -162,13 +162,14 @@ function statusResult(value) {
   return result;
 }
 
-export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableTopicPractice = false, enableNumericPractice = false, enableFullSimulation = false } = {}) {
+export function createAllocationService({ examPool, identityService, limits = DEFAULT_LIMITS, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableTopicPractice = false, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') throw new TypeError('identityService is required');
   if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
   if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
   if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('Cloze/matching opt-in must be boolean');
   const success = (receipt, replayed) => { const parsed=(enableFullSimulation ? SimulationCreationReceiptV3Schema : CreationReceiptSchema).safeParse(receipt); if (!parsed.success) reject(503,'TEMPORARILY_UNAVAILABLE'); return {status:201,body:parsed.data,replayed}; };
   const fixedLimits = Object.freeze({ ...limits });
 
@@ -178,7 +179,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       const result = await client.query(
         'SELECT tsa.assembly_creation_check($1,$2,$3) AS result', [key, requestHash, blueprintVersionId]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation, enableClozeMatching });
   }
 
   async function runReceipt(principal, key, requestHash) {
@@ -187,7 +188,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       const result = await client.query('SELECT tsa.assembly_receipt($1,$2) AS result', [key, requestHash]);
       const value = result.rows[0]?.result;
       return value === null || value === undefined ? null : statusResult(value);
-    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation, enableClozeMatching });
   }
 
   async function runCommit(principal, key, requestHash, plan) {
@@ -201,7 +202,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
         enableFullSimulation ? 'SELECT tsa.assembly_commit_simulation($1,$2,$3::jsonb) AS result' : 'SELECT tsa.assembly_commit_personal($1,$2,$3::jsonb) AS result',
         [key, requestHash, JSON.stringify(plan)]);
       return statusResult(result.rows[0]?.result);
-    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation });
+    }, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation, enableClozeMatching });
   }
 
   async function handlePreflight(result, blueprintVersionId, reuseMode = 'NEW_ONLY') {
@@ -218,7 +219,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
     const parsedRequest = CreateAttemptSchema.safeParse(input);
     if (!parsedRequest.success) reject(422, 'VALIDATION_ERROR');
     const request = parsedRequest.data;
-    if (enableFullSimulation && (request.mode === 'PUBLISHED_FIXED' || request.reuseMode === 'REVIEW_ALLOWED')) reject(422,'VALIDATION_ERROR');
+    if ((enableFullSimulation || enableClozeMatching) && (request.mode === 'PUBLISHED_FIXED' || request.reuseMode === 'REVIEW_ALLOWED')) reject(422,'VALIDATION_ERROR');
     const requestHash = jsonDigest(request);
     const prior = await runReceipt(principal, key, requestHash);
     if (prior) {
@@ -297,13 +298,23 @@ export function createAllocationService({ examPool, identityService, limits = DE
           reuseMode,
           limits: fixedLimits,
           enableTopicPractice,
-          enableNumericPractice, enableFullSimulation,
+          enableNumericPractice, enableFullSimulation, enableClozeMatching,
         });
         const numericProfile = captured.manifest.schemaVersion === 'assembly-manifest/2';
         if (numericProfile && (!enableNumericPractice || !parseNumericPracticeConfig(captured.manifest.blueprint) || reuseMode !== 'NEW_ONLY')) reject(422, 'UNSUPPORTED_TYPE');
+        const clozeMatchingProfile = captured.manifest.schemaVersion === 'assembly-manifest/4';
+        if (clozeMatchingProfile && (!enableClozeMatching || !parseClozeMatchingConfig(captured.manifest.blueprint) || reuseMode !== 'NEW_ONLY')) reject(422, 'UNSUPPORTED_TYPE');
+        if (enableClozeMatching && !clozeMatchingProfile) reject(422, 'UNSUPPORTED_TYPE');
+        if (clozeMatchingProfile) {
+          const supported = await withTransaction(examPool, async client => {
+            await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [principal.userId]);
+            return (await client.query('SELECT tsa.exam_cloze_matching_profile_supported($1) AS supported', [blueprintVersionId])).rows[0]?.supported === true;
+          }, { role: 'tsa_exam', enableClozeMatching: true });
+          if (!supported) reject(422, 'UNSUPPORTED_TYPE');
+        }
         const topicProfile = enableTopicPractice && parseTopicPracticeConfig(captured.manifest.blueprint);
         if (!topicProfile && parseShortPracticeConfig(captured.manifest.blueprint) && (!enableShortPractice || reuseMode!=='NEW_ONLY')) reject(422,'UNSUPPORTED_TYPE');
-        const readingCandidate=!numericProfile && !topicProfile && isReadingExperimentCandidate(captured.manifest.blueprint);
+        const readingCandidate=!numericProfile && !clozeMatchingProfile && !topicProfile && isReadingExperimentCandidate(captured.manifest.blueprint);
         const readingExperiment=readingCandidate?parseReadingExperimentConfig(captured.manifest.blueprint):null;
         if(readingCandidate&&(!readingExperiment||!enableReadingExperiment||reuseMode!=='NEW_ONLY'))reject(422,'UNSUPPORTED_TYPE');
         if(readingExperiment){
@@ -311,11 +322,11 @@ export function createAllocationService({ examPool, identityService, limits = DE
             await client.query("SELECT set_config('tsa.local_user_id',$1,true)",[principal.userId]);
             await client.query("SELECT set_config('tsa.enable_reading_experiment','true',true)");
             return (await client.query('SELECT tsa.exam_reading_experiment_profile_supported($1) AS supported',[blueprintVersionId])).rows[0]?.supported===true;
-          },{role:'tsa_exam',enableNumericPractice});
+          },{role:'tsa_exam',enableNumericPractice,enableClozeMatching});
           if(!supported)reject(422,'UNSUPPORTED_TYPE');
           captured=restrictReadingExperimentUnits(captured);
         }
-        plan = await buildAllocationPlan(examPool, principal, captured, { enableNumericPractice, enableFullSimulation });
+        plan = await buildAllocationPlan(examPool, principal, captured, { enableNumericPractice, enableFullSimulation, enableClozeMatching });
         if (reuseMode === 'REVIEW_ALLOWED') plan.acknowledgeRepeats = request.acknowledgeRepeats;
         committed = await runCommit(principal, key, requestHash, plan);
       } catch (error) {
@@ -339,6 +350,7 @@ export function createAllocationService({ examPool, identityService, limits = DE
       if (committed.status === 'FAILURE') {
         const shortAlternatives=enableShortPractice&&reuseMode==='NEW_ONLY'
           && plan.manifest.schemaVersion !== 'assembly-manifest/2'
+          && plan.manifest.schemaVersion !== 'assembly-manifest/4'
           && !parseShortPracticeConfig(plan.manifest.blueprint)
           && !parseReadingExperimentConfig(plan.manifest.blueprint)
           && ['INSUFFICIENT_UNSEEN_INVENTORY','INSUFFICIENT_ELIGIBLE_INVENTORY'].includes(committed.code)

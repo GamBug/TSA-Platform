@@ -1,5 +1,6 @@
 import { canonicalize, computeQuestionIdentity, computeDuplicateFingerprint, QuestionVersionSchema } from '../../../packages/contracts/dist/internal.js';
-import { SupportedQuestionVersionSchema } from '../../../packages/contracts/dist/question-v2.js';
+import { QuestionVersionV3Schema } from '../../../packages/contracts/dist/internal.js';
+import { QuestionVersionV2Schema } from '../../../packages/contracts/dist/question-v2.js';
 import { reject, resolveReferenceGraph, referenceKey, jsonDigest, UUID_PATTERN } from './common.mjs';
 import { resolveOriginalImportAttribution } from './import-attribution.mjs';
 import { isFactoryImportNamespace } from './factory-namespace.mjs';
@@ -42,12 +43,15 @@ async function loadVersion(client, versionId) {
   return result.rows[0] ? importContext(client, result.rows[0]) : null;
 }
 
-function normalizedQuestion(row, { enableNumericQuestions = false } = {}) {
+function normalizedQuestion(row, { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
   need(row.reference_namespace && row.authored_created_at);
   if (row.producer_namespace && row.stimulus_version_id) need(row.external_stimulus_version_id);
-  const schema = row.schema_version === 'question/2' && enableNumericQuestions
-    ? SupportedQuestionVersionSchema
-    : QuestionVersionSchema;
+  const schema = row.schema_version === 'question/3' && enableClozeMatching
+    ? QuestionVersionV3Schema
+    : row.schema_version === 'question/2' && (enableNumericQuestions || enableClozeMatching)
+      ? QuestionVersionV2Schema
+      : row.schema_version === 'question/1' ? QuestionVersionSchema : null;
+  need(schema);
   const parsed = schema.safeParse({
     schemaVersion: row.schema_version, id: row.id, questionId: row.question_id,
     versionNo: row.version_no, parentVersionId: row.parent_version_id,
@@ -217,9 +221,11 @@ async function accessBasis(client, identityService, principal, target, allowAuth
 // Both private reads share the exact immutable graph verification. The evidence
 // read explicitly excludes AUTHOR_OWN before any question secrets are loaded.
 export async function loadStaffReviewSnapshot(client, identityService, principal, versionId,
-  { allowAuthorOwn = true, enableNumericQuestions = false } = {}) {
+  { allowAuthorOwn = true, enableNumericQuestions = false, enableClozeMatching = false } = {}) {
   if (typeof enableNumericQuestions !== 'boolean') throw new TypeError('enableNumericQuestions must be a boolean');
-  const access = await client.query(`SELECT qv.id,qv.created_by,qv.reference_namespace,w.state::text AS state,
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
+  if (enableNumericQuestions && enableClozeMatching) throw new TypeError('Question protocol opt-ins must be enabled separately');
+  const access = await client.query(`SELECT qv.id,qv.schema_version,qv.created_by,qv.reference_namespace,w.state::text AS state,
     manifest.received_by AS operator_id
     FROM tsa.question_versions qv JOIN tsa.question_workflow w ON w.question_version_id=qv.id
     LEFT JOIN tsa_private.factory_import_receipts receipt ON receipt.question_version_id=qv.id
@@ -228,9 +234,10 @@ export async function loadStaffReviewSnapshot(client, identityService, principal
     WHERE qv.id=$1`, [versionId]);
   if (access.rowCount === 0) reject(404, 'NOT_FOUND');
   need(access.rowCount === 1);
+  if (enableClozeMatching && access.rows[0].schema_version !== 'question/3') reject(404, 'NOT_FOUND');
   const basis = await accessBasis(client, identityService, principal, access.rows[0], allowAuthorOwn);
   const target = await loadVersion(client, versionId);
   need(target);
-  const verified = await verifyGraph(client, target, { enableNumericQuestions });
+  const verified = await verifyGraph(client, target, { enableNumericQuestions, enableClozeMatching });
   return { basis, target, verified };
 }

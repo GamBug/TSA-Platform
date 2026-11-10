@@ -35,7 +35,7 @@ export function query(poolOrClient, text, values = []) {
 }
 
 /** Run work on one checked-out connection and commit or roll back atomically. */
-export async function withTransaction(pool, work, { role, enableNumericPractice = false, enableFullSimulation = false } = {}) {
+export async function withTransaction(pool, work, { role, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false } = {}) {
   if (typeof work !== 'function') throw new TypeError('Transaction callback is required');
   if (role !== undefined && !APPLICATION_ROLES.has(role)) throw new TypeError('Database role is not allowlisted');
   if (typeof enableNumericPractice !== 'boolean' || (enableNumericPractice && role !== 'tsa_exam')) {
@@ -43,6 +43,7 @@ export async function withTransaction(pool, work, { role, enableNumericPractice 
   }
 
   if (typeof enableFullSimulation !== 'boolean' || (enableFullSimulation && role !== 'tsa_exam')) throw new TypeError('Simulation context requires the exam role');
+  if (typeof enableClozeMatching !== 'boolean' || (enableClozeMatching && role !== 'tsa_exam')) throw new TypeError('Cloze/matching context requires the exam role');
   const client = await pool.connect();
   let transactionOpen = false;
   let released = false;
@@ -57,6 +58,7 @@ export async function withTransaction(pool, work, { role, enableNumericPractice 
     if (role !== undefined) await client.query(`SET LOCAL ROLE ${role}`);
     if (enableNumericPractice) await client.query("SET LOCAL tsa.enable_numeric_practice = 'true'");
     if (enableFullSimulation) await client.query("SET LOCAL tsa.enable_full_simulation = 'true'");
+    if (enableClozeMatching) await client.query("SET LOCAL tsa.enable_cloze_matching = 'true'");
     const result = await work(client);
     await client.query('COMMIT');
     transactionOpen = false;

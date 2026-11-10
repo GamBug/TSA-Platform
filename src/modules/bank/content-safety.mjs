@@ -1,9 +1,10 @@
 import {
   BlockSchema,
   QuestionVersionSchema,
+  QuestionVersionV3Schema,
   canonicalize,
 } from '../../../packages/contracts/dist/internal.js';
-import { SupportedQuestionVersionSchema } from '../../../packages/contracts/dist/question-v2.js';
+import { QuestionVersionV2Schema } from '../../../packages/contracts/dist/question-v2.js';
 import {
   HASH_PATTERN,
   MAX_REFERENCE_BYTES,
@@ -146,11 +147,16 @@ function assertJsonTree(root, fail = invalidContent) {
   }
 }
 
-function assertRenderedString(value) {
+function hasMarkdownImage(value, allowInertBracketText = false) {
+  if (!allowInertBracketText) return MARKDOWN_IMAGE.test(value);
+  return /!\[|!\s+\[[^\]]*\]\s*(?:\(|\[)/u.test(value);
+}
+
+function assertRenderedString(value, options = {}) {
   if (typeof value !== 'string' || !value.isWellFormed?.() || CONTROL_CHARACTERS.test(value)
       || ACTIVE_HTML_PREFIX.test(value) || HTML_MARKUP.test(value) || EVENT_ATTRIBUTE.test(value)
       || ACTIVE_SCHEME.test(value) || DATA_RESOURCE_SCHEME.test(value) || EXTERNAL_LOADER.test(value)
-      || MARKDOWN_IMAGE.test(value)) invalidContent();
+      || hasMarkdownImage(value, options.allowInertBracketText === true)) invalidContent();
 }
 
 function validateTex(tex) {
@@ -199,26 +205,26 @@ function validateTex(tex) {
   if (braceDepth !== 0 || environments.length !== 0) invalidContent();
 }
 
-function scanBlock(block, assets) {
+function scanBlock(block, assets, options = {}) {
   const parsed = BlockSchema.safeParse(block);
   if (!parsed.success) invalidContent();
   switch (block.type) {
     case 'text':
-      assertRenderedString(block.text);
+      assertRenderedString(block.text, options);
       break;
     case 'math':
       validateTex(block.tex);
-      assertRenderedString(block.accessibleText);
+      assertRenderedString(block.accessibleText, options);
       break;
     case 'table':
-      assertRenderedString(block.caption);
-      for (const value of block.headers) assertRenderedString(value);
-      for (const row of block.rows) for (const value of row) assertRenderedString(value);
+      assertRenderedString(block.caption, options);
+      for (const value of block.headers) assertRenderedString(value, options);
+      for (const row of block.rows) for (const value of row) assertRenderedString(value, options);
       break;
     case 'image':
-      assertRenderedString(block.alt);
+      assertRenderedString(block.alt, options);
       if (!block.alt.trim() || block.alt.length > 2_000) invalidContent();
-      if (block.caption !== undefined) assertRenderedString(block.caption);
+      if (block.caption !== undefined) assertRenderedString(block.caption, options);
       assets.add(block.assetVersionId);
       break;
     default:
@@ -226,47 +232,75 @@ function scanBlock(block, assets) {
   }
 }
 
-function scanBlocks(blocks, assets) {
+function scanBlocks(blocks, assets, options = {}) {
   if (!Array.isArray(blocks) || blocks.length < 1 || blocks.length > 100) invalidContent();
-  for (const block of blocks) scanBlock(block, assets);
+  for (const block of blocks) scanBlock(block, assets, options);
 }
 
-function scanInteraction(interaction, assets) {
+function scanInteraction(interaction, assets, options = {}) {
   if (!interaction || typeof interaction !== 'object') invalidContent();
+  if (interaction.type === 'CLOZE') {
+    for (const field of interaction.fields) {
+      assertRenderedString(field.label, options);
+      if (!field.label.trim()) invalidContent();
+    }
+    return;
+  }
+  if (interaction.type === 'MATCHING') {
+    for (const row of interaction.rows) {
+      assertRenderedString(row.label, options);
+      if (!row.label.trim()) invalidContent();
+    }
+    for (const target of interaction.targets) {
+      assertRenderedString(target.label, options);
+      if (!target.label.trim()) invalidContent();
+    }
+    return;
+  }
   if (interaction.type === 'NUMERIC_RESPONSE') {
-    assertRenderedString(interaction.label);
+      assertRenderedString(interaction.label, options);
     if (!interaction.label.trim() || interaction.label.length > 200) invalidContent();
     return;
   }
   if (interaction.type === 'TRUE_FALSE_GROUP') {
-    for (const statement of interaction.statements) scanBlocks(statement.content, assets);
+    for (const statement of interaction.statements) scanBlocks(statement.content, assets, options);
   } else {
-    for (const option of interaction.options) scanBlocks(option.content, assets);
+    for (const option of interaction.options) scanBlocks(option.content, assets, options);
   }
 }
 
-function scanQuestion(question, assets, numericQuestions = false) {
-  const schema = question.schemaVersion === 'question/2' && numericQuestions
-    ? SupportedQuestionVersionSchema
-    : QuestionVersionSchema;
+function questionSchemaForVersion(schemaVersion, { numericQuestions = false, clozeMatching = false } = {}) {
+  if (schemaVersion === 'question/1') return QuestionVersionSchema;
+  if (schemaVersion === 'question/2' && (numericQuestions || clozeMatching)) return QuestionVersionV2Schema;
+  if (schemaVersion === 'question/3' && clozeMatching) return QuestionVersionV3Schema;
+  return null;
+}
+
+function scanQuestion(question, assets, options = {}) {
+  const schema = questionSchemaForVersion(question.schemaVersion, options);
+  if (!schema) invalidContent();
   const parsed = schema.safeParse(question);
   if (!parsed.success) invalidContent();
   assertCanonicalQuestion(question, parsed.data);
-  scanBlocks(question.content, assets);
-  scanInteraction(question.interaction, assets);
-  scanBlocks(question.private.explanation, assets);
+  const renderedOptions = { ...options,
+    allowInertBracketText: question.schemaVersion === 'question/3' && options.clozeMatching === true };
+  scanBlocks(question.content, assets, renderedOptions);
+  scanInteraction(question.interaction, assets, renderedOptions);
+  scanBlocks(question.private.explanation, assets, renderedOptions);
 }
 
-function requiredQuestionRoots(question) {
+function requiredQuestionRoots(question, options = {}) {
   const roots = [{ kind: 'taxonomy', id: question.taxonomyVersionId }];
   if (question.parentVersionId !== null) roots.push({ kind: 'question', id: question.parentVersionId });
   if (question.stimulusVersionId !== null) roots.push({ kind: 'stimulus', id: question.stimulusVersionId });
   for (const id of question.provenanceIds) roots.push({ kind: 'provenance', id });
   for (const id of question.private.evidenceRefs) roots.push({ kind: 'evidence', id });
   const assets = new Set();
-  scanBlocks(question.content, assets);
-  scanInteraction(question.interaction, assets);
-  scanBlocks(question.private.explanation, assets);
+  const renderedOptions = { ...options,
+    allowInertBracketText: question.schemaVersion === 'question/3' && options.clozeMatching === true };
+  scanBlocks(question.content, assets, renderedOptions);
+  scanInteraction(question.interaction, assets, renderedOptions);
+  scanBlocks(question.private.explanation, assets, renderedOptions);
   for (const id of assets) roots.push({ kind: 'asset', id });
   return roots;
 }
@@ -332,7 +366,7 @@ function assertExactEdges(node, requiredRoots) {
   if (actual.size !== expected.size || [...expected].some((key) => !actual.has(key))) invalidGraph();
 }
 
-function validateStimulus(node, assets) {
+function validateStimulus(node, assets, options = {}) {
   try {
     strictRecord(node.payload, ['content', 'provenanceIds'], 'stimulus');
   } catch {
@@ -342,34 +376,33 @@ function validateStimulus(node, assets) {
       || node.payload.provenanceIds.some((id) => typeof id !== 'string' || !id.trim() || id.length > 2_048)
       || new Set(node.payload.provenanceIds).size !== node.payload.provenanceIds.length) invalidGraph();
   const stimulusAssets = new Set();
-  scanBlocks(node.payload.content, stimulusAssets);
+  scanBlocks(node.payload.content, stimulusAssets, options);
   for (const id of stimulusAssets) assets.add(id);
   const roots = node.payload.provenanceIds.map((id) => ({ kind: 'provenance', id }));
   for (const id of stimulusAssets) roots.push({ kind: 'asset', id });
   assertExactEdges(node, roots);
 }
 
-function validateQuestionReference(node, assets, numericQuestions = false) {
+function validateQuestionReference(node, assets, options = {}) {
   assertPlainRecord(node.payload);
   if (Object.hasOwn(node.payload, 'contentHash')) invalidGraph();
   let question;
   try {
     const input = { ...node.payload, contentHash: HASH_PLACEHOLDER };
-    const schema = node.payload.schemaVersion === 'question/2' && numericQuestions
-      ? SupportedQuestionVersionSchema
-      : QuestionVersionSchema;
+    const schema = questionSchemaForVersion(node.payload.schemaVersion, options);
+    if (!schema) invalidGraph();
     question = schema.parse(input);
     assertCanonicalQuestion(input, question, invalidGraph);
   } catch {
     invalidGraph();
   }
   if (question.id !== node.id) invalidGraph();
-  scanQuestion(question, assets, numericQuestions);
-  assertExactEdges(node, requiredQuestionRoots(question));
+  scanQuestion(question, assets, options);
+  assertExactEdges(node, requiredQuestionRoots(question, options));
 }
 
-function validateReferenceClosure(question, nodes, rootAssets, numericQuestions = false) {
-  const roots = requiredQuestionRoots(question);
+function validateReferenceClosure(question, nodes, rootAssets, options = {}) {
+  const roots = requiredQuestionRoots(question, options);
   const reachable = new Set();
   const active = new Set();
   const visit = (ref, depth) => {
@@ -380,8 +413,8 @@ function validateReferenceClosure(question, nodes, rootAssets, numericQuestions 
     if (active.has(key)) invalidGraph();
     if (reachable.has(key)) return;
     active.add(key);
-    if (node.kind === 'question') validateQuestionReference(node, rootAssets, numericQuestions);
-    if (node.kind === 'stimulus') validateStimulus(node, rootAssets);
+    if (node.kind === 'question') validateQuestionReference(node, rootAssets, options);
+    if (node.kind === 'stimulus') validateStimulus(node, rootAssets, options);
     for (const edge of node.references) visit(edge, depth + 1);
     active.delete(key);
     reachable.add(key);
@@ -393,24 +426,27 @@ function validateReferenceClosure(question, nodes, rootAssets, numericQuestions 
 
 /**
  * Fail closed unless the canonical question and every rendered parent/stimulus
- * block use a supported profile. Numeric interactions and inspected images need
- * their explicit opt-ins; authored data is never rewritten.
+ * block use a supported profile. Numeric interactions, cloze/matching, and
+ * inspected images need their explicit opt-ins; authored data is never rewritten.
  */
-export function assertSafeQuestionContent(question, references, { inspectedImages = false, numericQuestions = false } = {}) {
-  if (typeof inspectedImages !== 'boolean' || typeof numericQuestions !== 'boolean') invalidContent();
+export function assertSafeQuestionContent(question, references,
+  { inspectedImages = false, numericQuestions = false, clozeMatching = false } = {}) {
+  if (typeof inspectedImages !== 'boolean' || typeof numericQuestions !== 'boolean'
+      || typeof clozeMatching !== 'boolean') invalidContent();
   assertPlainRecord(question);
   assertJsonTree(question);
-  const schema = question.schemaVersion === 'question/2' && numericQuestions
-    ? SupportedQuestionVersionSchema
-    : QuestionVersionSchema;
+  const options = { numericQuestions, clozeMatching,
+    allowInertBracketText: question.schemaVersion === 'question/3' && clozeMatching };
+  const schema = questionSchemaForVersion(question.schemaVersion, options);
+  if (!schema) invalidContent();
   const parsed = schema.safeParse(question);
   if (!parsed.success) invalidContent();
   if (!HASH_PATTERN.test(question.contentHash) || asJsonBytes(question) > QUESTION_BYTES_LIMIT) invalidContent();
 
   const assets = new Set();
-  scanQuestion(question, assets, numericQuestions);
+  scanQuestion(question, assets, options);
   const nodes = parseReferenceNodes(references);
-  const roots = validateReferenceClosure(question, nodes, assets, numericQuestions);
+  const roots = validateReferenceClosure(question, nodes, assets, options);
   for (const id of assets) {
     if (!nodes.has(referenceKey('asset', id))) invalidGraph();
   }

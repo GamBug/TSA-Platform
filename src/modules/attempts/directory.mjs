@@ -8,7 +8,7 @@ import {
 } from '../../../packages/contracts/dist/internal.js';
 import { withTransaction } from '../database/pool.mjs';
 import { BankCommandError, reject, requireActor, UUID_PATTERN } from '../bank/common.mjs';
-import { parseNumericPracticeConfig } from '../assembly/versioned-contracts.mjs';
+import { parseClozeMatchingConfig, parseNumericPracticeConfig } from '../assembly/versioned-contracts.mjs';
 import { FullSimulationCatalogPageV3Schema } from '../../../packages/contracts/dist/simulation.js';
 import { SimulationAttemptHistoryPageV3Schema } from '../../../packages/contracts/dist/student-v3.js';
 
@@ -129,7 +129,7 @@ function parseEnvelope(value, expectedKeys) {
   return envelope;
 }
 
-function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false, allowReadingExperiment = false, allowNumeric = false) {
+function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false, allowReadingExperiment = false, allowNumeric = false, allowClozeMatching = false) {
   const envelope = parseEnvelope(value, ['items', 'next']);
   const rawItems = envelope.items;
   if (!Array.isArray(rawItems) || rawItems.length > limit || !(envelope.next === null
@@ -140,7 +140,8 @@ function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false, a
   const seen = new Set();
   const items = rawItems.map((raw) => {
     if (!isRecord(raw) || !canonicalObject(raw, ['entry', 'config'])) reject(503, 'TEMPORARILY_UNAVAILABLE');
-    const config = (allowNumeric && parseNumericPracticeConfig(parseJson(raw.config)))
+    const config = (allowClozeMatching && parseClozeMatchingConfig(parseJson(raw.config)))
+      || (allowNumeric && parseNumericPracticeConfig(parseJson(raw.config)))
       || parsePersonalPracticeConfig(parseJson(raw.config),{allowShort:allowShort&&!fixed,allowReadingExperiment:allowReadingExperiment&&!fixed});
     const parsedEntry = CatalogEntrySchema.safeParse(parseJson(raw.entry));
     if (!config || !parsedEntry.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
@@ -201,8 +202,8 @@ function parseHistoryEnvelope(value, limit) {
   return page.data;
 }
 
-async function runQuery(examPool, work, enableNumericPractice = false, enableFullSimulation = false) {
-  try { return await withTransaction(examPool, work, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation }); }
+async function runQuery(examPool, work, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false) {
+  try { return await withTransaction(examPool, work, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation, enableClozeMatching }); }
   catch (error) {
     if (error instanceof BankCommandError) throw error;
     reject(503, 'TEMPORARILY_UNAVAILABLE');
@@ -210,7 +211,7 @@ async function runQuery(examPool, work, enableNumericPractice = false, enableFul
 }
 
 /** Owner-scoped catalog and compact attempt-history reads over the restricted exam role. */
-export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableNumericPractice = false, enableFullSimulation = false } = {}) {
+export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false } = {}) {
   if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
   if (!identityService || typeof identityService.mayPerform !== 'function') {
     throw new TypeError('identityService is required');
@@ -220,6 +221,7 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
   if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
   if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
   if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('Cloze/matching opt-in must be boolean');
 
   async function catalog(principal, rawQuery = {}) {
     const userId = requireActor(identityService, principal, 'candidate.attempt.read');
@@ -232,6 +234,9 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
         if (!value || !Array.isArray(value.items) || value.items.length>query.limit || (value.next!==null && !UUID_PATTERN.test(value.next))) reject(503,'TEMPORARILY_UNAVAILABLE');
         return FullSimulationCatalogPageV3Schema.parse({items:value.items,nextCursor:value.next===null?null:encodeCursor({v:1,kind:'catalog',afterBlueprintId:value.next})});
       }
+      if (enableClozeMatching) return parseCatalogEnvelope((await client.query(
+        'SELECT tsa.exam_cloze_matching_catalog_page($1::integer,$2::uuid) AS result', [query.limit, cursor?.afterBlueprintId ?? null],
+      )).rows[0]?.result, query.limit, false, false, false, false, true);
       if (enableNumericPractice) return parseCatalogEnvelope((await client.query(
         'SELECT tsa.exam_numeric_catalog_page($1::integer,$2::uuid) AS result', [query.limit, cursor?.afterBlueprintId ?? null],
       )).rows[0]?.result, query.limit, false, false, false, true);
@@ -254,9 +259,9 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
       if (remaining === 0) return {items:personal.items,nextCursor:fixed.items.length
         ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:null}) : null};
       return CatalogPageSchema.parse({items:[...personal.items,...fixed.items],nextCursor:fixed.nextCursor});
-    }, enableNumericPractice, enableFullSimulation);
+    }, enableNumericPractice, enableFullSimulation, enableClozeMatching);
     // Capability flags only advertise their own mode; fixed rows never gain reviewAllowed.
-    return enableReviewPractice && !enableNumericPractice ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE'
+    return enableReviewPractice && !enableNumericPractice && !enableClozeMatching ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE'
       && !(['MATH','SCIENCE'].includes(entry.domain)&&entry.questionCount===2&&entry.durationSeconds===180)
       && !(entry.domain==='READING'&&entry.questionCount===20&&entry.durationSeconds===1800)
       ? {...entry,reviewAllowed:true} : entry)} : page;
@@ -273,7 +278,7 @@ export function createStudentDirectoryService({ examPool, identityService, enabl
         [query.limit, cursor?.beforeCreatedAt ?? null, cursor?.beforeId ?? null],
       );
       return result.rows[0]?.result;
-    }, enableNumericPractice, enableFullSimulation);
+    }, enableNumericPractice, enableFullSimulation, enableClozeMatching);
     if (enableFullSimulation) {
       if (!value || !Array.isArray(value.items) || value.items.length>query.limit || (value.next!==null && (!isUtcMicrosecondInstant(value.next?.createdAt) || !UUID_PATTERN.test(value.next?.id)))) reject(503,'TEMPORARILY_UNAVAILABLE');
       return SimulationAttemptHistoryPageV3Schema.parse({items:value.items,nextCursor:value.next===null?null:encodeCursor({v:1,kind:'history',beforeCreatedAt:value.next.createdAt,beforeId:value.next.id})});

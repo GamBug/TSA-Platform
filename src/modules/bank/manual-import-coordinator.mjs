@@ -1,4 +1,4 @@
-import { parseManualFactoryPackageV3 } from '../../../packages/contracts/dist/internal.js';
+import { parseManualFactoryPackageV3, parseManualFactoryPackageV4 } from '../../../packages/contracts/dist/internal.js';
 import { assertBankConnection, jsonDigest, reject, requireActor } from './common.mjs';
 import { persistValidatedFactoryPackage, verifyStoredFactoryPackage, verifyStoredFactoryReceipts } from './factory-import.mjs';
 import { verifyManualRegisteredMapping } from './manual-import-mapping.mjs';
@@ -8,6 +8,7 @@ import { beginManualImportAdmission, configurationFingerprint, loadManualImportC
 // This session lock intentionally differs from the shared xact Bank guard.
 const coordinatorKey = [1414742321, 3];
 const bankTransactionKey = [1414742321, 1];
+const interactionProfile = 'corpus-reading-interactions-draft/1';
 
 function disabledByEnvironment(enabled, env) {
   return (process.env.NODE_ENV !== undefined && !['development', 'test'].includes(process.env.NODE_ENV)) || enabled !== true
@@ -18,7 +19,10 @@ function bindActivation(pkg, configuration) {
   const activation = configuration.activation;
   const permission = pkg.sourcePermissions?.[0];
   const authoring = pkg.sourceAuthoring?.[0];
-  if (pkg.schemaVersion !== 'factory-package/3' || !['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1'].includes(pkg.profile) || pkg.profile !== activation.profile
+  const packageVersionMatches = activation.profile === interactionProfile
+    ? pkg.schemaVersion === 'factory-package/4' && pkg.profile === interactionProfile
+    : pkg.schemaVersion === 'factory-package/3' && ['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1'].includes(pkg.profile);
+  if (!packageVersionMatches || pkg.profile !== activation.profile
       || pkg.producerNamespace !== activation.producerNamespace
       || pkg.manualRun?.declaredOperatorId !== activation.declaredOperatorId
       || pkg.manualRun?.sourceVersionIds?.length !== 1 || pkg.manualRun.sourceVersionIds[0] !== activation.sourceVersionId
@@ -41,17 +45,20 @@ async function currentAdmissionWindow(client, configuration, permission) {
   }
 }
 
-export async function createManualFactoryImportService({ bankPool, identityService, internalCapability, enabled = false, env = process.env, configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash }) {
+export async function createManualFactoryImportService({ bankPool, identityService, internalCapability, enabled = false, enableClozeMatching = false, env = process.env, configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash }) {
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
   if (!internalCapability || (typeof internalCapability !== 'object' && typeof internalCapability !== 'function')) throw new TypeError('An internal import capability is required');
   if (!identityService || typeof identityService.authenticate !== 'function' || typeof identityService.mayPerform !== 'function') throw new TypeError('A local synthetic identity service is required');
   if (disabledByEnvironment(enabled, env)) {
     return Object.freeze({
       importManualFactoryPackageV3: async () => reject(403, 'MANUAL_IMPORT_DISABLED'),
+      importManualFactoryPackageV4: async () => reject(403, 'MANUAL_IMPORT_DISABLED'),
       stop: async () => ({ status: 'DISABLED' }),
       status: () => Object.freeze({ status: 'DISABLED' }),
     });
   }
   const configuration = await loadManualImportConfiguration({ configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash });
+  if (configuration.activation.profile === interactionProfile && !enableClozeMatching) reject(403, 'MANUAL_CLOZE_MATCHING_DISABLED');
   await assertBankConnection(bankPool);
   const client = await bankPool.connect();
   let state = 'STARTING'; let connectionLost = false; let uncertainCommit = false; let active = null; let released = false; let stopPromise = null;
@@ -123,12 +130,19 @@ export async function createManualFactoryImportService({ bankPool, identityServi
     const job = queued.shift(); if (!job) return;
     execute(job).then(job.resolve, job.reject);
   }
-  function admit(request, input, capability) {
+  function admitWith(parser, request, input, capability) {
     if (capability !== internalCapability) return Promise.reject(Object.assign(new Error('FORBIDDEN'), { code: 'FORBIDDEN' }));
-    let pkg; try { pkg = parseManualFactoryPackageV3(input); } catch { return Promise.reject(Object.assign(new Error('VALIDATION_ERROR'), { code: 'VALIDATION_ERROR' })); }
+    let pkg; try { pkg = parser(input); } catch { return Promise.reject(Object.assign(new Error('VALIDATION_ERROR'), { code: 'VALIDATION_ERROR' })); }
     if (state !== 'ACTIVE' || connectionLost) return Promise.reject(Object.assign(new Error('MANUAL_IMPORT_UNAVAILABLE'), { code: 'MANUAL_IMPORT_UNAVAILABLE' }));
     return new Promise((resolve, rejectJob) => { queued.push({ request, pkg, capability, resolve, reject: rejectJob }); schedule(); });
   }
+  const admitV3 = (request, input, capability) => admitWith(parseManualFactoryPackageV3, request, input, capability);
+  const admitV4 = (request, input, capability) => {
+    if (!enableClozeMatching || configuration.activation.profile !== interactionProfile) {
+      return Promise.reject(Object.assign(new Error('MANUAL_CLOZE_MATCHING_DISABLED'), { code: 'MANUAL_CLOZE_MATCHING_DISABLED' }));
+    }
+    return admitWith(parseManualFactoryPackageV4, request, input, capability);
+  };
   async function stop() {
     if (stopPromise) return stopPromise;
     stopPromise = stopInternal();
@@ -150,7 +164,8 @@ export async function createManualFactoryImportService({ bankPool, identityServi
     } finally { release(state !== 'STOPPED'); }
   }
   return Object.freeze({
-    importManualFactoryPackageV3: admit,
+    importManualFactoryPackageV3: admitV3,
+    importManualFactoryPackageV4: admitV4,
     stop,
     status: () => Object.freeze({ status: state, queued: queued.length, active: active !== null, uncertainCommit, connectionLost }),
   });
@@ -159,12 +174,19 @@ export async function createManualFactoryImportService({ bankPool, identityServi
 export { reconcileManualImportAdmission };
 
 /** Resolve a crash/unknown-commit admission without ever resubmitting its manifest. */
-export async function reconcileManualFactoryImportAdmission({ bankPool, identityService, internalCapability, env = process.env, configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash, approvedReconciliationHash, request, input, capability, admissionId }) {
+export async function reconcileManualFactoryImportAdmission({ bankPool, identityService, internalCapability, enableClozeMatching = false, env = process.env, configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash, approvedReconciliationHash, request, input, capability, admissionId }) {
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
   if (disabledByEnvironment(true, env) || capability !== internalCapability) reject(403, 'FORBIDDEN');
   const configuration = await loadManualImportConfiguration({ configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash, allowPending: true });
+  if (configuration.activation.profile === interactionProfile && !enableClozeMatching) reject(403, 'MANUAL_CLOZE_MATCHING_DISABLED');
   const pending = configuration.pendingAdmissions.get(admissionId);
   if (!pending) reject(409, 'MANUAL_IMPORT_RECONCILIATION_REQUIRED');
-  let pkg; try { pkg = parseManualFactoryPackageV3(input); } catch { reject(422, 'VALIDATION_ERROR'); }
+  let pkg;
+  try {
+    pkg = configuration.activation.profile === interactionProfile
+      ? parseManualFactoryPackageV4(input)
+      : parseManualFactoryPackageV3(input);
+  } catch { reject(422, 'VALIDATION_ERROR'); }
   if (jsonDigest(pkg) !== pending.manifestHash || pkg.producerNamespace !== pending.producerNamespace || pkg.batchKey !== pending.batchKey) reject(409, 'MANUAL_IMPORT_RECONCILIATION_REQUIRED');
   bindActivation(pkg, configuration);
   await assertBankConnection(bankPool);

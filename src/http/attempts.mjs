@@ -13,6 +13,7 @@ import { createAttemptAssetHandler } from './attempt-assets.mjs';
 import { studentRouteRegistryV2 } from '../../packages/contracts/dist/routes-v2.js';
 import { studentRouteRegistryV3, releasedReviewRouteRegistryV3 } from '../../packages/contracts/dist/routes-v3.js';
 import { createHttpBoundaryHandlerV2 } from '../../packages/contracts/dist/http-boundary.js';
+import { studentRouteRegistryV4, releasedReviewRouteRegistryV4 } from '../../packages/contracts/dist/routes-v4.js';
 
 const MAX_JSON_BYTES = 64 * 1024;
 
@@ -153,7 +154,7 @@ async function readJson(request) {
 }
 
 /** Loopback-only student create/start/save/submit/GET adapter using frozen routes. */
-export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, imageStore = null, enableNumericPractice = false, enableFullSimulation = false } = {}) {
+export function createAttemptHandler({ examPool, identityService, trustedOrigin, createRate, saveRate, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, imageStore = null, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false } = {}) {
   if (!identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function'
       || typeof identityService.mayPerform !== 'function') {
@@ -161,16 +162,19 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
   }
   const trusted = validateTrustedOrigin(trustedOrigin);
   if (typeof enableNumericPractice !== 'boolean') throw new TypeError('Numeric practice opt-in must be boolean');
-  const apiVersion = enableFullSimulation ? 'v3' : enableNumericPractice ? 'v2' : 'v1';
-  const registry = enableFullSimulation ? {...studentRouteRegistryV3,...releasedReviewRouteRegistryV3} : enableNumericPractice ? studentRouteRegistryV2 : studentRouteRegistry;
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('Cloze/matching opt-in must be boolean');
+  if (enableClozeMatching && (enableNumericPractice || enableFullSimulation)) throw new TypeError('Student protocol opt-ins must be enabled separately');
+  const apiVersion = enableClozeMatching ? 'v4' : enableFullSimulation ? 'v3' : enableNumericPractice ? 'v2' : 'v1';
+  const registry = enableClozeMatching ? {...studentRouteRegistryV4,...releasedReviewRouteRegistryV4}
+    : enableFullSimulation ? {...studentRouteRegistryV3,...releasedReviewRouteRegistryV3} : enableNumericPractice ? studentRouteRegistryV2 : studentRouteRegistry;
   const routeResponse = (operation, status, body, requestId, headers) => serializeRouteResponse(operation, status, body, requestId, headers, registry);
   const assets = createAttemptAssetHandler({ identityService, trustedOrigin: trusted,
-    apiVersion, assetService: createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice, enableFullSimulation }) });
-  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice, enableFullSimulation });
-  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice, enableFullSimulation });
+    apiVersion, assetService: createAttemptAssetService({ examPool, identityService, imageStore, enableNumericPractice, enableFullSimulation, enableClozeMatching }) });
+  const service = createAttemptService({ examPool, identityService, createRate, saveRate, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice, enableFullSimulation, enableClozeMatching });
+  const directory = createStudentDirectoryService({ examPool, identityService, enableReviewPractice, enableFixedPractice, enableShortPractice, enableReadingExperiment, enableNumericPractice, enableFullSimulation, enableClozeMatching });
 
   return async function handleAttemptRequest(request) {
-    if (/^\/api\/v[123]\/attempts\/[^/]+\/assets(?:\/|$)/.test(new URL(request.url).pathname)) return assets(request);
+    if (/^\/api\/v[1234]\/attempts\/[^/]+\/assets(?:\/|$)/.test(new URL(request.url).pathname)) return assets(request);
     const requestId = randomUUID();
     let operation = 'createAttempt';
     try {
@@ -183,7 +187,7 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
       if (!url.pathname.startsWith(`/api/${apiVersion}/`)) return routeResponse(operation, 404, {
         error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} },
       }, requestId);
-      if (enableNumericPractice || enableFullSimulation) url.pathname = url.pathname.replace(`/api/${apiVersion}/`, '/api/v1/');
+      if (enableNumericPractice || enableFullSimulation || enableClozeMatching) url.pathname = url.pathname.replace(`/api/${apiVersion}/`, '/api/v1/');
       const method = request.method.toUpperCase();
 
       if (method === 'GET' && (url.pathname === '/api/v1/catalog' || url.pathname === '/api/v1/attempts')) {
@@ -208,7 +212,7 @@ export function createAttemptHandler({ examPool, identityService, trustedOrigin,
             error: { code: 'UNAUTHENTICATED', message: 'Authentication is required', requestId, details: {} },
           }, requestId);
         }
-        if (enableFullSimulation) {
+        if (enableFullSimulation || enableClozeMatching) {
           const match=url.pathname.match(/^\/api\/v1\/attempts\/([^/]+)(\/result)?$/);
           operation=match[2]?'releasedResult':'getAttempt';
           if (url.search!=='') throw new BankCommandError(422,'VALIDATION_ERROR');

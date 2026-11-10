@@ -125,6 +125,10 @@ export async function createTrackBRuntime({
     throw new Error('LOCAL_NUMERIC_PRACTICE_ENABLED must be true or false');
   }
   const numericEnabled = env.LOCAL_NUMERIC_PRACTICE_ENABLED === 'true';
+  if (env.LOCAL_CLOZE_MATCHING_ENABLED !== undefined && !['true', 'false'].includes(env.LOCAL_CLOZE_MATCHING_ENABLED)) {
+    throw new Error('LOCAL_CLOZE_MATCHING_ENABLED must be true or false');
+  }
+  const clozeMatchingEnabled = env.LOCAL_CLOZE_MATCHING_ENABLED === 'true';
   if (numericEnabled && !studentEnabled) throw new Error('Numeric practice requires the local student runtime');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new TypeError('port must be an integer from 0 through 65535');
   if (env.LOCAL_AUTH_TRUSTED_ORIGIN && port === 0) {
@@ -197,13 +201,14 @@ export async function createTrackBRuntime({
       pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'local-retained-student',
       leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate }, enableNumericPractice: numericEnabled,
+      enableClozeMatching: clozeMatchingEnabled,
     }) : null;
 
     const integratedRequestHandler = async (request) => {
       if (!routeHandlers) {
         const requestId = randomUUID();
         const pathName = new URL(request.url).pathname;
-        if (/^\/api\/v[12]\//.test(pathName)) return asError('TEMPORARILY_UNAVAILABLE', 'The local request could not be completed', requestId);
+        if (/^\/api\/v[124]\//.test(pathName)) return asError('TEMPORARILY_UNAVAILABLE', 'The local request could not be completed', requestId);
         return response(503, { error: 'LOCAL_WORKSPACE_UNAVAILABLE' });
       }
       const pathname = new URL(request.url).pathname;
@@ -213,7 +218,10 @@ export async function createTrackBRuntime({
           || pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
           || pathname.startsWith('/api/v1/attempts/')
           || (numericEnabled && (pathname === '/api/v2/catalog' || pathname === '/api/v2/attempts'
-            || pathname.startsWith('/api/v2/attempts/'))))) return routeHandlers.attemptHandler(request);
+            || pathname.startsWith('/api/v2/attempts/')))
+          || (clozeMatchingEnabled && (pathname === '/api/v4/catalog' || pathname === '/api/v4/attempts'
+            || pathname.startsWith('/api/v4/attempts/'))))) return routeHandlers.attemptHandler(request);
+      if (clozeMatchingEnabled && pathname.startsWith('/api/v4/')) return routeHandlers.clozeMatchingBankHandler(request);
       if (numericEnabled && pathname.startsWith('/api/v2/')) return routeHandlers.numericBankHandler(request);
       if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) return routeHandlers.bankHandler(request);
       return null;
@@ -235,6 +243,8 @@ export async function createTrackBRuntime({
     const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealMetadata: true });
     const numericBankHandler = numericEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin,
       enableNumericQuestions: true, enableReviewContext: true }) : null;
+    const clozeMatchingBankHandler = clozeMatchingEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin,
+      enableClozeMatching: true, enableReviewContext: true }) : null;
     let sourceSeed = null;
     sourceSeed = await ensureLocalSourceSeed({
       authHandler, bankHandler, origin, existing: sourceSeedState,
@@ -253,10 +263,13 @@ export async function createTrackBRuntime({
       if (!principal) return response(401, { error: 'UNAUTHENTICATED' });
       if (!identityService.mayPerform(principal, 'bank.question.author')) return response(403, { error: 'FORBIDDEN' });
       return response(200, { template: buildTemplate(sourceSeed), taxonomies: await listAuthoringTaxonomies(bankPool),
-        ...(numericEnabled ? { capabilities: { numericQuestions: true } } : {}) }, { 'x-request-id': requestId });
+        ...(numericEnabled || clozeMatchingEnabled ? { capabilities: {
+          ...(numericEnabled ? { numericQuestions: true } : {}),
+          ...(clozeMatchingEnabled ? { clozeMatching: true } : {}),
+        } } : {}) }, { 'x-request-id': requestId });
     };
     const attemptHandler = student?.createHandler({ identityService, trustedOrigin: origin });
-    routeHandlers = { authHandler, bankHandler, numericBankHandler, templateHandler, attemptHandler };
+    routeHandlers = { authHandler, bankHandler, numericBankHandler, clozeMatchingBankHandler, templateHandler, attemptHandler };
     if (student) workerStop = student.startWorker();
 
     return {
