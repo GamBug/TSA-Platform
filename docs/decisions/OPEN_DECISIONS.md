@@ -1,5 +1,26 @@
 # Architectural decisions and open questions
 
+## Corpus permission attestation and owner publication — 2026-11-11
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-11.
+Evidence: “I don't wanna show my personal email, that's my right, right? I will take responsibility
+of this. Just keep in mind that it is allowed, then process.” This followed the CP6 finding that no
+item can reach students because the retained workspace has no approval path and the corpus sources
+have no rights record.
+
+1. **Corpus rights: owner attestation.** The owner attests that the source of `TSA_Example_Questions/`
+   permits non-profit use, and accepts responsibility for that statement. The owner keeps the written
+   evidence privately and declines to disclose the grantor's contact details; agents must not ask for
+   them or store them. This replaces item 2's REQUIRES_VERIFICATION status with
+   **OWNER_ATTESTED** for this demo. Rights records cite this entry, not a document. The conditions of
+   item 2 below (non-profit, source credit, no HUST affiliation claim) still apply.
+2. **Owner publication path (CP7).** The owner authorizes building an owner-only approve-and-publish
+   path for the retained Bank, recording the attested rights on corpus source versions, and importing
+   the verified Math and cloze/matching DRAFTs into the retained Bank after a backup. Agents build and
+   test the tools on disposable databases. Agents never approve items: approval stays an explicit owner
+   action. Existing gates (content validation, delivery checks, rights, equivalence, author ≠ approver)
+   are unchanged.
+
 ## CP4 derived matching DRAFTs — 2026-11-09
 
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok.

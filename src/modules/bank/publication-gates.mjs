@@ -198,6 +198,12 @@ export async function assertPublicationGates(client, target, principal, fixtureS
   await client.query("SELECT set_config('tsa.bank_fixture_scope', $1, true)", [fixtureScopeId]);
   const fixture = await client.query('SELECT tsa.bank_fixture_scope_active() AS active');
   if (fixture.rows[0]?.active !== true) reject(403, 'PUBLICATION_DISABLED');
+  await assertPublicationChecks(client, target, imageStore, { enableNumericQuestions, enableClozeMatching });
+}
+
+/** Every publication check except the runtime scope; the owner maintenance path uses it directly. */
+export async function assertPublicationChecks(client, target, imageStore = null,
+  { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
   const { references } = await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions, enableClozeMatching });
   const validation = await client.query(`SELECT 1 FROM tsa.validation_runs
     WHERE question_version_id=$1 AND input_hash=$2 AND kind='BANK_IMMUTABLE'

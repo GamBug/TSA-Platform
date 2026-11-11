@@ -76,6 +76,7 @@
     "demo:student:reading": "npm run build && STUDENT_FIXTURE_READING=true node scripts/start-student-fixture.mjs",
     "demo:student:domains": "npm run build && STUDENT_FIXTURE_DOMAINS=true node scripts/start-student-fixture.mjs",
     "dev:track-b": "npm run build && node src/local/track-b.mjs",
+    "bank:owner-publish": "npm run build && node scripts/owner-publish.mjs",
     "demo:uni": "npm run build && node scripts/start-uni-demo.mjs",
     "demo:uni:rehearsal": "npm run build && node scripts/start-uni-demo.mjs --rehearsal",
     "test:demo:uni": "npm run build && node --test tests/integration/local/uni-demo-seed.test.mjs tests/integration/local/uni-demo.test.mjs",
