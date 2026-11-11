@@ -4,9 +4,12 @@ import {
   ManualCriticResponseSchema,
   ManualDeclarationSchema,
   ManualCorpusMathInputSchema,
+  ManualCorpusMathNumericResponseSchema,
   ManualCorpusMathResponseSchema,
   ManualInputSchema,
   MANUAL_MATH_PROMPT_VERSION,
+  MANUAL_NUMERIC_MATH_OUTPUT_SCHEMA,
+  MANUAL_NUMERIC_MATH_PROFILE,
   MANUAL_PROMPT_VERSION,
   ManualPromptSchema,
   ManualResponseSchema,
@@ -73,11 +76,14 @@ function assertTextOnly(value: unknown): void {
 export function validateManualRawArtifacts(mapping: ManualImportMapping, target: unknown,
   artifacts: Record<string, Uint8Array | undefined>) {
   const raw = (name: string): unknown => parseManualJsonBytes(artifacts[name]!, name);
-  const math = mapping.profile === "corpus-math-draft/1";
+  const numeric = mapping.profile === MANUAL_NUMERIC_MATH_PROFILE;
+  const math = mapping.profile === "corpus-math-draft/1" || numeric;
   const corpus = mapping.profile === "corpus-reading-draft/1" || math;
+  const responseSchema = numeric ? ManualCorpusMathNumericResponseSchema
+    : math ? ManualCorpusMathResponseSchema : ManualResponseSchema;
   const input = (math ? ManualCorpusMathInputSchema : ManualInputSchema).parse(raw("input"));
   const prompt = ManualPromptSchema.parse(raw("prompt"));
-  const response = (math ? ManualCorpusMathResponseSchema : ManualResponseSchema).parse(raw("response"));
+  const response = responseSchema.parse(raw("response"));
   const declaration = ManualDeclarationSchema.parse(raw("declaration"));
   const sourceDeclaration = ManualSourceDeclarationSchema.parse(raw("sourceDeclaration"));
   if (math) {
@@ -128,11 +134,12 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
     && mapping.taxonomy.nodes.some((node) => node.stagingKind === "SKILL" && node.stagingCode === source.skillId
     && node.section === section && node.parentCode === domainCode), "Missing domain or source skill mapping");
   need(prompt.version === (math ? MANUAL_MATH_PROMPT_VERSION : MANUAL_PROMPT_VERSION)
-    && prompt.schemaVersion === (math ? "corpus-math-draft-output/1" : "reading-draft-output/1"), "Prompt/profile mismatch");
+    && prompt.schemaVersion === (numeric ? MANUAL_NUMERIC_MATH_OUTPUT_SCHEMA
+      : math ? "corpus-math-draft-output/1" : "reading-draft-output/1"), "Prompt/profile mismatch");
   need(prompt.sourceData === source.text && prompt.sourceVersionId === source.sourceVersionId
     && prompt.skillId === source.skillId && prompt.taxonomyVersionId === staging.taxonomyVersionId
     && declaration.operatorId === input.operatorId && declaration.promptHash === digestManualValue(prompt), "Prompt declaration mismatch");
-  const outputSchema = JSON.parse(JSON.stringify(z.toJSONSchema(math ? ManualCorpusMathResponseSchema : ManualResponseSchema))) as unknown;
+  const outputSchema = JSON.parse(JSON.stringify(z.toJSONSchema(responseSchema))) as unknown;
   need(digestManualValue(prompt.outputJsonSchema) === digestManualValue(outputSchema), "Pinned draft output schema mismatch");
   for (const span of prompt.evidenceSpans) need(span.end > span.start
     && source.text.slice(span.start, span.end) === span.quote, "Prompt evidence mismatch");
@@ -143,7 +150,8 @@ export function validateManualRawArtifacts(mapping: ManualImportMapping, target:
       && source.text.slice(draft.evidence.start, draft.evidence.end) === draft.evidence.quote, "Raw evidence mismatch");
     const correct = draft.answerKey.type === "SINGLE_CHOICE" ? [draft.answerKey.optionId]
       : draft.answerKey.type === "MULTIPLE_CHOICE" ? draft.answerKey.optionIds : [];
-    const choices = draft.interaction.type === "TRUE_FALSE_GROUP" ? draft.interaction.statements.map((choice) => choice.id)
+    const choices = draft.interaction.type === "NUMERIC_RESPONSE" ? []
+      : draft.interaction.type === "TRUE_FALSE_GROUP" ? draft.interaction.statements.map((choice) => choice.id)
       : draft.interaction.options.filter((choice) => !correct.includes(choice.id)).map((choice) => choice.id);
     const reasons = draft.distractorReasons.map((reason) => reason.choiceId);
     need(corpus ? reasons.length === 0 : new Set(reasons).size === reasons.length && choices.length === reasons.length

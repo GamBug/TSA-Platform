@@ -173,8 +173,8 @@ token usage. Source explanations are preserved if supplied; absent explanations 
 [Math package construction](../../tools/corpus-ingest/math-package.mjs) supports the existing
 single-choice, multiple-choice and true/false interactions. Text blocks retain LaTeX.
 Multiple-choice public selection limits do not disclose the private key's answer count.
-Numeric, cloze/matching and diagram-dependent items are deferred by this ingestion run;
-they are not converted to choices. Complete diagram crops remain private inspection evidence.
+Cloze/matching and diagram-dependent items are deferred by this ingestion run;
+they are not converted to choices. Numeric-answer items use the separate profile below. Complete diagram crops remain private inspection evidence.
 Only clipped/unreadable captures need owner attention. Source-key disagreements never become
 owner-review doubts: a blind check requires image recomparison, then the source key stays authoritative.
 
@@ -203,6 +203,22 @@ LaTeX-rendered samples in `samples.html`, with private keys inside disclosure co
 Focused checks: `node tests/ai/corpus-math.test.mjs` and
 `node tests/ai/corpus-math-batches.test.mjs`. Run manual transport and critical privacy regression
 suites for the shared boundary. The human approval and permission-evidence publication gates remain.
+
+## Numeric Math DRAFTs
+
+The additive private `corpus-math-numeric-draft/1` profile uses the same v3 parser, mapping,
+activation, admission journal and coordinator, with its own producer namespace
+(`tsa.corpus.math-numeric.v1`; a namespace holds one profile). Each item is a `question/2`
+DRAFT with a `NUMERIC_RESPONSE` interaction, the `practice-binary-v2` policy and a private
+canonical decimal key (optional minus sign, a period, no leading zeros; source keys written
+with a comma are converted first). [Package construction](../../tools/corpus-ingest/math-numeric-package.mjs)
+mirrors the choice builder: up to twenty independent items per batch, imported provenance,
+per-capture hashes, text only. The staff queue shows these DRAFTs only when the numeric
+opt-in is enabled, and delivery to students still needs the numeric practice runtime and
+owner publication.
+
+Focused checks: `node --test tests/ai/corpus-math-numeric.test.mjs` and
+`node --test tests/integration/bank/numeric-math-import.test.mjs`.
 
 ## Retained CP3a review queue
 

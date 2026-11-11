@@ -5,6 +5,8 @@ import { jsonDigest, reject } from './common.mjs';
 const same = (left, right) => Buffer.from(canonicalize(left)).equals(Buffer.from(canonicalize(right)));
 const need = (condition) => { if (!condition) reject(422, 'MANUAL_MAPPING_INVALID'); };
 const interactionProfile = 'corpus-reading-interactions-draft/1';
+const MATH_PROFILES = new Set(['corpus-math-draft/1', 'corpus-math-numeric-draft/1']);
+const sectionFor = (profile) => MATH_PROFILES.has(profile) ? 'MATH' : 'READING';
 
 function parseMapping(input) {
   try { return parseManualImportMappingV4(input); }
@@ -46,7 +48,7 @@ function verifyInteractionProvenance(pkg, mapping, principal) {
 
 export async function loadRegisteredManualTaxonomy(client, input) {
   const mapping = parseMapping(input);
-  const section = mapping.profile === 'corpus-math-draft/1' ? 'MATH' : 'READING';
+  const section = sectionFor(mapping.profile);
   const result = await client.query(`SELECT tv.id,tv.name,tv.version_no,tv.definition_hash,
     n.id AS node_id,n.code,n.kind,n.parent_id,n.metadata
     FROM tsa.taxonomy_versions tv LEFT JOIN tsa.taxonomy_nodes n ON n.taxonomy_version_id=tv.id
@@ -75,7 +77,7 @@ export async function loadRegisteredManualTaxonomy(client, input) {
 /** Recheck current registered values inside the guarded import transaction. */
 export async function verifyManualRegisteredMapping(client, principal, pkg, input) {
   const mapping = parseMapping(input);
-  const section = mapping.profile === 'corpus-math-draft/1' ? 'MATH' : 'READING';
+  const section = sectionFor(mapping.profile);
   need(principal.userId === mapping.registeredAuthorId
     && pkg.profile === mapping.profile
     && pkg.manualRun.declaredOperatorId === mapping.declaredOperatorId

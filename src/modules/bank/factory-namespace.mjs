@@ -4,7 +4,7 @@ export function factoryImportNamespace(pkg) {
   if (pkg.schemaVersion === 'factory-package/2') {
     return `factory/2/${jsonDigest([pkg.producerNamespace, pkg.batchKey])}`;
   }
-  if (pkg.schemaVersion === 'factory-package/3' && ['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1'].includes(pkg.profile)) {
+  if (pkg.schemaVersion === 'factory-package/3' && ['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1', 'corpus-math-numeric-draft/1'].includes(pkg.profile)) {
     return `factory/3/${jsonDigest([pkg.profile, pkg.producerNamespace, pkg.batchKey])}`;
   }
   if (pkg.schemaVersion === 'factory-package/4' && pkg.profile === 'corpus-reading-interactions-draft/1') {

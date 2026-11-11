@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { QuestionVersionSchema } from "./index.ts";
 import { canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, type JsonValue, type ReferenceNode } from "./identity.ts";
-import { ManualFactoryPackageV3Schema as Package, ManualImportMappingSchema as Mapping, ManualCorpusMathInputSchema, ManualInputSchema, type ManualArtifactKind } from "./manual-factory-schemas.ts";
+import { ManualFactoryPackageV3Schema as Package, ManualImportMappingSchema as Mapping, ManualCorpusMathInputSchema, ManualInputSchema, MANUAL_NUMERIC_MATH_PROFILE, type ManualArtifactKind } from "./manual-factory-schemas.ts";
 import { assertManualJson, parseManualJsonBytes, parseManualJsonInput, sameManualValue } from "./manual-json.ts";
 import { validateManualRawArtifacts, validateManualTaxonomy } from "./manual-factory-validation.ts";
 import { copyManualArtifacts, createManualArtifactNode, decodeManualArtifacts, finalizeManualReferenceGraph, isManualReferenceReachable, manualQuestionRoots } from "./manual-factory-core.ts";
@@ -48,7 +48,7 @@ const same = sameManualValue;
 
 export function parseManualImportMapping(input: unknown): ManualImportMapping {
     const m = Mapping.parse(parseManualJsonInput(input, "mapping"));
-    const math = m.profile === "corpus-math-draft/1";
+    const math = m.profile === "corpus-math-draft/1" || m.profile === MANUAL_NUMERIC_MATH_PROFILE;
     const domainCode = math ? "MATH" : "READING";
     const section = domainCode;
     need(math ? m.candidates.length >= 1 && m.candidates.length <= 20 : m.candidates.length === 10,
@@ -87,7 +87,7 @@ export function buildManualFactoryPackageV3(input: Parameters<typeof construct>[
 export function parseManualFactoryPackageV3(input: unknown): FactoryPackageV3 {
     const pkg = Package.parse(parseManualJsonInput(input, "manual package"));
     const artifacts = decodeManualArtifacts(pkg.manualRun.artifactRefs, pkg.references, ARTIFACT_KINDS);
-    const math = pkg.profile === "corpus-math-draft/1";
+    const math = pkg.profile === "corpus-math-draft/1" || pkg.profile === MANUAL_NUMERIC_MATH_PROFILE;
     const rawInput = (math ? ManualCorpusMathInputSchema : ManualInputSchema).parse(parseManualJsonBytes(artifacts.input!, "input"));
     const source = rawInput.sources[0]!, tax = pkg.references.filter(n => n.kind === "taxonomy");
     need(tax.length === 1, "One taxonomy required");
@@ -177,7 +177,8 @@ function construct(input: {
     const ref = (id: string) => ({
         id, bytesHash: (artifacts.find(a => a.id === id)!.payload as any).bytesHash
     });
-    const math = mapping.profile === "corpus-math-draft/1";
+    const numeric = mapping.profile === MANUAL_NUMERIC_MATH_PROFILE;
+    const math = mapping.profile === "corpus-math-draft/1" || numeric;
     const corpus = mapping.profile === "corpus-reading-draft/1" || math;
     const sourceHash = hash(new TextEncoder().encode(source.text));
     const permission = {
@@ -294,17 +295,17 @@ function construct(input: {
                 }], contentHash: ""
         });
         const q: any = {
-            schemaVersion: "question/1", id: m.questionVersionId, questionId: m.questionId, versionNo: 1, parentVersionId: null, language: "vi-VN", section: domainCode, taxonomyVersionId: taxonomyNode.id, domainId: domainCode, skillIds: x.targetSkillIds, subskillIds: [], cognitiveLevel: raw.cognitiveLevel, difficulty: {
+            schemaVersion: numeric ? "question/2" : "question/1", id: m.questionVersionId, questionId: m.questionId, versionNo: 1, parentVersionId: null, language: "vi-VN", section: domainCode, taxonomyVersionId: taxonomyNode.id, domainId: domainCode, skillIds: x.targetSkillIds, subskillIds: [], cognitiveLevel: raw.cognitiveLevel, difficulty: {
                 target: null, predicted: null, empiricalStudyId: null
             }, content: raw.content, stimulusVersionId: m.stimulusVersionId, interaction: raw.interaction, private: {
-                answerKey: raw.answerKey, explanation: raw.explanation, evidenceRefs: [xid, eid], scoringPolicy: "practice-binary-v1"
+                answerKey: raw.answerKey, explanation: raw.explanation, evidenceRefs: [xid, eid], scoringPolicy: numeric ? "practice-binary-v2" : "practice-binary-v1"
             }, origin: corpus ? "IMPORTED" : "GENERATED", provenanceIds: [vNode.id], generationRunId: null, createdBy: mapping.registeredAuthorId, createdAt: declaration.generatedAt, contentHash: "sha256:" + "0".repeat(64)
         };
         finalizeManualReferenceGraph(nodes);
         const identity = computeQuestionIdentity(q, nodes.filter(n => isManualReferenceReachable(n, nodes, manualQuestionRoots(q))));
         q.contentHash = identity.contentHash;
         candidates.push({
-            itemKey: math ? "corpus-math-item" : "manual-reading-bundle", candidateOrdinal: m.candidateOrdinal, contentHash: identity.contentHash, question: q, provenance, manualRunId: run.manualRunId, validations: [{
+            itemKey: numeric ? "corpus-math-numeric-item" : math ? "corpus-math-item" : "manual-reading-bundle", candidateOrdinal: m.candidateOrdinal, contentHash: identity.contentHash, question: q, provenance, manualRunId: run.manualRunId, validations: [{
                     validatorKind: math ? "CORPUS_MATH_TRANSCRIPTION" : corpus ? "CORPUS_READING_DETERMINISTIC" : "MANUAL_READING_DETERMINISTIC", validatorVersion: mapping.profile, inputHash: identity.contentHash, outcome: "PASS", evidencePointer: eid, at: declaration.generatedAt, actor: mapping.registeredAuthorId
                 }]
         });

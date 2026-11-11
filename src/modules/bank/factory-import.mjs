@@ -3,6 +3,7 @@ import {
   QuestionVersionSchema, QuestionVersionV3Schema, canonicalize, computeDuplicateFingerprint, computeQuestionIdentity, createReferenceHash,
   parseFactoryPackageV2,
 } from '../../../packages/contracts/dist/internal.js';
+import { QuestionVersionV2Schema } from '../../../packages/contracts/dist/question-v2.js';
 import { withTransaction } from '../database/pool.mjs';
 import { factoryImportNamespace, isFactoryImportNamespace } from './factory-namespace.mjs';
 import { assertSafeQuestionContent } from './content-safety.mjs';
@@ -17,6 +18,7 @@ function digest(value) {
 }
 function keyOf(ref) { return `${ref.kind}\u0000${ref.id}`; }
 const namespaceFor = factoryImportNamespace;
+const NUMERIC_MATH_PROFILE = 'corpus-math-numeric-draft/1';
 function questionRoots(question) {
   const roots = [{ kind: 'taxonomy', id: question.taxonomyVersionId }];
   if (question.parentVersionId) roots.push({ kind: 'question', id: question.parentVersionId });
@@ -177,7 +179,7 @@ function comparableNode(node) {
   };
 }
 
-async function loadPersistedQuestion(client, versionId, producerNamespace, allowQuestionV3 = false) {
+async function loadPersistedQuestion(client, versionId, producerNamespace, allowQuestionV3 = false, allowQuestionV2 = false) {
   const result = await client.query(
     `SELECT qv.id, qv.question_id, qv.version_no, qv.parent_version_id,
             qv.schema_version, qv.language, qv.section, qv.taxonomy_version_id,
@@ -206,7 +208,7 @@ async function loadPersistedQuestion(client, versionId, producerNamespace, allow
   try {
     const schema = row.schema_version === 'question/3'
       ? (allowQuestionV3 ? QuestionVersionV3Schema : null)
-      : QuestionVersionSchema;
+      : row.schema_version === 'question/2' ? (allowQuestionV2 ? QuestionVersionV2Schema : null) : QuestionVersionSchema;
     if (!schema) reject(409, 'IMPORT_INTEGRITY_CONFLICT');
     question = schema.parse({
       schemaVersion: row.schema_version,
@@ -244,8 +246,8 @@ async function loadPersistedQuestion(client, versionId, producerNamespace, allow
   return { row, question };
 }
 
-async function verifyPersistedQuestion(client, versionId, producerNamespace, expectedQuestion, expectedNode, allowQuestionV3 = false) {
-  const { row, question } = await loadPersistedQuestion(client, versionId, producerNamespace, allowQuestionV3);
+async function verifyPersistedQuestion(client, versionId, producerNamespace, expectedQuestion, expectedNode, allowQuestionV3 = false, allowQuestionV2 = false) {
+  const { row, question } = await loadPersistedQuestion(client, versionId, producerNamespace, allowQuestionV3, allowQuestionV2);
   const graph = await resolveReferenceGraph(client, row.reference_namespace, [{ kind: 'question', id: versionId }]);
   const questionNode = graph.find((node) => node.kind === 'question' && node.id === versionId);
   integrity(questionNode);
@@ -412,6 +414,7 @@ export async function verifyStoredFactoryPackage(client, pkg, { requireDraftRece
       candidate?.question,
       node,
       pkg.schemaVersion === 'factory-package/4',
+      pkg.profile === NUMERIC_MATH_PROFILE,
     );
   }
   if (pkg.schemaVersion === 'factory-package/3' || pkg.schemaVersion === 'factory-package/4') {
@@ -480,6 +483,7 @@ export async function persistValidatedFactoryPackage(client, principal, pkg) {
       const nodes = new Map(pkg.references.map((node) => [keyOf(node), node]));
       for (const candidate of pkg.candidates) assertSafeQuestionContent(candidate.question, closure(candidate.question, nodes), {
         clozeMatching: pkg.schemaVersion === 'factory-package/4',
+        numericQuestions: pkg.profile === NUMERIC_MATH_PROFILE,
       });
     }
     await client.query("SELECT set_config('tsa.bank_actor_id',$1,true)",[principal.userId]);

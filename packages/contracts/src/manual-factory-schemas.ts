@@ -5,11 +5,17 @@ import {
   MachineValidationEvidenceSchema,
   QuestionVersionSchema,
 } from "./index.ts";
+import { NumericAnswerKeySchema, NumericInteractionSchema } from "./numeric-response.ts";
+import { QuestionVersionV2Schema } from "./question-v2.ts";
 
 export const MANUAL_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 export const MANUAL_HASH = /^sha256:[0-9a-f]{64}$/;
 export const MANUAL_PROMPT_VERSION = "reading-evidence/1";
 export const MANUAL_MATH_PROMPT_VERSION = "corpus-math-transcription/1";
+export const MANUAL_MATH_PROFILE = "corpus-math-draft/1" as const;
+/** Numeric-answer Math DRAFTs: question/2 with a NUMERIC_RESPONSE interaction. */
+export const MANUAL_NUMERIC_MATH_PROFILE = "corpus-math-numeric-draft/1" as const;
+export const MANUAL_NUMERIC_MATH_OUTPUT_SCHEMA = "corpus-math-numeric-draft-output/1" as const;
 export const MANUAL_CRITIC_PROMPT_VERSION = "reading-manual-blinded-critic/1";
 
 const nonblank = (value: string): boolean => value.trim().length > 0;
@@ -114,6 +120,11 @@ export const ManualDraftSchema = z.object({
 
 export const ManualResponseSchema = z.object({ questions: z.array(ManualDraftSchema).length(10) }).strict();
 export const ManualCorpusMathResponseSchema = z.object({ questions: z.array(ManualDraftSchema).min(1).max(20) }).strict();
+export const ManualNumericDraftSchema = ManualDraftSchema.extend({
+  interaction: NumericInteractionSchema,
+  answerKey: NumericAnswerKeySchema,
+});
+export const ManualCorpusMathNumericResponseSchema = z.object({ questions: z.array(ManualNumericDraftSchema).min(1).max(20) }).strict();
 
 const PromptEvidenceSpan = z.object({
   start: z.number().int().nonnegative(),
@@ -124,7 +135,7 @@ const PromptEvidenceSpan = z.object({
 export const ManualPromptSchema = z.object({
   version: z.enum([MANUAL_PROMPT_VERSION, MANUAL_MATH_PROMPT_VERSION]),
   instructions: z.array(BoundedText).min(1).max(20),
-  schemaVersion: z.enum(["reading-draft-output/1", "corpus-math-draft-output/1"]),
+  schemaVersion: z.enum(["reading-draft-output/1", "corpus-math-draft-output/1", MANUAL_NUMERIC_MATH_OUTPUT_SCHEMA]),
   skillId: BoundedText,
   sourceVersionId: Uuid,
   sourceData: ManualTextSchema,
@@ -260,7 +271,7 @@ export const ManualCandidateSchema = z.object({
   itemKey: BoundedText,
   candidateOrdinal: z.number().int().min(0).max(19),
   contentHash: Hash,
-  question: QuestionVersionSchema,
+  question: z.union([QuestionVersionSchema, QuestionVersionV2Schema]),
   provenance: ManualProvenanceSchema,
   manualRunId: Uuid,
   validations: z.array(MachineValidationEvidenceSchema).min(1).max(100),
@@ -286,7 +297,7 @@ const MappingCandidateSchema = z.object({
 
 export const ManualImportMappingSchema = z.object({
   schemaVersion: z.literal("manual-import-mapping/1"),
-  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1", "corpus-math-draft/1"]),
+  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1", MANUAL_MATH_PROFILE, MANUAL_NUMERIC_MATH_PROFILE]),
   producerNamespace: BoundedText,
   batchKey: BoundedText,
   declaredOperatorId: BoundedText,
@@ -313,7 +324,7 @@ export const ManualReferenceNodeSchema = z.object({
 
 export const ManualFactoryPackageV3Schema = z.object({
   schemaVersion: z.literal("factory-package/3"),
-  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1", "corpus-math-draft/1"]),
+  profile: z.enum(["manual-reading-draft/1", "corpus-reading-draft/1", MANUAL_MATH_PROFILE, MANUAL_NUMERIC_MATH_PROFILE]),
   producerNamespace: BoundedText,
   batchKey: BoundedText,
   manualRun: ManualRunSchema,
@@ -323,10 +334,11 @@ export const ManualFactoryPackageV3Schema = z.object({
   references: z.array(ManualReferenceNodeSchema).min(1).max(100),
   assets: z.array(z.never()).length(0),
 }).strict().superRefine((pkg, context) => {
-  if (pkg.profile !== "corpus-math-draft/1" && pkg.candidates.length !== 10) {
+  const independentMath = pkg.profile === MANUAL_MATH_PROFILE || pkg.profile === MANUAL_NUMERIC_MATH_PROFILE;
+  if (!independentMath && pkg.candidates.length !== 10) {
     context.addIssue({ code: "custom", path: ["candidates"], message: "Reading packages require ten candidates" });
   }
-  if (pkg.profile !== "corpus-math-draft/1" && pkg.candidates.some((candidate) => candidate.candidateOrdinal > 9)) {
+  if (!independentMath && pkg.candidates.some((candidate) => candidate.candidateOrdinal > 9)) {
     context.addIssue({ code: "custom", path: ["candidates"], message: "Reading candidate ordinal out of range" });
   }
 });

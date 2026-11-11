@@ -21,7 +21,7 @@ function bindActivation(pkg, configuration) {
   const authoring = pkg.sourceAuthoring?.[0];
   const packageVersionMatches = activation.profile === interactionProfile
     ? pkg.schemaVersion === 'factory-package/4' && pkg.profile === interactionProfile
-    : pkg.schemaVersion === 'factory-package/3' && ['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1'].includes(pkg.profile);
+    : pkg.schemaVersion === 'factory-package/3' && ['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1', 'corpus-math-numeric-draft/1'].includes(pkg.profile);
   if (!packageVersionMatches || pkg.profile !== activation.profile
       || pkg.producerNamespace !== activation.producerNamespace
       || pkg.manualRun?.declaredOperatorId !== activation.declaredOperatorId
