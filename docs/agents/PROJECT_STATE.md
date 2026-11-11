@@ -21,6 +21,8 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-11: Full Math bank import: all 400 Math captures were inspected; 199 items are in the retained Bank (80 published, 119 new DRAFTs). Publish them with `npm run bank:owner-publish -- --confirm "PUBLISH 119 ALL"`. 189 captures stay deferred (numeric, diagram or table, cloze or matching, no visible key). The new items have no independent blind solve, and five source keys look inconsistent with their problems. See the [full Math import report](../../plans/reports/claude-261111-2010-math-full-bank-import.md).
+
 - 2026-11-11: Retained Math import completed: 80 Math DRAFTs are in the retained Bank (backed up first; none approved or published). Math publishes with `npm run bank:owner-publish -- --confirm "PUBLISH 80 ALL"`. Math was then published by the owner (80 items). Reading and Math sit in separate taxonomy versions, so no full simulation is offered; the owner decided on 2026-11-11 that section and topic practice are enough for the demo. See the [Math import report](../../plans/reports/claude-261111-1930-math-retained-import.md).
 
 - 2026-11-11: CP7 step 1 committed (`9f878c0`): owner attestation recorded; `npm run bank:owner-publish` publishes the 100 corpus Reading items (rights, passage bundles, full checks) and was verified on a copy of the retained Bank. The owner runs the confirmed command. See the [CP7 report](../../plans/reports/claude-261111-0003-cp7-owner-publication.md).
