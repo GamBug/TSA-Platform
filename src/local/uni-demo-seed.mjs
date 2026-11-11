@@ -10,6 +10,13 @@ import { withTransaction } from '../modules/database/pool.mjs';
 export const DEMO_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
 const DELIVERABLE_SCHEMA = 'question/1';
 const DELIVERABLE_TYPES = Object.freeze(['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE_GROUP']);
+// Numeric short answers are question/2 and are delivered by their own practice, never mixed with choice items.
+const NUMERIC_SCHEMA = 'question/2';
+const NUMERIC_TYPE = 'NUMERIC_RESPONSE';
+const NUMERIC_PRACTICE = Object.freeze([
+  Object.freeze({ section: 'MATH', count: 4, durationSeconds: 360, name: 'Luyện tập Toán học — trả lời số' }),
+  Object.freeze({ section: 'SCIENCE', count: 4, durationSeconds: 360, name: 'Luyện tập Khoa học — trả lời số' }),
+]);
 const SIMULATION_REQUIRED = Object.freeze(Object.fromEntries(
   FULL_SIMULATION_SECTIONS.map((section) => [section.section, section.count])));
 // Counts are fixed by the existing single-section catalog; durations follow the project demo profile.
@@ -70,7 +77,15 @@ export function planDemoOfferings({ versions, bundles = new Map() }) {
   }
   const incompleteBundles = emptySectionCounts();
   const seenBundles = new Set();
+  const numericByTaxonomy = new Map();
   for (const version of versions) {
+    if (version.schemaVersion === NUMERIC_SCHEMA && version.interactionType === NUMERIC_TYPE
+        && !version.bundleId && !version.stimulusVersionId) {
+      const counts = numericByTaxonomy.get(version.taxonomyVersionId) ?? emptySectionCounts();
+      counts[version.section] += 1;
+      numericByTaxonomy.set(version.taxonomyVersionId, counts);
+      continue;
+    }
     if (version.schemaVersion !== DELIVERABLE_SCHEMA || !DELIVERABLE_TYPES.includes(version.interactionType)) {
       otherProtocols[version.section] += 1;
       continue;
@@ -139,8 +154,20 @@ export function planDemoOfferings({ versions, bundles = new Map() }) {
       offered: candidate !== null, taxonomyVersionId: candidate?.taxonomyVersionId ?? null };
   });
 
+  const numericPractice = NUMERIC_PRACTICE.map((profile) => {
+    const ranked = [...numericByTaxonomy.entries()].sort(([leftId, left], [rightId, right]) =>
+      right[profile.section] - left[profile.section] || leftId.localeCompare(rightId));
+    const [taxonomyVersionId, counts] = ranked[0] ?? [null, emptySectionCounts()];
+    const available = counts[profile.section];
+    const offered = available >= profile.count;
+    return { section: profile.section, required: profile.count, durationSeconds: profile.durationSeconds, name: profile.name,
+      available, offered, taxonomyVersionId: offered ? taxonomyVersionId : null };
+  });
+  const numericStock = emptySectionCounts();
+  for (const counts of numericByTaxonomy.values()) for (const section of DEMO_SECTIONS) numericStock[section] += counts[section];
+
   return {
-    published, deliverable, otherProtocols, incompleteBundles,
+    published, deliverable, otherProtocols, incompleteBundles, numericStock, numericPractice,
     fullSimulation: { offered: withoutRepeats > 0, withoutRepeats, taxonomyVersionId: withoutRepeats > 0 ? best.taxonomyVersionId : null,
       required: { ...SIMULATION_REQUIRED }, shortages, splitAcrossTaxonomies },
     sectionPractice,
@@ -149,6 +176,8 @@ export function planDemoOfferings({ versions, bundles = new Map() }) {
 }
 
 async function readStock(client) {
+  // question/2 counts as selectable only while the numeric-practice setting is on, as it is when students are served.
+  await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true)");
   const versions = (await client.query(`
     SELECT v.id, v.taxonomy_version_id AS "taxonomyVersionId", v.section::text AS section,
            v.schema_version AS "schemaVersion", v.interaction->>'type' AS "interactionType",
@@ -209,6 +238,18 @@ export async function seedUniDemoOfferings(ownerPool) {
         sections: [{ id: `${profile.section.toLowerCase()}-practice`, section: profile.section,
           count: profile.required, durationSeconds: profile.durationSeconds }] } });
       offerings.push({ kind: 'SECTION_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId });
+    }
+    for (const profile of plan.numericPractice) {
+      if (!profile.offered) continue;
+      const config = { ...base, schemaVersion: 'blueprint/2', name: profile.name, taxonomyVersionId: profile.taxonomyVersionId,
+        profileKind: 'INDEPENDENT_PRACTICE', scoringPolicy: 'practice-binary-v2', allowedTypes: [NUMERIC_TYPE],
+        sections: [{ id: `${profile.section.toLowerCase()}-numeric-practice`, section: profile.section,
+          count: profile.required, durationSeconds: profile.durationSeconds }] };
+      const blueprintVersionId = await insertOffering(client, { schemaVersion: 'blueprint/2', taxonomyVersionId: profile.taxonomyVersionId, config });
+      // The private pin is what makes a blueprint/2 offering deliverable; it is bound to the exact config hash.
+      await client.query('INSERT INTO tsa_private.numeric_practice_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
+        [blueprintVersionId, contentHash(config)]);
+      offerings.push({ kind: 'NUMERIC_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId });
     }
     const approved = Object.fromEntries(DEMO_SECTIONS.map((section) => [section,
       workflow.find((row) => row.section === section && row.state === 'APPROVED')?.count ?? 0]));

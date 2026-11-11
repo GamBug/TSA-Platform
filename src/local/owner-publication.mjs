@@ -102,7 +102,8 @@ export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_RE
     if (reviewerId === attribution.created_by || reviewerId === attribution.operator_id) {
       throw new Error('The approving account must differ from the author and import operator');
     }
-    await assertPublicationChecks(client, target);
+    // question/2 (numeric answers) needs the numeric opt-in; every other check is identical.
+    await assertPublicationChecks(client, target, null, { enableNumericQuestions: target.schema_version === 'question/2' });
     const reviewId = randomUUID();
     await client.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
       VALUES($1,$2,$3,$4,'APPROVE',$5::jsonb,$6)`, [reviewId, versionId, target.content_hash, reviewerId, JSON.stringify(RUBRIC), APPROVAL_REASON]);
@@ -113,6 +114,8 @@ export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_RE
     await client.query('UPDATE tsa.questions SET eligible_version_id=$2 WHERE id=$1', [target.question_id, versionId]);
     await client.query('UPDATE tsa.bank_state SET eligibility_revision=eligibility_revision+1, updated_at=clock_timestamp() WHERE id=1');
     await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_REVIEW_APPROVE', Number(changed.rows[0].revision), APPROVAL_REASON);
+    // The selection gate admits question/2 only while the numeric-practice setting is on, as it is when students are served.
+    if (target.schema_version === 'question/2') await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true)");
     const selectable = (await client.query('SELECT tsa.bank_question_selection_allowed($1) AS ok', [versionId])).rows[0].ok;
     if (selectable !== true) throw new Error(`Version ${versionId} is approved but not selectable; rolled back`);
     return reviewId;

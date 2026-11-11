@@ -142,7 +142,8 @@ export async function startUniDemo({
     const clusterDirectory = path.join(root, 'cluster');
     await restoreArchive({ archive: exported.archive, roles: exported.roles, clusterDirectory, workDirectory: root, pgBin });
     runtime = await createTrackBRuntime({
-      env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_STUDENT_ENABLED: 'true', LOCAL_FULL_SIMULATION_ENABLED: 'true' },
+      env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_STUDENT_ENABLED: 'true', LOCAL_FULL_SIMULATION_ENABLED: 'true',
+        LOCAL_NUMERIC_PRACTICE_ENABLED: 'true' },
       dataDirectory: clusterDirectory, port, pgBin,
       prepareDatabase: async (ownerPool) => {
         const report = await seedUniDemoOfferings(ownerPool);
@@ -170,6 +171,7 @@ export async function startUniDemo({
       staff: `${runtime.origin}/`,
       student: `${runtime.origin}/?student=postgres`,
       simulation: `${runtime.origin}/?student=postgres-v3`,
+      numeric: `${runtime.origin}/?student=postgres-v2`,
     }),
     close() {
       closing ??= (async () => {

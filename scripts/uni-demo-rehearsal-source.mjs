@@ -9,12 +9,16 @@ import { createAllocationFixture } from '../tests/integration/assembly/fixtures.
 import { bankRequest } from '../tests/integration/bank/harness.mjs';
 import { backupLocalDatabase } from '../src/local/database-backup.mjs';
 import { createPrivateTemplate } from '../src/local/seed.mjs';
+import { createQuestionService } from '../src/modules/bank/questions.mjs';
+import { createPublicationService } from '../src/modules/bank/publication.mjs';
 import { jsonDigest } from '../src/modules/bank/common.mjs';
 import { withTransaction } from '../src/modules/database/pool.mjs';
 
 // One full simulation (40/20/40) plus spare items for topic and section practice.
 export const REHEARSAL_DEFAULT_COUNTS = Object.freeze({ MATH: 50, READING: 30, SCIENCE: 50 });
 export const REHEARSAL_DEFAULT_QUEUE = Object.freeze({ inReview: 3, draft: 2 });
+// Published numeric-answer Math items (question/2) for the numeric practice; the tests opt in explicitly.
+export const REHEARSAL_DEFAULT_NUMERIC = 5;
 const DOMAINS = Object.freeze([
   { section: 'MATH', label: 'Toán học', skills: [['MATH_ALGEBRA', 'Đại số'], ['MATH_GEOMETRY', 'Hình học']] },
   { section: 'READING', label: 'Đọc hiểu', skills: [['READING_DETAIL', 'Tìm chi tiết'], ['READING_INFERENCE', 'Suy luận']] },
@@ -38,8 +42,8 @@ async function inBatches(items, action) {
  * Build the synthetic rehearsal Bank and return its archive.
  * `counts` are published items per section; `queue` adds unpublished staff-queue items.
  */
-export async function buildRehearsalSource({ counts = REHEARSAL_DEFAULT_COUNTS, queue = REHEARSAL_DEFAULT_QUEUE } = {}) {
-  for (const value of [...DOMAINS.map((domain) => counts[domain.section]), queue.inReview, queue.draft]) {
+export async function buildRehearsalSource({ counts = REHEARSAL_DEFAULT_COUNTS, queue = REHEARSAL_DEFAULT_QUEUE, numeric = 0 } = {}) {
+  for (const value of [...DOMAINS.map((domain) => counts[domain.section]), queue.inReview, queue.draft, numeric]) {
     if (!Number.isSafeInteger(value) || value < 0 || value > 200) throw new RangeError('Rehearsal counts must be integers from 0 through 200');
   }
   const directory = await mkdtemp(path.join(os.tmpdir(), 'tsa-uni-demo-rehearsal-'));
@@ -96,6 +100,33 @@ export async function buildRehearsalSource({ counts = REHEARSAL_DEFAULT_COUNTS, 
       await inBatches(Array.from({ length: counts[domain.section] }, (_, index) => index),
         async (index) => publish(await createDraft(domain, index, 'Câu diễn tập')));
     }
+    // Numeric-answer Math items are question/2 and use the numeric services, as the numeric fixture does.
+    if (numeric > 0) {
+      const numericQuestions = await createQuestionService({ bankPool: fixture.bankPool, identityService: fixture.identityService, enableNumericQuestions: true });
+      const numericWorkflow = await createPublicationService({ bankPool: fixture.bankPool, identityService: fixture.identityService,
+        fixtureScopeId: fixture.fixtureScopeId, enableNumericQuestions: true });
+      const mathDomain = domains[0];
+      await inBatches(Array.from({ length: numeric }, (_, index) => index), async (index) => {
+        const value = String(3 * (index + 2) + (index % 2 === 0 ? 0.5 : 0)).replace(/\.0$/u, '');
+        const receipt = await numericQuestions.createQuestionDraft(fixture.principals.author, randomUUID(), {
+          schemaVersion: 'question/2', language: 'vi-VN', section: 'MATH', taxonomyVersionId, domainId: mathDomain.domainId,
+          skillIds: [mathDomain.skills[index % mathDomain.skills.length].id], subskillIds: [], cognitiveLevel: null, targetDifficulty: 'EASY',
+          content: text(`Câu diễn tập trả lời số ${index + 1} (nội dung tổng hợp, không phải đề mẫu). Ghi chú tự viết nêu số ${value}. Hãy nhập số được nêu trong ghi chú.`),
+          interaction: { type: 'NUMERIC_RESPONSE', label: 'Nhập đáp án bằng số thập phân', format: 'DECIMAL' },
+          answerKey: { type: 'NUMERIC_RESPONSE', value },
+          explanation: text(`Ghi chú nêu số ${value}. Câu hỏi tổng hợp chỉ dùng để diễn tập kỹ thuật.`),
+          stimulusVersionId: null, evidenceRefs: template.evidenceRefs, origin: 'MANUAL', provenance: template.provenance,
+        });
+        const draft = receipt.body;
+        if (receipt.status !== 201 || !draft?.versionId) throw new Error('Rehearsal numeric draft was rejected');
+        await numericWorkflow.submitReview(fixture.principals.author, draft.versionId, randomUUID(), { expectedRevision: 1 });
+        await numericWorkflow.confirmSingleton(fixture.principals.reviewer, draft.versionId, randomUUID(), {
+          expectedRevision: 2, contentHash: draft.contentHash, reason: 'Synthetic rehearsal item; no other version exists.' });
+        await numericWorkflow.review(fixture.principals.reviewer, draft.versionId, randomUUID(), {
+          expectedRevision: 2, contentHash: draft.contentHash, decision: 'APPROVE', rubric: { ...RUBRIC },
+          reason: 'Synthetic rehearsal fixture only; not a human review of real content.' });
+      });
+    }
     // Unpublished items give the staff review queue something to show; students never receive them.
     const math = domains[0];
     await inBatches(Array.from({ length: queue.inReview }, (_, index) => index), async (index) => {
@@ -110,7 +141,7 @@ export async function buildRehearsalSource({ counts = REHEARSAL_DEFAULT_COUNTS, 
     await fixture.close();
     fixture = null;
     let closing;
-    return { archive: backup.archive, roles: backup.roles, directory, counts: { ...counts }, queue: { ...queue },
+    return { archive: backup.archive, roles: backup.roles, directory, counts: { ...counts }, queue: { ...queue }, numeric,
       close() { closing ??= rm(directory, { recursive: true, force: true }); return closing; } };
   } catch (error) {
     await fixture?.close().catch(() => {});

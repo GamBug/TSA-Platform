@@ -42,6 +42,8 @@ export function formatDemoSummary(demo) {
     ...(simulation.splitAcrossTaxonomies ? ['  Published items are split across taxonomy versions; one simulation needs all three sections in one version.'] : []),
     `Section practice: ${report.sectionPractice.map((profile) =>
       `${SECTION_NAMES[profile.section]} ${profile.offered ? 'offered' : 'not offered'} (${profile.available}/${profile.required})`).join(' · ')}`,
+    `Numeric practice: ${report.numericPractice.map((profile) =>
+      `${SECTION_NAMES[profile.section]} ${profile.offered ? 'offered' : 'not offered'} (${profile.available}/${profile.required})`).join(' · ')}`,
     `Topic practice: ${report.topicPractice.available ? 'available for published topics' : 'no published items'}`,
     `Bank workflow: ${report.workflow.map((entry) => `${SECTION_NAMES[entry.section]} ${entry.state} ${entry.count}`).join(' · ') || 'no question versions'}`,
   ];
@@ -53,6 +55,7 @@ export function formatDemoSummary(demo) {
   }
   lines.push('',
     `Student practice:  ${demo.urls.student}`,
+    `Numeric practice:  ${demo.urls.numeric}`,
     `Full simulation:   ${demo.urls.simulation}`,
     `Staff workspace:   ${demo.urls.staff}`,
     '',
@@ -70,8 +73,8 @@ export async function startUniDemoFromEnvironment({ env = process.env, rehearsal
       sourceDataDirectory: env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b') });
   }
   // The fixture builder lives with the tests; it is loaded only for an explicit rehearsal.
-  const { buildRehearsalSource } = await import('./uni-demo-rehearsal-source.mjs');
-  const source = await buildRehearsalSource();
+  const { buildRehearsalSource, REHEARSAL_DEFAULT_NUMERIC } = await import('./uni-demo-rehearsal-source.mjs');
+  const source = await buildRehearsalSource({ numeric: REHEARSAL_DEFAULT_NUMERIC });
   try {
     return await startUniDemo({ mode: 'REHEARSAL', port, sourceArchive: source });
   } finally {
@@ -96,7 +99,8 @@ async function runWorker(rehearsal) {
     demo = await startUniDemoFromEnvironment({ rehearsal });
     if (stopRequested) { await stop(); return; }
     process.stdout.write(`${JSON.stringify({ event: 'ready', mode: demo.mode, urls: demo.urls,
-      published: demo.report.published, fullSimulationsWithoutRepeats: demo.report.fullSimulation.withoutRepeats })}\n`);
+      published: demo.report.published, fullSimulationsWithoutRepeats: demo.report.fullSimulation.withoutRepeats,
+      numericPractice: demo.report.numericPractice.map(({ section, offered, available }) => ({ section, offered, available })) })}\n`);
     process.stdout.write(formatDemoSummary(demo));
   } catch (error) {
     const message = error?.code === 'EADDRINUSE'

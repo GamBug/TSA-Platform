@@ -43,7 +43,7 @@ async function session(origin, actorKey) {
 export async function ownerPublish({ dataDirectory, section = null, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
   const before = await inspect(dataDirectory, section);
   const counts = Object.fromEntries(OWNER_SECTIONS.map((name) => [name, before.versions.filter((row) => row.section === name).length]));
-  const unsupported = before.versions.filter((row) => row.schemaVersion !== 'question/1' || !AUTHOR_ACTORS[row.createdBy]);
+  const unsupported = before.versions.filter((row) => !['question/1', 'question/2'].includes(row.schemaVersion) || !AUTHOR_ACTORS[row.createdBy]);
   const phrase = confirmationPhrase(before.versions.length - unsupported.length, section);
   log(`Corpus versions awaiting publication: ${OWNER_SECTIONS.map((name) => `${name} ${counts[name]}`).join(', ')}`);
   log(`Corpus sources without display rights: ${before.sources.filter((source) => !source.allowed).length} of ${before.sources.length}`);
@@ -56,7 +56,10 @@ export async function ownerPublish({ dataDirectory, section = null, confirm, log
   const targets = before.versions.filter((row) => !unsupported.includes(row));
 
   // Phase 1: the normal workspace (backup, migrations) and the existing Bank routes.
-  const runtime = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' }, dataDirectory, port: 0 });
+  // Numeric-answer versions (question/2) are served by the numeric routes, which need the numeric runtime opt-in.
+  const numeric = targets.some((row) => row.schemaVersion === 'question/2');
+  const runtime = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true',
+    ...(numeric ? { LOCAL_STUDENT_ENABLED: 'true', LOCAL_NUMERIC_PRACTICE_ENABLED: 'true' } : {}) }, dataDirectory, port: 0 });
   try {
     const manager = await session(runtime.origin, 'bankManager');
     for (const source of before.sources.filter((row) => !row.allowed)) {
@@ -66,7 +69,7 @@ export async function ownerPublish({ dataDirectory, section = null, confirm, log
     const authors = {};
     for (const row of targets.filter((target) => target.state === 'DRAFT')) {
       authors[row.createdBy] ??= await session(runtime.origin, AUTHOR_ACTORS[row.createdBy]);
-      await authors[row.createdBy](`/api/v1/question-versions/${row.id}/submit-review`, { expectedRevision: row.revision });
+      await authors[row.createdBy](`/api/${row.schemaVersion === 'question/2' ? 'v2' : 'v1'}/question-versions/${row.id}/submit-review`, { expectedRevision: row.revision });
       row.revision += 1;
     }
   } finally { await runtime.close(); }

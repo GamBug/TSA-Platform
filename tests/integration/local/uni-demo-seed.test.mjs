@@ -91,3 +91,32 @@ test('other interaction protocols are published but not deliverable in this demo
   assert.deepEqual(plan.otherProtocols, { MATH: 2, READING: 1, SCIENCE: 0 });
   assert.equal(plan.sectionPractice.find((profile) => profile.section === 'MATH').offered, false);
 });
+
+const numeric = (section, count, overrides = {}) => versions(section, count,
+  { schemaVersion: 'question/2', interactionType: 'NUMERIC_RESPONSE', ...overrides });
+
+test('published numeric-answer stock offers its own practice and is not reported as undeliverable', () => {
+  const plan = planDemoOfferings({ versions: [...versions('MATH', 3), ...numeric('MATH', 4)] });
+  assert.deepEqual(plan.published, { MATH: 7, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(plan.deliverable, { MATH: 3, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(plan.otherProtocols, { MATH: 0, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(plan.numericStock, { MATH: 4, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(plan.numericPractice.map((profile) => [profile.section, profile.offered, profile.available, profile.required]),
+    [['MATH', true, 4, 4], ['SCIENCE', false, 0, 4]]);
+  assert.equal(plan.numericPractice[0].taxonomyVersionId, T1);
+  // Choice items stay in their own offering: three are not enough for a four-question section practice.
+  assert.equal(plan.sectionPractice.find((profile) => profile.section === 'MATH').offered, false);
+});
+
+test('numeric practice needs enough items in one taxonomy version and ignores passage-bound numeric items', () => {
+  const split = planDemoOfferings({ versions: [...numeric('MATH', 3), ...numeric('MATH', 3, { taxonomyVersionId: T2 })] });
+  assert.equal(split.numericPractice[0].offered, false);
+  assert.equal(split.numericPractice[0].available, 3);
+  const best = planDemoOfferings({ versions: [...numeric('MATH', 4), ...numeric('MATH', 5, { taxonomyVersionId: T2 })] });
+  assert.equal(best.numericPractice[0].taxonomyVersionId, T2);
+  const bound = planDemoOfferings({ versions: numeric('MATH', 4, { bundleId: 'bundle-1', stimulusVersionId: 'stimulus-1' }) });
+  assert.equal(bound.numericPractice[0].offered, false);
+  assert.equal(bound.numericStock.MATH, 0);
+  const science = planDemoOfferings({ versions: numeric('SCIENCE', 4) });
+  assert.deepEqual(science.numericPractice.map((profile) => [profile.section, profile.offered]), [['MATH', false], ['SCIENCE', true]]);
+});

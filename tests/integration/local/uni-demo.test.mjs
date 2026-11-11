@@ -150,3 +150,53 @@ test('published items require the owner source credit before the demo may start'
   // Rehearsal content is never credited to the corpus, whatever the environment says.
   assert.match(buildDemoNotice({ mode: 'REHEARSAL', report, sourceCredit: 'ignored' }).sourceCredit.en, /synthetic/);
 });
+
+test('published numeric-answer items get their own practice, delivered and graded through the numeric routes', { timeout: 120_000 }, async (t) => {
+  const source = await buildRehearsalSource({ counts: { MATH: 4, READING: 0, SCIENCE: 0 }, queue: { inReview: 0, draft: 0 }, numeric: 5 });
+  t.after(() => source.close());
+  const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive: source });
+  t.after(() => demo.close());
+  const { report } = demo;
+  assert.deepEqual(report.published, { MATH: 9, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(report.numericStock, { MATH: 5, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(report.otherProtocols, { MATH: 0, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(report.offerings.map((offering) => [offering.kind, offering.section]),
+    [['SECTION_PRACTICE', 'MATH'], ['NUMERIC_PRACTICE', 'MATH']]);
+  assert.match(formatDemoSummary(demo), /Numeric practice: Mathematics offered \(5\/4\)/);
+  assert.match(demo.urls.numeric, /\?student=postgres-v2$/);
+
+  const student = await loginActor(demo, 'studentA');
+  const numericOffering = report.offerings.find((offering) => offering.kind === 'NUMERIC_PRACTICE');
+  const choiceOffering = report.offerings.find((offering) => offering.kind === 'SECTION_PRACTICE');
+  const numericCatalog = await json(await bankRequest(demo, student, '/api/v2/catalog', { query: 'limit=100' }));
+  assert.deepEqual(numericCatalog.items.map((item) => item.blueprintVersionId), [numericOffering.blueprintVersionId]);
+  const choiceCatalog = await json(await bankRequest(demo, student, '/api/v1/catalog', { query: 'limit=100' }));
+  assert.deepEqual(choiceCatalog.items.map((item) => item.blueprintVersionId), [choiceOffering.blueprintVersionId]);
+
+  const receipt = await json(await bankRequest(demo, student, '/api/v2/attempts', {
+    method: 'POST', key: randomUUID(), body: { blueprintVersionId: numericOffering.blueprintVersionId } }), 201);
+  await json(await bankRequest(demo, student, `/api/v2/attempts/${receipt.attemptId}/start`, { method: 'POST', key: randomUUID(), body: {} }));
+  const view = await json(await bankRequest(demo, student, `/api/v2/attempts/${receipt.attemptId}`));
+  assert.equal(view.slots.length, 4);
+  assert.doesNotMatch(JSON.stringify(view), /answerKey|correctAnswer/);
+  for (const slot of view.slots) {
+    assert.equal(slot.interaction.type, 'NUMERIC_RESPONSE');
+    const text = slot.content.map((block) => block.text ?? '').join(' ');
+    assert.match(text, /^Câu diễn tập trả lời số \d+ /, 'only published numeric rehearsal items are delivered');
+    // The rehearsal text names its own answer; a real item never does.
+    const value = /nêu số (\S+?)\.(?:\s|$)/u.exec(text)?.[1];
+    assert.ok(value, text);
+    await json(await bankRequest(demo, student, `/api/v2/attempts/${receipt.attemptId}/answers/${slot.slotId}`, {
+      method: 'PUT', key: randomUUID(), body: { expectedRevision: 0, value: { type: 'NUMERIC_RESPONSE', value } } }));
+  }
+  await json(await bankRequest(demo, student, `/api/v2/attempts/${receipt.attemptId}/submit`, { method: 'POST', key: randomUUID(), body: {} }));
+  let result;
+  for (const until = Date.now() + 10_000; Date.now() < until;) {
+    const response = await bankRequest(demo, student, `/api/v2/attempts/${receipt.attemptId}/result`);
+    if (response.status === 200) { result = await response.json(); break; }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  assert.ok(result, 'the numeric attempt is graded');
+  assert.equal(result.policyVersion, 'practice-binary-v2');
+  assert.equal(result.correctCount, 4);
+});
