@@ -1582,3 +1582,8 @@ body.review-active { overflow: hidden; background: #fff; }
   .matching-row { grid-template-columns: minmax(0, 1fr); gap: 7px; }
   .interaction-answer-actions .button { flex: 1 1 150px; }
 }
+
+.demo-notice { margin: 18px 0 0; padding: 14px 16px; border: 1px solid #f0dfbd; border-radius: 12px; color: #765824; background: var(--amber-soft); font-size: .82rem; line-height: 1.6; }
+.demo-notice strong { display: block; margin-bottom: 6px; letter-spacing: .04em; }
+.demo-notice ul { margin: 0; padding-left: 18px; }
+.demo-notice--rehearsal { border-left: 4px solid #b7791f; background: #fdeccc; color: #5c3d0c; }

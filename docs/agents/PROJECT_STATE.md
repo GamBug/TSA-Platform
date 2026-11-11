@@ -21,6 +21,8 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-10: CP6 completed, uncommitted: `npm run demo:uni` serves only published Bank items from a disposable copy (private Bank backed up, never written); `npm run demo:uni:rehearsal` runs a labelled synthetic rehearsal. Today 0 items are published, so the demo honestly offers nothing until the owner approves and publishes. See the [CP6 report](../../plans/reports/claude-261110-2301-cp6.md).
+
 - 2026-11-10: CP4 completed and committed (`46cbbb9`..`d7e71f6`): exit suites, Chromium/Firefox journeys and a recorded independent review passed. A retained import of the 78 keyed Reading DRAFTs awaits the owner. See the [CP4 completion report](../../plans/reports/claude-261110-1215-cp4.md).
 
 - 2026-11-09: CP3b completed: 80 private Math DRAFTs verified in four disposable batches of twenty, exit checks and independent review passed. See the [Math checkpoint report](../../plans/reports/codex-261109-1721-cp3b.md).
@@ -37,13 +39,12 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 ## Known gaps and gates
 
 - The full simulation demo uses disposable original synthetic inventory; retained corpus Reading DRAFTs are separate inventory awaiting human approval and publication rights.
-- Cloze and matching interactions remain unsupported; their compatibility needs resolution before claiming full corpus coverage.
 - Corpus-derived items require recorded rights evidence and owner approval before publication; neither is implied by local engineering.
 - CP5 waits for owner-supplied Science files. Hosting and production authentication are optional for this demo.
 
 ## Run the local demo
 
-Follow the [supervisor demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md) for prerequisites and commands.
+Follow the [run of show](../guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md) for `npm run demo:uni`; the [supervisor demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md) covers setup and the older synthetic launchers.
 
 - 2026-11-09: CP3 BLOCKED before implementation: 136 explicit-key Reading choices fall short of 150; true/false keys need owner source evidence. [Report](../../plans/reports/codex-261109-0913-cp3.md).
 

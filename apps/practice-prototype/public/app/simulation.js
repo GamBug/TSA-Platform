@@ -2,6 +2,7 @@ import { createPersistentApi } from './persistent-api.js';
 import { renderMath } from './math.js';
 import { renderQuestionImage } from './question-media.js';
 import { attachExamShortcuts } from './exam-shortcuts.js';
+import { renderDemoNotice } from './demo-notice.js';
 
 /** Full simulation shares the local identity and sealed Bank delivery engine. */
 export async function mountSimulation() {
@@ -392,6 +393,7 @@ export async function mountSimulation() {
     else if(!view){const panel=el('section','','simulation-card');panel.append(el('h2','100 questions. Three separate clocks.'),el('p','Mathematics: 40 questions / 60 minutes. Reading: 20 / 30. Science: 40 / 60. Only the open section uses time. You can return while time remains.'));
       catalog.forEach(p=>panel.append(button('Start full simulation','demo-start',()=>create(p))));if(!catalog.length)panel.append(el('p','No full simulation is currently offered.'));shell.append(panel);
       if(history.length){const list=el('section','','simulation-card');list.append(el('h2','Your attempts'));history.forEach(a=>list.append(button(`${a.state} · ${a.score?`${a.score.correctCount}/100`:'100 questions'}`,`simulation-history-${a.attemptId}`,async()=>{view={attemptId:a.attemptId};released=null;await load();},true)));shell.append(list);}
+      shell.append(renderDemoNotice({language:'en'}));
     }else if(view.state==='CREATED'){const panel=el('section','','simulation-card');panel.append(el('h2','Your simulation is reserved'),el('p','The Mathematics clock starts when you begin.'),button('Begin simulation','demo-start',()=>start(view.attemptId)));shell.append(panel);}
     else if(view.state==='IN_PROGRESS'){
       const tabs=el('nav','','simulation-tabs');tabs.setAttribute('aria-label','Simulation sections');tabs.setAttribute('role','tablist');
@@ -410,7 +412,7 @@ export async function mountSimulation() {
       const dialog=el('dialog','','simulation-card');dialog.id='submit-dialog';dialog.setAttribute('aria-labelledby','simulation-submit-title');const heading=el('h2','Submit all 100 questions?');heading.id='simulation-submit-title';dialog.append(heading,el('p','This ends every section, including sections you have not opened. Unanswered questions count as incorrect.'),button('Keep working','submit-cancel',()=>dialog.close(),true),button('Submit all sections','submit-confirm',async()=>{await request(`/api/v3/attempts/${view.attemptId}/submit`,{});await load();}));dialog.addEventListener('close',()=>app.querySelector('[data-testid="submit-open"]')?.focus());shell.append(dialog);
       attachExamShortcuts(shell,{next:()=>{if(!busy&&!changed()&&index<slots.length-1){index++;render();}},previous:()=>{if(!busy&&!changed()&&index>0){index--;render();}},openSubmit:()=>{if(!changed()&&!busy)dialog.showModal();},selectOption:i=>{const input=panel.querySelectorAll('input[name="simulation-answer"]')[i];if(input&&!input.disabled)input.click();}});
     }else if(view.state==='GRADED'&&released){const panel=el('section','','simulation-card');panel.dataset.testid='result';panel.append(el('h2',`${released.correctCount} / ${released.totalCount} correct`),el('p','Unofficial practice · Binary scoring'));
-      const table=el('table');const head=el('tr');['Section','Correct','Questions'].forEach(h=>{const th=el('th',h);th.scope='col';head.append(th);});const thead=el('thead');thead.append(head);table.append(thead);const tbody=el('tbody');released.sections.forEach(s=>{const row=el('tr');row.dataset.testid=`result-${s.sectionId}`;row.append(el('td',names[s.sectionId]),el('td',String(s.correctCount)),el('td',String(s.totalCount)));tbody.append(row);});table.append(tbody);panel.append(table,button('Back to offerings','simulation-home',async()=>{view=null;released=null;await home();},true));shell.append(panel);
+      const table=el('table');const head=el('tr');['Section','Correct','Questions'].forEach(h=>{const th=el('th',h);th.scope='col';head.append(th);});const thead=el('thead');thead.append(head);table.append(thead);const tbody=el('tbody');released.sections.forEach(s=>{const row=el('tr');row.dataset.testid=`result-${s.sectionId}`;row.append(el('td',names[s.sectionId]),el('td',String(s.correctCount)),el('td',String(s.totalCount)));tbody.append(row);});table.append(tbody);panel.append(table,button('Back to offerings','simulation-home',async()=>{view=null;released=null;await home();},true));shell.append(panel);shell.append(renderDemoNotice({language:'en'}));
     }else{const panel=el('section','','simulation-card');panel.append(el('h2',view.state==='SUBMITTED'||view.state==='EXPIRED'?'Your simulation is being graded':`Simulation ${view.state.toLowerCase()}`),el('p','Answers remain on the server. Reload to check the current state.'),button('Check status','simulation-reload',load,true));shell.append(panel);}
     app.replaceChildren(shell);
   }

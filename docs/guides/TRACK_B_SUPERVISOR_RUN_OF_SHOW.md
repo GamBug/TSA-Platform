@@ -1,93 +1,93 @@
-# Supervisor demonstration: TSA Practice Website
+# Run of show: university demo
 
-Present an unofficial practice website with real local PostgreSQL persistence and
-original synthetic questions. The local accounts, rights records and review
-approvals are development fixtures. This is not official TSA scoring, accepted
-real question stock, qualified human accessibility acceptance or production.
+One command starts an unofficial, non-profit TSA practice site from the local Bank.
+Students only receive questions the owner has approved and published. The site
+does not claim HUST affiliation or official scoring. Setup details and the older
+synthetic launchers are in the [supervisor demo guide](TRACK_B_SUPERVISOR_DEMO.md).
 
-## Start once
+## Prerequisites
 
-Use the installed Linux prerequisites: Node24.18.0, npm11.16.0, PostgreSQL18.6
-binaries. See [setup details](TRACK_B_SUPERVISOR_DEMO.md#prepare-and-start) if needed.
-From the repository root:
+Linux, Node 24.18.0, npm 11.16.0 and PostgreSQL 18.6 binaries (`PG_BIN` may name
+their directory). Run `npm ci --ignore-scripts` once from a clean checkout.
+The private Bank lives in the ignored `.local/track-b` folder (override with
+`TRACK_B_DATA_DIRECTORY`); it is not in Git.
+
+## Publish items (owner only, once)
+
+Imported corpus items start as DRAFTs. Only the owner publishes them, with one
+command, under the [2026-11-11 owner attestation](../decisions/OPEN_DECISIONS.md#corpus-permission-attestation-and-owner-publication--2026-11-11):
 
 ```sh
-npm ci --ignore-scripts
-NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STUDENT_FIXTURE_DEMO=true npm run demo:student:short
+npm run bank:owner-publish                                   # dry run: counts and the exact phrase
+npm run bank:owner-publish -- --confirm "PUBLISH 100 ALL"    # use the phrase the dry run printed
 ```
 
-Open the exact printed loopback URL, including `?student=postgres`, in a fresh
-private browser window. Keep the terminal running. No password, API key, database
-patch or manual API request is needed. This launcher includes the three full
-profiles plus optional short Math/Science choices; it automatically creates a
-fresh isolated synthetic database.
+The confirmed run backs up the Bank, records the attested display rights on the
+corpus sources, sends the drafts to review, groups each Reading passage into one
+bundle, and approves each item only if every Bank publication check passes.
+Reading passages are delivered whole, through topic practice.
 
-## Present the student journey
+## Start
 
-| Step | Browser action | Point to demonstrate |
+| Command | Content | Use it for |
 |---|---|---|
-| 1 | Choose synthetic candidate A. Open **Trang đầu**, then **Bài luyện tập**. | Explicit development login, unofficial/synthetic labeling and three independent domains. |
-| 2 | Choose the full Mathematics card:4questions/6minutes. | The selected server-defined profile controls count and timing; short choices are separate. |
-| 3 | Answer questions and navigate. Respect the minimum selection count for multiple choice; answer each true/false statement. Wait for **Đã lưu**. | Actual acknowledged saves, supported interaction types, readable math/tables. An arbitrary answer receives its actual practice score. |
-| 4 | Reload before submitting. | Same attempt, acknowledged answers and original server deadline return; no new allocation or clock reset. |
-| 5 | Choose **Nộp bài**, inspect the confirmation, then confirm. | Genuine submission and background grading. Pending may be brief; network failure is not success. |
-| 6 | Open the unofficial result and released review; expand an explanation. Return to the catalog. | Actual score and explanations released only after grading. |
-| 7 | Complete the full Reading2/3minute and Science4/6minute profiles explicitly. Show the three completed history entries. | Independent attempts/clocks/results, with no automatic domain chaining or official combined score. |
+| `npm run demo:uni` | Published items from the private Bank only | The real presentation |
+| `npm run demo:uni:rehearsal` | Original synthetic items, labelled **REHEARSAL** on every student page | Practising the run of show before items are published |
 
-The deadline continues while disconnected. Do not pause or change a sealed clock
-while explaining the interface. If a save fails, use its explicit retry/reload and
-wait for acknowledgement before continuing.
-
-History shows the displayed/loaded count, domain state and server-provided dates.
-Use **Đọc lại lịch sử** to refresh it; a failed read retains the loaded rows with an
-explicit cached-data message. If more than10 attempts exist, **Xem các bài cũ hơn**
-reveals the next entries and focuses the first newly available action. Opening an
-older row reads that owned attempt and its currently released result.
-
-Opening a saved attempt shows loading beside the selected row or current-attempt
-card. If reading fails, **Thử đọc lại** retries that same attempt. **Hủy chờ đọc**
-stops waiting in the UI; navigating away also prevents a late response from opening
-the old selection. These actions do not create, start or submit a replacement.
-
-## Show truthful shortage and a shorter choice
-
-Request full Mathematics again. Only two unseen questions remain in this small
-fixture, so another four-question attempt cannot be supplied. Show that the
-shortage itself creates no replacement attempt.
-
-Choose the proposed two-question profile, inspect its native confirmation, then
-cancel/Escape once. Reopen, confirm the reservation and explicitly choose
-**Bắt đầu bài luyện tập**. Complete/save/reload/submit/review this3minute attempt.
-It still excludes earlier assignments; it is not repeat-consented review mode.
-A shorter choice can also exhaust or become unavailable, and is never guaranteed.
-Science has the same optional path. Reading is not split into a one-item profile.
-
-If a reservation is reloaded before Start and its exact metadata cannot be proven,
-the screen says duration/profile unavailable; it never borrows the full profile.
-Explicit Start supplies the actual server clock. A lost creation response uses the
-same-request retry; after acknowledgement, recovery only reads the owned attempt.
-
-## Optional staff view
-
-Stop the student launcher and close its private window before opening a fresh one:
+`npm run demo:uni` first backs up the private Bank to `.local/track-b-backups/`,
+then restores that backup into a temporary demo database. The private Bank is
+never migrated or written. If any item is published, set the visible source
+credit first, for example:
 
 ```sh
-NODE_ENV=test LOCAL_SYNTHETIC_ONLY=true STAFF_REVIEW_FIXTURE_DEMO=true npm run demo:staff:review
+DEMO_UNI_SOURCE_CREDIT="Nguồn câu hỏi: <tên nguồn>, dùng với sự cho phép phi lợi nhuận" npm run demo:uni
 ```
 
-Follow the printed URL. Show synthetic author draft/version inspection, safe preview,
-recorded source/rights evidence and the separate review queue. These records are
-fixture demonstrations, not actual qualified review or rights attestation. For
-negative decisions and safe rehearsal/sealing, use the
-[detailed staff walkthrough](TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+The launcher refuses to start without that credit when published items exist.
+The default port is 4180 (`DEMO_UNI_PORT` changes it). If the port is busy, stop
+the process that owns it (`lsof -i :4180`) instead of choosing another port.
 
-## Finish and evidence
+When ready, the terminal prints:
 
-Press Ctrl+C once and wait for teardown. The owned HTTP service, worker and database
-stop; this disposable run's data is deleted. Restart for a fresh demonstration.
-Reloading within the same running launcher preserves progress.
+- the approved, published and deliverable counts per section;
+- how many full simulations a student can take without repeated questions;
+- any shortage, for example "Full simulation: NOT offered — short by Mathematics 40";
+- the student, full-simulation and staff URLs.
 
-[Executed B11 checks and independent review](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md)
-cover both short domains, lost responses, account changes, active-attempt recovery,
-rights/roles/H1/history and upgrade preservation. Qualified human accessibility and
-lawful independently reviewed12/6/12 content remain separate outstanding inputs.
+Synthetic items are never substituted for missing published items. With too few
+published items the catalog shows only what exists, and the simulation is not
+offered.
+
+## Present (about 10 minutes)
+
+Use a fresh private browser window. No password is needed.
+
+| Step | Browser action | Point to make |
+|---|---|---|
+| 1 | Open the student URL and choose **Đăng nhập hồ sơ tổng hợp A**. | The notice block: unofficial practice, not affiliated with HUST, non-profit, content source. |
+| 2 | Choose **Chọn chủ đề**, tick one topic, set the question count, then **Tạo bài luyện tập** and **Bắt đầu bài luyện tập**. | Topic practice draws only published, unseen questions. |
+| 3 | Answer, wait for **Đã lưu**, then **Nộp bài** and confirm. | Server-graded result and released explanations; notices repeat on the result page. |
+| 4 | Open the full-simulation URL and choose **Start full simulation**. | 100 questions, Mathematics 40/60 min, Reading 20/30, Science 40/60. Only the open section's clock runs. |
+| 5 | Answer a few questions, switch to Reading, then go back to Mathematics. | Returning resumes that section's remaining time. |
+| 6 | **Submit all sections** and confirm. | Correct answers per section and out of 100, labelled unofficial practice. |
+| 7 | Sign out, open the staff URL, choose the staff workspace, select **REVIEWER**, then **Hàng chờ rà soát**. | Unpublished items wait for the owner here; students never see them. |
+
+If the simulation is not offered, say so and show section and topic practice
+instead. The terminal summary states the exact shortage.
+
+## Stop
+
+Press **Ctrl+C once** and wait for the prompt. The server, the worker and the
+demo database stop, and the temporary demo copy is deleted. The private Bank and
+its backups remain. Attempts made during the demo are discarded with the copy.
+
+## Verify
+
+```sh
+npm run test:demo:uni            # stock planning, backup, isolation and notice rules
+npm run test:demo:uni:browser    # Chromium rehearsal of this run of show
+```
+
+The browser check writes screenshots and `report.json` to
+`/tmp/tsa-uni-demo-evidence/` (override with `UNI_DEMO_ARTIFACT_DIR`) and fails if
+any process, port or demo folder remains after Ctrl+C.

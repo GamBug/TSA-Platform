@@ -1,6 +1,6 @@
 # Codex autonomous run: university demo
 
-Status: CP2, CP3a, CP3a-import, CP3b and CP4 complete. Created 2026-11-08 (Asia/Bangkok).
+Status: CP2, CP3a, CP3a-import, CP3b, CP4 and CP6 complete; CP5 waits for Science files. Created 2026-11-08 (Asia/Bangkok).
 Authority: owner decisions recorded 2026-11-07 at the top of `docs/decisions/OPEN_DECISIONS.md`.
 Background: `plans/reports/review-261107-2114-tsa-product-readiness-gap.md`.
 
@@ -33,7 +33,7 @@ Codex updates the Status column. Run one checkpoint per Codex session or goal.
 | CP3 Corpus ingestion | [cp3-corpus-ingestion.md](cp3-corpus-ingestion.md) | CP1 (can run alongside CP2 because the files are disjoint) | CP3a-import DONE: 100 Reading DRAFTs / ten passages retained; [import report](../reports/codex-261109-1615-cp3a-import.md). [Original verification](../reports/codex-261109-1435-cp3a.md). CP3b DONE: 80 Math DRAFTs / four disposable batches, exit checks and independent review passed; [report](../reports/codex-261109-1721-cp3b.md) |
 | CP4 Cloze and matching | [cp4-cloze-matching.md](cp4-cloze-matching.md) | CP2 | DONE (committed): exit suites, Chromium/Firefox journeys and independent review passed; commits and retained import await the owner; [report](../reports/claude-261110-1215-cp4.md) |
 | CP5 Science ingestion | [cp5-science-ingestion.md](cp5-science-ingestion.md) | CP3 + owner-supplied Science files | TODO |
-| CP6 Demo-ready | [cp6-demo-ready.md](cp6-demo-ready.md) | CP2, CP3 (CP4 and CP5 if done) | TODO |
+| CP6 Demo-ready | [cp6-demo-ready.md](cp6-demo-ready.md) | CP2, CP3 (CP4 and CP5 if done) | DONE (uncommitted): `npm run demo:uni` and labelled rehearsal mode, notices, Chromium rehearsal; 0 items published, so 0 full simulations until the owner approves and publishes; [report](../reports/claude-261110-2301-cp6.md) |
 
 ## Gates only the owner can pass (Codex stops and reports)
 

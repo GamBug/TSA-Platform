@@ -26,6 +26,7 @@ const PUBLIC_FILES = new Map([
   ["/app/question-media.js", "public/app/question-media.js"],
   ["/app/topic-practice.js", "public/app/topic-practice.js"],
   ["/app/exam-shortcuts.js", "public/app/exam-shortcuts.js"],
+  ["/app/demo-notice.js", "public/app/demo-notice.js"],
   ["/vendor/katex.mjs", "../../node_modules/katex/dist/katex.mjs"],
   ["/vendor/katex-LICENSE.txt", "../../node_modules/katex/LICENSE"],
 ]);
@@ -45,6 +46,7 @@ const CONTENT_TYPES = {
   "public/app/question-media.js": "text/javascript; charset=utf-8",
   "public/app/topic-practice.js": "text/javascript; charset=utf-8",
   "public/app/exam-shortcuts.js": "text/javascript; charset=utf-8",
+  "public/app/demo-notice.js": "text/javascript; charset=utf-8",
   "../../node_modules/katex/dist/katex.mjs": "text/javascript; charset=utf-8",
   "../../node_modules/katex/LICENSE": "text/plain; charset=utf-8",
 };
@@ -110,7 +112,7 @@ async function readRequestBody(request, maxRequestBytes) {
 
 function requestLike(method, pathname) {
   return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/workspace/")
-    || /^\/api\/v[1234](?:\/|$)/.test(pathname);
+    || /^\/api\/v[1234](?:\/|$)/.test(pathname) || pathname === "/local/demo-notice";
 }
 
 function tooLargeResponse(url) {

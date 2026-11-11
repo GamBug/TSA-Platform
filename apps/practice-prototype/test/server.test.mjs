@@ -19,6 +19,7 @@ const publicBrowserAssets = [
   ["/app/math.js", "text/javascript; charset=utf-8"],
   ["/app/topic-practice.js", "text/javascript; charset=utf-8"],
   ["/app/exam-shortcuts.js", "text/javascript; charset=utf-8"],
+  ["/app/demo-notice.js", "text/javascript; charset=utf-8"],
   ["/app/question-media.js", "text/javascript; charset=utf-8"],
 ];
 

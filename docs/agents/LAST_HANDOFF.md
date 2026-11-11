@@ -1,22 +1,22 @@
-# Current handoff — CP4 cloze and matching
+# Current handoff — CP6 demo-ready
 
-- Date/time and agent identity/role: 2026-11-10, Asia/Bangkok; Claude Code (Fable 5.2) as implementer, continuing a Codex session that stopped mid-checkpoint. Reviewer: Claude Haiku 5.5 `code-reviewer` subagent, read-only.
-- Task ID / status / accountable implementer: CP4 Cloze and matching; DONE; committed as five commits `46cbbb9`..`d7e71f6` on 2026-11-10 with the owner's approval.
-- Scope: the [CP4 card](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) and [design](../../plans/261108-1553-codex-autonomous-demo/cp4-design.md).
-- Starting repository state: `feat/track-b-data-auth` at `f091f7e` with Codex's uncommitted CP4 contracts, migration 031, runtime, corpus pipeline and student UI.
-- Current Git reference: `f091f7e`; the whole CP4 implementation is in the working tree only.
-- Files changed in this session: staff UI and its tests, the two browser harnesses and the cloze/matching journey, `updateProductHeader` in the student UI, the Reading interaction parser and its test, two Bank migration-list expectations, `package.json` scripts, the new guide, and plan/state records.
-- Decisions: none new. The [derived matching DRAFT decision](../decisions/OPEN_DECISIONS.md#cp4-derived-matching-drafts--2026-11-09) is unchanged. No approval, publication, push or retained-database change.
-- Outcome: all card exit criteria pass. Evidence, review disposition and limits are in the [completion report](../../plans/reports/claude-261110-1215-cp4.md).
+- Date/time and agent identity/role: 2026-11-10, Asia/Bangkok; Claude Code (Fable 5.2, then Opus 5.5) as implementer; Haiku 5.5 subagent for the notice UI step. Reviewer: Haiku 5.5 `code-reviewer` subagent, read-only.
+- Task ID / status / accountable implementer: CP6 Demo-ready; DONE_WITH_CONCERNS; uncommitted.
+- Scope: the [CP6 card](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md).
+- Starting repository state: `feat/track-b-data-auth` at `ca0caa9`, clean.
+- Current Git reference: `ca0caa9`; all CP6 work is in the working tree.
+- Files changed: `src/local/uni-demo*.mjs`, `src/local/track-b.mjs`, `scripts/start-uni-demo.mjs`, `scripts/uni-demo-rehearsal-source.mjs`, `scripts/verify-uni-demo-browser.mjs`, the notice module and its wiring in `apps/practice-prototype`, tests, `package.json`, the run-of-show guide, plan/state/backlog records and the evidence folder.
+- Decisions: none new. No approval, publication, push or retained-database change (one read-only backup was taken).
+- Outcome: card exit criteria pass; evidence in the [CP6 report](../../plans/reports/claude-261110-2301-cp6.md).
 
 ## Verification evidence
 
-The completion report lists every executed command with its observed result. Not executed: the Firefox full-simulation journey, optional student browser profiles unrelated to CP4, and any retained-database import.
+The report lists every executed command and result. Not executed: Firefox journeys and macOS.
 
 ## Continuation
 
-- Known issues: the review's P3 items are open; the `question/3` image-guard relaxation for inert bracket text awaits an owner decision.
-- Remaining work: commit the working tree in owner-approved groups; decide on a retained import of the 78 keyed Reading DRAFTs (backup first); then CP6. CP5 waits for owner-supplied Science files.
-- Recommended next action: approve the commit grouping, then run the [CP6 card](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md).
-- Ownership transfer: no background processes remain from this session; temporary files live outside the repository.
-- Recovery notes: migration 031 is unapplied on any retained database. The feature is off unless `LOCAL_CLOZE_MATCHING_ENABLED=true`; see the [guide](../guides/TRACK_B_CLOZE_MATCHING.md).
+- Known issues: review items 2, 7, 9, 10, 11 and 13 are open; see the [review record](../../plans/reports/code-reviewer-261110-2301-cp6-checkpoint.md).
+- Remaining work: owner commit approval; owner approval and publication of items plus the rights evidence record, then `DEMO_UNI_SOURCE_CREDIT=... npm run demo:uni`. CP5 waits for Science files.
+- Recommended next action: decide the staff-exposure question, approve the commit grouping, then approve and publish items.
+- Ownership transfer: no background processes remain; demo copies were deleted.
+- Recovery notes: the retained Bank backup from this session is `.local/track-b-backups/before-start-pSpg5l/`.

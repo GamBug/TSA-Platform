@@ -115,8 +115,13 @@ export async function createTrackBRuntime({
   dataDirectory = path.join(ROOT, '.local', 'track-b'),
   port = DEFAULT_PORT,
   pgBin,
+  prepareDatabase,
+  localRoutes = {},
 } = {}) {
   assertLocalEnvironment(env);
+  if (prepareDatabase !== undefined && typeof prepareDatabase !== 'function') throw new TypeError('prepareDatabase must be a function');
+  if (localRoutes === null || typeof localRoutes !== 'object' || Object.entries(localRoutes).some(([route, handler]) =>
+    !route.startsWith('/local/') || typeof handler !== 'function')) throw new TypeError('localRoutes must map /local/ paths to handlers');
   if (env.LOCAL_STUDENT_ENABLED !== undefined && !['true', 'false'].includes(env.LOCAL_STUDENT_ENABLED)) {
     throw new Error('LOCAL_STUDENT_ENABLED must be true or false');
   }
@@ -129,6 +134,11 @@ export async function createTrackBRuntime({
     throw new Error('LOCAL_CLOZE_MATCHING_ENABLED must be true or false');
   }
   const clozeMatchingEnabled = env.LOCAL_CLOZE_MATCHING_ENABLED === 'true';
+  if (env.LOCAL_FULL_SIMULATION_ENABLED !== undefined && !['true', 'false'].includes(env.LOCAL_FULL_SIMULATION_ENABLED)) {
+    throw new Error('LOCAL_FULL_SIMULATION_ENABLED must be true or false');
+  }
+  const fullSimulationEnabled = env.LOCAL_FULL_SIMULATION_ENABLED === 'true';
+  if (fullSimulationEnabled && !studentEnabled) throw new Error('Full simulation requires the local student runtime');
   if (numericEnabled && !studentEnabled) throw new Error('Numeric practice requires the local student runtime');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new TypeError('port must be an integer from 0 through 65535');
   if (env.LOCAL_AUTH_TRUSTED_ORIGIN && port === 0) {
@@ -178,6 +188,7 @@ export async function createTrackBRuntime({
     await ensureLocalTaxonomy(ownerPool);
     const sourceSeedState = await inspectLocalSourceSeed(ownerPool);
     await ensureRuntimeRoles(ownerPool, { student: studentEnabled });
+    const prepared = prepareDatabase ? await prepareDatabase(ownerPool) : null;
 
     identityPool = createDatabasePool(runtimePoolConfig(database.connectionConfig, 'tsa_track_b_identity', 'tsa-track-b-identity'), {
       max: 4, connectionTimeoutMillis: 2_000, applicationName: 'tsa-track-b-identity',
@@ -201,19 +212,21 @@ export async function createTrackBRuntime({
       pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'local-retained-student',
       leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate }, enableNumericPractice: numericEnabled,
-      enableClozeMatching: clozeMatchingEnabled,
+      enableClozeMatching: clozeMatchingEnabled, enableFullSimulation: fullSimulationEnabled,
     }) : null;
 
     const integratedRequestHandler = async (request) => {
       if (!routeHandlers) {
         const requestId = randomUUID();
         const pathName = new URL(request.url).pathname;
-        if (/^\/api\/v[124]\//.test(pathName)) return asError('TEMPORARILY_UNAVAILABLE', 'The local request could not be completed', requestId);
+        if (/^\/api\/v[1234]\//.test(pathName)) return asError('TEMPORARILY_UNAVAILABLE', 'The local request could not be completed', requestId);
         return response(503, { error: 'LOCAL_WORKSPACE_UNAVAILABLE' });
       }
       const pathname = new URL(request.url).pathname;
       if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request);
       if (pathname === TEMPLATE_PATH) return routeHandlers.templateHandler(request);
+      if (Object.hasOwn(localRoutes, pathname)) return localRoutes[pathname](request);
+      if (student && fullSimulationEnabled && pathname.startsWith('/api/v3/')) return routeHandlers.attemptHandler(request);
       if (student && (pathname === '/api/v1/topics' || pathname === '/api/v1/topic-practice'
           || pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
           || pathname.startsWith('/api/v1/attempts/')
@@ -279,6 +292,8 @@ export async function createTrackBRuntime({
       dataDirectory: absoluteDataDirectory,
       syntheticOnly: true,
       studentEnabled,
+      fullSimulationEnabled,
+      prepared,
       identityPool,
       bankPool,
       async close() {

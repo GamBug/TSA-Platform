@@ -5,6 +5,7 @@ import { renderMath } from "./math.js";
 import { mountTopicPractice } from "./topic-practice.js";
 import { renderQuestionImage } from "./question-media.js";
 import { attachExamShortcuts } from "./exam-shortcuts.js";
+import { renderDemoNotice } from "./demo-notice.js";
 
 const app = document.querySelector("#app");
 const productHeader = document.querySelector("#product-header");
@@ -2750,6 +2751,7 @@ function renderCatalog() {
   fragment.append(element("p", "demo-disclaimer catalog-disclaimer", persistentMode
     ? "Đây là luyện tập không chính thức trên dịch vụ PostgreSQL cục bộ bằng hồ sơ tổng hợp. Không khẳng định tương đương cách chấm chính thức."
     : "Đây là bản demo cục bộ với bốn vị trí kiểm thử; một số câu lặp lại và kết quả không phải điểm TSA chính thức."));
+  if (persistentMode) fragment.append(renderDemoNotice());
   if (!persistentMode) {
     const staffCallout = element("section", "staff-callout");
     staffCallout.append(element("div", "", "Không gian nhân viên cục bộ"));
@@ -4397,6 +4399,7 @@ function renderResult(result) {
   summary.append(actionButton("Ôn tập câu hỏi", "review-open", () => { void openReview(); }, "button result-review-action"));
   hero.append(score, summary);
   card.append(hero);
+  if (persistentMode) card.append(renderDemoNotice());
   const stats = element("dl", "result-stats");
   stats.dataset.testid = "result-stats";
   const skipped = state.attempt.slots.length - state.attempt.answeredCount;
