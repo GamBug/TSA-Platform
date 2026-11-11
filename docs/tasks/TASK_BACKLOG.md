@@ -10,6 +10,6 @@ CP0 and CP1 are complete; see the [baseline report](../../plans/reports/codex-26
 | [CP3 Corpus ingestion](../../plans/261108-1553-codex-autonomous-demo/cp3-corpus-ingestion.md) | Prepare permitted-corpus DRAFT ingestion | TODO | Depends on CP1; no publication before rights evidence and owner approval |
 | [CP4 Cloze and matching](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) | Add cloze and matching interactions | DONE (committed) | [Report](../../plans/reports/claude-261110-1215-cp4.md); commits and retained import await the owner |
 | [CP5 Science ingestion](../../plans/261108-1553-codex-autonomous-demo/cp5-science-ingestion.md) | Prepare Science ingestion | TODO | Depends on CP3 and owner-supplied Science files |
-| [CP6 Demo-ready](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md) | Verify the integrated local demo | DONE (uncommitted) | [Report](../../plans/reports/claude-261110-2301-cp6.md); owner approval and publication still gate real content |
+| [CP6 Demo-ready](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md) | Verify the integrated local demo | DONE (committed `55adbb6`) | [Report](../../plans/reports/claude-261110-2301-cp6.md); owner approval and publication still gate real content |
 
 Only the owner can approve question publication or record corpus permission evidence. Do not infer those gates from implementation or test results.
