@@ -25,7 +25,9 @@ npm run bank:owner-publish -- --confirm "PUBLISH 100 ALL"    # use the phrase th
 The confirmed run backs up the Bank, records the attested display rights on the
 corpus sources, sends the drafts to review, groups each Reading passage into one
 bundle, and approves each item only if every Bank publication check passes.
-Reading passages are delivered whole, through topic practice.
+Reading passages are delivered whole, through topic practice. Numeric-answer
+Math items (`question/2`) are published by the same command, through the numeric
+routes.
 
 ## Start
 
@@ -52,7 +54,9 @@ When ready, the terminal prints:
 - the approved, published and deliverable counts per section;
 - how many full simulations a student can take without repeated questions;
 - any shortage, for example "Full simulation: NOT offered — short by Mathematics 40";
-- the student, full-simulation and staff URLs.
+- whether the separate numeric-answer practice is offered (four questions, one
+  taxonomy version, published `question/2` items only);
+- the student, numeric practice, full-simulation and staff URLs.
 
 Synthetic items are never substituted for missing published items. With too few
 published items the catalog shows only what exists, and the simulation is not
@@ -70,6 +74,7 @@ Use a fresh private browser window. No password is needed.
 | 4 | Open the full-simulation URL and choose **Start full simulation**. | 100 questions, Mathematics 40/60 min, Reading 20/30, Science 40/60. Only the open section's clock runs. |
 | 5 | Answer a few questions, switch to Reading, then go back to Mathematics. | Returning resumes that section's remaining time. |
 | 6 | **Submit all sections** and confirm. | Correct answers per section and out of 100, labelled unofficial practice. |
+| 6a | Optional: open the numeric practice URL (`?student=postgres-v2`) and choose its practice. | Short answers typed as decimals; a comma is the decimal separator and nothing else is accepted. |
 | 7 | Sign out, open the staff URL, choose the staff workspace, select **REVIEWER**, then **Hàng chờ rà soát**. | Unpublished items wait for the owner here; students never see them. |
 
 If the simulation is not offered, say so and show section and topic practice

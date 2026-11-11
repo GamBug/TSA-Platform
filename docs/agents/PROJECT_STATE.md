@@ -21,6 +21,8 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-11: Numeric Math import and delivery committed: 60 numeric-answer Math DRAFTs (`question/2`) are in the retained Bank; `bank:owner-publish` publishes them and `demo:uni` serves a separate numeric practice at `?student=postgres-v2` (`f813c52`). Nothing is published yet; 141 Math captures remain out (figures and tables, cloze and matching, no visible key, clipped). See the [numeric import and delivery report](../../plans/reports/claude-261111-2130-numeric-math-import-and-delivery.md).
+
 - 2026-11-11: Numeric Math importer built and committed (`b3fbfea`): profile `corpus-math-numeric-draft/1` imports numeric-answer captures as `question/2` DRAFTs through the existing manual transport. No numeric items are imported yet, and publication and student delivery of `question/2` Math are not built. See the [numeric importer report](../../plans/reports/claude-261111-2040-numeric-math-importer.md).
 
 - 2026-11-11: Full Math bank import: all 400 Math captures were inspected; 199 items are in the retained Bank (80 published, 119 new DRAFTs). Publish them with `npm run bank:owner-publish -- --confirm "PUBLISH 119 ALL"`. 189 captures stay deferred (numeric, diagram or table, cloze or matching, no visible key). The new items have no independent blind solve, and five source keys look inconsistent with their problems. See the [full Math import report](../../plans/reports/claude-261111-2010-math-full-bank-import.md).
