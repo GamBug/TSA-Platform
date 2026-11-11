@@ -1,5 +1,16 @@
 # Architectural decisions and open questions
 
+## University demo scope: no full simulation — 2026-11-11
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-11.
+Evidence: “Section and topic practice enough...”, answering the question whether to unify the Reading,
+Math and Science taxonomy versions so a full 100-question simulation could be offered.
+
+For the university demo, section practice and topic practice are sufficient. The full simulation is not
+required, and no shared taxonomy or re-import of the published Reading items is authorized. The
+full-simulation code stays in place and still runs against synthetic rehearsal stock. Revisit only if the
+owner later asks for a real full simulation.
+
 ## Corpus permission attestation and owner publication — 2026-11-11
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-11.
