@@ -2,8 +2,8 @@
 let renderer;
 
 export function renderMath(block) {
-  const container = document.createElement('div');
-  container.className = `content-math${block.display ? ' display' : ''}`;
+  const container = document.createElement(block.inline ? 'span' : 'div');
+  container.className = `content-math${block.display ? ' display' : ''}${block.inline ? ' inline' : ''}`;
   const visual = document.createElement('span');
   visual.className = 'math-visual';
   const fallback = () => {
@@ -35,4 +35,28 @@ export function renderMath(block) {
     }
   }).catch(fallback);
   return container;
+}
+
+// Authored text marks inline formulas as $...$ (no space inside the dollar signs). Everything else stays plain
+// text nodes, so ordinary question text is never parsed as HTML.
+const INLINE_MATH = /\$(?=\S)([^$]+?)(?<=\S)\$/gu;
+
+export function renderTextWithMath(text) {
+  const fragment = document.createDocumentFragment();
+  const source = String(text ?? '');
+  let cursor = 0;
+  for (const match of source.matchAll(INLINE_MATH)) {
+    if (match.index > cursor) fragment.append(source.slice(cursor, match.index));
+    fragment.append(renderMath({ tex: match[1], display: false, inline: true }));
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < source.length) fragment.append(source.slice(cursor));
+  return fragment;
+}
+
+const HAS_INLINE_MATH = /\$(?=\S)[^$]+?(?<=\S)\$/u;
+
+/** True for a text block that needs no formula rendering, so callers may show it as plain text. */
+export function isPlainTextBlock(block) {
+  return block?.type === 'text' && !HAS_INLINE_MATH.test(String(block.text ?? ''));
 }

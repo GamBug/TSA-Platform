@@ -944,6 +944,7 @@ body.review-active { overflow: hidden; background: #fff; }
 .content-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .content-math { max-width: 100%; margin: .7em 0; overflow-x: auto; overflow-y: hidden; padding: .4em .15em; font-size: 1.2em; }
 .content-math.display { text-align: center; }
+.content-math.inline { display: inline; margin: 0; padding: 0; font-size: 1.05em; overflow: visible; }
 .content-math math { font-family: math; }
 .content-table-scroll { max-width: 100%; margin: 1.1em 0; overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 10px; }
 .content-table-scroll:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }

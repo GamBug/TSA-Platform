@@ -1,7 +1,7 @@
 import * as demoApi from "./api.js";
 import { createPersistentApi } from "./persistent-api.js";
 import { openStaffWorkspace } from "./staff.js";
-import { renderMath } from "./math.js";
+import { isPlainTextBlock, renderMath, renderTextWithMath } from "./math.js";
 import { mountTopicPractice } from "./topic-practice.js";
 import { renderQuestionImage } from "./question-media.js";
 import { attachExamShortcuts } from "./exam-shortcuts.js";
@@ -421,7 +421,9 @@ function renderContentBlocks(blocks = [], { purpose = "question" } = {}) {
   const content = element("div", "question-content-blocks");
   for (const block of blocks) {
     if (block?.type === "text") {
-      content.append(element("p", "content-text", block.text ?? ""));
+      const paragraph = element("p", "content-text");
+      paragraph.append(renderTextWithMath(block.text ?? ""));
+      content.append(paragraph);
     } else if (block?.type === "math") {
       content.append(renderMath(block));
     } else if (block?.type === "table") {
@@ -3049,7 +3051,7 @@ function renderOptions(question, saving) {
       }
     });
     const letter = element("span", "option-letter", option.id.toUpperCase());
-    const simpleText = option.content.every((block) => block.type === "text");
+    const simpleText = option.content.every(isPlainTextBlock);
     const text = element("span", "option-text", simpleText ? contentText(option.content) : undefined);
     if (!simpleText) text.append(renderContentBlocks(option.content));
     label.append(input, letter, text);
@@ -3435,7 +3437,7 @@ function renderTrueFalseGroup(question, saving) {
     fieldset.dataset.testid = `tf-statement-${statement.id}`;
     const prompt = contentText(statement.content);
     const legend = element("legend", "tf-statement-label", `Mệnh đề ${index + 1}`);
-    const simpleText = statement.content.every((block) => block.type === "text");
+    const simpleText = statement.content.every(isPlainTextBlock);
     const copy = simpleText
       ? element("p", "tf-statement-copy", contentText(statement.content))
       : element("div", "tf-statement-copy");
@@ -4013,7 +4015,7 @@ function renderExam() {
   const card = element("section", "question-body question-card");
   card.dataset.testid = "question-card";
   card.setAttribute("aria-labelledby", "question-title");
-  const simpleText = question.content.every((block) => block.type === "text");
+  const simpleText = question.content.every(isPlainTextBlock);
   const title = element("h2", "", simpleText ? contentText(question.content) : "Nội dung câu hỏi");
   title.id = "question-title";
   title.tabIndex = -1;
@@ -4250,7 +4252,7 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
   const item = element("article", "review-item");
   item.dataset.testid = "review-question";
   item.append(element("p", "question-kicker", `VỊ TRÍ ${released.ordinal} / ${state.attempt.slots.length} · ${releasedAnswerStatus(released)}`));
-  const simpleText = sourceSlot.content.every((block) => block.type === "text");
+  const simpleText = sourceSlot.content.every(isPlainTextBlock);
   item.append(element("h2", "", simpleText ? contentText(sourceSlot.content) : "Nội dung câu hỏi"));
   if (sourceSlot.stimulus?.content) item.append(renderContentBlocks(sourceSlot.stimulus.content));
   if (!simpleText) item.append(renderContentBlocks(sourceSlot.content));
@@ -4303,7 +4305,7 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
       const row = element("div", `tf-review-statement${hasSelection ? " selected" : ""}${chosenCorrectly ? " correct" : hasSelection ? " incorrect" : " unanswered"}`);
       row.dataset.testid = `review-statement-${statement.id}`;
       row.append(element("strong", "tf-review-label", `Mệnh đề ${index + 1}`));
-      const simpleText = statement.content.every((block) => block.type === "text");
+      const simpleText = statement.content.every(isPlainTextBlock);
       const copy = simpleText
         ? element("p", "tf-review-copy", contentText(statement.content))
         : element("div", "tf-review-copy");
@@ -4321,7 +4323,7 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
     for (const option of sourceSlot.interaction.options) {
       const optionRow = element("li", correct.has(option.id) ? "correct" : "");
       optionRow.append(element("span", "option-letter", option.id.toUpperCase()));
-      const simpleText = option.content.every((block) => block.type === "text");
+      const simpleText = option.content.every(isPlainTextBlock);
       const text = element("span", "", simpleText ? contentText(option.content) : undefined);
       if (!simpleText) text.append(renderContentBlocks(option.content));
       optionRow.append(text);
@@ -4335,7 +4337,7 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
     for (const option of sourceSlot.interaction.options) {
       const optionRow = element("li", option.id === released.correctOptionId ? "correct" : "");
       optionRow.append(element("span", "option-letter", option.id.toUpperCase()));
-      const simpleText = option.content.every((block) => block.type === "text");
+      const simpleText = option.content.every(isPlainTextBlock);
       const text = element("span", "", simpleText ? contentText(option.content) : undefined);
       if (!simpleText) text.append(renderContentBlocks(option.content));
       optionRow.append(text);
@@ -4350,7 +4352,7 @@ function releasedQuestionCard(released, { includeExplanation = true } = {}) {
     explanation.dataset.testid = "explanation";
     const toggle = element("summary", "", "Xem lời giải");
     explanation.addEventListener("toggle", () => { toggle.textContent = explanation.open ? "Ẩn lời giải" : "Xem lời giải"; });
-    const simpleExplanation = released.explanation.every((block) => block.type === "text");
+    const simpleExplanation = released.explanation.every(isPlainTextBlock);
     const explanationContent = simpleExplanation
       ? element("p", "review-explanation", contentText(released.explanation))
       : element("div", "review-explanation");
@@ -4608,7 +4610,7 @@ function renderReview() {
       return;
     }
     content.append(releasedQuestionCard(currentReleased, { includeExplanation: false }));
-    const simpleExplanation = currentReleased.explanation.every((block) => block.type === "text");
+    const simpleExplanation = currentReleased.explanation.every(isPlainTextBlock);
     const explanationContent = simpleExplanation
       ? element("p", "review-explanation", contentText(currentReleased.explanation))
       : renderContentBlocks(currentReleased.explanation, { purpose: "explanation" });

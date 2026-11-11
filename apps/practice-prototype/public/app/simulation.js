@@ -1,5 +1,5 @@
 import { createPersistentApi } from './persistent-api.js';
-import { renderMath } from './math.js';
+import { renderMath, renderTextWithMath } from './math.js';
 import { renderQuestionImage } from './question-media.js';
 import { attachExamShortcuts } from './exam-shortcuts.js';
 import { renderDemoNotice } from './demo-notice.js';
@@ -251,7 +251,9 @@ export async function mountSimulation() {
     const wrap = el('div', '', 'simulation-blocks');
     for (const block of values ?? []) {
       if (block.type === 'text') {
-        wrap.append(el('p', block.text));
+        const paragraph = el('p');
+        paragraph.append(renderTextWithMath(block.text));
+        wrap.append(paragraph);
       } else if (block.type === 'math') {
         wrap.append(renderMath(block));
       } else if (block.type === 'image') {

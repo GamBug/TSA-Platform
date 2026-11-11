@@ -1,4 +1,4 @@
-import { renderMath } from './math.js';
+import { renderMath, renderTextWithMath } from './math.js';
 
 const ACTORS = Object.freeze([
   { key: 'author', label: 'Tác giả tổng hợp' },
@@ -866,7 +866,9 @@ function safeContentBlocks(blocks, label) {
   const content = node('div', 'question-content-blocks');
   for (const block of blocks) {
     if (block.type === 'text') {
-      content.append(node('p', 'content-text', block.text));
+      const paragraph = node('p', 'content-text');
+      paragraph.append(renderTextWithMath(block.text));
+      content.append(paragraph);
     } else if (block.type === 'math') {
       content.append(renderMath(block));
     } else if (block.type === 'table') {

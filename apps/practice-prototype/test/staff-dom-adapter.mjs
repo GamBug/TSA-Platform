@@ -63,7 +63,7 @@ export class Element {
 
 export function loadScript(extra = {}) {
   const context = vm.createContext({ Headers, Response, URLSearchParams, crypto: globalThis.crypto,
-    renderMath: () => new Element('div'), ...extra });
+    renderMath: () => new Element('div'), renderTextWithMath: (text) => String(text ?? ''), ...extra });
   vm.runInContext(source.replace(/^import .*\n/, '').replace('export async function openStaffWorkspace', 'async function openStaffWorkspace')
     + '\nglobalThis.api = { openStaffWorkspace, normalizeStaffDecimal, supportedInteraction, renderPrivateQuestion, parseClozeDraft, parseMatchingDraft };', context);
   return context.api;
