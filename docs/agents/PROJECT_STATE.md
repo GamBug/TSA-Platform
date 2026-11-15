@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-12. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-15. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -20,6 +20,8 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 - Local staff and student demo flows use the existing PostgreSQL-backed practice prototype.
 
 ## Current checkpoint
+
+- 2026-11-15: Demo stabilization audit. The retained Bank's audit trail shows the owner publication command approved all 381 imported items on 2026-11-11 (Math 281, Reading 100); older bullets below that call Math drafts or "nothing published" are historical. Real-Bank student journeys (Math and Reading topic practice, numeric, cloze/matching) pass with correct grading. Five published Math items have inconsistent source keys and one numeric problem is published twice; these await an owner decision. CI no longer needs the private corpus: the Reading interaction suites run on a synthetic corpus and `npm run test:corpus:private` runs them on the real one (three local commits, not pushed). See the [audit report](../../plans/reports/claude-261115-2242-demo-stabilization-audit.md).
 
 - 2026-11-12: The next audit pass corrected the reserved-attempt catalog label and completed 19 additional browser journeys, including recovery/rate-limit paths, Firefox cloze/matching and disposable university/Reading Factory launchers. Latest app suite: 109 passed. The full audit remains active for final coverage reconciliation; see the [audit report](../../plans/reports/codex-261111-2256-program-audit.md).
 
@@ -56,7 +58,7 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Known gaps and gates
 
-- The full simulation demo uses disposable original synthetic inventory; retained corpus Reading DRAFTs are separate inventory awaiting human approval and publication rights.
+- The full simulation demo uses disposable original synthetic inventory; the retained corpus items (Reading and Math) were approved and published by the owner on 2026-11-11 under the recorded attestation, and are separate inventory served by section, topic, numeric and cloze/matching practice.
 - Corpus-derived items require recorded rights evidence and owner approval before publication; neither is implied by local engineering.
 - CP5 waits for owner-supplied Science files. Hosting and production authentication are optional for this demo.
 

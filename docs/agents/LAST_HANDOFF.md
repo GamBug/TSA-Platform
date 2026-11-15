@@ -1,5 +1,13 @@
 # Current handoff — program audit in progress
 
+**2026-11-15 update (Claude Code session, single agent).** CI was failing because three Reading
+interaction suites read the gitignored corpus; they now use a synthetic corpus, with
+`npm run test:corpus:private` for the real one. Three commits are local and not pushed. The real-Bank
+demo passes every student journey. The retained Bank was not changed. Open owner decisions: five
+published Math items with inconsistent source keys, one published duplicate, and the source-credit
+text for `demo:uni`. Details and the recommended next task are in the
+[stabilization audit](../../plans/reports/claude-261115-2242-demo-stabilization-audit.md).
+
 The owner requested a full-program audit and repair loop, single agent, and resumed
 with full execution permissions on 2026-11-11. The current Codex session owns the
 work. [Plan](../../plans/2026-11-11-program-audit/plan.md);
