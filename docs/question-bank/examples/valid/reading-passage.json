@@ -1,0 +1,183 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "EXAMPLE-READING-001",
+  "passages": [
+    {
+      "passage_id": "READ-PASSAGE-000001",
+      "title": "Đọc sách mỗi ngày",
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Nhiều người cho rằng muốn đọc nhiều sách thì phải có thật nhiều thời gian rảnh. Thực tế, chỉ cần mười lăm phút mỗi tối, sau một năm ta đã đọc xong khoảng mười cuốn sách. Điều quan trọng không phải là đọc nhanh mà là đọc đều đặn. Thói quen nhỏ, nếu được giữ lâu, sẽ tạo nên thay đổi lớn."
+        }
+      ],
+      "asset_refs": []
+    }
+  ],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "READ-COMP-000001",
+      "question_type": "SINGLE_CHOICE",
+      "subject": "READING",
+      "topic": "READING_COMPREHENSION",
+      "difficulty": "EASY",
+      "tags": [
+        "main-idea"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Ý chính của đoạn văn là"
+        }
+      ],
+      "passage_ref": "READ-PASSAGE-000001",
+      "options": [
+        {
+          "option_id": "A",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Chỉ người có nhiều thời gian rảnh mới đọc được nhiều sách."
+            }
+          ]
+        },
+        {
+          "option_id": "B",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Đọc đều đặn mỗi ngày, dù ngắn, tạo nên thay đổi lớn."
+            }
+          ]
+        },
+        {
+          "option_id": "C",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Cần đọc thật nhanh để đọc xong nhiều sách."
+            }
+          ]
+        },
+        {
+          "option_id": "D",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Mỗi năm chỉ nên đọc mười cuốn sách."
+            }
+          ]
+        }
+      ],
+      "response_config": {
+        "selection": "SINGLE"
+      },
+      "answer": {
+        "option_id": "B"
+      },
+      "answer_validation": {
+        "match": "EXACT_SELECTION"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Đoạn văn nhấn mạnh việc đọc đều đặn, dù chỉ ít thời gian mỗi ngày, sẽ mang lại kết quả lớn."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    },
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "READ-COMP-000002",
+      "question_type": "SINGLE_CHOICE",
+      "subject": "READING",
+      "topic": "READING_COMPREHENSION",
+      "difficulty": "EASY",
+      "tags": [
+        "detail"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Theo đoạn văn, mỗi tối dành mười lăm phút đọc sách thì sau một năm có thể đọc xong khoảng"
+        }
+      ],
+      "passage_ref": "READ-PASSAGE-000001",
+      "options": [
+        {
+          "option_id": "A",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "năm cuốn sách."
+            }
+          ]
+        },
+        {
+          "option_id": "B",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "mười cuốn sách."
+            }
+          ]
+        },
+        {
+          "option_id": "C",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "hai mươi cuốn sách."
+            }
+          ]
+        },
+        {
+          "option_id": "D",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "một trăm cuốn sách."
+            }
+          ]
+        }
+      ],
+      "response_config": {
+        "selection": "SINGLE"
+      },
+      "answer": {
+        "option_id": "B"
+      },
+      "answer_validation": {
+        "match": "EXACT_SELECTION"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Đoạn văn nêu rõ: sau một năm ta đã đọc xong khoảng mười cuốn sách."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

@@ -429,6 +429,18 @@ function validateReferenceClosure(question, nodes, rootAssets, options = {}) {
  * block use a supported profile. Numeric interactions, cloze/matching, and
  * inspected images need their explicit opt-ins; authored data is never rewritten.
  */
+/** The supported LaTeX subset, exposed so authoring instructions can be checked against the real allowlist. */
+export const SUPPORTED_TEX_COMMANDS = Object.freeze([...SAFE_TEX_COMMANDS]);
+export const SUPPORTED_TEX_ENVIRONMENTS = Object.freeze([...SAFE_TEX_ENVIRONMENTS]);
+
+/** Boolean forms of the rendered-text and TeX checks, so authors can be told about a problem before any import. */
+export function isSafeRenderedString(value) {
+  try { assertRenderedString(value); return true; } catch { return false; }
+}
+export function isSafeTex(tex) {
+  try { validateTex(tex); return true; } catch { return false; }
+}
+
 export function assertSafeQuestionContent(question, references,
   { inspectedImages = false, numericQuestions = false, clozeMatching = false } = {}) {
   if (typeof inspectedImages !== 'boolean' || typeof numericQuestions !== 'boolean'

@@ -1,0 +1,89 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "INVALID-007",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "READ-COMP-000001",
+      "question_type": "SINGLE_CHOICE",
+      "subject": "READING",
+      "topic": "READING_COMPREHENSION",
+      "difficulty": "EASY",
+      "tags": [
+        "main-idea"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Ý chính của đoạn văn là"
+        }
+      ],
+      "passage_ref": "READ-PASSAGE-000001",
+      "options": [
+        {
+          "option_id": "A",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Chỉ người có nhiều thời gian rảnh mới đọc được nhiều sách."
+            }
+          ]
+        },
+        {
+          "option_id": "B",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Đọc đều đặn mỗi ngày, dù ngắn, tạo nên thay đổi lớn."
+            }
+          ]
+        },
+        {
+          "option_id": "C",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Cần đọc thật nhanh để đọc xong nhiều sách."
+            }
+          ]
+        },
+        {
+          "option_id": "D",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "Mỗi năm chỉ nên đọc mười cuốn sách."
+            }
+          ]
+        }
+      ],
+      "response_config": {
+        "selection": "SINGLE"
+      },
+      "answer": {
+        "option_id": "B"
+      },
+      "answer_validation": {
+        "match": "EXACT_SELECTION"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Đoạn văn nhấn mạnh việc đọc đều đặn, dù chỉ ít thời gian mỗi ngày, sẽ mang lại kết quả lớn."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

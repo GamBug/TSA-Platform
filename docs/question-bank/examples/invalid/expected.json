@@ -1,0 +1,83 @@
+{
+  "answer-not-an-option.json": {
+    "codes": [
+      "ANSWER_NOT_AN_OPTION"
+    ]
+  },
+  "numeric-format.json": {
+    "codes": [
+      "NUMERIC_FORMAT"
+    ]
+  },
+  "duplicate-question-id.json": {
+    "codes": [
+      "DUPLICATE_QUESTION_ID"
+    ]
+  },
+  "html-in-text.json": {
+    "codes": [
+      "UNSAFE_TEXT"
+    ]
+  },
+  "missing-explanation.json": {
+    "codes": [
+      "MISSING_FIELD"
+    ]
+  },
+  "cloze-missing-answer.json": {
+    "codes": [
+      "ANSWER_COVERAGE"
+    ]
+  },
+  "matching-target-overused.json": {
+    "codes": [
+      "TARGET_OVERUSED"
+    ]
+  },
+  "asset-refs-mismatch.json": {
+    "codes": [
+      "ASSET_REF_MISSING"
+    ]
+  },
+  "unknown-asset.json": {
+    "codes": [
+      "ASSET_NOT_FOUND"
+    ],
+    "requires_asset_catalog": true
+  },
+  "invented-asset-id.json": {
+    "codes": [
+      "INVALID_FIELD"
+    ]
+  },
+  "unknown-field.json": {
+    "codes": [
+      "UNKNOWN_FIELD"
+    ]
+  },
+  "multiple-choice-count.json": {
+    "codes": [
+      "ANSWER_COUNT"
+    ]
+  },
+  "unsupported-type.json": {
+    "codes": [
+      "UNSUPPORTED_QUESTION_TYPE"
+    ]
+  },
+  "status-not-draft.json": {
+    "codes": [
+      "INVALID_FIELD"
+    ]
+  },
+  "passage-missing.json": {
+    "codes": [
+      "PASSAGE_NOT_FOUND"
+    ]
+  },
+  "duplicate-option-content.json": {
+    "codes": [
+      "DUPLICATE_OPTION_CONTENT"
+    ]
+  }
+}

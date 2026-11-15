@@ -1,0 +1,92 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "EXAMPLE-TF-001",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "MATH-GEO-000003",
+      "question_type": "TRUE_FALSE_GROUP",
+      "subject": "MATH",
+      "topic": "GEOMETRY",
+      "difficulty": "MEDIUM",
+      "tags": [
+        "right-triangle"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Cho tam giác $ABC$ vuông tại $A$ có $AB=3$ và $AC=4$. Xét tính đúng sai của các mệnh đề sau."
+        }
+      ],
+      "response_config": {
+        "statements": [
+          {
+            "statement_id": "a",
+            "content_blocks": [
+              {
+                "type": "text",
+                "content": "$BC=5$."
+              }
+            ]
+          },
+          {
+            "statement_id": "b",
+            "content_blocks": [
+              {
+                "type": "text",
+                "content": "Diện tích tam giác $ABC$ bằng $12$."
+              }
+            ]
+          },
+          {
+            "statement_id": "c",
+            "content_blocks": [
+              {
+                "type": "text",
+                "content": "$\\sin B=\\frac{4}{5}$."
+              }
+            ]
+          },
+          {
+            "statement_id": "d",
+            "content_blocks": [
+              {
+                "type": "text",
+                "content": "Bán kính đường tròn ngoại tiếp tam giác $ABC$ bằng $2$."
+              }
+            ]
+          }
+        ]
+      },
+      "answer": {
+        "values": {
+          "a": true,
+          "b": false,
+          "c": true,
+          "d": false
+        }
+      },
+      "answer_validation": {
+        "match": "ALL_STATEMENTS_CORRECT"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "$BC=\\sqrt{3^2+4^2}=5$. Diện tích tam giác bằng $\\frac{1}{2}\\cdot 3\\cdot 4=6$. $\\sin B=\\frac{AC}{BC}=\\frac{4}{5}$. Bán kính đường tròn ngoại tiếp bằng $\\frac{BC}{2}=2{,}5$."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}
