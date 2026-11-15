@@ -129,6 +129,8 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   const catalogProfiles = new Map(),personalProfiles = new Map();
   const shortIntents = new WeakSet();
   const topicIntents = new WeakMap();
+  // Attempts this page view allocated itself. Starting one of these is not a resume; any other CREATED attempt was held earlier.
+  const createdAttempts = new Set();
   let topicCatalogBinding = null;
   let principal = null;
   let identityGeneration = 0;
@@ -136,7 +138,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
 
   function invalidateIdentity() {
     identityGeneration += 1; principal = null; topicCatalogBinding = null;
-    attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+    attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear(); createdAttempts.clear();
   }
   function identityBinding() {
     return { generation: identityGeneration, nonce: readCookie('tsa_local_csrf') };
@@ -168,7 +170,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     } catch { throw failure('TEMPORARILY_UNAVAILABLE'); }
     if (generation !== identityGeneration) throw failure('UNAUTHENTICATED', 401);
     if (studentRequest && sessionNonce !== readCookie('tsa_local_csrf')) {
-      identityGeneration += 1; principal = null; topicCatalogBinding = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear();
+      identityGeneration += 1; principal = null; topicCatalogBinding = null; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear(); createdAttempts.clear();
       const denied = response.status === 403;
       const code = denied && typeof value?.error?.code === 'string' ? value.error.code : 'UNAUTHENTICATED';
       throw failure(code, denied ? 403 : 401);
@@ -292,7 +294,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     requireIdentity(binding);
     if (!current.authenticated) { invalidateIdentity(); throw failure('UNAUTHENTICATED', 401); }
     if (!current.principal?.roles?.includes('CANDIDATE')) { invalidateIdentity(); throw failure('FORBIDDEN', 403); }
-    if (principal?.userId !== current.principal.userId) { identityGeneration += 1; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear(); }
+    if (principal?.userId !== current.principal.userId) { identityGeneration += 1; attempts.clear(); personalProfiles.clear(); catalogProfiles.clear(); pendingKeys.clear(); createdAttempts.clear(); }
     principal = current.principal;
     return bound ? { current, binding: identityBinding() } : current;
   }
@@ -362,6 +364,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     requireIdentity(binding);
     if (!UUID.test(receipt?.attemptId) || receipt.formMode !== 'PERSONALIZED_PRACTICE'
         || receipt.reuseMode !== 'NEW_ONLY') throw failure('UNEXPECTED_ATTEMPT_MODE', 502);
+    createdAttempts.add(receipt.attemptId);
     const profile = receipt.practiceProfile;
     if (profile?.topicPractice === true && UUID.test(profile.blueprintVersionId)
         && DOMAINS.has(profile.domain) && profile.questionCount === prepared.body.questionCount
@@ -419,6 +422,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       ||receipt.domain!==intent.profile.domain||receipt.formMode!=='PERSONALIZED_PRACTICE'
       ||receipt.reuseMode!=='NEW_ONLY')throw failure('UNEXPECTED_ATTEMPT_MODE',502);
     personalProfiles.set(receipt.attemptId,intent.profile);
+    createdAttempts.add(receipt.attemptId);
     return receipt;
   }
   async function readShortAttempt(attemptId,domain) {
@@ -455,7 +459,9 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     // Freeze the session nonce too: a cookie change after this check must fail CSRF,
     // never transfer one candidate's repeat consent to another candidate.
     const receipt = await mutation(`${apiRoot}/attempts`, intent.body, intent.key, intent.csrfToken);
-    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken }); return receipt;
+    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken });
+    if (UUID.test(receipt?.attemptId)) createdAttempts.add(receipt.attemptId);
+    return receipt;
   }
   function prepareFixedAttempt(formId) {
     if (typeof formId !== 'string' || !UUID.test(formId)) throw failure('VALIDATION_ERROR', 422);
@@ -481,7 +487,9 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       throw failure('UNAUTHENTICATED', 401);
     }
     const receipt = await mutation(`${apiRoot}/attempts`, intent.body, intent.key, intent.csrfToken);
-    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken }); return receipt;
+    requireIdentity({ generation: intent.generation, nonce: intent.csrfToken });
+    if (UUID.test(receipt?.attemptId)) createdAttempts.add(receipt.attemptId);
+    return receipt;
   }
   async function readFixedAttempt(attemptId, domain, formId) {
     const binding = identityBinding();
@@ -521,6 +529,8 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
   }
   async function startReservedAttempt(attemptId, expected = null) {
     const binding = identityBinding();
+    // Starting an attempt this view just allocated is a first start; any other held attempt is being resumed.
+    const resumed = !createdAttempts.has(attemptId);
     // A reservation action must never fall through to a replacement allocation.
     try { await mutation(`${apiRoot}/attempts/${encodeURIComponent(attemptId)}/start`, {}, null, binding.nonce); requireIdentity(binding); }
     catch (error) {
@@ -528,11 +538,13 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
       requireIdentity(binding);
       // Start commits cancellation before returning410; read its safe reason.
       const result = await readAttempt(attemptId, expected);
-      requireIdentity(binding); return { ...result, resumed: true };
+      requireIdentity(binding); createdAttempts.delete(attemptId); return { ...result, resumed };
     }
     const result = await readAttempt(attemptId, expected);
-    requireIdentity(binding); return { ...result, resumed: true };
+    requireIdentity(binding); createdAttempts.delete(attemptId); return { ...result, resumed };
   }
+  /** Returning to a held attempt from saved state is a resume, even within the view that allocated it. */
+  function noteAttemptRestored(attemptId) { createdAttempts.delete(attemptId); }
   async function saveAnswer(attemptId, slotId, input) {
     const binding = identityBinding();
     const cached = attempts.get(attemptId);
@@ -673,7 +685,7 @@ export function createPersistentApi({ fetchImpl = (...args) => globalThis.fetch(
     startDemo, prepareReviewAttempt, createReviewAttempt, readReviewAttempt,
     prepareFixedAttempt, createFixedAttempt, readFixedAttempt,
     prepareShortAttempt, createShortAttempt, readShortAttempt,
-    startReservedAttempt, readAttempt, saveAnswer, submitAttempt, readReview,
+    startReservedAttempt, noteAttemptRestored, readAttempt, saveAnswer, submitAttempt, readReview,
     loadHistory: async () => {
       const binding = identityBinding();
       const result = await pages(`${apiRoot}/attempts`);

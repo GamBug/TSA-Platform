@@ -152,7 +152,7 @@ test('a stale open deadline response cannot restart a newer attempt clock', asyn
 function savedAttemptReadHarness() {
   const state = { identityGeneration: 1, savedAttemptRead: null, busy: false,
     attempt: { attemptId: 'current-owner-attempt', state: 'IN_PROGRESS' } };
-  const calls = { updates: 0, accepted: [], errors: [], announcements: [] };
+  const calls = { updates: 0, accepted: [], errors: [], announcements: [], restored: [] };
   const requests = [];
   const savedAttemptReadIsCurrent = uiCallback('savedAttemptReadIsCurrent', { state });
   const cancelSavedAttemptRead = uiCallback('cancelSavedAttemptRead', { state });
@@ -169,6 +169,7 @@ function savedAttemptReadHarness() {
     updateSavedAttemptRead() { calls.updates++; },
     announce(message) { calls.announcements.push(message); },
     savedAttemptReadIsCurrent,
+    noteAttemptRestored(attemptId) { calls.restored.push(attemptId); },
     acceptAttempt(attempt) { calls.accepted.push(attempt); state.attempt = attempt; },
     handlePersistentError(error) { calls.errors.push(error); return false; },
   });
@@ -242,6 +243,7 @@ test('cancelled saved-attempt response cannot clear a newer read busy state', as
   assert.equal(h.state.busy, false);
   assert.equal(h.state.savedAttemptRead, null);
   assert.deepEqual(h.calls.accepted, [newest]);
+  assert.deepEqual(h.calls.restored, [newRecord.attemptId], 'only the accepted read marks its attempt as restored');
 });
 
 test('recoverable saved-attempt read failure remains retryable local state', async () => {

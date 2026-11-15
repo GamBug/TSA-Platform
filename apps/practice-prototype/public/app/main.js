@@ -193,6 +193,11 @@ function readExpectedAttempt(attemptId, expected) {
   return api.readAttempt(attemptId);
 }
 
+/** Reopening a held attempt from saved state means starting it later is a resume, not a first start. */
+function noteAttemptRestored(attemptId) {
+  api.noteAttemptRestored?.(attemptId);
+}
+
 function isShortPersonalAttempt(attempt) {
   return attempt?.formMode === "PERSONALIZED_PRACTICE"
     && attempt?.reuseMode === "NEW_ONLY"
@@ -990,6 +995,7 @@ async function readPersistentSavedAttempt(attemptId, record, source) {
     if (!savedAttemptReadIsCurrent(read)) return;
     state.savedAttemptRead = null;
     state.busy = false;
+    noteAttemptRestored(data.attempt.attemptId);
     state.resumeNotice = source === "resume"
       ? "Đã đọc lại trạng thái đã lưu từ PostgreSQL cục bộ"
       : "Đã tải trạng thái bài từ lịch sử PostgreSQL cục bộ";
