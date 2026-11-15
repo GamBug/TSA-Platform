@@ -611,6 +611,7 @@ body.exam-active { overflow: hidden; background: #fff; }
 .result-mode .result-note { max-width: 690px; margin: 0; color: #5b657a; font-size: 13px; line-height: 20px; }
 .result-mode .result-review-action { min-height: 48px; margin-top: 18px; border-color: #101a2c; border-radius: 9px; padding: 10px 18px; color: #fff; background: #101a2c; font-size: 15px; font-weight: 600; }
 .result-mode .result-review-action:hover:not(:disabled) { border-color: #27344a; background: #27344a; }
+.result-mode .demo-notice { margin: 0 32px 16px; }
 .result-mode .result-stats { margin: 0 32px 20px; gap: 9px; }
 .result-mode .result-stats > div { padding: 12px 14px; border-color: #e3e7ef; border-radius: 10px; background: #f8f9fc; }
 .result-mode .result-stats dt { color: #5b657a; font-size: 12px; line-height: 18px; }
@@ -743,6 +744,7 @@ body.review-active { overflow: hidden; background: #fff; }
 @media (max-width: 767px) {
   .result-mode .result-hero { grid-template-columns: 1fr; justify-items: center; gap: 19px; padding: 26px 20px 22px; text-align: center; }
   .result-mode .result-ticket-copy h1 { font-size: 25px; }
+  .result-mode .demo-notice { margin-right: 20px; margin-left: 20px; }
   .result-mode .result-stats { margin-right: 20px; margin-left: 20px; }
   .result-mode .result-closure-note { margin-right: 20px; margin-left: 20px; }
   .result-mode .result-actions { padding-right: 20px; padding-left: 20px; }
