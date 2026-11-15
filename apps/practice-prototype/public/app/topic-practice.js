@@ -1,5 +1,6 @@
 const TOPIC_LABELS = { MATH: 'Tư duy Toán học', READING: 'Tư duy Đọc hiểu', SCIENCE: 'Tư duy Khoa học / Giải quyết vấn đề',
-  ALGEBRA: 'Đại số', READING_REASONING: 'Đọc và suy luận', SCIENCE_REASONING: 'Phân tích thông tin khoa học' };
+  ALGEBRA: 'Đại số', MATH_REASONING: 'Toán học và suy luận', READING_REASONING: 'Đọc và suy luận',
+  SCIENCE_REASONING: 'Phân tích thông tin khoa học' };
 const topicLabel = (item) => (!item.label || item.label === item.code) ? TOPIC_LABELS[item.code] ?? item.code : item.label;
 
 function node(tag, text, className) {

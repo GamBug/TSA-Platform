@@ -68,3 +68,23 @@ test('stale topic load and creation rejections never clear a replacement identit
     assert.equal(handled, 0, `${operation}: replacement login is untouched`);
   }
 });
+
+test('catalog nodes without a stored label show a readable name instead of the taxonomy code', async () => {
+  const previousDocument = globalThis.document; globalThis.document = document;
+  try {
+    const host = new Node('section');
+    mountTopicPractice(host, { load: async () => ({ groups: [
+      { id: 'math', taxonomyVersionId: 'math-v1', code: 'MATH', label: 'MATH', children: [
+        { id: 'math-reasoning', code: 'MATH_REASONING', label: 'MATH_REASONING', eligibleCount: 3 }] },
+      { id: 'reading', taxonomyVersionId: 'reading-v1', code: 'READING', label: 'READING', children: [
+        { id: 'reading-reasoning', code: 'READING_REASONING', label: 'READING_REASONING', eligibleCount: 2 }] },
+    ] }), create: async () => ({ attempt: {} }), canCreate: () => true, isCurrent: () => true, onResume() {}, onAttempt() {} });
+    await new Promise((resolve) => setImmediate(resolve));
+    const texts = [];
+    const collect = (value) => { if (!(value instanceof Node)) return; if (typeof value.textContent === 'string') texts.push(value.textContent); value.children.forEach(collect); };
+    collect(host);
+    assert.ok(texts.includes('Toán học và suy luận'));
+    assert.ok(texts.includes('Đọc và suy luận'));
+    assert.equal(texts.some((text) => /^(MATH|READING)_REASONING$/u.test(text)), false);
+  } finally { globalThis.document = previousDocument; }
+});
