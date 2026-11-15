@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-15. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-16. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -18,8 +18,11 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 - Keyboard shortcuts support per-page opt-out and modal focus restoration.
 - Reading research/factory and manual draft transport support validated, unpublished DRAFT intake.
 - Local staff and student demo flows use the existing PostgreSQL-backed practice prototype.
+- Questions can be authored outside the Bank in one versioned format, validated offline and imported as DRAFTs; images are reusable library assets; published keys can be re-checked by blind verification; defective published questions are repaired through new versions ([corrections guide](../guides/BANK_CORRECTIONS.md)).
 
 ## Current checkpoint
+
+- 2026-11-16: Question-bank architecture pass (local commits on `feat/track-b-data-auth`). Four of the five flagged Math items were handled through the new `npm run bank:correct`: two were repaired as new approved versions and three were withheld as `NEEDS_MANUAL_REVIEW`; one duplicate numeric twin is also withheld, so the retained Bank now serves 277 Math and 100 Reading items. New: the portable question exchange format `tsa-question/1` with validator, standalone AI generation prompt and exportable reference package ([guide](../../docs/question-bank/QUESTION_FORMAT.md)); a reusable image asset library with stable codes (migration 032, [guide](../guides/IMAGE_LIBRARY.md)); a draft importer with receipts (migration 033); a blind answer-verification workflow ([guide](../guides/ANSWER_VERIFICATION.md)); and the "resumed" notice now appears only for a genuinely held attempt. The verification pass found 7 further defects in published Math items; their corrections are prepared but NOT applied, pending the owner. See the [report](../../plans/reports/claude-261116-0242-question-bank-architecture.md).
 
 - 2026-11-15: Demo stabilization audit. The retained Bank's audit trail shows the owner publication command approved all 381 imported items on 2026-11-11 (Math 281, Reading 100); older bullets below that call Math drafts or "nothing published" are historical. Real-Bank student journeys (Math and Reading topic practice, numeric, cloze/matching) pass with correct grading. Five published Math items have inconsistent source keys and one numeric problem is published twice; these await an owner decision. CI no longer needs the private corpus: the Reading interaction suites run on a synthetic corpus and `npm run test:corpus:private` runs them on the real one (three local commits, not pushed). See the [audit report](../../plans/reports/claude-261115-2242-demo-stabilization-audit.md).
 

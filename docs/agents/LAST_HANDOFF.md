@@ -1,5 +1,16 @@
 # Current handoff — program audit in progress
 
+**2026-11-16 update (Claude Code session, single agent).** Added `tsa-question/1` (portable question format, offline
+validator, standalone AI prompt, exportable package), an image asset library (migration 032), a draft importer
+(migration 033), `bank:correct`, and a blind verification workflow, plus the resumed-notice fix. Of the five Math items
+flagged on 2026-11-15, two were repaired and three withheld; one duplicate numeric twin is withheld too. A blind solve of
+the 197 Math items that had none found 182 agreeing and 7 further defects; their corrections are prepared in the private
+`data/corpus-ingest/audit-2026-11-16/corrections-verification.json` and verified on a copy, but NOT applied: the owner
+must run `npm run bank:correct -- --spec <that file> --confirm "CORRECT 7"` (the agent's attempt was blocked, correctly,
+because the brief forbids changing answers from model output without the owner). Passage-based questions cannot be
+imported by the exchange importer, the empty legacy topic group remains, and nothing is pushed unless the report says so.
+Full results: [report](../../plans/reports/claude-261116-0242-question-bank-architecture.md).
+
 **2026-11-15 update (Claude Code session, single agent).** CI was failing because three Reading
 interaction suites read the gitignored corpus; they now use a synthetic corpus, with
 `npm run test:corpus:private` for the real one. Three commits are local and not pushed. The real-Bank

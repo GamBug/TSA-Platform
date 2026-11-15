@@ -1,5 +1,27 @@
 # Architectural decisions and open questions
 
+## Question correction, portable format and image library — 2026-11-16
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-16.
+Evidence: the owner's brief to act as lead architect and engineer for the question bank, asking to
+repair the five Math questions flagged by the 2026-11-15 audit "rather than automatically
+quarantine them", to define one versioned question format, to build a reusable image library, a
+portable AI-generation package and a blind answer-verification workflow, and to fix the misleading
+"resumed" notice. Source attribution, licensing and `DEMO_UNI_SOURCE_CREDIT` were explicitly excluded.
+
+1. **Corrections of published questions.** Corrections never edit a version. A corrected version is
+   created through the author route and approved on the owner connection with every publication check
+   (`npm run bank:correct`); a version that cannot be repaired confidently is quarantined with the
+   reason `NEEDS_MANUAL_REVIEW`. This authorizes the five named items and the one duplicate pair only.
+2. **Verification-derived corrections are not authorized.** The owner asked that answers not be changed
+   silently from model output. Items disputed by the blind verification pass are recorded in the private
+   audit artifacts and need an explicit owner confirmation before they are applied.
+3. **Exchange format and importer.** `tsa-question/1` maps onto question/1, /2 and /3. Imports create
+   DRAFTs only; they never submit, review, approve or publish, and never create or change sources or rights.
+4. **Image library.** Additive registry over the existing asset versions; assets are never deleted.
+
+Details and evidence: [report](../../plans/reports/claude-261116-0242-question-bank-architecture.md).
+
 ## Math cloze and matching intake — 2026-11-11
 
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok, 2026-11-11.

@@ -173,9 +173,10 @@ question is good: a separate reviewer checks that, and the answer-verification w
    - Image ids are resolved through the [image library](../guides/IMAGE_LIBRARY.md) to stored asset versions.
 3. **Review** as for any other draft, then publication follows the existing owner workflow.
 
-The importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
+Planning is all-or-nothing: the importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
 `image_request`, an unknown or retired asset, an unmapped or ambiguous topic, a passage question, a missing source
-version or rights record, or a `content_version` conflict. Re-importing an identical question is a no-op.
+version or rights record, or a `content_version` conflict. Writing is then per question and idempotent: if a run stops part-way,
+running it again skips what was imported and completes the rest. Re-importing an identical question is a no-op.
 
 ## 9. Compatibility
 
