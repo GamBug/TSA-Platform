@@ -516,9 +516,21 @@ export interface InternalParts {
   explanation: unknown[];
 }
 
-type ResolveAsset = (assetId: string) => string;
+export type AssetPurpose = "QUESTION" | "EXPLANATION";
+/** Resolve a library asset id to the asset version to embed. The purpose matters: explanation images are separate asset versions. */
+export type ResolveAsset = (assetId: string, purpose: AssetPurpose) => string;
 
-function internalBlock(block: ExchangeContentBlock, resolveAsset: ResolveAsset): unknown {
+/** The internal contract version each exchange type is stored as (and which student route serves it). */
+export const INTERNAL_SCHEMA_BY_TYPE = {
+  SINGLE_CHOICE: "question/1",
+  MULTIPLE_CHOICE: "question/1",
+  TRUE_FALSE_GROUP: "question/1",
+  NUMERIC: "question/2",
+  CLOZE: "question/3",
+  MATCHING: "question/3",
+} as const satisfies Record<ExchangeQuestionType, InternalParts["schemaVersion"]>;
+
+function internalBlock(block: ExchangeContentBlock, resolveAsset: ResolveAsset, purpose: AssetPurpose): unknown {
   switch (block.type) {
     case "text":
       return { type: "text", text: block.content };
@@ -527,7 +539,7 @@ function internalBlock(block: ExchangeContentBlock, resolveAsset: ResolveAsset):
     case "table":
       return { type: "table", caption: block.caption, headers: block.headers, rows: block.rows };
     case "image":
-      return { type: "image", assetVersionId: resolveAsset(block.asset_id), alt: block.alt, ...(block.caption ? { caption: block.caption } : {}) };
+      return { type: "image", assetVersionId: resolveAsset(block.asset_id, purpose), alt: block.alt, ...(block.caption ? { caption: block.caption } : {}) };
     case "image_request":
       throw new TypeError(`Image request ${block.request_id} has no registered asset yet`);
   }
@@ -535,8 +547,8 @@ function internalBlock(block: ExchangeContentBlock, resolveAsset: ResolveAsset):
 
 /** Map a validated question onto the existing interaction/answer-key contracts. Image ids resolve through `resolveAsset`. */
 export function toInternalParts(question: ExchangeQuestion, resolveAsset: ResolveAsset): InternalParts {
-  const blocks = (list: readonly ExchangeContentBlock[]) => list.map((block) => internalBlock(block, resolveAsset));
-  const base = { section: question.subject, targetDifficulty: question.difficulty, content: blocks(question.content_blocks), explanation: blocks(question.explanation) };
+  const blocks = (list: readonly ExchangeContentBlock[], purpose: AssetPurpose = "QUESTION") => list.map((block) => internalBlock(block, resolveAsset, purpose));
+  const base = { section: question.subject, targetDifficulty: question.difficulty, content: blocks(question.content_blocks), explanation: blocks(question.explanation, "EXPLANATION") };
   switch (question.question_type) {
     case "SINGLE_CHOICE":
       return { ...base, schemaVersion: "question/1", interaction: { type: "SINGLE_CHOICE", options: question.options.map((o) => ({ id: o.option_id, content: blocks(o.content_blocks) })) }, answerKey: { type: "SINGLE_CHOICE", optionId: question.answer.option_id } };

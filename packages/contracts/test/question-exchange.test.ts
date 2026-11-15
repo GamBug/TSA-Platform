@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import { QuestionVersionSchema } from "../src/index.ts";
 import { QuestionVersionV2Schema } from "../src/question-v2.ts";
 import { QuestionVersionV3Schema } from "../src/question-v3.ts";
-import { toInternalParts, validateQuestionSet, type ExchangeQuestion } from "../src/question-exchange.ts";
+import { INTERNAL_SCHEMA_BY_TYPE, toInternalParts, validateQuestionSet, type ExchangeQuestion } from "../src/question-exchange.ts";
 
 const EXAMPLES = new URL("../../../docs/question-bank/examples/", import.meta.url);
 const readJson = (path: string): any => JSON.parse(readFileSync(new URL(path, EXAMPLES), "utf8"));
@@ -148,13 +148,23 @@ describe("mapping onto the Bank's existing question contracts", () => {
       SINGLE_CHOICE: "question/1", MULTIPLE_CHOICE: "question/1", TRUE_FALSE_GROUP: "question/1",
       NUMERIC: "question/2", CLOZE: "question/3", MATCHING: "question/3",
     });
+    assert.deepEqual(versions, INTERNAL_SCHEMA_BY_TYPE);
+  });
+
+  it("asks for an explanation asset version when an image appears in the explanation", () => {
+    const document = validateQuestionSet(readJson("valid/images-shared-and-multiple.json"), { assets: CATALOG }).value!;
+    const question = structuredClone(document.questions[0]) as any;
+    question.explanation.push({ type: "image", asset_id: "IMG-GEO-000124", alt: "Hình trong lời giải" });
+    const seen: string[] = [];
+    toInternalParts(question, (id, purpose) => { seen.push(`${id}:${purpose}`); return ASSET_UUID; });
+    assert.deepEqual(seen, ["IMG-GEO-000123:QUESTION", "IMG-GEO-000124:EXPLANATION"]);
   });
 
   it("resolves each image asset id through the supplied resolver and refuses unresolved requests", () => {
     const document = validateQuestionSet(readJson("valid/images-shared-and-multiple.json"), { assets: CATALOG }).value!;
     const resolved: string[] = [];
-    toInternalParts(document.questions[1] as ExchangeQuestion, (id) => { resolved.push(id); return ASSET_UUID; });
-    assert.deepEqual(resolved, ["IMG-GEO-000123", "IMG-GEO-000124"]);
+    toInternalParts(document.questions[1] as ExchangeQuestion, (id, purpose) => { resolved.push(`${id}:${purpose}`); return ASSET_UUID; });
+    assert.deepEqual(resolved, ["IMG-GEO-000123:QUESTION", "IMG-GEO-000124:QUESTION"]);
     const needed = validateQuestionSet(readJson("valid/image-needed.json")).value!;
     assert.throws(() => toInternalParts(needed.questions[0] as ExchangeQuestion, () => ASSET_UUID), /no registered asset/);
   });

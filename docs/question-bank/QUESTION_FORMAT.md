@@ -116,7 +116,9 @@ All six types are scored all-or-nothing by the existing scoring engine; there is
 - Importing the same `question_id` with a **higher** `content_version` creates the next version of that Bank
   question. Earlier versions are never edited.
 - The same `question_id` and `content_version` with identical content is skipped as already imported; with different
-  content it is an error (`CONTENT_VERSION_CONFLICT`). A lower version is an error.
+  content it is an error (`CONTENT_VERSION_CONFLICT`). A lower version is an error (`CONTENT_VERSION_REGRESSION`).
+  A new version of a quarantined question is refused (`PARENT_QUARANTINED`): the Bank blocks every descendant of a
+  quarantined version, so it could never be served.
 - Within one set, repeating a `question_id` is `DUPLICATE_QUESTION_ID`, and two questions with identical prompts are
   `DUPLICATE_QUESTION_CONTENT`.
 
@@ -129,8 +131,10 @@ A passage is stored once and referenced by any number of questions.
 "questions": [{ "question_id": "READ-COMP-000001", "passage_ref": "READ-PASSAGE-000001", … }]
 ```
 
-Each question keeps its own id, options and answer. The Bank links a question to a passage through an existing
-passage record, so importing passage-based questions needs a mapping from `passage_id` to that record (section 8).
+Each question keeps its own id, options and answer. Passage questions are fully validated here, but the Bank links a
+question to a passage through a stored passage record that only the manual Reading transport creates. The exchange
+importer therefore reports `PASSAGE_IMPORT_UNSUPPORTED` for them instead of guessing; use the
+[manual transport](../guides/MANUAL_DRAFT_TRANSPORT.md) for passage sets.
 
 ## 7. What makes a question invalid
 
@@ -158,14 +162,20 @@ question is good: a separate reviewer checks that, and the answer-verification w
 ## 8. From file to Bank
 
 1. **Validate**: `node tools/question-bank/validate.mjs set.json --assets assets.json`. Nothing touches a database.
+   `npm run images -- catalog --out assets.json` writes the active asset ids of the library.
 2. **Import as DRAFT**: `npm run questions:import -- --file set.json --source-version <uuid> [--topic-map map.json]
-   [--passage-map map.json]` prints a plan and changes nothing without `--confirm`. The operator names an existing
-   source version; the importer reuses its recorded rights and never creates or edits sources or rights. Questions
-   are created as DRAFT through the author route; nothing is submitted for review, approved or published.
+   [--taxonomy-version <uuid>]` prints a plan and writes nothing. Add `--confirm "IMPORT N"` (the plan prints the exact
+   phrase) to write. A backup is taken first. The operator names an existing source version; the importer reuses its
+   recorded rights and never creates or edits sources or rights. Questions are created as DRAFT through the author
+   route; nothing is submitted for review, approved or published.
+   - `topic` must be a registered skill of the subject's domain, or be mapped by `--topic-map` (a JSON object such as
+     `{"PROBABILITY":"MATH_REASONING"}`). An unmapped topic is reported with the registered skills, never guessed.
+   - Image ids are resolved through the [image library](../guides/IMAGE_LIBRARY.md) to stored asset versions.
 3. **Review** as for any other draft, then publication follows the existing owner workflow.
 
-The importer rejects, before writing anything, a set that has any error, any unresolved `image_request`, an unknown
-asset, an unmapped topic, an unmapped passage, or a `content_version` conflict.
+The importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
+`image_request`, an unknown or retired asset, an unmapped or ambiguous topic, a passage question, a missing source
+version or rights record, or a `content_version` conflict. Re-importing an identical question is a no-op.
 
 ## 9. Compatibility
 
