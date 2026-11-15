@@ -12,6 +12,7 @@ import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
+import { withTransaction } from '../src/modules/database/pool.mjs';
 import { buildExport, compareSolutions } from '../tools/answer-verification/verification-core.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -30,7 +31,10 @@ function parse(args) {
 const privateFile = async (file, value) => { await writeFile(file, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx', mode: 0o600 }); await chmod(file, 0o600); };
 
 /** Published (selectable) versions in a stable order, optionally limited by type and import batch. */
-export async function loadPublished(client, { section, types = TYPES, excludeBatches = [], limit = 20, offset = 0 }) {
+export async function loadPublished(pool, { section, types = TYPES, excludeBatches = [], limit = 20, offset = 0 }) {
+  // The selection gate admits numeric and cloze/matching versions only while their protocol settings are on, as they are for students.
+  return withTransaction(pool, async (client) => {
+  await client.query("SELECT set_config('tsa.enable_numeric_practice', 'true', true), set_config('tsa.enable_cloze_matching', 'true', true)");
   const result = await client.query(`SELECT v.id, v.interaction, v.content, s.answer_key, r.batch_key,
         (SELECT st.content FROM tsa.stimulus_versions st WHERE st.id = v.stimulus_version_id) AS passage
       FROM tsa.question_versions v JOIN tsa.questions q ON q.eligible_version_id = v.id
@@ -40,6 +44,7 @@ export async function loadPublished(client, { section, types = TYPES, excludeBat
        AND (r.batch_key IS NULL OR r.batch_key <> ALL($3::text[]))
      ORDER BY COALESCE(r.batch_key, ''), v.id LIMIT $4 OFFSET $5`, [section, types, excludeBatches, limit, offset]);
   return result.rows;
+  });
 }
 
 export async function runExport(options, log = (line) => process.stdout.write(`${line}\n`)) {
