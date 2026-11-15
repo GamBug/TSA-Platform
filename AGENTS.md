@@ -56,6 +56,6 @@ calls. Do not assume current model availability or quotas. If a recommendation
 depends on an unverified model listing, state that condition and provide a fallback.
 Distinguish the implementing agent from any proposed independent reviewer; a
 recommendation does not authorize delegation or establish that review occurred.
-Claude Code sessions follow the same workflow with different models: the Fable or Opus main
-session leads and Haiku subagents do bounded work; see
+Claude Code sessions follow the same workflow with different models: the main session does the
+work itself, and subagents are used only when the owner's prompt starts with `[SUBAI]`; see
 [the Claude Code dispatch mapping](docs/agents/ORCHESTRATION_PROTOCOL.md#9-claude-code-dispatch-mapping).

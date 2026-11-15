@@ -186,14 +186,16 @@ session never relaxes a Codex-era rule; where section 8 names a Codex role, use 
 | Role in section 8 | Claude Code equivalent | Model | Notes |
 |---|---|---|---|
 | Coordinator and integrator (Sol 6.1) | The main session | Fable, or Opus when Fable is unavailable | Owns shared contracts, migrations, backlog, state, handoff and decision updates. |
-| `tsa_scout`, `tsa_builder`, `tsa_light_builder` (Luna) | Subagent with `model: haiku` | Haiku 5.5 | Default for discovery, implementation, debugging and test development. One writer by default. |
+| `tsa_scout`, `tsa_builder`, `tsa_light_builder` (Luna) | Subagent with `model: haiku` | Haiku 5.5 | Only when the owner's prompt starts with `[SUBAI]`. Otherwise the main session does this work itself. One writer by default. |
 | `tsa_complex_builder` (Terra) | Subagent with `model: opus` | Opus | Only for a demonstrated complexity or capability reason recorded in the dispatch prompt. |
 | `tsa_reviewer` (Sol 6.1, read-only) | Read-only subagent with `model: opus` | Opus (or Fable) | Independent of the implementing session; never reviews its own work. |
 
 Rules that carry over unchanged:
 
-- Lead with the Fable or Opus main session; delegate bounded work to Haiku subagents. Do not spawn
-  subagents the owner did not ask for, and do not use a stronger model merely because it is available.
+- Subagents are off by default. Owner instruction, 2026-11-15: spawn a subagent only when the
+  owner's prompt starts with the `[SUBAI]` tag; without it, the main session does all work itself.
+  When the tag is present, delegate bounded work to Haiku subagents. Do not use a stronger model
+  merely because it is available.
 - Keep at most two open subagents and default to one writing implementer. Give each subagent only its
   task inputs, an explicit file allowlist, acceptance commands, stop conditions and the handoff status
   line (`DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT`).
