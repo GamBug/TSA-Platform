@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { readReadingInteractionCorpus } from '../../tools/corpus-ingest/reading-interactions.mjs';
 import { buildCorpusReadingInteractionPackage } from '../../tools/corpus-ingest/reading-interactions-package.mjs';
 import {
@@ -11,9 +11,12 @@ import {
   parseManualFactoryPackageV3,
   parseManualFactoryPackageV4,
 } from '../../packages/contracts/dist/internal.js';
+import { resolveReadingCorpusSource } from './fixtures/synthetic-reading-corpus.mjs';
 
 const id = (value) => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
-const sourceRoot = join(process.cwd(), 'TSA_Example_Questions');
+const source = await resolveReadingCorpusSource();
+after(source.cleanup);
+const sourceRoot = source.sourceRoot;
 
 function taxonomy() {
   return {

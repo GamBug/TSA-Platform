@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { join } from 'node:path';
 import { parseReadingInteractionCapture, readReadingInteractionCorpus } from '../../tools/corpus-ingest/reading-interactions.mjs';
 import { sourceManifest } from '../../tools/corpus-ingest/reading-captures.mjs';
+import { resolveReadingCorpusSource } from './fixtures/synthetic-reading-corpus.mjs';
 
-const sourceRoot = join(process.cwd(), 'TSA_Example_Questions');
+const source = await resolveReadingCorpusSource();
+after(source.cleanup);
+const sourceRoot = source.sourceRoot;
 
 test('the deferred Reading corpus yields the approved keyed drafts and preserves its source manifest', async () => {
   const before = await sourceManifest(sourceRoot);

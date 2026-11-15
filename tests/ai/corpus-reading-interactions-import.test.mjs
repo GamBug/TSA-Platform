@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { createManualImportFixture, manualConfiguration } from '../integration/bank/manual-import-fixture.mjs';
 import { createManualFactoryImportService, reconcileManualFactoryImportAdmission } from '../../src/modules/bank/manual-import-coordinator.mjs';
 import { loadManualImportConfiguration, beginManualImportAdmission } from '../../src/modules/bank/manual-import-configuration.mjs';
@@ -14,8 +14,11 @@ import { parseManualFactoryPackageV4, parseManualImportMappingV4 } from '../../p
 import { buildManualFactoryPackageV4 } from '../../packages/contracts/dist/internal.js';
 import { digestManualCanonicalV4 } from '../../packages/contracts/dist/internal.js';
 import { assertSafeQuestionContent } from '../../src/modules/bank/content-safety.mjs';
+import { resolveReadingCorpusSource } from './fixtures/synthetic-reading-corpus.mjs';
 
-const sourceRoot = join(process.cwd(), 'TSA_Example_Questions');
+const source = await resolveReadingCorpusSource();
+after(source.cleanup);
+const sourceRoot = source.sourceRoot;
 const interactionProfile = 'corpus-reading-interactions-draft/1';
 
 function changeSingleChoiceKey(packageValue) {
