@@ -21,6 +21,12 @@ for example `/usr/lib/postgresql/18/bin`. PostgreSQL must be able to create priv
 Unix sockets and child processes. No system database or TCP database listener is
 required. Other operating systems have not been verified by this checkpoint.
 
+Local runtimes require dedicated database logins with only their intended capability
+membership. That membership must enable `INHERIT` and `SET` and disable `ADMIN`.
+Startup rejects drift and leaves existing grants unchanged.
+Capability roles must remain non-login, non-inheriting, non-privileged roles
+without memberships in other roles; startup rejects widened capabilities too.
+
 From a clean checkout of this branch, in the repository root:
 
 ```sh
@@ -64,6 +70,8 @@ persistent student client; `/` alone selects the separately labelled mock client
 4. Reload the page. The same attempt, original deadline and acknowledged answers
    return from PostgreSQL. Reload does not allocate another attempt. Time continues
    while disconnected; there is no grace period. Unsaved changes can be lost.
+   A reserved attempt is labeled as not started. **Đọc lại bài đã giữ** reads that
+   owned reservation; its separate start control starts the stored attempt.
 5. Choose **Nộp bài**, inspect the confirmation, and confirm. The background worker
    grades the sealed answers. A short pending screen may appear; fast local grading
    can finish before it is visible. Submission is successful only after the server
@@ -248,6 +256,14 @@ returns exact version/hash/workflow and current source-rights metadata. The reta
 source remains UNKNOWN, so its content preview is blocked truthfully. B1 supplies
 no raw rights evidence; the separate approved B2 action below reads it without
 changing rights. Approval, rights-edit and publication controls remain unavailable.
+
+Unsaved author edits stay in this tab's memory. Reloading or closing the page
+uses the browser's unload warning; returning to practice or signing out asks
+whether to discard them. Cancelling preserves the editor. An acknowledged create
+clears the warning for the submitted contents, while newer edits remain unsaved.
+Discarding does not cancel a request already sent to the server. A changed or
+revoked session clears private fields immediately, without waiting for discard
+confirmation.
 
 For a complete disposable private-preview demonstration, stop retained mode and run:
 

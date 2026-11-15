@@ -11,6 +11,8 @@ import { jsonDigest } from '../../../src/modules/bank/common.mjs';
 import { prepareManualDraftTransport } from '../../../tools/question-factory/manual-transport.mjs';
 import { buildCorpusMathNumericPackage } from '../../../tools/corpus-ingest/math-numeric-package.mjs';
 import { configureCorpusImport } from '../../../tools/corpus-ingest/verify-reading.mjs';
+import { listOwnerCandidates } from '../../../src/local/owner-publication.mjs';
+import { planOwnerPublication } from '../../../scripts/owner-publish.mjs';
 
 async function registerMathTaxonomy(fixture) {
   const domain = randomUUID();
@@ -65,6 +67,14 @@ test('numeric Math DRAFTs import as private question/2 versions, replay exactly 
   assert.equal((await service.stop()).status, 'STOPPED');
 
   const ids = prepared.package.candidates.map((candidate) => candidate.question.id);
+  const publication = planOwnerPublication(await listOwnerCandidates(fixture.database.pool, { section: 'MATH' }));
+  assert.deepEqual(publication.targets.map(row => row.id).sort(), [...ids].sort());
+  const localSourceId = (await fixture.database.pool.query(`SELECT local_id FROM tsa_private.factory_external_mappings
+    WHERE producer_namespace=$1 AND external_kind='source' AND external_id=$2`,
+  [raw.package.producerNamespace, raw.mapping.sourceVersionId])).rows[0].local_id;
+  assert.deepEqual(publication.sources.map(row => row.id), [localSourceId]);
+  assert.ok(publication.targets.every(row => row.sourceVersionIds.length === 1
+    && row.sourceVersionIds[0] === localSourceId));
   const stored = (await fixture.database.pool.query(`SELECT qv.id,qv.schema_version,qv.section,qv.origin,qv.interaction,
       qs.answer_key,qs.scoring_policy_version,w.state::text AS state, tsa.bank_question_selection_allowed(qv.id) AS selectable
     FROM tsa.question_versions qv JOIN tsa_private.question_secrets qs ON qs.question_version_id=qv.id

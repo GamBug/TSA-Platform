@@ -23,11 +23,15 @@ npm run bank:owner-publish -- --confirm "PUBLISH 100 ALL"    # use the phrase th
 ```
 
 The confirmed run backs up the Bank, records the attested display rights on the
-corpus sources, sends the drafts to review, groups each Reading passage into one
+corpus sources required by the selected candidates, sends the drafts to review, groups each Reading passage into one
 bundle, and approves each item only if every Bank publication check passes.
 Reading passages are delivered whole, through topic practice. Numeric-answer
 Math items (`question/2`) are published by the same command, through the numeric
-routes.
+routes. Math cloze/matching drafts (`question/3`) use the same command through
+`/api/v4`; the command enables each required protocol separately and repeats
+the existing publication checks.
+Skipped candidates do not grant rights to their exclusive sources. A confirmed
+run with no supported candidates makes no rights or workflow changes.
 
 ## Start
 
@@ -56,7 +60,9 @@ When ready, the terminal prints:
 - any shortage, for example "Full simulation: NOT offered — short by Mathematics 40";
 - whether the separate numeric-answer practice is offered (four questions, one
   taxonomy version, published `question/2` items only);
-- the student, numeric practice, full-simulation and staff URLs.
+- whether Math cloze/matching practice is offered (four standalone published
+  `question/3` items from one taxonomy version, six minutes);
+- the student, numeric practice, cloze/matching, full-simulation and staff URLs.
 
 Synthetic items are never substituted for missing published items. With too few
 published items the catalog shows only what exists, and the simulation is not
@@ -75,6 +81,7 @@ Use a fresh private browser window. No password is needed.
 | 5 | Answer a few questions, switch to Reading, then go back to Mathematics. | Returning resumes that section's remaining time. |
 | 6 | **Submit all sections** and confirm. | Correct answers per section and out of 100, labelled unofficial practice. |
 | 6a | Optional: open the numeric practice URL (`?student=postgres-v2`) and choose its practice. | Short answers typed as decimals; a comma is the decimal separator and nothing else is accepted. |
+| 6b | Optional: open the cloze/matching URL (`?student=postgres-v4`) and choose its Math practice. | Text fields and labelled selects; Save is explicit and each question scores only when every field or row is correct. |
 | 7 | Sign out, open the staff URL, choose the staff workspace, select **REVIEWER**, then **Hàng chờ rà soát**. | Unpublished items wait for the owner here; students never see them. |
 
 If the simulation is not offered, say so and show section and topic practice

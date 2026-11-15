@@ -237,7 +237,12 @@ export async function createTrackBRuntime({
       if (clozeMatchingEnabled && pathname.startsWith('/api/v4/')) return routeHandlers.clozeMatchingBankHandler(request);
       if (numericEnabled && pathname.startsWith('/api/v2/')) return routeHandlers.numericBankHandler(request);
       if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) return routeHandlers.bankHandler(request);
-      return null;
+      if (/^\/api\/v[1234](?:\/|$)/.test(pathname)) {
+        const requestId = randomUUID();
+        return response(404, { error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} } },
+          { 'x-request-id': requestId });
+      }
+      return response(404, { error: 'NOT_FOUND' });
     };
     server = createPrototypeServer({
       port,

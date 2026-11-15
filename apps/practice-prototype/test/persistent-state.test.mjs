@@ -58,6 +58,97 @@ function uiCallback(name, bindings) {
   return new Function(...Object.keys(bindings), `return (${callback[0]});`)(...Object.values(bindings));
 }
 
+function deadlineReadHarness() {
+  const state = { identityGeneration: 1, attempt: { attemptId: 'owned-attempt', state: 'IN_PROGRESS' },
+    checkingExpiry: false, timerHandle: null, clockAttemptId: 'owned-attempt', nextExpiryCheckAt: 0 };
+  const requests = [], calls = { accepted: [], clocks: [], errors: [], messages: [] };
+  const clearTimer = uiCallback('clearTimer', { state, window: { clearInterval() {} } });
+  const refresh = uiCallback('refreshAfterDeadline', { state, persistentMode: true, performance,
+    readExpectedAttempt(attemptId, attempt) {
+      const gate = deferred(); requests.push({ attemptId, attempt, gate }); return gate.promise;
+    },
+    startTimer(attempt) { calls.clocks.push(attempt); },
+    acceptAttempt(attempt) { calls.accepted.push(attempt); state.attempt = attempt; clearTimer(); },
+    handlePersistentError(error) { calls.errors.push(error); return false; },
+    showMessage(message) { calls.messages.push(message); },
+  });
+  return { state, requests, calls, clearTimer, refresh };
+}
+
+for (const outcome of ['success', 'authentication failure']) {
+  for (const replacementId of ['owned-attempt', 'another-owned-attempt']) {
+    test(`late deadline ${outcome} cannot affect newer state for ${replacementId}`, async () => {
+      const h = deadlineReadHarness();
+      const pending = h.refresh();
+      const replacement = { attemptId: replacementId, state: 'GRADED' };
+      h.state.attempt = replacement;
+      if (outcome === 'success') h.requests[0].gate.resolve({ attempt: { attemptId: 'owned-attempt', state: 'EXPIRED' } });
+      else h.requests[0].gate.reject(Object.assign(new Error('Old deadline read failed'), { code: 'UNAUTHENTICATED' }));
+      await pending;
+      assert.equal(h.state.attempt, replacement);
+      assert.deepEqual(h.calls, { accepted: [], clocks: [], errors: [], messages: [] });
+      assert.equal(h.state.checkingExpiry, false);
+    });
+  }
+}
+
+test('an older deadline completion cannot clear the lock on a newer deadline check', async () => {
+  const h = deadlineReadHarness();
+  const old = h.refresh();
+  h.clearTimer();
+  h.state.attempt = { attemptId: 'next-attempt', state: 'IN_PROGRESS' };
+  const current = h.refresh();
+  h.requests[0].gate.resolve({ attempt: { attemptId: 'owned-attempt', state: 'EXPIRED' } });
+  await old;
+  assert.ok(h.state.checkingExpiry, 'the active read must remain locked');
+  assert.deepEqual(h.calls.accepted, []);
+  const closed = { attemptId: 'next-attempt', state: 'EXPIRED' };
+  h.requests[1].gate.resolve({ attempt: closed });
+  await current;
+  assert.deepEqual(h.calls.accepted, [closed]);
+  assert.equal(h.state.checkingExpiry, false);
+});
+
+test('current deadline checks still synchronize an open clock and accept server closure', async () => {
+  const h = deadlineReadHarness();
+  const open = h.refresh();
+  const updated = { attemptId: 'owned-attempt', state: 'IN_PROGRESS', serverNow: '2026-11-12T00:00:00Z' };
+  h.requests[0].gate.resolve({ attempt: updated }); await open;
+  assert.deepEqual(h.calls.clocks, [updated]);
+  assert.equal(h.state.checkingExpiry, false);
+  const expired = h.refresh();
+  const closed = { attemptId: 'owned-attempt', state: 'EXPIRED' };
+  h.requests[1].gate.resolve({ attempt: closed }); await expired;
+  assert.deepEqual(h.calls.accepted, [closed]);
+  assert.equal(h.state.checkingExpiry, false);
+});
+
+test('current deadline failures retain error handling and release the read lock for retry', async () => {
+  const h = deadlineReadHarness();
+  const pending = h.refresh();
+  const error = Object.assign(new Error('Current deadline session ended'), { code: 'UNAUTHENTICATED' });
+  h.requests[0].gate.reject(error); await pending;
+  assert.deepEqual(h.calls.errors, [error]);
+  assert.equal(h.calls.messages.length, 1);
+  assert.ok(h.state.nextExpiryCheckAt > performance.now());
+  assert.equal(h.state.checkingExpiry, false);
+  const retry = h.refresh();
+  assert.equal(h.requests.length, 2);
+  h.requests[1].gate.resolve({ attempt: { attemptId: 'owned-attempt', state: 'EXPIRED' } }); await retry;
+  assert.equal(h.calls.accepted.length, 1);
+});
+
+test('a stale open deadline response cannot restart a newer attempt clock', async () => {
+  const h = deadlineReadHarness();
+  const pending = h.refresh();
+  h.clearTimer();
+  h.state.attempt = { attemptId: 'next-attempt', state: 'IN_PROGRESS' };
+  h.requests[0].gate.resolve({ attempt: { attemptId: 'owned-attempt', state: 'IN_PROGRESS' } });
+  await pending;
+  assert.deepEqual(h.calls.clocks, []);
+  assert.equal(h.state.checkingExpiry, false);
+});
+
 function savedAttemptReadHarness() {
   const state = { identityGeneration: 1, savedAttemptRead: null, busy: false,
     attempt: { attemptId: 'current-owner-attempt', state: 'IN_PROGRESS' } };

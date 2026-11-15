@@ -85,12 +85,12 @@ export const ManualRunV4Schema = ManualRunSchema.omit({ promptTemplateVersion: t
 
 export const ManualCandidateV4Schema = ManualCandidateSchema.extend({ question: QuestionVersionV3Schema });
 
-export const ManualImportMappingV4Schema = ManualImportMappingSchema.omit({ profile: true }).extend({
+const ReadingImportMappingV4Schema = ManualImportMappingSchema.omit({ profile: true }).extend({
   profile: z.literal(MANUAL_INTERACTION_PROFILE),
   candidates: ManualImportMappingSchema.shape.candidates.element.array().min(7).max(8),
 });
 
-export const ManualFactoryPackageV4Schema = z.object({
+const ReadingFactoryPackageV4Schema = z.object({
   schemaVersion: z.literal("factory-package/4"),
   profile: z.literal(MANUAL_INTERACTION_PROFILE),
   producerNamespace: ManualImportMappingSchema.shape.producerNamespace,
@@ -109,6 +109,48 @@ export const ManualFactoryPackageV4Schema = z.object({
     context.addIssue({ code: "custom", path: ["candidates"], message: "Candidate ordinals must be unique" });
   }
 });
+
+export const MATH_INTERACTION_PROFILE = "corpus-math-interactions-draft/1" as const;
+export const MATH_INTERACTION_PROMPT_VERSION = "math-interactions/1" as const;
+export const MathInteractionInputSchema = ManualInputSchema.extend({ schemaVersion: z.literal("math-interactions-input/1") });
+export const MathInteractionResponseSchema = z.object({
+  questions: z.array(ManualDraftV4Schema).min(1).max(20),
+}).strict().superRefine((value, ctx) => {
+  if (value.questions.some((q) => !["CLOZE", "MATCHING"].includes(q.interaction.type))) {
+    ctx.addIssue({ code: "custom", message: "Math interaction profile accepts cloze and matching only" });
+  }
+});
+export const MathInteractionPromptSchema = ManualPromptSchema.omit({ version: true, schemaVersion: true }).extend({
+  version: z.literal(MATH_INTERACTION_PROMPT_VERSION), schemaVersion: z.literal("math-interactions-output/1"),
+});
+export const MathInteractionSourceDeclarationSchema = ManualSourceDeclarationSchema.extend({
+  prompt: z.object({
+    schemaVersion: z.literal("corpus-math-interactions-capture/1"),
+    classification: z.literal("PROVISIONAL_M1_NEEDS_OWNER_CLASSIFICATION"),
+    explanation: z.literal("NOT_RETAINED"),
+    candidates: z.array(SourceCandidateSchema.extend({
+      answerKey: AnswerKeyV3Schema,
+      extractedKeyText: z.array(z.string().min(1)).min(1).max(40),
+      targetPoolSource: z.enum(["VISIBLE_SOURCE_POOL", "CAPTURED_CORRECT_TEXTS"]).nullable(),
+      capturedTargetLabels: z.array(z.string().min(1)).max(40),
+    })).min(1).max(20),
+  }).strict(),
+});
+const MathImportMappingSchema = ManualImportMappingSchema.omit({ profile: true }).extend({
+  profile: z.literal(MATH_INTERACTION_PROFILE),
+  candidates: ManualImportMappingSchema.shape.candidates.element.array().min(1).max(20),
+});
+export const MathInteractionRunSchema = ManualRunSchema.omit({ promptTemplateVersion: true }).extend({
+  promptTemplateVersion: z.literal(MATH_INTERACTION_PROMPT_VERSION),
+});
+const MathFactoryPackageSchema = z.object({
+  ...ReadingFactoryPackageV4Schema.shape,
+  profile: z.literal(MATH_INTERACTION_PROFILE),
+  manualRun: MathInteractionRunSchema,
+  candidates: z.array(ManualCandidateV4Schema).min(1).max(20),
+}).strict();
+export const ManualImportMappingV4Schema = z.union([ReadingImportMappingV4Schema, MathImportMappingSchema]);
+export const ManualFactoryPackageV4Schema = z.union([ReadingFactoryPackageV4Schema, MathFactoryPackageSchema]);
 
 export const ManualArtifactRefsV4Schema = ManualArtifactRefsSchema;
 export const ManualArtifactV4Schema = ManualArtifactSchema;

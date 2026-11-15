@@ -165,7 +165,8 @@ test('failed migration bootstrap releases the owned process and startup lock', a
 });
 
 test('private persistent PostgreSQL composes local auth and real Bank routes in the existing app', async (t) => {
-  runtime = await createTrackBRuntime({ env, dataDirectory, port: 0 });
+  runtime = await createTrackBRuntime({ env, dataDirectory, port: 0,
+    localRoutes: { '/local/test-status': () => Response.json({ status: 'ready' }) } });
   assert.equal(runtime.syntheticOnly, true);
   assert.equal(runtime.origin.startsWith('http://127.0.0.1:'), true);
   const directory = await lstat(dataDirectory);
@@ -182,6 +183,24 @@ test('private persistent PostgreSQL composes local auth and real Bank routes in 
   assert.equal(roles[1].rows[0].rolsuper, false);
   const listener = await runtime.bankPool.query('SHOW listen_addresses');
   assert.equal(listener.rows[0].listen_addresses, '', 'PostgreSQL listens only on its private Unix socket');
+
+  await t.test('disabled protocols and unknown local routes are absent rather than temporarily unavailable', async () => {
+    for (const version of ['v2', 'v3', 'v4']) {
+      for (const endpoint of ['catalog', 'attempts', 'question-versions']) {
+        await assertApiError(await fetch(`${runtime.origin}/api/${version}/${endpoint}`), 404, 'NOT_FOUND');
+      }
+    }
+    const missing = await fetch(`${runtime.origin}/local/workspace/not-a-route`);
+    assert.equal(missing.status, 404);
+    assert.deepEqual(await missing.json(), { error: 'NOT_FOUND' });
+  });
+
+  await t.test('registered local routes are reachable outside the workspace and demo-notice paths', async () => {
+    const status = await fetch(`${runtime.origin}/local/test-status`);
+    assert.equal(status.status, 200);
+    assert.deepEqual(await status.json(), { status: 'ready' });
+    assert.equal((await fetch(`${runtime.origin}/local/test-status/unknown`)).status, 404);
+  });
 
   await t.test('public assets and anonymous APIs do not reveal the private fixture', async () => {
     const html = await fetch(runtime.origin);

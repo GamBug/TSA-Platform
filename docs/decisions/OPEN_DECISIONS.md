@@ -1,5 +1,22 @@
 # Architectural decisions and open questions
 
+## Math cloze and matching intake — 2026-11-11
+
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok, 2026-11-11.
+Evidence: “Ok start with Cloze/matching ques. no need subagents, I am currently test usage
+single-agent vs lead-subagents.” This accepts implementation of the previously proposed Math
+intake, owner publication support and university demo practice for the 25 deferred captures.
+
+The current Codex session is the sole implementer. Reuse question/3, blueprint/4, practice-binary-v3
+and /api/v4; add a separate private Math factory/4 profile while preserving the Reading profile.
+Inspect all 25 captures, import only complete explicitly keyed questions as unpublished DRAFTs after
+a backup, and record overlapping source or image blockers. Preserve visible matching choices; when
+choices are missing, apply the [captured-correct-text adaptation policy](#cp4-derived-matching-drafts--2026-11-09), with explicit
+bounded reuse and owner review. Symbolic cloze keys are transcribed into declared keyboard notation;
+the existing exact-text comparison remains unchanged and makes no algebraic-equivalence claim.
+No retained question approval, publication, commit, delegation or paid provider call is authorized.
+Implementation and actual verification are tracked in the [Math plan](../../plans/261111-2045-math-cloze-matching/plan.md).
+
 ## University demo scope: no full simulation — 2026-11-11
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-11.

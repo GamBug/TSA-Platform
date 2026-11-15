@@ -14,6 +14,15 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AUTHOR_ACTORS = Object.freeze({ '00000000-0000-4000-8000-000000000201': 'author' });
 
+/** Keep candidate selection and its required rights changes in one publication plan. */
+export function planOwnerPublication(before) {
+  const unsupported = before.versions.filter((row) => !['question/1', 'question/2', 'question/3'].includes(row.schemaVersion) || !AUTHOR_ACTORS[row.createdBy]);
+  const targets = before.versions.filter((row) => !unsupported.includes(row));
+  const sourceIds = new Set();
+  for (const target of targets) for (const id of target.sourceVersionIds) sourceIds.add(id);
+  return { unsupported, targets, sources: before.sources.filter((source) => sourceIds.has(source.id)) };
+}
+
 async function inspect(dataDirectory, section) {
   const database = await startPersistentPostgres(dataDirectory);
   try { return await listOwnerCandidates(database.ownerPool, { section }); }
@@ -43,33 +52,39 @@ async function session(origin, actorKey) {
 export async function ownerPublish({ dataDirectory, section = null, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
   const before = await inspect(dataDirectory, section);
   const counts = Object.fromEntries(OWNER_SECTIONS.map((name) => [name, before.versions.filter((row) => row.section === name).length]));
-  const unsupported = before.versions.filter((row) => !['question/1', 'question/2'].includes(row.schemaVersion) || !AUTHOR_ACTORS[row.createdBy]);
-  const phrase = confirmationPhrase(before.versions.length - unsupported.length, section);
+  const { unsupported, targets, sources } = planOwnerPublication(before);
+  const phrase = confirmationPhrase(targets.length, section);
   log(`Corpus versions awaiting publication: ${OWNER_SECTIONS.map((name) => `${name} ${counts[name]}`).join(', ')}`);
-  log(`Corpus sources without display rights: ${before.sources.filter((source) => !source.allowed).length} of ${before.sources.length}`);
+  log(`Corpus sources without display rights: ${sources.filter((source) => !source.allowed).length} of ${sources.length}`);
   if (unsupported.length) log(`Skipped (other protocol or unknown author): ${unsupported.length}`);
   if (confirm === undefined) {
     log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}--confirm "${phrase}"`);
     return { published: 0, phrase };
   }
   if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
-  const targets = before.versions.filter((row) => !unsupported.includes(row));
+  if (targets.length === 0) {
+    log('No supported corpus versions await publication; no rights or workflow changes were made.');
+    return { published: 0, phrase };
+  }
 
   // Phase 1: the normal workspace (backup, migrations) and the existing Bank routes.
   // Numeric-answer versions (question/2) are served by the numeric routes, which need the numeric runtime opt-in.
   const numeric = targets.some((row) => row.schemaVersion === 'question/2');
+  const clozeMatching = targets.some((row) => row.schemaVersion === 'question/3');
   const runtime = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true',
-    ...(numeric ? { LOCAL_STUDENT_ENABLED: 'true', LOCAL_NUMERIC_PRACTICE_ENABLED: 'true' } : {}) }, dataDirectory, port: 0 });
+    ...((numeric || clozeMatching) ? { LOCAL_STUDENT_ENABLED: 'true' } : {}),
+    ...(numeric ? { LOCAL_NUMERIC_PRACTICE_ENABLED: 'true' } : {}),
+    ...(clozeMatching ? { LOCAL_CLOZE_MATCHING_ENABLED: 'true' } : {}) }, dataDirectory, port: 0 });
   try {
     const manager = await session(runtime.origin, 'bankManager');
-    for (const source of before.sources.filter((row) => !row.allowed)) {
+    for (const source of sources.filter((row) => !row.allowed)) {
       await manager(`/api/v1/source-versions/${source.id}/rights`, { ...OWNER_RIGHTS, expectedRevision: source.revision });
     }
-    log(`Rights recorded (OWNER_ATTESTED) on ${before.sources.filter((row) => !row.allowed).length} source versions.`);
+    log(`Rights recorded (OWNER_ATTESTED) on ${sources.filter((row) => !row.allowed).length} source versions.`);
     const authors = {};
     for (const row of targets.filter((target) => target.state === 'DRAFT')) {
       authors[row.createdBy] ??= await session(runtime.origin, AUTHOR_ACTORS[row.createdBy]);
-      await authors[row.createdBy](`/api/${row.schemaVersion === 'question/2' ? 'v2' : 'v1'}/question-versions/${row.id}/submit-review`, { expectedRevision: row.revision });
+      await authors[row.createdBy](`/api/${row.schemaVersion === 'question/3' ? 'v4' : row.schemaVersion === 'question/2' ? 'v2' : 'v1'}/question-versions/${row.id}/submit-review`, { expectedRevision: row.revision });
       row.revision += 1;
     }
   } finally { await runtime.close(); }

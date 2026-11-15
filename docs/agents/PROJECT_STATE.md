@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-10. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-12. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -20,6 +20,14 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 - Local staff and student demo flows use the existing PostgreSQL-backed practice prototype.
 
 ## Current checkpoint
+
+- 2026-11-12: The next audit pass corrected the reserved-attempt catalog label and completed 19 additional browser journeys, including recovery/rate-limit paths, Firefox cloze/matching and disposable university/Reading Factory launchers. Latest app suite: 109 passed. The full audit remains active for final coverage reconciliation; see the [audit report](../../plans/reports/codex-261111-2256-program-audit.md).
+
+- 2026-11-12: The next audit pass repaired stale ordinary deadline responses that could replace a newer attempt/result or clear another read's lock. All 109 app tests, real expiry/topic Chromium journeys and 33 topic/attempt backend checks pass. See the same [audit report](../../plans/reports/codex-261111-2256-program-audit.md) for reproduction and limitations; the full audit remains active.
+
+- 2026-11-12: The owner's single-agent full-program audit is active. Confirmed fixes cover image/route wiring, stale simulation polling, publication source selection, startup role/capability drift, unsupported rights timestamps, staff numeric discovery and unsaved author navigation. The latest backend run passes 543 checks; separate final timestamp checks, 101 app tests, three Chromium staff journeys and Chromium/Firefox simulation journeys pass. Full scope remains under review. See the [audit report](../../plans/reports/codex-261111-2256-program-audit.md) for exact evidence and remaining coverage. Existing uncommitted Math intake work is preserved; retained approvals and rights remain unchanged by the audit.
+
+- 2026-11-11: Single-agent Math cloze/matching follow-up is implemented and uncommitted. All 25 candidate captures were inspected; 22 question/3 DRAFTs were imported after backups (10 cloze, 12 matching), and three remain blocked by a graph or missing source content/keys. Math now has 281 questions: 259 previously published and 22 unpublished drafts; 119 of 400 captures remain out. Owner publication supports question/3, and the university demo offers separate Math practice at `?student=postgres-v4` after publication. No retained approvals were made. See the [report](../../plans/reports/codex-261111-2045-math-cloze-matching.md) for checks, adaptations and the owner command. Older counts below are historical checkpoints.
 
 - 2026-11-11: Numeric Math import and delivery committed: 60 numeric-answer Math DRAFTs (`question/2`) are in the retained Bank; `bank:owner-publish` publishes them and `demo:uni` serves a separate numeric practice at `?student=postgres-v2` (`f813c52`). Nothing is published yet; 141 Math captures remain out (figures and tables, cloze and matching, no visible key, clipped). See the [numeric import and delivery report](../../plans/reports/claude-261111-2130-numeric-math-import-and-delivery.md).
 

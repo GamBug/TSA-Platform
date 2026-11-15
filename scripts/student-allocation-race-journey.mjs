@@ -19,6 +19,16 @@ export async function runAllocationRaceJourney({ evaluate, command, click, query
   report.allocationRaceStage = 'release-histories';
   await Promise.all([evaluate('window.__releaseRaceHistory()'), other.evaluate('window.__releaseRaceHistory()')]);
   report.allocationRaceStage = 'recover-both-clients';
+  async function recoverClient(read, clickControl, wait) {
+    await wait(`Boolean(document.getElementById('question-title')) || Boolean(${query('attempt-conflict-recover')})`, 'allocation or explicit conflict recovery');
+    if (await read(`Boolean(${query('attempt-conflict-recover')})`)) {
+      assert.deepEqual(await read('window.__race.starts'), [], 'a conflicting create does not silently start another attempt');
+      await clickControl('attempt-conflict-recover');
+      await wait(`Boolean(document.getElementById('question-title')) || Boolean(${query('created-start')})`, 'owned conflict read');
+      if (await read(`Boolean(${query('created-start')})`)) await clickControl('created-start');
+    }
+  }
+  await Promise.all([recoverClient(evaluate, click, waitFor), recoverClient(other.evaluate, other.click, other.waitFor)]);
   await Promise.all([waitFor("Boolean(document.getElementById('question-title'))", 'first client reaches the owned exam'),
     other.waitFor("Boolean(document.getElementById('question-title'))", 'second client recovers the same owned exam')]);
   report.allocationRaceStage = 'verify-race';
@@ -80,7 +90,7 @@ export async function runAllocationRaceJourney({ evaluate, command, click, query
   report.allocationRace = { attemptId, statuses: allocations.map((r) => r.status), distinctCreationKeys: true,
     sameForm: views[0].formId, startReceipts: startReceipts.length, counts, completed, percentage: '100.00' };
   report.checks = ['Both real clients read and hold genuine empty history before issuing distinct-key create requests',
-    'Actual201/409 conflict recovers original owned ID in both clients, with one form/manifest/history allocation/receipt and unchanged clocks',
+    'Actual201/409 conflict offers an explicit owned read, never auto-starts, and recovers the original ID with one form/manifest/history allocation/receipt and unchanged clocks',
     'First-tab saved answer reloads in second tab; second tab completes original form and first tab reloads same100% release',
     'One attempt/job/score/release, two revision1 answers and original immutable snapshots/history remain after completion'];
 }

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { canonicalize, CORPUS_INTERACTIONS_TRANSFORMATION, parseManualImportMapping, parseManualImportMappingV4 } from '../../../packages/contracts/dist/internal.js';
+import { canonicalize, CORPUS_INTERACTIONS_TRANSFORMATION, MATH_INTERACTIONS_TRANSFORMATION, parseManualImportMapping, parseManualImportMappingV4 } from '../../../packages/contracts/dist/internal.js';
 import { jsonDigest, reject } from './common.mjs';
 
 const same = (left, right) => Buffer.from(canonicalize(left)).equals(Buffer.from(canonicalize(right)));
 const need = (condition) => { if (!condition) reject(422, 'MANUAL_MAPPING_INVALID'); };
-const interactionProfile = 'corpus-reading-interactions-draft/1';
-const MATH_PROFILES = new Set(['corpus-math-draft/1', 'corpus-math-numeric-draft/1']);
+const isInteraction = (profile) => ['corpus-reading-interactions-draft/1', 'corpus-math-interactions-draft/1'].includes(profile);
+const MATH_PROFILES = new Set(['corpus-math-draft/1', 'corpus-math-numeric-draft/1', 'corpus-math-interactions-draft/1']);
 const sectionFor = (profile) => MATH_PROFILES.has(profile) ? 'MATH' : 'READING';
 
 function parseMapping(input) {
@@ -24,8 +24,8 @@ function verifyInteractionProvenance(pkg, mapping, principal) {
     ? sourceNode.payload.content[0].text : null;
   need(typeof text === 'string');
   const sourceTextHash = `sha256:${createHash('sha256').update(new TextEncoder().encode(text)).digest('hex')}`;
-  need(pkg.schemaVersion === 'factory-package/4' && pkg.profile === interactionProfile
-    && pkg.manualRun.kind === 'DETERMINISTIC_CORPUS_EXTRACTION'
+  need(pkg.schemaVersion === 'factory-package/4' && isInteraction(pkg.profile)
+    && pkg.manualRun.kind === (sectionFor(pkg.profile) === 'MATH' ? 'SUBSCRIPTION_VISION_TRANSCRIPTION' : 'DETERMINISTIC_CORPUS_EXTRACTION')
     && permission?.sourceVersionId === mapping.sourceVersionId && permission.sourceTextHash === sourceTextHash
     && permission.copyrightVerification === 'UNVERIFIED' && permission.publicationPermission === false
     && authoring?.kind === 'CORPUS_IMPORTED' && authoring.sourceVersionId === mapping.sourceVersionId
@@ -36,7 +36,7 @@ function verifyInteractionProvenance(pkg, mapping, principal) {
   const record = provenance[0];
   need(record.payload.sourceVersionId === mapping.sourceVersionId && record.payload.origin === 'IMPORTED'
     && record.payload.creator === principal.userId && record.payload.sourcePermissionId === permission.id
-    && record.payload.transformation === CORPUS_INTERACTIONS_TRANSFORMATION
+    && record.payload.transformation === (sectionFor(pkg.profile) === 'MATH' ? MATH_INTERACTIONS_TRANSFORMATION : CORPUS_INTERACTIONS_TRANSFORMATION)
     && record.payload.manualRunId === pkg.manualRun.manualRunId);
   for (const candidate of pkg.candidates) {
     const question = candidate.question;
@@ -107,6 +107,6 @@ export async function verifyManualRegisteredMapping(client, principal, pkg, inpu
       && q.section === section && q.domainId === section && q.skillIds.length === 1 && q.subskillIds.length === 0
       && mapping.taxonomy.nodes.some((node) => node.registeredKind === 'SKILL' && node.registeredCode === q.skillIds[0]));
   }
-  if (mapping.profile === interactionProfile) verifyInteractionProvenance(pkg, mapping, principal);
+  if (isInteraction(mapping.profile)) verifyInteractionProvenance(pkg, mapping, principal);
   return { mapping, taxonomy };
 }

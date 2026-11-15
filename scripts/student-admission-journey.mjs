@@ -61,24 +61,29 @@ export async function runAdmissionJourney({ evaluate, command, click, query, wai
   };
   await fixture.pool.query(`UPDATE tsa.blueprint_offerings SET available_from=clock_timestamp()+interval '1 day',available_until=clock_timestamp()+interval '2 days',revision=revision+1 WHERE blueprint_version_id=$1`, [fixture.blueprint.versionId]);
   await reload('created-attempt'); await catalog('CREATED');
-  assert.equal(await evaluate(`Boolean(${query('demo-start')}) && !${query('demo-start')}.disabled`), true, 'future ordinary window cannot hide the original reserved start');
+  assert.equal(await evaluate(`${query('mode-resume')}?.disabled`), false, 'future ordinary window cannot hide the owned reserved read');
+  assert.equal(await evaluate(`${query('mode-resume')}.textContent`), 'Đọc lại bài đã giữ', 'a reserved attempt is not labeled as running');
+  assert.match(await evaluate(`${query('mode-resume')}.closest('article').textContent`), /chưa bắt đầu/);
+  assert.equal(await evaluate(`${query('demo-start')}.disabled`), true, 'reload does not guess an unknown blueprint association from the domain');
   const futureFacts = await windowFacts('Chưa mở');
   await command('Emulation.setTimezoneOverride', { timezoneId: 'Pacific/Honolulu' });
   assert.equal(await evaluate('new Date().getTimezoneOffset()'), 600);
   const expectedFacts = await deniedNew('Chưa mở', 409, 'FORM_NOT_OPEN'); assert.equal(expectedFacts, futureFacts);
   await catalog('CREATED');
   await click('catalog-filter-available');
-  assert.equal(await evaluate(`Boolean(${query('catalog-card-READING')})`), true, 'available filter retains a valid owned attempt');
-  const beforeStart = creates(); await click('exam-intro'); await assertTimingNotice('intro-start');
-  assert.equal(await evaluate(`${query('intro-start')}.disabled`), false);
-  await click('intro-start'); await waitFor("Boolean(document.getElementById('question-title'))", 'reserved start ignores later ordinary offering edit');
+  assert.equal(await evaluate(`${query('mode-resume')}?.disabled`), false, 'available filter retains access to the owned attempt independently of catalog cards');
+  const beforeStart = creates(); await click('mode-resume');
+  await waitFor(`Boolean(${query('created-attempt')})`, 'owned read restores the original reservation');
+  await assertTimingNotice('created-start');
+  assert.equal(await evaluate(`${query('created-start')}.disabled`), false);
+  await click('created-start'); await waitFor("Boolean(document.getElementById('question-title'))", 'reserved start ignores later ordinary offering edit');
   assert.equal(creates(), beforeStart); assert.equal(starts().length, 1);
   assert.equal(new URL(starts()[0].url).pathname, `/api/v1/attempts/${attemptId}/start`);
   const running = await clocks(); assert.ok(running.started_at); assert.ok(running.deadline_at);
   assert.deepEqual(await frozen(), original);
   await click('option-b'); await waitFor(`${query('save-status')}.classList.contains('saved')`, 'original first answer acknowledged');
   await catalog('IN_PROGRESS'); const beforeResume = creates();
-  await click('demo-start'); await waitFor("Boolean(document.getElementById('question-title'))", 'future-window card resumes active attempt');
+  await click('mode-resume'); await waitFor("Boolean(document.getElementById('question-title'))", 'future-window owned callout resumes active attempt');
   assert.equal(creates(), beforeResume); assert.equal(starts().length, 1); assert.deepEqual(await clocks(), running);
   await fixture.pool.query(`UPDATE tsa.blueprint_offerings SET available_from=clock_timestamp()-interval '2 days',available_until=clock_timestamp()-interval '1 day',revision=revision+1 WHERE blueprint_version_id=$1`, [fixture.blueprint.versionId]);
   await reload('question-card'); await catalog('IN_PROGRESS');
@@ -97,7 +102,7 @@ export async function runAdmissionJourney({ evaluate, command, click, query, wai
   assert.equal((await fixture.pool.query('SELECT count(*)::int AS n FROM tsa.attempts')).rows[0].n, 1);
   await capture('admission-original-result');
   report.admission = { attemptId, futureFacts, elapsedOfferingListed: false, startRequests: starts().length, creationRequests: creates(), attempts: 1, percentage: '100.00' };
-  report.checks = ['Future ordinary window retains valid original start/resume on card/details/filter; omitted elapsed offering retains owned callout resume',
+  report.checks = ['Future and omitted elapsed offerings retain owned read/start/resume through callouts and filters; unknown blueprint association is never guessed after reload',
     'New candidate sees accurate future label/ICT times and elapsed catalog omission, disabled start/details creation, and real409/410 guards',
     'No replacement allocation or clock reset for owned resume; original manifest/snapshots/history/saved answer remain intact',
     'Original two-question exam completes100% after the new-admission window closes'];

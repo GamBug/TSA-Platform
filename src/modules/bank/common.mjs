@@ -79,6 +79,11 @@ export async function assertBankConnection(pool) {
                       AND n.nspname IN ('tsa', 'tsa_private', 'tsa_meta')
                       AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')) AS owns_project_relation,
            pg_has_role(session_user, 'tsa_bank', 'MEMBER') AS bank_member,
+           EXISTS (SELECT 1 FROM pg_auth_members m WHERE m.member = session_role.oid
+                    AND (m.admin_option OR NOT m.inherit_option OR NOT m.set_option)) AS unsafe_role_membership,
+           bank_role.rolcanlogin OR bank_role.rolinherit OR bank_role.rolsuper OR bank_role.rolcreatedb
+             OR bank_role.rolcreaterole OR bank_role.rolreplication OR bank_role.rolbypassrls
+             OR EXISTS (SELECT 1 FROM pg_auth_members m WHERE m.member = bank_role.oid) AS unsafe_capability,
            EXISTS (SELECT 1 FROM pg_auth_members m
                     WHERE m.member = session_role.oid
                       AND m.roleid <> bank_role.oid) AS has_other_membership
@@ -91,7 +96,7 @@ export async function assertBankConnection(pool) {
   if (!row || !row.can_login || row.is_superuser || row.can_createdb || row.can_createrole
       || row.can_replicate || row.bypass_rls || row.is_database_owner || row.owns_project_schema
       || row.owns_project_relation || row.session_name !== row.current_name
-      || !row.bank_member || row.has_other_membership) {
+      || !row.bank_member || row.has_other_membership || row.unsafe_role_membership || row.unsafe_capability) {
     throw new Error('Bank runtime requires a restricted non-owner LOGIN member of tsa_bank');
   }
   await pool.query('SELECT 1 FROM tsa_private.reference_nodes LIMIT 0');

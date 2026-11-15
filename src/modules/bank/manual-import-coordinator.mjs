@@ -8,7 +8,7 @@ import { beginManualImportAdmission, configurationFingerprint, loadManualImportC
 // This session lock intentionally differs from the shared xact Bank guard.
 const coordinatorKey = [1414742321, 3];
 const bankTransactionKey = [1414742321, 1];
-const interactionProfile = 'corpus-reading-interactions-draft/1';
+const isInteraction = (profile) => ['corpus-reading-interactions-draft/1', 'corpus-math-interactions-draft/1'].includes(profile);
 
 function disabledByEnvironment(enabled, env) {
   return (process.env.NODE_ENV !== undefined && !['development', 'test'].includes(process.env.NODE_ENV)) || enabled !== true
@@ -19,8 +19,8 @@ function bindActivation(pkg, configuration) {
   const activation = configuration.activation;
   const permission = pkg.sourcePermissions?.[0];
   const authoring = pkg.sourceAuthoring?.[0];
-  const packageVersionMatches = activation.profile === interactionProfile
-    ? pkg.schemaVersion === 'factory-package/4' && pkg.profile === interactionProfile
+  const packageVersionMatches = isInteraction(activation.profile)
+    ? pkg.schemaVersion === 'factory-package/4' && isInteraction(pkg.profile)
     : pkg.schemaVersion === 'factory-package/3' && ['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1', 'corpus-math-numeric-draft/1'].includes(pkg.profile);
   if (!packageVersionMatches || pkg.profile !== activation.profile
       || pkg.producerNamespace !== activation.producerNamespace
@@ -58,7 +58,7 @@ export async function createManualFactoryImportService({ bankPool, identityServi
     });
   }
   const configuration = await loadManualImportConfiguration({ configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash });
-  if (configuration.activation.profile === interactionProfile && !enableClozeMatching) reject(403, 'MANUAL_CLOZE_MATCHING_DISABLED');
+  if (isInteraction(configuration.activation.profile) && !enableClozeMatching) reject(403, 'MANUAL_CLOZE_MATCHING_DISABLED');
   await assertBankConnection(bankPool);
   const client = await bankPool.connect();
   let state = 'STARTING'; let connectionLost = false; let uncertainCommit = false; let active = null; let released = false; let stopPromise = null;
@@ -138,7 +138,7 @@ export async function createManualFactoryImportService({ bankPool, identityServi
   }
   const admitV3 = (request, input, capability) => admitWith(parseManualFactoryPackageV3, request, input, capability);
   const admitV4 = (request, input, capability) => {
-    if (!enableClozeMatching || configuration.activation.profile !== interactionProfile) {
+    if (!enableClozeMatching || !isInteraction(configuration.activation.profile)) {
       return Promise.reject(Object.assign(new Error('MANUAL_CLOZE_MATCHING_DISABLED'), { code: 'MANUAL_CLOZE_MATCHING_DISABLED' }));
     }
     return admitWith(parseManualFactoryPackageV4, request, input, capability);
@@ -178,12 +178,12 @@ export async function reconcileManualFactoryImportAdmission({ bankPool, identity
   if (typeof enableClozeMatching !== 'boolean') throw new TypeError('enableClozeMatching must be a boolean');
   if (disabledByEnvironment(true, env) || capability !== internalCapability) reject(403, 'FORBIDDEN');
   const configuration = await loadManualImportConfiguration({ configurationDirectory, approvedActivationHash, approvedConfigurationScopeHash, allowPending: true });
-  if (configuration.activation.profile === interactionProfile && !enableClozeMatching) reject(403, 'MANUAL_CLOZE_MATCHING_DISABLED');
+  if (isInteraction(configuration.activation.profile) && !enableClozeMatching) reject(403, 'MANUAL_CLOZE_MATCHING_DISABLED');
   const pending = configuration.pendingAdmissions.get(admissionId);
   if (!pending) reject(409, 'MANUAL_IMPORT_RECONCILIATION_REQUIRED');
   let pkg;
   try {
-    pkg = configuration.activation.profile === interactionProfile
+    pkg = isInteraction(configuration.activation.profile)
       ? parseManualFactoryPackageV4(input)
       : parseManualFactoryPackageV3(input);
   } catch { reject(422, 'VALIDATION_ERROR'); }

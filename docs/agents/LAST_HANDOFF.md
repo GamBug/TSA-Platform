@@ -1,22 +1,66 @@
-# Current handoff — CP6 demo-ready
+# Current handoff — program audit in progress
 
-- Date/time and agent identity/role: 2026-11-10, Asia/Bangkok; Claude Code (Fable 5.2, then Opus 5.5) as implementer; Haiku 5.5 subagent for the notice UI step. Reviewer: Haiku 5.5 `code-reviewer` subagent, read-only.
-- Task ID / status / accountable implementer: CP6 Demo-ready; DONE_WITH_CONCERNS; committed as `55adbb6`; the owner publication command followed in `9f878c0`.
-- Scope: the [CP6 card](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md).
-- Starting repository state: `feat/track-b-data-auth` at `ca0caa9`, clean.
-- Current Git reference: `9f878c0`.
-- Files changed: `src/local/uni-demo*.mjs`, `src/local/track-b.mjs`, `scripts/start-uni-demo.mjs`, `scripts/uni-demo-rehearsal-source.mjs`, `scripts/verify-uni-demo-browser.mjs`, the notice module and its wiring in `apps/practice-prototype`, tests, `package.json`, the run-of-show guide, plan/state/backlog records and the evidence folder.
-- Decisions: none new. No approval, publication, push or retained-database change (one read-only backup was taken).
-- Outcome: card exit criteria pass; evidence in the [CP6 report](../../plans/reports/claude-261110-2301-cp6.md).
+The owner requested a full-program audit and repair loop, single agent, and resumed
+with full execution permissions on 2026-11-11. The current Codex session owns the
+work. [Plan](../../plans/2026-11-11-program-audit/plan.md);
+[audit evidence and live verification handles](../../plans/reports/codex-261111-2256-program-audit.md).
+Confirmed fixes cover numeric/cloze image routing, missing-route responses,
+registered local route forwarding, stale simulation polling and publication source
+selection. Startup role/capability drift and unsupported rights timestamps are now
+rejected correctly too. The baseline has 605 passing integration checks; the latest
+backend run has 543 passing checks, followed by affected timestamp/application
+checks. Chromium/Firefox simulation journeys pass with Back navigation coverage.
+Staff reviewers/managers now discover enabled numeric drafts without the author
+template. Unsaved author edits and uncertain creation requests receive navigation
+warnings; session changes still clear private fields immediately. All 101 app
+tests and standard, numeric/native-dialog and cloze/matching Chromium staff
+journeys pass. Initial browser harness failures and their corrections are recorded
+in the audit report.
+Ordinary deadline reads also fence stale responses and release only their own
+read lock. Latest app tests: 109 passed; expiry/topic Chromium journeys and 33
+topic/attempt backend checks passed.
+The next pass corrected the CREATED reservation callout and verified 19 more
+browser journeys, including admission, allocation races, save/grade failures,
+rate limits, Firefox cloze/matching and disposable university/Reading Factory
+launchers. Two stale journey assumptions were corrected against the frozen read
+contract and explicit conflict recovery; details and original failures are in the
+audit report. Final coverage reconciliation remains outstanding.
+All audit-started processes have completed or were stopped. Retained
+content, approvals and rights were not changed by the audit.
+The full audit remains active. No independent review, retained publication or commit
+is claimed. The prior Math handoff below remains valid for that preserved work.
+
+## Previous handoff — Math cloze and matching
+
+- Date and implementer: 2026-11-11, Asia/Bangkok; current Codex session, single agent. No subagents or independent reviewer.
+- Task/status: [Math cloze/matching follow-up](../tasks/TASK_BACKLOG.md#math-clozematching-follow-up), DONE_WITH_CONCERNS, uncommitted. [Plan](../../plans/261111-2045-math-cloze-matching/plan.md); [report](../../plans/reports/codex-261111-2045-math-cloze-matching.md).
+- Starting state: `feat/track-b-data-auth` at `61a35ab`, with only the preceding untracked Math diagnosis report. It was preserved; no concurrent implementers were used.
+- Scope: private standalone Math intake, question/3 owner publication, separate published-only demo practice and retained DRAFT import. Excluded unrelated image/fraction work and retained publication.
+- Changed surfaces: private factory/4 schemas/builder and admission mapping/namespace; Math package/intake tools; owner publication and university demo; regression/browser checks; owning guides, decision/task/state/plan/report records and journal.
+- Authorization: [owner's 2026-11-11 Math instruction](../decisions/OPEN_DECISIONS.md#math-cloze-and-matching-intake--2026-11-11). No new database migration or student contract version. No commits, paid APIs or retained approvals.
+- Result: 22 new DRAFTs (10 cloze, 12 matching); Math 281 total, including 259 previously published. All existing question hashes, 100 Reading questions, 359 reviews, 24 rights records and 359 eligible versions are unchanged. All 600 source files are unchanged. New drafts remain unselectable.
 
 ## Verification evidence
 
-The report lists every executed command and result. Not executed: Firefox journeys and macOS.
+Linux, Node 24.18.0, PostgreSQL 18.6 and local Chromium, 2026-11-11. Exact commands, logs, initial failures and fixes are in the report.
+
+| Check | Observed result |
+|---|---|
+| Build, typecheck, generated contracts, consumer boundaries | PASS. |
+| Affected Bank/import/local/student/scoring regressions | 251 passed. |
+| Final focused Math/Reading/source-pin/stock checks | 16 passed. |
+| Contract suite; app suite | 192 and 86 passed. |
+| Synthetic publication and /api/v4 journey | Rights/self-approval gates passed; allocation/save/submit/grade 4/4. |
+| Chromium student flow and 375px layout | Both types saved; 4/4 result; no console errors or overflow. Screenshot inspected. |
+| Retained imports and replay | Two backups, 22 DRAFTs, exact keys and replay, preserved baseline counts/hashes. |
+| Owner publication dry run | 22 Math candidates; three sources need rights; phrase `PUBLISH 22 MATH`. |
+| `npm run docs:check`; `git diff --check` | PASS; only pre-existing pinned research warnings. |
+
+Independent review: NOT PERFORMED, per the owner's single-agent experiment. Inline code review used the code-review skill. Firefox and browser inspection of every real corpus question were NOT RUN; browser content was synthetic. New plan/report links were checked separately because the docs checker excludes untracked plan/report discovery.
 
 ## Continuation
 
-- Known issues: review items 2, 7, 9, 10, 11 and 13 are open; see the [review record](../../plans/reports/code-reviewer-261110-2301-cp6-checkpoint.md).
-- Remaining work: owner approval and publication of items plus the rights evidence record, then `DEMO_UNI_SOURCE_CREDIT=... npm run demo:uni`. CP5 waits for Science files.
-- Recommended next action: decide the staff-exposure question, then approve and publish items.
-- Ownership transfer: no background processes remain; demo copies were deleted.
-- Recovery notes: the retained Bank backup from this session is `.local/track-b-backups/before-start-pSpg5l/`.
+- Owner next action: review six derived pools, symbolic exact-text answers and source wording/key concerns in the report; then run `npm run bank:owner-publish -- --section MATH --confirm "PUBLISH 22 MATH"`. Restart `demo:uni` with the existing source credit and open `?student=postgres-v4`.
+- Remaining sources: GiaiTich/000007 needs its graph; HinhHoc/000007 lacks complete question/key data; XacxuatThongke/000034 has no visible keys. Across Math, 119 captures remain without retained imports.
+- Recovery: artifacts under `data/corpus-ingest/cp3b-interactions-2026-11-11/`. Dumps: `retained/backup/before-start-ovUMeA/database.dump` and `retained-text-only/backup/before-start-svvjST/database.dump`. Inspect original package/admission/receipt records before recovery; do not regenerate identities for committed batches.
+- Ownership: implementation complete; no delegate ownership or background process remains. Backlog, project state and handoff were updated by the same implementer. Earlier CP6 evidence remains in its [report](../../plans/reports/claude-261110-2301-cp6.md) and Git history.

@@ -111,8 +111,8 @@ async function readRequestBody(request, maxRequestBytes) {
 }
 
 function requestLike(method, pathname) {
-  return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/workspace/")
-    || /^\/api\/v[1234](?:\/|$)/.test(pathname) || pathname === "/local/demo-notice";
+  return pathname.startsWith("/local-auth/") || pathname.startsWith("/local/")
+    || /^\/api\/v[1234](?:\/|$)/.test(pathname);
 }
 
 function tooLargeResponse(url) {

@@ -8,7 +8,9 @@ import { BankCommandError } from './common.mjs';
 const files = Object.freeze({ activation: 'activation.json', mapping: 'mapping.json', state: 'active-state.json', retired: 'retired-activations.ndjson', admissions: 'admissions.ndjson' });
 export const MANUAL_IMPORT_CONFIGURATION_LAYOUT = files;
 const INTERACTION_PROFILE = 'corpus-reading-interactions-draft/1';
-const PROFILES = new Set(['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1', 'corpus-math-numeric-draft/1', INTERACTION_PROFILE]);
+const MATH_INTERACTION_PROFILE = 'corpus-math-interactions-draft/1';
+const isInteraction = (profile) => [INTERACTION_PROFILE, MATH_INTERACTION_PROFILE].includes(profile);
+const PROFILES = new Set(['manual-reading-draft/1', 'corpus-reading-draft/1', 'corpus-math-draft/1', 'corpus-math-numeric-draft/1', INTERACTION_PROFILE, MATH_INTERACTION_PROFILE]);
 const activationKeys = ['schemaVersion', 'activationId', 'profile', 'ownerDecisionRef', 'producerNamespace', 'registeredAuthorId', 'declaredOperatorId', 'sourceVersionId', 'sourceTextHash', 'permissionHash', 'sourceAuthoringHash', 'responseHash', 'promptHash', 'mappingHash', 'taxonomyVersionId', 'taxonomyDefinitionHash', 'validFrom', 'validUntil'];
 const stateKeys = ['schemaVersion', 'activationId', 'activationHash', 'status'];
 const hashPattern = /^sha256:[0-9a-f]{64}$/;
@@ -94,7 +96,7 @@ function validateState(state, activation, activationHash) {
 function validateMapping(mapping, activation) {
   let parsed;
   try {
-    parsed = activation.profile === INTERACTION_PROFILE
+    parsed = isInteraction(activation.profile)
       ? parseManualImportMappingV4(mapping)
       : parseManualImportMapping(mapping);
   } catch { fail(); }
@@ -117,7 +119,7 @@ async function retiredHashes(directory) {
   }
   return result;
 }
-const validCandidateCount = (profile, count) => profile === 'corpus-math-draft/1' || profile === 'corpus-math-numeric-draft/1'
+const validCandidateCount = (profile, count) => profile === 'corpus-math-draft/1' || profile === 'corpus-math-numeric-draft/1' || profile === MATH_INTERACTION_PROFILE
   ? count >= 1 && count <= 20 : profile === INTERACTION_PROFILE ? count === 7 || count === 8 : count === 10;
 async function admissionEvents(directory, profile) {
   const path = await privateFile(directory, files.admissions, true); if (!path) return new Map();

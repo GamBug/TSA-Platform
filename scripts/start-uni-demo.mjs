@@ -44,6 +44,7 @@ export function formatDemoSummary(demo) {
       `${SECTION_NAMES[profile.section]} ${profile.offered ? 'offered' : 'not offered'} (${profile.available}/${profile.required})`).join(' · ')}`,
     `Numeric practice: ${report.numericPractice.map((profile) =>
       `${SECTION_NAMES[profile.section]} ${profile.offered ? 'offered' : 'not offered'} (${profile.available}/${profile.required})`).join(' · ')}`,
+    `Cloze/matching practice: Mathematics ${report.clozeMatchingPractice.offered ? 'offered' : 'not offered'} (${report.clozeMatchingPractice.available}/${report.clozeMatchingPractice.required})`,
     `Topic practice: ${report.topicPractice.available ? 'available for published topics' : 'no published items'}`,
     `Bank workflow: ${report.workflow.map((entry) => `${SECTION_NAMES[entry.section]} ${entry.state} ${entry.count}`).join(' · ') || 'no question versions'}`,
   ];
@@ -56,6 +57,7 @@ export function formatDemoSummary(demo) {
   lines.push('',
     `Student practice:  ${demo.urls.student}`,
     `Numeric practice:  ${demo.urls.numeric}`,
+    `Cloze/matching:    ${demo.urls.clozeMatching}`,
     `Full simulation:   ${demo.urls.simulation}`,
     `Staff workspace:   ${demo.urls.staff}`,
     '',
@@ -100,6 +102,7 @@ async function runWorker(rehearsal) {
     if (stopRequested) { await stop(); return; }
     process.stdout.write(`${JSON.stringify({ event: 'ready', mode: demo.mode, urls: demo.urls,
       published: demo.report.published, fullSimulationsWithoutRepeats: demo.report.fullSimulation.withoutRepeats,
+      clozeMatchingPractice: demo.report.clozeMatchingPractice,
       numericPractice: demo.report.numericPractice.map(({ section, offered, available }) => ({ section, offered, available })) })}\n`);
     process.stdout.write(formatDemoSummary(demo));
   } catch (error) {

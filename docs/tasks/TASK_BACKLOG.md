@@ -13,3 +13,37 @@ CP0 and CP1 are complete; see the [baseline report](../../plans/reports/codex-26
 | [CP6 Demo-ready](../../plans/261108-1553-codex-autonomous-demo/cp6-demo-ready.md) | Verify the integrated local demo | DONE (committed `55adbb6`) | [Report](../../plans/reports/claude-261110-2301-cp6.md); owner approval and publication still gate real content |
 
 Only the owner can approve question publication or record corpus permission evidence. Do not infer those gates from implementation or test results.
+
+## Program audit and repair loop
+
+Status: ACTIVE, updated 2026-11-12. Owner requested a full-program audit and repair loop with
+one agent and resumed with full execution permissions. Current Codex session owns
+implementation and inline review; no delegation. Preserve the existing Math work
+and publication gates. [Plan](../../plans/2026-11-11-program-audit/plan.md);
+[current evidence](../../plans/reports/codex-261111-2256-program-audit.md).
+Confirmed fixes cover versioned image routing, disabled/unknown route responses,
+registered local route forwarding, stale simulation polling and publication source
+selection. Startup role/capability drift and rights timestamp validation are also
+repaired. The recorded baseline has 605 passing integration checks; the latest
+backend run passes 543 checks, with separate final timestamp and application
+regressions and Chromium/Firefox simulation journeys. Staff numeric discovery and
+unsaved author navigation are repaired, with 101 app tests and three Chromium
+staff journeys passing at that revision. The deadline-read race is also repaired;
+latest evidence adds 109 app passes, expiry/topic browser journeys and 33
+topic/attempt backend passes. A subsequent reserved-attempt label repair and 19
+additional browser journeys pass, including recovery/rate-limit and disposable
+launcher paths. Final coverage reconciliation remains outstanding.
+
+## Math cloze/matching follow-up
+
+Status: DONE_WITH_CONCERNS, uncommitted, 2026-11-11. Accountable implementer: current Codex session,
+single agent at the owner's request; no delegation or independent review. Starting HEAD `61a35ab`;
+the preceding untracked investigation report was preserved. Scope and reserved surfaces are in the
+[task plan](../../plans/261111-2045-math-cloze-matching/plan.md).
+
+Imported 22 explicitly keyed Math question/3 DRAFTs after backups; three of the original 25 captures
+still lack required source information. Owner publication and the published-only university demo
+support the new profile. Retained Math is 281 questions: 259 previously published, 22 new drafts.
+Checks and content limitations: [delivery report](../../plans/reports/codex-261111-2045-math-cloze-matching.md).
+Next owner action: review the adaptations and run the dry-run-confirmed publication command in that
+report, then restart the demo. No retained approvals or commits were made by this task.

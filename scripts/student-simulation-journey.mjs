@@ -19,6 +19,17 @@ export async function runSimulationJourney({evaluate,click,query,waitFor,capture
  for(const width of [1440,768,narrowWidth]){await viewport(width,900);assert.equal(await evaluate('innerWidth'),width);assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);await capture(`simulation-math-${width}`);}
  await viewport(1280,900);
  const before=await evaluate('performance.timeOrigin');await reload();await waitFor(`performance.timeOrigin!==${before}&&Boolean(${query('option-b')})`,'refresh resumes simulation');assert.equal(await evaluate(`${query('option-b')}.checked`),true);
+ const navigationOrigin=await evaluate('performance.timeOrigin');
+ await evaluate('(()=>{location.assign("/fonts/OFL.txt");return true;})()');
+ await waitFor('location.pathname==="/fonts/OFL.txt"','temporary navigation away from the simulation');
+ await evaluate('(()=>{history.back();return true;})()');
+ await waitFor(`location.pathname==="/"&&Boolean(${query('option-b')})`,'Back resumes the simulation');
+ const restoredFromCache=await evaluate(`performance.timeOrigin===${navigationOrigin}`);
+ const returnedClock=await evaluate('document.querySelector(\'[data-clock="math"]\').textContent');
+ await waitFor(`document.querySelector('[data-clock="math"]').textContent!==${JSON.stringify(returnedClock)}`,
+   `simulation clock updates after Back (cached document: ${restoredFromCache})`);
+ assert.equal(await evaluate(`${query('option-b')}.checked`),true);
+ report.checks.push(`Back navigation preserves the saved answer and a ticking clock (cached document: ${restoredFromCache}).`);
  for(let i=1;i<40;i++){await click('question-next');await click('option-b');await waitFor(`${query('save-status')}.classList.contains('saved')`,'mathematics answer saved');}
  await fixture.expireSection(id,'math');await click('simulation-reload');await waitFor(`Boolean(${query('section-locked')})`,'server expiry locks math');assert.equal(await evaluate(`${query('option-b')}.disabled`),true);
  await capture('simulation-locked-math');await click('section-reading');await waitFor(`document.querySelector('[role="tabpanel"]').getAttribute('aria-label')==='Reading'`,'reading opened');

@@ -9,7 +9,7 @@ export function renderQuestionImage(block, { attemptId, purpose = 'question', ap
   if (block.caption) {
     const caption = document.createElement('figcaption'); caption.textContent = block.caption; figure.append(caption);
   }
-  if (!UUID.test(attemptId) || !UUID.test(block.assetVersionId) || !['question', 'explanation'].includes(purpose) || !['v1','v2','v3'].includes(apiVersion)) return figure;
+  if (!UUID.test(attemptId) || !UUID.test(block.assetVersionId) || !['question', 'explanation'].includes(purpose) || !['v1','v2','v3','v4'].includes(apiVersion)) return figure;
   const url = `/api/${apiVersion}/attempts/${attemptId}/assets/${block.assetVersionId}?purpose=${purpose}`;
   const enlarge = document.createElement('button'); enlarge.type = 'button'; enlarge.className = 'question-image-enlarge';
   enlarge.setAttribute('aria-label', `Phóng to hình: ${block.alt}`); enlarge.setAttribute('aria-haspopup', 'dialog');

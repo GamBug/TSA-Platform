@@ -196,6 +196,10 @@ The broader proposed staff table below is not approved wholesale by this addendu
 | GET `/forms/{id}` | EXAM_MANAGER | fixed forms only; personal IDs return 404 → 200 `{formId:UUID,blueprintVersionId:UUID,contentHash:string,slots:{slotId:UUID,questionVersionId:UUID,ordinal:number}[]}`; keys require separate reviewed bank access |
 | GET `/assembly-runs/{id}/diagnostics` | BANK_MANAGER | fixed assembly runs only; personal IDs return 404 → 200 AssemblyDiagnostic; audited, no keys/explanations; does not authorize POST assembly |
 
+Implemented rights timestamp validation rejects calendar values, years and offsets
+that PostgreSQL cannot store with `422 VALIDATION_ERROR`. Fractional seconds pass
+through unchanged; see the [timestamp boundary and precision checks](../../tests/integration/bank/rights-timestamps.test.mjs).
+
 ```typescript
 type RightsStatus = "OWNED"|"LICENSED"|"OPEN_LICENSE"|"PUBLIC_DOMAIN"|
   "REFERENCE_ONLY"|"UNKNOWN"|"REVOKED";

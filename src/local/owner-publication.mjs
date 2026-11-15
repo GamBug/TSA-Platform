@@ -32,6 +32,7 @@ export async function listOwnerCandidates(client, { section = null } = {}) {
     SELECT v.id, v.section::text AS section, w.state::text AS state, w.revision::integer AS revision,
            v.content_hash AS "contentHash", v.created_by AS "createdBy", v.stimulus_version_id AS "stimulusVersionId",
            v.schema_version AS "schemaVersion",
+           ARRAY(SELECT s.id FROM tsa.bank_question_sources(v.id) s ORDER BY s.id) AS "sourceVersionIds",
            EXISTS(SELECT 1 FROM tsa.duplicate_group_members m WHERE m.question_id=v.question_id) AS grouped,
            EXISTS(SELECT 1 FROM tsa.bundle_members bm WHERE bm.question_version_id=v.id) AS bundled
       FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id=v.id
@@ -103,7 +104,7 @@ export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_RE
       throw new Error('The approving account must differ from the author and import operator');
     }
     // question/2 (numeric answers) needs the numeric opt-in; every other check is identical.
-    await assertPublicationChecks(client, target, null, { enableNumericQuestions: target.schema_version === 'question/2' });
+    await assertPublicationChecks(client, target, null, { enableNumericQuestions: target.schema_version === 'question/2', enableClozeMatching: target.schema_version === 'question/3' });
     const reviewId = randomUUID();
     await client.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
       VALUES($1,$2,$3,$4,'APPROVE',$5::jsonb,$6)`, [reviewId, versionId, target.content_hash, reviewerId, JSON.stringify(RUBRIC), APPROVAL_REASON]);
@@ -116,6 +117,7 @@ export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_RE
     await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_REVIEW_APPROVE', Number(changed.rows[0].revision), APPROVAL_REASON);
     // The selection gate admits question/2 only while the numeric-practice setting is on, as it is when students are served.
     if (target.schema_version === 'question/2') await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true)");
+    if (target.schema_version === 'question/3') await client.query("SELECT set_config('tsa.enable_cloze_matching','true',true)");
     const selectable = (await client.query('SELECT tsa.bank_question_selection_allowed($1) AS ok', [versionId])).rows[0].ok;
     if (selectable !== true) throw new Error(`Version ${versionId} is approved but not selectable; rolled back`);
     return reviewId;

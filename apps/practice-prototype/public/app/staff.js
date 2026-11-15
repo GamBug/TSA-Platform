@@ -1552,6 +1552,9 @@ export async function openStaffWorkspace(container, onBack) {
     evidenceRequestId: 0,
     evidenceView: null,
     pendingCreate: null,
+    authorForm: null,
+    authorDraftDirty: false,
+    authorDraftRevision: 0,
     handoffRequestId: 0,
     handoffStatus: null,
     handoffConfirmation: null,
@@ -1573,6 +1576,24 @@ export async function openStaffWorkspace(container, onBack) {
   const questionApi = () => state.clozeMatchingQuestions && state.questionProtocol === 'cloze-matching' ? '/api/v4'
     : state.numericQuestions ? '/api/v2' : '/api/v1';
 
+  function clearAuthorDraft() {
+    state.pendingCreate = null;
+    state.authorForm = null;
+    state.authorDraftDirty = false;
+    state.authorDraftRevision = 0;
+  }
+
+  function hasUnsavedAuthorDraft() {
+    return Boolean(state.principal?.roles?.includes('AUTHOR') && state.authorForm?.isConnected
+      && (state.authorDraftDirty || state.pendingCreate));
+  }
+
+  function confirmDiscardAuthorDraft() {
+    return !hasUnsavedAuthorDraft() || browserWindow?.confirm(
+      'Bạn có thay đổi chưa lưu hoặc yêu cầu tạo bản nháp chưa được xác nhận. Rời đi và bỏ nội dung đang soạn? Yêu cầu đã gửi vẫn có thể đã được lưu ở máy chủ.',
+    ) === true;
+  }
+
   function sessionChangedError() {
     const error = new Error('The local session changed. Reload its current state before continuing.');
     error.code = 'STAFF_SESSION_CHANGED';
@@ -1590,7 +1611,7 @@ export async function openStaffWorkspace(container, onBack) {
     state.numericQuestions = false;
     state.clozeMatchingQuestions = false;
     state.questionProtocol = 'legacy';
-    state.pendingCreate = null;
+    clearAuthorDraft();
     state.canReadList = false;
     state.items = [];
     state.nextCursor = null;
@@ -1631,8 +1652,10 @@ export async function openStaffWorkspace(container, onBack) {
     }
   }
   const returnToPractice = () => {
-    if (!isWorkspaceActive()) return;
+    if (!isWorkspaceActive() || !confirmDiscardAuthorDraft()) return;
+    clearAuthorDraft();
     clearPrivateReviewView();
+    detachDraftGuard();
     ACTIVE_PRIVATE_VIEW_CLEARERS.delete(container);
     if (!invalidateWorkspace()) return;
     onBack();
@@ -1997,7 +2020,19 @@ export async function openStaffWorkspace(container, onBack) {
       state.datasetPreflightControls.count.focus();
     } else if (restoreFocus && previous?.triggerElement?.isConnected) previous.triggerElement.focus();
   }
-  ACTIVE_PRIVATE_VIEW_CLEARERS.set(container, () => clearPrivateReviewView());
+  const browserWindow = globalThis.window;
+  const preventUnsavedUnload = event => {
+    if (!isWorkspaceActive() || !hasUnsavedAuthorDraft()) return;
+    event.preventDefault();
+    event.returnValue = '';
+  };
+  const detachDraftGuard = () => browserWindow?.removeEventListener('beforeunload', preventUnsavedUnload);
+  browserWindow?.addEventListener('beforeunload', preventUnsavedUnload);
+  ACTIVE_PRIVATE_VIEW_CLEARERS.set(container, () => {
+    detachDraftGuard();
+    clearAuthorDraft();
+    clearPrivateReviewView();
+  });
 
   async function loadFixedRunList(triggerElement = state.fixedRunView?.triggerElement) {
     if (!isWorkspaceActive() || !state.canReadList || !state.principal?.roles?.includes('BANK_MANAGER')) return;
@@ -4727,7 +4762,7 @@ export async function openStaffWorkspace(container, onBack) {
       }, 'button secondary'));
     }
     actions.append(button('Đăng xuất', 'staff-logout', async () => {
-      if (!isWorkspaceActive()) return;
+      if (!isWorkspaceActive() || !confirmDiscardAuthorDraft()) return;
       const logoutEpoch = state.identityEpoch;
       clearPrivateReviewView();
       try {
@@ -4738,6 +4773,7 @@ export async function openStaffWorkspace(container, onBack) {
         state.principal = null;
         state.sessionBinding = null;
         state.template = null;
+        clearAuthorDraft();
         state.canReadList = false;
         state.items = [];
         state.nextCursor = null;
@@ -4788,6 +4824,14 @@ export async function openStaffWorkspace(container, onBack) {
       formCard.append(node('p', 'staff-private-notice', 'Mẫu riêng chỉ được gửi sau khi máy chủ xác nhận vai trò AUTHOR. Chỉnh sửa văn bản, lựa chọn, đáp án và lời giải trước khi tạo bản nháp.'));
       formCard.append(node('p', 'staff-form-help', 'Trình soạn thảo này hỗ trợ tối đa hai lựa chọn hoặc hai mệnh đề. Chọn phân loại từ phiên bản cây chủ đề đã đăng ký; chỉ dùng nội dung tổng hợp trong môi trường cục bộ.'));
       const form = node('form', 'staff-draft-form');
+      state.authorForm = form;
+      const markAuthorDraftDirty = () => {
+        if (!isWorkspaceActive() || state.authorForm !== form) return;
+        state.authorDraftDirty = true;
+        state.authorDraftRevision++;
+      };
+      form.addEventListener('input', markAuthorDraftDirty);
+      form.addEventListener('change', markAuthorDraftDirty);
       const classification = node('fieldset', 'staff-interaction-fieldset');
       classification.append(node('legend', '', 'Phân loại câu hỏi'));
       const selectors = {};
@@ -5076,6 +5120,7 @@ export async function openStaffWorkspace(container, onBack) {
         event.preventDefault();
         if (!isWorkspaceActive() || state.busy) return;
         const submissionEpoch = state.identityEpoch;
+        const submissionRevision = state.authorDraftRevision;
         const submissionIsCurrent = () => isWorkspaceActive() && submissionEpoch === state.identityEpoch;
         for (const [input, message] of requiredTextInputs) {
           input.setCustomValidity(input.disabled || input.value.trim() ? '' : message);
@@ -5149,6 +5194,7 @@ export async function openStaffWorkspace(container, onBack) {
           });
           if (!submissionIsCurrent()) return;
           state.pendingCreate = null;
+          state.authorDraftDirty = state.authorDraftRevision !== submissionRevision;
           state.questionProtocol = draftProtocol;
           const protocolFilter = container.querySelector('[data-testid="staff-protocol-filter"]');
           if (protocolFilter) protocolFilter.value = draftProtocol;
@@ -5235,6 +5281,7 @@ export async function openStaffWorkspace(container, onBack) {
 
   async function loadWorkspace() {
     if (!isWorkspaceActive() || !await refreshSession() || !isWorkspaceActive()) return;
+    clearAuthorDraft();
     clearPrivateReviewView();
     state.identityEpoch += 1;
     state.listRequestId += 1;
@@ -5259,6 +5306,13 @@ export async function openStaffWorkspace(container, onBack) {
       state.clozeMatchingQuestions = false;
       if (state.canReadList) {
         // Reviewers cannot read the author template, so the route itself reports whether it is enabled.
+        try {
+          await request('/api/v2/questions?limit=1');
+          if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
+          state.numericQuestions = true;
+        } catch (error) {
+          if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;
+        }
         try {
           await request('/api/v4/questions?limit=1');
           if (!isWorkspaceActive() || identityEpoch !== state.identityEpoch) return;

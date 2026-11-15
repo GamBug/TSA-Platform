@@ -48,8 +48,10 @@ async function stopChild(processHandle) {
 async function waitForReady(processHandle, timeoutMs = 120_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const line = processHandle.output.split('\n').find((entry) => entry.startsWith('{"event":"ready"'));
-    if (line) return JSON.parse(line);
+    const line = processHandle.output.split('\n').slice(0, -1).find((entry) => entry.startsWith('{"event":"ready"'));
+    // Readiness can arrive in an earlier pipe chunk than the human-facing banner.
+    const bannerComplete = processHandle.output.includes('Keep this terminal running. Ctrl+C stops the app and deletes its disposable database.\n\n');
+    if (line && bannerComplete) return JSON.parse(line);
     if (processHandle.child.exitCode !== null || processHandle.child.signalCode !== null) break;
     await new Promise((resolve) => setTimeout(resolve, 30));
   }

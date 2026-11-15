@@ -40,6 +40,11 @@ NODE_ENV=development LOCAL_SYNTHETIC_ONLY=true LOCAL_STUDENT_ENABLED=true LOCAL_
 
 Startup takes a private backup before migrations/bootstrap. Staff template capability enables the numeric editor, taxonomy selectors and canonical private key validation. Numeric creation/revision/review uses the additive v2 Bank routes and `staff-review-context/2`; ordinary v1 services retain their existing behavior. Creation stays DRAFT, source rights remain authoritative, and an UNKNOWN-rights template produces a blocked preview. This command does not install numeric offerings or authorize source qualification/publication. Use the disposable launcher for a ready engineering demonstration.
 
+Reviewers and Bank managers discover numeric metadata through the enabled v2
+route without reading the author template. Their existing role and workflow
+restrictions still control private inspection; discovery does not grant access to
+keys, explanations or publication.
+
 ## Verification
 
 ```sh

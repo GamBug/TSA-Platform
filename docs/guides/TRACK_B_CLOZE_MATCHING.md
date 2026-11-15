@@ -2,7 +2,8 @@
 
 This optional local Track B capability adds text-entry (cloze) and matching items through the existing
 Bank, allocation, attempt, grading and released-review services. It is unofficial practice and is off by
-default. Design: [CP4 interaction design](../../plans/261108-1553-codex-autonomous-demo/cp4-design.md).
+default in the retained development runtime. The university demo enables it for published Math
+offerings. Design: [CP4 interaction design](../../plans/261108-1553-codex-autonomous-demo/cp4-design.md).
 
 ## Run a disposable demonstration
 
@@ -60,6 +61,38 @@ actions.
 captures through a disposable Bank database only. It never approves, publishes, or writes to a
 retained database, and it leaves keyless true/false captures in a deferred report.
 
+Math uses the separate private `corpus-math-interactions-draft/1` profile and
+`tsa.corpus.math-interactions.v1` namespace. Its factory/4 batches contain 1–20 standalone
+question/3 drafts, with capture hashes, source-key evidence, private raw artifacts and strict replay.
+Reading's passage grouping and seven/eight-candidate rules remain unchanged. The
+[Math package builder](../../tools/corpus-ingest/math-interactions-package.mjs) validates the typed
+projection before writing private artifacts. The [intake command](../../tools/corpus-ingest/import-math-interactions.mjs)
+checks a pinned transcription and the complete original source manifest before opening the Bank:
+
+```sh
+node tools/corpus-ingest/import-math-interactions.mjs \
+  --source-root TSA_Example_Questions --transcription /private/transcription.json \
+  --manifest /private/source-manifest.json --output /private/new-import-run \
+  --data-directory .local/track-b
+```
+
+This is inspection only. Explicit `--import` takes a database backup before any data writes and
+imports unpublished drafts in bounded batches. A separate append run requires a new output folder,
+new batch numbers (`--batch-start`) and an explicit receipt baseline (`--expected-existing-receipts`);
+previously imported capture paths are rejected. A stopped run retains its package, mapping,
+activation/admission journals and completed receipts: inspect those before recovery, rather than
+generating new identities for a committed batch.
+
+Visible matching pools are preserved. Missing pools are derived only from captured correct texts
+and flagged as adaptations requiring owner review. A target's reuse bound is the row count, an
+explicit adaptation rather than a claim about the source interaction. Symbolic cloze questions state
+their keyboard notation; comparison remains exact text after the existing normalization, with no
+algebraic equivalence or unrecorded accepted variants.
+
+After owner publication, `npm run demo:uni` offers a separate four-question, six-minute Math practice
+at `?student=postgres-v4` when one taxonomy version contains enough published standalone items.
+Choice and numeric offerings remain separate. See the [run of show](TRACK_B_SUPERVISOR_RUN_OF_SHOW.md).
+
 ## Verification
 
 ```sh
@@ -70,6 +103,8 @@ npm run test:b0
 npm run test:student:cloze-matching
 npm run test:student:cloze-matching:firefox
 npm run test:staff:cloze-matching
+node --test tests/ai/corpus-math-interactions.test.mjs tests/integration/bank/math-interactions-import.test.mjs
+MATH_INTERACTIONS_BROWSER=true node --test tests/integration/bank/math-interactions-import.test.mjs
 ```
 
 Browser scripts need the existing local Chromium and geckodriver setup. Chromium checks a 375px

@@ -15,7 +15,8 @@ const numericMode = studentMode === "postgres-v2";
 const v4Mode = studentMode === "postgres-v4";
 const persistentMode = numericMode || v4Mode || studentMode === "postgres";
 productHeader.dataset.persistent = String(persistentMode);
-const api = persistentMode ? createPersistentApi({ apiVersion: numericMode ? "v2" : v4Mode ? "v4" : "v1" }) : demoApi;
+const apiVersion = numericMode ? "v2" : v4Mode ? "v4" : "v1";
+const api = persistentMode ? createPersistentApi({ apiVersion }) : demoApi;
 let characterShortcutsEnabled = true;
 
 // Browse navigation belongs to the product shell, independent of route content.
@@ -452,7 +453,7 @@ function renderContentBlocks(blocks = [], { purpose = "question" } = {}) {
       scroll.append(table);
       content.append(scroll);
     } else if (block?.type === "image") {
-      content.append(renderQuestionImage(block, { attemptId: state.attempt?.attemptId, purpose }));
+      content.append(renderQuestionImage(block, { attemptId: state.attempt?.attemptId, purpose, apiVersion }));
     }
   }
   return content;
@@ -611,22 +612,26 @@ function formatRemaining(milliseconds) {
 async function refreshAfterDeadline() {
   const identityGeneration = state.identityGeneration;
   if (state.checkingExpiry || state.attempt === null) return;
-  state.checkingExpiry = true;
+  const attempt = state.attempt;
+  const read = {};
+  state.checkingExpiry = read;
+  const readIsCurrent = () => identityGeneration === state.identityGeneration
+    && state.checkingExpiry === read && state.attempt === attempt;
   try {
-    const data = await readExpectedAttempt(state.attempt.attemptId, state.attempt);
-    if (identityGeneration !== state.identityGeneration) return;
+    const data = await readExpectedAttempt(attempt.attemptId, attempt);
+    if (!readIsCurrent()) return;
     if (data.attempt.state === "IN_PROGRESS") {
       startTimer(data.attempt, true);
       return;
     }
     acceptAttempt(data.attempt);
   } catch (error) {
-    if (identityGeneration !== state.identityGeneration) return;
+    if (!readIsCurrent()) return;
     if (persistentMode && handlePersistentError(error)) return;
     showMessage("Chưa kiểm tra được trạng thái thời gian. Đang giữ nguyên câu trả lời đã ghi nhận.");
     state.nextExpiryCheckAt = performance.now() + 2000;
   } finally {
-    if (identityGeneration === state.identityGeneration) state.checkingExpiry = false;
+    if (state.checkingExpiry === read) state.checkingExpiry = false;
   }
 }
 
@@ -2635,8 +2640,10 @@ function renderPracticeModes() {
   if (active) {
     const resume = element("article", "practice-mode");
     resume.append(element("span", "catalog-overline", "TIẾP TỤC"), element("h2", "", "Bài của bạn đã lưu"),
-      element("p", "", `${domainNames[active.domain] ?? "Bài luyện tập"} · ${active.answeredCount ?? 0}/${active.questionCount ?? active.slots.length} câu đã trả lời`));
-    const continueButton = actionButton("Tiếp tục bài đang làm", "mode-resume", resumePersistentAttempt, "button secondary");
+      element("p", "", active.state === "CREATED"
+        ? `${domainNames[active.domain] ?? "Bài luyện tập"} · Đã giữ bài, chưa bắt đầu`
+        : `${domainNames[active.domain] ?? "Bài luyện tập"} · ${active.answeredCount ?? 0}/${active.questionCount ?? active.slots.length} câu đã trả lời`));
+    const continueButton = actionButton(active.state === "CREATED" ? "Đọc lại bài đã giữ" : "Tiếp tục bài đang làm", "mode-resume", resumePersistentAttempt, "button secondary");
     continueButton.disabled = state.busy || hasUnacknowledgedChanges();
     resume.append(continueButton); modes.append(resume);
   }
@@ -3079,7 +3086,7 @@ function renderNumericResponse(question, saving) {
   input.setAttribute("aria-describedby", "numeric-answer-help numeric-answer-error");
 
   const help = element("p", "numeric-answer-help",
-    "Có thể thêm dấu + hoặc −, dùng 1–40 chữ số nguyên và tùy chọn 1–20 chữ số thập phân. Có thể có khoảng trắng ở đầu hoặc cuối. Dấu phẩy là dấu thập phân; không dùng dấu phân nhóm hàng nghìn, lũy thừa, đơn vị hoặc phân số.");
+    "Có thể thêm dấu + hoặc -, dùng 1–40 chữ số nguyên và tùy chọn 1–20 chữ số thập phân. Có thể có khoảng trắng ở đầu hoặc cuối. Dấu phẩy là dấu thập phân; không dùng dấu phân nhóm hàng nghìn, lũy thừa, đơn vị hoặc phân số.");
   help.id = "numeric-answer-help";
   const error = element("p", "numeric-answer-error");
   error.id = "numeric-answer-error";

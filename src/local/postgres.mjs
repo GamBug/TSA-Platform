@@ -297,12 +297,23 @@ export async function ensureRuntimeRoles(ownerPool, { student = false } = {}) {
       `SELECT r.rolcanlogin, r.rolinherit, r.rolsuper, r.rolcreatedb, r.rolcreaterole,
               r.rolreplication, r.rolbypassrls,
               ARRAY(SELECT parent.rolname::text FROM pg_auth_members m JOIN pg_roles parent ON parent.oid=m.roleid
-                     WHERE m.member=r.oid ORDER BY parent.rolname) AS parents
-         FROM pg_roles r WHERE r.rolname=$1`, [role.name]);
+                     WHERE m.member=r.oid ORDER BY parent.rolname) AS parents,
+              EXISTS(SELECT 1 FROM pg_auth_members m WHERE m.member=r.oid
+                     AND (m.admin_option OR NOT m.inherit_option OR NOT m.set_option)) AS unsafe_membership,
+              capability.rolcanlogin OR capability.rolinherit OR capability.rolsuper OR capability.rolcreatedb
+                OR capability.rolcreaterole OR capability.rolreplication OR capability.rolbypassrls
+                OR EXISTS(SELECT 1 FROM pg_auth_members m WHERE m.member=capability.oid) AS unsafe_capability
+         FROM pg_roles r JOIN pg_roles capability ON capability.rolname=$2 WHERE r.rolname=$1`, [role.name, role.member]);
     const row = result.rows[0];
     if (!row || !row.rolcanlogin || !row.rolinherit || row.rolsuper || row.rolcreatedb
         || row.rolcreaterole || row.rolreplication || row.rolbypassrls) {
       throw new Error(`Existing ${role.name} role has unsafe attributes; refusing to change it`);
+    }
+    if (row.unsafe_membership) {
+      throw new Error(`Existing ${role.name} has unsafe role membership; requires a dedicated non-owner LOGIN with INHERIT and SET but no ADMIN option`);
+    }
+    if (row.unsafe_capability) {
+      throw new Error(`Existing ${role.member} has an unsafe capability configuration; refusing to change it`);
     }
     const currentParents = row.parents;
     if (currentParents.length === 0) {

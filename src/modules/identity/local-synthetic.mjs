@@ -164,9 +164,15 @@ async function assertSafeIdentityConnection(pool) {
                     WHERE m.member = session_role.oid
                       AND m.roleid <> (SELECT oid FROM pg_roles WHERE rolname = 'tsa_identity'))
              AS has_other_role_membership,
-           pg_has_role(session_user, 'tsa_identity', 'MEMBER') AS identity_member
+           pg_has_role(session_user, 'tsa_identity', 'MEMBER') AS identity_member,
+           EXISTS (SELECT 1 FROM pg_auth_members m WHERE m.member = session_role.oid
+                    AND (m.admin_option OR NOT m.inherit_option OR NOT m.set_option)) AS unsafe_role_membership,
+           capability_role.rolcanlogin OR capability_role.rolinherit OR capability_role.rolsuper OR capability_role.rolcreatedb
+             OR capability_role.rolcreaterole OR capability_role.rolreplication OR capability_role.rolbypassrls
+             OR EXISTS (SELECT 1 FROM pg_auth_members m WHERE m.member = capability_role.oid) AS unsafe_capability
       FROM pg_roles session_role
       JOIN pg_roles active_role ON active_role.rolname = current_user
+      JOIN pg_roles capability_role ON capability_role.rolname = 'tsa_identity'
       JOIN pg_database database_row ON database_row.datname = current_database()
      WHERE session_role.rolname = session_user
   `);
@@ -176,7 +182,7 @@ async function assertSafeIdentityConnection(pool) {
       || row.current_createdb || row.current_createrole || row.current_replication || row.current_bypassrls
       || row.session_is_database_owner || row.current_is_database_owner
       || row.owns_project_schema || row.owns_project_relation
-      || row.has_other_role_membership
+      || row.has_other_role_membership || row.unsafe_role_membership || row.unsafe_capability
       || row.session_name !== row.current_name || !row.identity_member) {
     throw new Error('Local identity runtime requires a non-owner LOGIN member of tsa_identity');
   }

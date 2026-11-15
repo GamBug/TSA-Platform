@@ -36,6 +36,7 @@ const pending = new Map();
 const errors = [];
 const requests = [];
 const networkOperations = [];
+const browserDialogs = [];
 const report = { browser: null, screenshots: [], checks: [] };
 const deadline = setTimeout(() => {
   timedOut = true;
@@ -65,6 +66,19 @@ async function evaluate(expression) {
   return out.result.value;
 }
 
+async function handleExpectedDialog(action, type, accept) {
+  const previous = browserDialogs.length;
+  let actionError;
+  const completion = Promise.resolve(action()).catch(error => { actionError = error; });
+  for (let attempt = 0; attempt < 150 && browserDialogs.length === previous; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.equal(browserDialogs[previous], type, `expected a native ${type} dialog`);
+  await command('Page.handleJavaScriptDialog', { accept });
+  await completion;
+  if (actionError) throw actionError;
+}
+
 async function waitFor(expression, label) {
   for (let attempt = 0; attempt < 160; attempt += 1) {
     try { if (await evaluate(expression)) return; }
@@ -84,8 +98,12 @@ async function click(id) {
   await waitFor(`Boolean(${query(id)} && !${query(id)}.disabled && ${query(id)}.getBoundingClientRect().height)`, id);
   await evaluate(`${query(id)}.scrollIntoView({block:'center'})`);
   const point = await evaluate(`(()=>{const r=${query(id)}.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`);
-  await command('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point });
-  await command('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point });
+  try {
+    await command('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point });
+    await command('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point });
+  } catch (error) {
+    throw new Error(`Could not click ${id} (last dialog: ${browserDialogs.at(-1) ?? 'none'}): ${error.message}`, { cause: error });
+  }
 }
 
 async function pressKey(key, code, windowsVirtualKeyCode, text) {
@@ -171,6 +189,7 @@ try {
       }
     }
     if (data.method === 'Runtime.exceptionThrown') errors.push(data.params.exceptionDetails);
+    if (data.method === 'Page.javascriptDialogOpening') browserDialogs.push(data.params.type);
     if (data.method === 'Network.requestWillBeSent') {
       requests.push(data.params.request.url);
       networkOperations.push({ url: data.params.request.url, method: data.params.request.method, hasPostData: data.params.request.hasPostData ?? false });
@@ -245,6 +264,14 @@ try {
     assert.equal(await evaluate(`${query('draft-numeric-answer')}.checkValidity()`),false);
     await evaluate(`(()=>{const e=${query('draft-numeric-answer')};e.value='9007199254740993';e.dispatchEvent(new Event('input',{bubbles:true}));return true;})()`);
     assert.equal(await evaluate(`${query('draft-numeric-answer')}.checkValidity()`),true);
+    const authoredPrompt = await evaluate(`${query('draft-prompt')}.value`);
+    const authoredTimeOrigin = await evaluate('performance.timeOrigin');
+    await handleExpectedDialog(() => click('staff-return'), 'confirm', false);
+    await handleExpectedDialog(() => click('staff-logout'), 'confirm', false);
+    await handleExpectedDialog(() => command('Page.reload', { ignoreCache: true }), 'beforeunload', false);
+    assert.equal(await evaluate(`${query('draft-prompt')}.value`), authoredPrompt);
+    assert.equal(await evaluate('performance.timeOrigin'), authoredTimeOrigin, 'cancelled reload preserves the live editor');
+    assert.equal(await evaluate(`${query('draft-numeric-answer')}.value`), '9007199254740993');
     await screenshot('numeric-staff-editor-desktop');
     await click('draft-create');
     await waitFor(`Boolean(${query('staff-question-list')}?.querySelector('li.staff-question-item'))`,'numeric immutable draft created');
@@ -261,6 +288,38 @@ try {
     await command('Emulation.setDeviceMetricsOverride',{width:375,height:900,deviceScaleFactor:1,mobile:true});
     await noHorizontalOverflow();await screenshot('numeric-staff-context-mobile');
     report.checks.push('Explicit numeric staff capability, canonical-key validation, immutable question/2 DRAFT, v1 metadata exclusion and rights-blocked staff-review-context/2 verified against PostgreSQL; no approval or publication.');
+    for (const actor of ['reviewer', 'bankManager']) {
+      const startRequest = requests.length;
+      await click('staff-logout');
+      await waitFor(`Boolean(${query('staff-login')})`, 'numeric staff role switch');
+      await evaluate(`${query('actor-select')}.value=${JSON.stringify(actor)}`);
+      await click('staff-login');
+      await waitFor(`Boolean(${query('staff-question-list')}?.textContent.includes(${JSON.stringify(versionId)}))`,
+        `${actor} discovers numeric metadata`);
+      assert.equal(await evaluate(`Boolean(${query('draft-prompt')})`), false, 'non-authors never receive the author editor');
+      assert.equal(requests.slice(startRequest).some(url => new URL(url).pathname === '/local/workspace/template'), false,
+        'numeric capability discovery never reads the author template');
+      if (actor === 'bankManager') {
+        await evaluate(`document.querySelector('[data-testid="staff-review-inspect"][data-version-id="${versionId}"]').click()`);
+        await waitFor(`Boolean(${query('staff-review-context')})&&${query('staff-publication-status')}?.dataset.evaluation==='NOT_EVALUATED'`,
+          'manager opens the completed numeric context through its owning protocol');
+        assert.ok(requests.slice(startRequest).some(url => new URL(url).pathname === `/api/v2/question-versions/${versionId}/review-context`));
+        assert.equal(await evaluate(`${query('staff-review-context')}.textContent.includes('9007199254740993')`), false);
+      }
+    }
+    report.checks.push('REVIEWER and BANK_MANAGER discover numeric metadata without the author template; manager context uses v2 and retains the rights-blocked preview.');
+    await click('staff-logout');
+    await waitFor(`Boolean(${query('staff-login')})`, 'return to author for explicit discard');
+    await evaluate(`${query('actor-select')}.value='author'`);
+    await click('staff-login');
+    await waitFor(`Boolean(${query('draft-prompt')})`, 'fresh author editor');
+    await evaluate(`(()=>{const input=${query('draft-prompt')};input.value='Synthetic unsaved text to discard';input.dispatchEvent(new Event('input',{bubbles:true}));return true;})()`);
+    await handleExpectedDialog(() => click('staff-return'), 'confirm', true);
+    await waitFor(`Boolean(${query('staff-open')})`, 'explicit discard returns to practice');
+    assert.equal(await evaluate(`(()=>{const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);return event.defaultPrevented;})()`), false,
+      'the former workspace no longer blocks page unload');
+    assert.equal(await evaluate(`document.getElementById('app').textContent.includes('Synthetic unsaved text to discard')`), false);
+    report.checks.push('Native reload, return and logout cancellation retain unsaved author fields; acknowledged creation clears guards, explicit discard exits, and the former workspace removes its unload handler.');
   } else {
 
   await evaluate(`(()=>{
@@ -1392,7 +1451,8 @@ try {
   report.checks.push('Existing-contract author editor validates unset keys with zero POST, keyboard-selects MC, creates actual MC/TF drafts and reads exact persisted private previews after reload; switching types clears answer choices and never auto-handoffs');
 
   assert.equal(networkOperations.filter(op=>new URL(op.url).pathname.endsWith('/review-history')).length,0,'history is never prefetched for other workflows');
-  await click('staff-logout');await waitFor(`Boolean(${query('staff-login')})`,'manager login for recorded history');
+  await handleExpectedDialog(() => click('staff-logout'), 'confirm', true);
+  await waitFor(`Boolean(${query('staff-login')})`,'manager login for recorded history');
   await evaluate(`${query('actor-select')}.value='bankManager'`);await click('staff-login');
   await waitFor(`Boolean(${query('staff-review-history-open')})`,'manager history actions');
   await evaluate(`(()=>{const select=${query('staff-state-filter')};select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);

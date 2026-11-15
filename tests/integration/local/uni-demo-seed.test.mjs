@@ -95,6 +95,21 @@ test('other interaction protocols are published but not deliverable in this demo
 const numeric = (section, count, overrides = {}) => versions(section, count,
   { schemaVersion: 'question/2', interactionType: 'NUMERIC_RESPONSE', ...overrides });
 
+test('Math cloze/matching stock fills a separate practice without mixing taxonomies or protocols', () => {
+  const interaction = (count, overrides = {}) => versions('MATH', count, { schemaVersion: 'question/3', interactionType: 'CLOZE', ...overrides });
+  const partial = planDemoOfferings({ versions: [...interaction(3), ...interaction(3, { taxonomyVersionId: T2 }), ...numeric('MATH', 4)] });
+  assert.equal(partial.clozeMatchingPractice.available, 3);
+  assert.equal(partial.clozeMatchingPractice.offered, false);
+  assert.equal(partial.numericPractice[0].offered, true);
+  const complete = planDemoOfferings({ versions: [...interaction(3), ...interaction(1, { interactionType: 'MATCHING' }),
+    ...interaction(1, { stimulusVersionId: 'shared' }), ...interaction(1, { interactionType: 'NUMERIC_RESPONSE' })] });
+  assert.equal(complete.clozeMatchingPractice.available, 4);
+  assert.equal(complete.clozeMatchingPractice.offered, true);
+  assert.equal(complete.clozeMatchingPractice.taxonomyVersionId, T1);
+  assert.equal(complete.sectionPractice[0].offered, false);
+  assert.equal(complete.otherProtocols.MATH, 2);
+});
+
 test('published numeric-answer stock offers its own practice and is not reported as undeliverable', () => {
   const plan = planDemoOfferings({ versions: [...versions('MATH', 3), ...numeric('MATH', 4)] });
   assert.deepEqual(plan.published, { MATH: 7, READING: 0, SCIENCE: 0 });

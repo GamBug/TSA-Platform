@@ -78,7 +78,13 @@ export function planDemoOfferings({ versions, bundles = new Map() }) {
   const incompleteBundles = emptySectionCounts();
   const seenBundles = new Set();
   const numericByTaxonomy = new Map();
+  const interactionsByTaxonomy = new Map();
   for (const version of versions) {
+    if (version.section === 'MATH' && version.schemaVersion === 'question/3' && ['CLOZE', 'MATCHING'].includes(version.interactionType)
+        && !version.bundleId && !version.stimulusVersionId) {
+      interactionsByTaxonomy.set(version.taxonomyVersionId, (interactionsByTaxonomy.get(version.taxonomyVersionId) ?? 0) + 1);
+      continue;
+    }
     if (version.schemaVersion === NUMERIC_SCHEMA && version.interactionType === NUMERIC_TYPE
         && !version.bundleId && !version.stimulusVersionId) {
       const counts = numericByTaxonomy.get(version.taxonomyVersionId) ?? emptySectionCounts();
@@ -166,7 +172,13 @@ export function planDemoOfferings({ versions, bundles = new Map() }) {
   const numericStock = emptySectionCounts();
   for (const counts of numericByTaxonomy.values()) for (const section of DEMO_SECTIONS) numericStock[section] += counts[section];
 
+  const [interactionTaxonomyId, interactionAvailable] = [...interactionsByTaxonomy.entries()]
+    .sort(([a, ac], [b, bc]) => bc - ac || a.localeCompare(b))[0] ?? [null, 0];
+  const clozeMatchingPractice = { section: 'MATH', required: 4, durationSeconds: 360,
+    name: 'Luyện tập Toán học — điền khuyết và ghép nối', available: interactionAvailable,
+    offered: interactionAvailable >= 4, taxonomyVersionId: interactionAvailable >= 4 ? interactionTaxonomyId : null };
   return {
+    clozeMatchingPractice,
     published, deliverable, otherProtocols, incompleteBundles, numericStock, numericPractice,
     fullSimulation: { offered: withoutRepeats > 0, withoutRepeats, taxonomyVersionId: withoutRepeats > 0 ? best.taxonomyVersionId : null,
       required: { ...SIMULATION_REQUIRED }, shortages, splitAcrossTaxonomies },
@@ -177,7 +189,7 @@ export function planDemoOfferings({ versions, bundles = new Map() }) {
 
 async function readStock(client) {
   // question/2 counts as selectable only while the numeric-practice setting is on, as it is when students are served.
-  await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true)");
+  await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true), set_config('tsa.enable_cloze_matching','true',true)");
   const versions = (await client.query(`
     SELECT v.id, v.taxonomy_version_id AS "taxonomyVersionId", v.section::text AS section,
            v.schema_version AS "schemaVersion", v.interaction->>'type' AS "interactionType",
@@ -250,6 +262,20 @@ export async function seedUniDemoOfferings(ownerPool) {
       await client.query('INSERT INTO tsa_private.numeric_practice_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
         [blueprintVersionId, contentHash(config)]);
       offerings.push({ kind: 'NUMERIC_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId });
+    }
+    const interactionProfile = plan.clozeMatchingPractice;
+    if (interactionProfile.offered) {
+      const config = { ...base, schemaVersion: 'blueprint/4', name: interactionProfile.name,
+        taxonomyVersionId: interactionProfile.taxonomyVersionId, profileKind: 'INDEPENDENT_PRACTICE',
+        scoringPolicy: 'practice-binary-v3', allowedTypes: ['CLOZE', 'MATCHING'],
+        sections: [{ id: 'math-cloze-matching-practice', section: 'MATH', count: interactionProfile.required,
+          durationSeconds: interactionProfile.durationSeconds }] };
+      const blueprintVersionId = await insertOffering(client, { schemaVersion: 'blueprint/4',
+        taxonomyVersionId: interactionProfile.taxonomyVersionId, config });
+      await client.query('INSERT INTO tsa_private.cloze_matching_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
+        [blueprintVersionId, contentHash(config)]);
+      offerings.push({ kind: 'CLOZE_MATCHING_PRACTICE', section: 'MATH', blueprintVersionId,
+        taxonomyVersionId: interactionProfile.taxonomyVersionId });
     }
     const approved = Object.fromEntries(DEMO_SECTIONS.map((section) => [section,
       workflow.find((row) => row.section === section && row.state === 'APPROVED')?.count ?? 0]));

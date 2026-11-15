@@ -108,3 +108,29 @@ test('numeric form hides old required inputs, blocks invalid keys without a POST
   assert.equal(root.find('draft-numeric-answer'), null);
   assert.equal(root.find('draft-answer').value, '', 'changing type clears the answer');
 });
+
+for (const role of ['REVIEWER', 'BANK_MANAGER']) {
+  test(`${role} discovers numeric metadata without access to the author template`, async () => {
+    for (const enabled of [true, false]) {
+      const root = new Element('main');
+      const document = { cookie: 'tsa_local_csrf=synthetic-unit-csrf', createElement: tag => new Element(tag),
+        createDocumentFragment: () => new Element('fragment') };
+      const requests = [];
+      const api = loadScript({ document, fetch: async path => {
+        requests.push(path);
+        if (path === '/local-auth/session') return Response.json({ principal: {
+          authenticated: true, userId: 'staff-id', actorKey: 'staff', roles: [role],
+        } });
+        if (path.startsWith('/api/v4/')) return Response.json({ error: { code: 'NOT_FOUND' } }, { status: 404 });
+        if (path.startsWith('/api/v2/') && !enabled) return Response.json({ error: { code: 'NOT_FOUND' } }, { status: 404 });
+        if (/^\/api\/v[12]\/questions\?/.test(path)) return Response.json({ items: [], nextCursor: null });
+        throw new Error(`Unexpected staff request ${path}`);
+      } });
+      await api.openStaffWorkspace(root, () => {});
+      assert.equal(requests.includes('/local/workspace/template'), false);
+      assert.ok(requests.includes('/api/v2/questions?limit=1'), 'discover the numeric route independently of authoring');
+      assert.ok(requests.at(-1).startsWith(`/api/${enabled ? 'v2' : 'v1'}/questions?`));
+      assert.equal(root.find('draft-prompt'), null);
+    }
+  });
+}

@@ -423,7 +423,26 @@ export async function mountSimulation() {
     if(!view||busy||polling)return;
     if(view.state==='IN_PROGRESS')view.sections.forEach(s=>{const node=app.querySelector(`[data-clock="${s.sectionId}"]`);if(node)node.textContent=format(remaining(s));});
     const due=view.state==='IN_PROGRESS'&&view.sections.some(s=>s.isOpen&&remaining(s)<=0);
-    if(due||['SUBMITTED','EXPIRED'].includes(view.state)){polling=true;try{await load();render();}catch(error){notice=error.message;if(error.status===401)clearIdentity();render();}finally{polling=false;}}
+    if (due || ['SUBMITTED', 'EXPIRED'].includes(view.state)) {
+      polling = true;
+      const attemptId = view.attemptId;
+      const nonce = boundNonce;
+      const refresh = load();
+      const sequence = readSequence;
+      const isCurrent = () => sequence === readSequence
+        && view?.attemptId === attemptId && boundNonce === nonce;
+      try {
+        await refresh;
+        if (isCurrent()) render();
+      } catch (error) {
+        if (!isCurrent()) return;
+        notice = error.message;
+        if (error.status === 401) clearIdentity();
+        render();
+      } finally {
+        polling = false;
+      }
+    }
   },500);
   window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
   window.addEventListener('beforeunload',event=>{if(changed()){event.preventDefault();event.returnValue='';}});
