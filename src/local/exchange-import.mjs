@@ -104,8 +104,11 @@ export async function planExchangeImport(client, document, { sourceVersionId, to
         problem(id, 'CONTENT_VERSION_REGRESSION', `${id} content_version ${version} is lower than the imported version ${previous.content_version}`);
       } else {
         action = 'NEW_VERSION';
-        parent = { questionId: previous.question_id, versionId: previous.question_version_id, contentVersion: previous.content_version };
-        if (previous.state === 'QUARANTINED') problem(id, 'PARENT_QUARANTINED', 'The latest imported version is quarantined, so a new version of it could never be served; import it as a new question id instead');
+        // The Bank question may have gained versions that are not imports (a correction), and a new version must follow the latest.
+        const latestVersion = (await client.query(`SELECT v.id, w.state::text AS state FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id = v.id
+          WHERE v.question_id = $1 ORDER BY v.version_no DESC LIMIT 1`, [previous.question_id])).rows[0];
+        parent = { questionId: previous.question_id, versionId: latestVersion.id, contentVersion: previous.content_version };
+        if (latestVersion.state === 'QUARANTINED') problem(id, 'PARENT_QUARANTINED', 'The latest imported version is quarantined, so a new version of it could never be served; import it as a new question id instead');
       }
     }
     items.push({ questionId: id, action, contentVersion: version, documentHash: hash, schemaVersion: INTERNAL_SCHEMA_BY_TYPE[question.question_type], taxonomy, parent, question });

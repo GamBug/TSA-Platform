@@ -1,7 +1,7 @@
 // Blind answer verification workflow (read-only against the Bank).
 //   export:  node scripts/answer-verify.mjs export --section MATH --out-dir <private dir> [--label batch-01]
 //              [--types SINGLE_CHOICE,NUMERIC_RESPONSE] [--exclude-batches math-batch-001,math-batch-002]
-//              [--limit 20] [--offset 0]
+//              [--limit 20] [--offset 0]   (--exclude-batches matches factory import batches only)
 //            writes <label>.blind.json (give this to the solver: no keys, no explanations) and <label>.private.json (keys).
 //   compare: node scripts/answer-verify.mjs compare --private <label>.private.json --solutions <label>.solutions.json --out-dir <dir>
 //            classifies every item VERIFIED, DISPUTED or NEEDS_HUMAN_REVIEW and writes a private report and a count-only summary.
@@ -52,11 +52,13 @@ export async function runExport(options, log = (line) => process.stdout.write(`$
   const label = options.label ?? `batch-${Date.now()}`;
   const types = options.types ? options.types.split(',') : TYPES;
   if (types.some((type) => !TYPES.includes(type))) throw new TypeError(`--types must be among ${TYPES.join(', ')}`);
+  const limit = Number(options.limit ?? 20), offset = Number(options.offset ?? 0);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 1000 || !Number.isInteger(offset) || offset < 0) throw new TypeError('--limit must be 1-1000 and --offset a non-negative integer');
   const database = await startPersistentPostgres(dataDirectory());
   let rows;
   try {
     rows = await loadPublished(database.ownerPool, { section: options.section, types, excludeBatches: options['exclude-batches'] ? options['exclude-batches'].split(',') : [],
-      limit: Number(options.limit ?? 20), offset: Number(options.offset ?? 0) });
+      limit, offset });
   } finally { await database.stop(); }
   const built = buildExport(rows.map((row) => ({ id: row.id, interaction: row.interaction, content: row.content, answer_key: row.answer_key, passage: row.passage })), { salt: randomBytes(12).toString('hex'), label });
   await mkdir(options['out-dir'], { recursive: true, mode: 0o700 });

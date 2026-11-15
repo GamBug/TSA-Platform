@@ -115,6 +115,10 @@ export async function registerImage(ownerPool, imageStore, { bytes, area, alt, t
   const { bytes: image, receipt } = await describeImage(bytes);
   const existing = await findByHash(ownerPool, receipt.contentHash);
   if (existing) return { created: false, duplicateOf: existing.assetCode, ...existing };
+  // Check the source before any bytes are stored, so a mistake leaves no orphaned object.
+  if ((await ownerPool.query('SELECT 1 FROM tsa.source_versions WHERE id = $1', [sourceVersionId])).rowCount !== 1) {
+    fail('SOURCE_VERSION_NOT_FOUND', 'The named source version does not exist');
+  }
   await imageStore.inspectAndStore({ bytes: image, contentHash: receipt.contentHash, mediaType: receipt.mediaType });
   return withTransaction(ownerPool, async (client) => {
     if ((await client.query('SELECT 1 FROM tsa.source_versions WHERE id = $1', [sourceVersionId])).rowCount !== 1) {
@@ -140,6 +144,8 @@ export async function registerImage(ownerPool, imageStore, { bytes, area, alt, t
 export async function ensureAssetVersion(ownerPool, assetCode, purpose) {
   if (!PURPOSES.includes(purpose)) fail('ASSET_PURPOSE_INVALID', 'purpose must be QUESTION or EXPLANATION');
   return withTransaction(ownerPool, async (client) => {
+    // Two imports may need the same explanation copy at once; serialise per asset.
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`image-library-asset:${assetCode}`]);
     const asset = await getImageAsset(client, assetCode);
     if (asset.status !== 'ACTIVE') fail('ASSET_RETIRED', `Image asset ${assetCode} is retired and cannot be used in new questions`);
     if (asset.versions[purpose]) return asset.versions[purpose];

@@ -105,7 +105,9 @@ export function answersAgree(type, key, answer) {
 export function classify(join, solution) {
   if (!solution) return { verdict: 'NEEDS_HUMAN_REVIEW', reason: 'NO_SOLUTION', detail: 'The solver gave no answer for this item' };
   if (!CONFIDENCE.includes(solution.confidence)) return { verdict: 'NEEDS_HUMAN_REVIEW', reason: 'INVALID_CONFIDENCE', detail: 'confidence must be HIGH, MEDIUM or LOW' };
-  const agree = answersAgree(join.type, join.key, solution.answer);
+  let agree;
+  try { agree = answersAgree(join.type, join.key, solution.answer); }
+  catch { return { verdict: 'NEEDS_HUMAN_REVIEW', reason: 'UNREADABLE_KEY_OR_ANSWER', detail: 'The stored key or the answer could not be compared' }; }
   if (agree === null) return { verdict: 'NEEDS_HUMAN_REVIEW', reason: 'MALFORMED_ANSWER', detail: 'The answer does not have the shape of this question type' };
   if (solution.ambiguous === true) return { verdict: 'NEEDS_HUMAN_REVIEW', reason: 'SOLVER_FLAGGED_AMBIGUOUS', detail: solution.reasoning ?? '' };
   if (agree && solution.confidence === 'HIGH') return { verdict: 'VERIFIED', reason: 'INDEPENDENT_SOLVE_AGREES', detail: '' };
@@ -126,6 +128,7 @@ export function compareSolutions(privateExport, solutions) {
   const byItem = new Map();
   const duplicates = [];
   for (const solution of solutions.solutions) {
+    if (!solution || typeof solution.itemId !== 'string') throw new TypeError('Every solution needs an itemId');
     if (byItem.has(solution.itemId)) duplicates.push(solution.itemId);
     byItem.set(solution.itemId, solution);
   }

@@ -3,11 +3,13 @@
 //   npm run questions:import -- ... --confirm "IMPORT 20"
 // Dry run by default. The operator names an existing source version; its recorded rights are reused and no source or
 // rights record is created or changed. Questions are created as DRAFT only: never submitted, reviewed or published.
+// Planning is all-or-nothing; writing is per question and idempotent, so a failed run is completed by running it again.
 // A database backup is taken before anything is written.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { materializeDrafts, importConfirmation, IMPORT_ROUTE, planExchangeImport } from '../src/local/exchange-import.mjs';
+import { backupLocalDatabase } from '../src/local/database-backup.mjs';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
 import { session } from './owner-publish.mjs';
@@ -35,6 +37,7 @@ export async function importQuestions({ dataDirectory, document, sourceVersionId
     }
     if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
     if (writes.length === 0) return { imported: 0, plan, phrase };
+    await backupLocalDatabase({ connectionConfig: database.connectionConfig, directory: `${dataDirectory}-backups` });
     drafts = await materializeDrafts(database.ownerPool, plan, { sourceVersionId, batchId: document.batch_id });
   } finally { await database.stop(); }
 

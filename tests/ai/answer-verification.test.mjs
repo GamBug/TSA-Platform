@@ -92,3 +92,12 @@ test('a comparison refuses solutions that were not written against this export',
   assert.deepEqual(answered.unknownItems, ['Q-0000000000']);
   assert.equal(blindItem({ id: first.versionId, interaction: first.interaction, content: [] }, 's').itemId, first.itemId);
 });
+
+test('a stored key of an unexpected shape sends the item to a human instead of aborting the comparison', async () => {
+  for (const type of ['TRUE_FALSE_GROUP', 'CLOZE', 'MATCHING', 'MULTIPLE_CHOICE']) {
+    const result = classify({ type, key: { type: 'LEGACY' } }, { answer: { optionIds: ['A'], values: {}, answers: {} }, confidence: 'HIGH' });
+    assert.equal(result.verdict, 'NEEDS_HUMAN_REVIEW', type);
+  }
+  const built = buildExport(await exampleVersions(), { salt: 's', label: 'test' });
+  assert.throws(() => compareSolutions(built.private, { format: SOLUTIONS_FORMAT, exportHash: built.private.exportHash, solver: 'x', solutions: [null] }), /itemId/);
+});

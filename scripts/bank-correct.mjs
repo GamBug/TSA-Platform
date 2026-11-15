@@ -76,8 +76,14 @@ export async function applyCorrections({ dataDirectory, spec: rawSpec, confirm, 
   const database2 = await startPersistentPostgres(dataDirectory);
   try {
     for (const { item, versionId } of revisions) {
-      await ownerConfirmSingleton(database2.ownerPool, versionId, { recordExisting: true });
-      await ownerApprove(database2.ownerPool, versionId, { reason: approvalReason(spec, item) });
+      try {
+        await ownerConfirmSingleton(database2.ownerPool, versionId, { recordExisting: true });
+        await ownerApprove(database2.ownerPool, versionId, { reason: approvalReason(spec, item) });
+      } catch (error) {
+        const pending = revisions.filter((entry) => entry.versionId !== versionId).map((entry) => entry.versionId);
+        throw new Error(`${error.message}. Revised version ${versionId} (replacing ${item.versionId}) is IN_REVIEW and not approved; `
+          + `other revisions created in this run: ${pending.join(', ') || 'none'}. The original versions still serve until each is approved.`);
+      }
       log(`Approved corrected version ${versionId} (replaces ${item.versionId})`);
     }
   } finally { await database2.stop(); }
