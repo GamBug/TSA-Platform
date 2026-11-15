@@ -30,7 +30,7 @@ async function inspect(dataDirectory, section) {
 }
 
 /** Log in one local account against the running workspace and return a request helper. */
-async function session(origin, actorKey) {
+export async function session(origin, actorKey) {
   const pair = (headers, name) => headers.getSetCookie().find((value) => value.startsWith(`${name}=`)).split(';', 1)[0];
   const guest = await fetch(`${origin}/local-auth/bootstrap`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: '{}' });
   if (guest.status !== 201) throw new Error(`Local login bootstrap failed (${guest.status})`);
@@ -39,14 +39,21 @@ async function session(origin, actorKey) {
     origin, cookie: guestCookies.join('; '), 'x-csrf-token': guestCookies[1].split('=')[1], 'content-type': 'application/json' } });
   if (login.status !== 200) throw new Error(`Local login as ${actorKey} failed (${login.status})`);
   const cookies = [pair(login.headers, 'tsa_local_session'), pair(login.headers, 'tsa_local_csrf')];
-  return async (route, body) => {
+  const post = async (route, body, key) => {
     const response = await fetch(`${origin}${route}`, { method: 'POST', body: JSON.stringify(body), headers: {
       origin, cookie: cookies.join('; '), 'x-csrf-token': cookies[1].split('=')[1], 'content-type': 'application/json',
-      'idempotency-key': `owner-publish-${crypto.randomUUID()}` } });
+      'idempotency-key': key ?? `owner-publish-${crypto.randomUUID()}` } });
     const value = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(`${route} failed: ${response.status} ${value.error?.code ?? ''}`.trim());
     return value;
   };
+  post.get = async (route) => {
+    const response = await fetch(`${origin}${route}`, { headers: { origin, cookie: cookies.join('; ') } });
+    const value = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(`${route} failed: ${response.status} ${value.error?.code ?? ''}`.trim());
+    return value;
+  };
+  return post;
 }
 
 export async function ownerPublish({ dataDirectory, section = null, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
