@@ -190,11 +190,51 @@ test('a validated set imports as DRAFTs, replays idempotently, versions on conte
     assert.deepEqual(await attempt(() => {}, { sourceVersionId: randomUUID() }), ['SOURCE_VERSION_NOT_FOUND']);
     assert.deepEqual(await attempt(() => {}, { sourceVersionId: workspace.bareSourceVersionId }), ['SOURCE_RIGHTS_MISSING']);
     assert.deepEqual(await attempt(() => {}, { sourceVersionId: 'nope' }), ['SOURCE_VERSION_REQUIRED']);
-    const passage = await example('reading-passage.json');
-    for (const question of passage.questions) question.topic = 'ALGEBRA';
-    passage.questions.forEach((question) => { question.subject = 'MATH'; });
-    const unsupported = await importQuestions({ ...options, document: passage });
-    assert.deepEqual([...new Set(unsupported.plan.problems.map((problem) => problem.code))], ['PASSAGE_IMPORT_UNSUPPORTED']);
     assert.deepEqual(await counts(dataDirectory), before, 'no rejected set wrote anything');
+  });
+
+  await t.test('questions of one passage share a single stimulus, including the passage image, and a changed passage is not skipped', async () => {
+    const passageSet = async () => {
+      const document = await example('reading-passage.json');
+      document.batch_id = 'IMPORT-TEST-PASSAGE';
+      document.passages[0].content_blocks.push({ type: 'image', asset_id: codes[0], alt: 'Hình trong bài đọc' });
+      document.passages[0].asset_refs = [codes[0]];
+      document.questions.forEach((question, index) => { question.subject = 'MATH'; question.topic = 'ALGEBRA'; question.question_id = `MATH-PASS-00000${index + 1}`; });
+      return document;
+    };
+    const document = await passageSet();
+    const unknown = structuredClone(document);
+    unknown.passages[0].content_blocks[1].asset_id = 'IMG-GEO-000999';
+    unknown.passages[0].asset_refs = ['IMG-GEO-000999'];
+    assert.ok((await importQuestions({ ...options, document: unknown })).plan.problems.some((problem) => problem.code === 'ASSET_NOT_FOUND'), 'a passage image must exist in the library');
+
+    const before = await counts(dataDirectory);
+    const applied = await importQuestions({ ...options, document, confirm: 'IMPORT 2' });
+    assert.equal(applied.imported, 2);
+    assert.deepEqual(applied.created.map((entry) => entry.state), ['DRAFT', 'DRAFT']);
+    const database = await startPersistentPostgres(dataDirectory);
+    try {
+      const stored = (await database.ownerPool.query(`SELECT v.stimulus_version_id, count(*) OVER () AS members FROM tsa.question_versions v
+        JOIN tsa_private.exchange_import_receipts r ON r.question_version_id = v.id WHERE r.exchange_question_id LIKE 'MATH-PASS-%'`)).rows;
+      assert.equal(stored.length, 2);
+      assert.equal(new Set(stored.map((row) => row.stimulus_version_id)).size, 1, 'both questions point at one stimulus');
+      assert.notEqual(stored[0].stimulus_version_id, null);
+      const stimulus = (await database.ownerPool.query(`SELECT content, (SELECT count(*)::int FROM tsa.stimulus_assets WHERE stimulus_version_id = $1) AS assets,
+          (SELECT count(*)::int FROM tsa.stimulus_sources WHERE stimulus_version_id = $1) AS sources FROM tsa.stimulus_versions WHERE id = $1`, [stored[0].stimulus_version_id])).rows[0];
+      assert.equal(stimulus.content[0].text.startsWith('Nhiều người cho rằng'), true);
+      assert.equal(stimulus.content[1].type, 'image');
+      assert.deepEqual([stimulus.assets, stimulus.sources], [1, 1]);
+    } finally { await database.stop(); }
+    assert.equal((await counts(dataDirectory)).versions, before.versions + 2);
+
+    assert.deepEqual((await importQuestions({ ...options, document })).plan.items.map((item) => item.action), ['SKIP', 'SKIP'], 'a repeat creates neither questions nor a second stimulus');
+    const changed = await passageSet();
+    changed.passages[0].content_blocks[0].content += ' Bổ sung một câu mới.';
+    assert.deepEqual([...new Set((await importQuestions({ ...options, document: changed })).plan.problems.map((problem) => problem.code))], ['CONTENT_VERSION_CONFLICT'],
+      'the same content_version with a different passage is a conflict, not a silent skip');
+    const verified = await startPersistentPostgres(dataDirectory);
+    try {
+      assert.equal((await verified.ownerPool.query('SELECT count(*)::int AS n FROM tsa.stimulus_versions')).rows[0].n, 1, 'one stimulus for the whole run');
+    } finally { await verified.stop(); }
   });
 });

@@ -545,6 +545,11 @@ function internalBlock(block: ExchangeContentBlock, resolveAsset: ResolveAsset, 
   }
 }
 
+/** A passage's content blocks in the Bank's stimulus content shape. Passage images are always question-visible. */
+export function passageContent(passage: ExchangePassage, resolveAsset: ResolveAsset): unknown[] {
+  return passage.content_blocks.map((block) => internalBlock(block, resolveAsset, "QUESTION"));
+}
+
 /** Map a validated question onto the existing interaction/answer-key contracts. Image ids resolve through `resolveAsset`. */
 export function toInternalParts(question: ExchangeQuestion, resolveAsset: ResolveAsset): InternalParts {
   const blocks = (list: readonly ExchangeContentBlock[], purpose: AssetPurpose = "QUESTION") => list.map((block) => internalBlock(block, resolveAsset, purpose));

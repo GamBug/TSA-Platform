@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { INTERNAL_SCHEMA_BY_TYPE, toInternalParts } from '../../packages/contracts/dist/question-exchange.js';
 import { validateExchange } from '../../tools/question-bank/validate.mjs';
 import { activeAssetCodes, ensureAssetVersion, getImageAsset } from '../modules/bank/image-library.mjs';
+import { ensureStimulus, passageHash, passageImageIds } from './exchange-passage.mjs';
 
 export const IMPORT_ROUTE = Object.freeze({ 'question/1': 'v1', 'question/2': 'v2', 'question/3': 'v4' });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -65,8 +66,14 @@ export async function planExchangeImport(client, document, { sourceVersionId, to
 
   for (const question of set.questions) {
     const id = question.question_id;
-    if (question.passage_ref !== undefined) {
-      problem(id, 'PASSAGE_IMPORT_UNSUPPORTED', 'Passage-based questions are validated here but imported through the manual Reading transport, which stores the passage once');
+    const passage = question.passage_ref === undefined ? null : set.passages.find((candidate) => candidate.passage_id === question.passage_ref) ?? null;
+    if (passage) {
+      for (const assetId of new Set(passageImageIds(passage))) {
+        let asset;
+        try { asset = await getImageAsset(client, assetId); } catch (error) { problem(id, error.code ?? 'ASSET_NOT_FOUND', `Passage ${passage.passage_id}: ${error.message}`); continue; }
+        if (asset.status !== 'ACTIVE') problem(id, 'ASSET_RETIRED', `Image asset ${assetId} in passage ${passage.passage_id} is retired and cannot be used in new questions`);
+      }
+      if ([...passage.content_blocks].some((block) => block.type === 'image_request')) problem(id, 'ASSET_REQUIRED', `Passage ${passage.passage_id} has an image_request block; register the image and replace the block first`);
     }
     if ([...question.content_blocks, ...question.explanation].some((block) => block.type === 'image_request')) {
       problem(id, 'ASSET_REQUIRED', 'The question has an image_request block; register the image and replace the block with an image block first');
@@ -91,7 +98,8 @@ export async function planExchangeImport(client, document, { sourceVersionId, to
       if (asset.status !== 'ACTIVE') problem(id, 'ASSET_RETIRED', `Image asset ${use.assetId} is retired and cannot be used in new questions`);
     }
 
-    const hash = questionHash(question);
+    // A passage change must not hide behind an unchanged question, so the passage is part of the hash. Questions without a passage keep their original hash.
+    const hash = passage ? questionHash({ question, passage: passageHash(passage) }) : questionHash(question);
     const previous = latest.get(id);
     const version = question.metadata.content_version;
     let action = 'CREATE';
@@ -111,23 +119,30 @@ export async function planExchangeImport(client, document, { sourceVersionId, to
         if (latestVersion.state === 'QUARANTINED') problem(id, 'PARENT_QUARANTINED', 'The latest imported version is quarantined, so a new version of it could never be served; import it as a new question id instead');
       }
     }
-    items.push({ questionId: id, action, contentVersion: version, documentHash: hash, schemaVersion: INTERNAL_SCHEMA_BY_TYPE[question.question_type], taxonomy, parent, question });
+    items.push({ questionId: id, action, contentVersion: version, documentHash: hash, schemaVersion: INTERNAL_SCHEMA_BY_TYPE[question.question_type], taxonomy, parent, question, passage });
   }
   return { ok: problems.length === 0, problems, items, report };
 }
 
 /**
- * Build the author draft for each item that will be written. Explanation images need their own asset version, which
- * is created here on the maintenance connection (the only write before the draft routes run).
+ * Build the author draft for each item that will be written. Explanation images need their own asset version and a
+ * passage needs its stimulus; both are created here on the maintenance connection (the only writes before the draft
+ * routes run), and both are found again rather than copied when an import is repeated.
  */
 export async function materializeDrafts(ownerPool, plan, { sourceVersionId, batchId }) {
   const rights = (await ownerPool.query('SELECT decision_id FROM tsa.source_rights WHERE source_version_id = $1', [sourceVersionId])).rows[0].decision_id;
   const drafts = [];
+  const stimuli = new Map();
   for (const item of plan.items.filter((entry) => entry.action !== 'SKIP')) {
     const resolved = new Map();
     for (const use of imageUses(item.question)) {
       const key = `${use.assetId}|${use.purpose}`;
       if (!resolved.has(key)) resolved.set(key, await ensureAssetVersion(ownerPool, use.assetId, use.purpose));
+    }
+    let stimulusVersionId = null;
+    if (item.passage) {
+      if (!stimuli.has(item.passage.passage_id)) stimuli.set(item.passage.passage_id, await ensureStimulus(ownerPool, item.passage, { sourceVersionId, rightsDecisionId: rights }));
+      stimulusVersionId = stimuli.get(item.passage.passage_id);
     }
     const parts = toInternalParts(item.question, (assetId, purpose) => resolved.get(`${assetId}|${purpose}`));
     const question = item.question;
@@ -137,7 +152,7 @@ export async function materializeDrafts(ownerPool, plan, { sourceVersionId, batc
       draft: {
         schemaVersion: parts.schemaVersion, language: 'vi-VN', section: parts.section,
         taxonomyVersionId: item.taxonomy.taxonomy_version_id, domainId: item.taxonomy.domain_node, skillIds: [item.taxonomy.skill_node], subskillIds: [],
-        cognitiveLevel: null, targetDifficulty: parts.targetDifficulty, content: parts.content, stimulusVersionId: null,
+        cognitiveLevel: null, targetDifficulty: parts.targetDifficulty, content: parts.content, stimulusVersionId,
         interaction: parts.interaction, answerKey: parts.answerKey, explanation: parts.explanation,
         evidenceRefs: [rights], origin: 'MANUAL',
         provenance: [{ sourceVersionId, span: null,

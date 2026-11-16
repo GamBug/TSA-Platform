@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import { QuestionVersionSchema } from "../src/index.ts";
 import { QuestionVersionV2Schema } from "../src/question-v2.ts";
 import { QuestionVersionV3Schema } from "../src/question-v3.ts";
-import { INTERNAL_SCHEMA_BY_TYPE, toInternalParts, validateQuestionSet, type ExchangeQuestion } from "../src/question-exchange.ts";
+import { INTERNAL_SCHEMA_BY_TYPE, passageContent, toInternalParts, validateQuestionSet, type ExchangeQuestion } from "../src/question-exchange.ts";
 
 const EXAMPLES = new URL("../../../docs/question-bank/examples/", import.meta.url);
 const readJson = (path: string): any => JSON.parse(readFileSync(new URL(path, EXAMPLES), "utf8"));
@@ -167,5 +167,15 @@ describe("mapping onto the Bank's existing question contracts", () => {
     assert.deepEqual(resolved, ["IMG-GEO-000123:QUESTION", "IMG-GEO-000124:QUESTION"]);
     const needed = validateQuestionSet(readJson("valid/image-needed.json")).value!;
     assert.throws(() => toInternalParts(needed.questions[0] as ExchangeQuestion, () => ASSET_UUID), /no registered asset/);
+  });
+  it("maps passage blocks, including images, onto the stimulus content shape", () => {
+    const document = validateQuestionSet(readJson("valid/reading-passage.json")).value!;
+    const passage = { ...document.passages[0], content_blocks: [...document.passages[0].content_blocks,
+      { type: "image" as const, asset_id: "IMG-GEO-000123", alt: "Hình trong bài đọc", caption: "Hình 1" }] };
+    const seen: string[] = [];
+    const content = passageContent(passage, (id, purpose) => { seen.push(`${id}:${purpose}`); return ASSET_UUID; }) as Array<Record<string, unknown>>;
+    assert.deepEqual(seen, ["IMG-GEO-000123:QUESTION"], "a passage image is always question-visible");
+    assert.equal(content[0].type, "text");
+    assert.deepEqual(content[1], { type: "image", assetVersionId: ASSET_UUID, alt: "Hình trong bài đọc", caption: "Hình 1" });
   });
 });

@@ -131,10 +131,15 @@ A passage is stored once and referenced by any number of questions.
 "questions": [{ "question_id": "READ-COMP-000001", "passage_ref": "READ-PASSAGE-000001", … }]
 ```
 
-Each question keeps its own id, options and answer. Passage questions are fully validated here, but the Bank links a
-question to a passage through a stored passage record that only the manual Reading transport creates. The exchange
-importer therefore reports `PASSAGE_IMPORT_UNSUPPORTED` for them instead of guessing; use the
-[manual transport](../guides/MANUAL_DRAFT_TRANSPORT.md) for passage sets.
+Each question keeps its own id, options and answer. The importer stores a passage once as a Bank stimulus and links every
+question that references it. The stimulus gets a stable id derived from the passage id and its content, so importing again
+reuses it, and a changed passage is a new stimulus (a question whose passage changed needs a higher `content_version`).
+A passage may contain `image` blocks; the images must already be in the [image library](../guides/IMAGE_LIBRARY.md).
+Passages are not limited to Reading: Science questions use them as well. A passage that no question references is not imported.
+
+Known limit: a draft that shows an image, whether in the question, an option or its passage, cannot yet be submitted for
+review, because the Bank's publication service is built without an image store. Text-only passage questions pass submission
+and owner approval.
 
 ## 7. What makes a question invalid
 
@@ -171,10 +176,14 @@ question is good: a separate reviewer checks that, and the answer-verification w
    - `topic` must be a registered skill of the subject's domain, or be mapped by `--topic-map` (a JSON object such as
      `{"PROBABILITY":"MATH_REASONING"}`). An unmapped topic is reported with the registered skills, never guessed.
    - Image ids are resolved through the [image library](../guides/IMAGE_LIBRARY.md) to stored asset versions.
+   - Two owner commands prepare what the importer needs, both dry runs unless confirmed: `npm run bank:register-source --
+     --file <path> --title "Corpus <name>"` records a corpus document (hash only) as a source version under the owner's
+     attested rights, and `npm run bank:register-taxonomy -- --name "<name>" --domain SCIENCE --skills SCIENCE_REASONING`
+     adds a provisional taxonomy version for a subject that has none. Neither changes an existing record.
 3. **Review** as for any other draft, then publication follows the existing owner workflow.
 
 Planning is all-or-nothing: the importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
-`image_request`, an unknown or retired asset, an unmapped or ambiguous topic, a passage question, a missing source
+`image_request`, an unknown or retired asset (in a question or its passage), an unmapped or ambiguous topic, a missing source
 version or rights record, or a `content_version` conflict. Writing is then per question and idempotent: if a run stops part-way,
 running it again skips what was imported and completes the rest. Re-importing an identical question is a no-op.
 
