@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-16. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-17. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -21,6 +21,12 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 - Questions can be authored outside the Bank in one versioned format, validated offline and imported as DRAFTs; images are reusable library assets; published keys can be re-checked by blind verification; defective published questions are repaired through new versions ([corrections guide](../guides/BANK_CORRECTIONS.md)).
 
 ## Current checkpoint
+
+- 2026-11-17 (student image delivery): The local university demo connects the existing private image library to student
+  delivery. Copy-only Chromium journeys passed for real Math and Science stem, option and passage figures, cloze/matching,
+  mobile enlargement, answer reload and correct grading; synthetic explanation release also passed. All requested suites
+  pass. All 1,410 retained Bank files are unchanged: 276 Math + 100 Reading remain served and 141 exchange drafts remain
+  unpublished. See the [report](../../plans/reports/codex-261117-student-image-delivery.md).
 
 - 2026-11-16 (content review): The owner specified three Math edits and delegated the remaining correctness/clarity
   decisions. A private reviewed package contains 42 higher versions and four replacement starch questions; all 46 pass

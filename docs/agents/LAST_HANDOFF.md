@@ -1,4 +1,22 @@
-# Current handoff — delegated question content review
+# Current handoff — student image delivery
+
+- Date and implementer: 2026-11-17, Asia/Bangkok; Codex, single agent. Starting branch `feat/track-b-data-auth`, clean at `60cc4a0`.
+- Authorized scope: connect the image library to local student delivery and browser-test it on disposable Bank copies.
+- Outcome: the university launcher opens an existing private image store and the retained runtime forwards it to student
+  components. No schema, public route, content, key, inspection rule or publication check changed.
+- Verification: all requested suites pass. Chromium passed real Math graph, Science passage/option and cloze/matching
+  journeys, mobile enlargement, answer reload and full correct results. Synthetic explanation release also passed.
+  Sixteen image responses succeeded with no JavaScript exceptions. Firefox was not run.
+- Safety: all 1,410 retained Bank hashes match. Real stock remains 276 Math + 100 Reading, with 141 unpublished exchange
+  drafts. No retained approval, publication, import, push or merge occurred. All rehearsal processes were stopped.
+- Evidence: private `.local/student-image-delivery-261117/` contains physical copies, manifests, scripts, suite logs,
+  browser JSON and screenshots. The image test copy deliberately contains only ten eligible questions.
+- Review: inline code review found no remaining issue; no independent reviewer was used. The owner retains authority
+  over importing the reviewed package and publishing real questions. The held duplicate remains withheld.
+- Current Git reference: implementation commit `4b77835`; the companion documentation commit records this handoff.
+- Commands, results, reproduction and limits are in the [report](../../plans/reports/codex-261117-student-image-delivery.md).
+
+# Previous handoff — delegated question content review
 
 - Date and implementer: 2026-11-16, Asia/Bangkok; Codex, single agent. Starting branch `feat/track-b-data-auth`, clean at `f70e48a`.
 - Owner decisions: use the requested replacement percentages, retain the qualifying-interval interpretation, define the

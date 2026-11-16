@@ -72,8 +72,8 @@ retire the image.
 
 The migration registers every existing asset version without changing any existing row. The first version of a file
 becomes the library asset; a second version of the same file for the other purpose becomes its twin; a further exact
-copy for the same purpose stays valid for the questions that reference it but is not linked. The retained Bank holds no
-images today (all published Math and Reading content is text and LaTeX), so the backfill is empty there. Original files
+copy for the same purpose stays valid for the questions that reference it but is not linked. The migration backfill was empty when applied to the retained Bank; later imports registered figures for
+unpublished drafts. The retained published stock is still text and LaTeX. Original files
 and stored objects are untouched; cleanup of any duplicate is a separate owner decision.
 
 ## Delivery and limits
@@ -83,3 +83,16 @@ their default-off feature flag and re-check inspection, purpose, rights and atte
 library adds no new public route and exposes no storage path. There is no staff upload screen yet: registration is a
 maintenance command. A missing stored file fails in a controlled way (`IMAGE_OBJECT_UNAVAILABLE`) and the student
 renderer falls back to the image's alt text when an image cannot be loaded.
+
+
+## Local student demo
+
+`npm run demo:uni` opens the existing private library at `.local/track-b-images`, or the absolute directory supplied by
+`TSA_IMAGE_STORE_DIRECTORY`, and connects it to the student runtime. A missing directory leaves image delivery disabled
+without creating a library. The synthetic `--rehearsal` mode does not open private corpus images automatically.
+The general runtime still requires an explicitly supplied image store; production enablement is unchanged.
+
+Only published, selectable questions enter the demo. Connecting the library does not publish imported drafts.
+Question, option and passage figures use the same attempt-bound routes; explanation figures remain unavailable until
+results are released. Stored bytes, inspection, rights and ownership are checked as before. See the
+[copy-only browser verification](../../plans/reports/codex-261117-student-image-delivery.md).
