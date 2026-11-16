@@ -137,9 +137,10 @@ reuses it, and a changed passage is a new stimulus (a question whose passage cha
 A passage may contain `image` blocks; the images must already be in the [image library](../guides/IMAGE_LIBRARY.md).
 Passages are not limited to Reading: Science questions use them as well. A passage that no question references is not imported.
 
-Known limit: a draft that shows an image, whether in the question, an option or its passage, cannot yet be submitted for
-review, because the Bank's publication service is built without an image store. Text-only passage questions pass submission
-and owner approval.
+The owner publication workflow supplies the private local image store to submission and approval for all three internal
+question versions. It re-reads and decodes referenced image bytes and verifies registered asset metadata, pinned inspection
+and display rights. Missing, mismatched or undecodable bytes remain blocked. Embedded Bank runtimes must explicitly supply
+an enabled image store; image submission remains disabled without one.
 
 ## 7. What makes a question invalid
 
@@ -180,7 +181,21 @@ question is good: a separate reviewer checks that, and the answer-verification w
      --file <path> --title "Corpus <name>"` records a corpus document (hash only) as a source version under the owner's
      attested rights, and `npm run bank:register-taxonomy -- --name "<name>" --domain SCIENCE --skills SCIENCE_REASONING`
      adds a provisional taxonomy version for a subject that has none. Neither changes an existing record.
-3. **Review** as for any other draft, then publication follows the existing owner workflow.
+3. **Review** as for any other draft. `npm run bank:owner-publish -- [--section MATH|READING|SCIENCE]` now includes
+   receipt-backed exchange DRAFTs and IN_REVIEW versions alongside factory imports, provided every source is a corpus
+   source. Ordinary manual drafts without an exchange receipt remain excluded. The command defaults to a dry run;
+   writing still requires the exact printed `PUBLISH N SECTION` phrase (`ALL` when no section is selected).
+   - The owner must review the stored keys, including agent-derived and uncertain keys, before confirming. Publication
+     never changes answers. Rights, independent review, duplicate, delivery and selectability checks still apply.
+   - Shared exchange passages receive bundles ordered by exchange question id. Factory passage ordering is preserved;
+     existing bundles and passages whose questions lack import receipts are left untouched.
+   - Images use `TSA_IMAGE_STORE_DIRECTORY`, default `.local/track-b-images`, with the existing private local-store guards.
+   - A dry run lists candidates and required rights changes; it does not prove that all content will pass review.
+     Publication is incremental and can stop after earlier submissions or approvals. Correct blocked content through new
+     immutable versions under owner authorization before retrying. For example, the current Science passage shared by
+     `SCIE-T26SC-000401`–`000404` uses unsupported `\rightleftharpoons`; those drafts remain blocked.
+
+The [publication rehearsal report](../../plans/reports/codex-261116-1417-exchange-draft-publication.md) records copy-only verification and remaining owner decisions.
 
 Planning is all-or-nothing: the importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
 `image_request`, an unknown or retired asset (in a question or its passage), an unmapped or ambiguous topic, a missing source

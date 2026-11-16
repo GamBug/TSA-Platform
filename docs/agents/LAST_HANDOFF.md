@@ -1,6 +1,24 @@
-# Current handoff — program audit in progress
+# Current handoff — exchange draft publication repair
 
-**2026-11-16 (Reading and Science).** 35 more drafts are in the retained Bank (9 Reading, 26 Science), none selectable. New: passage import in the exchange importer, `bank:register-taxonomy`, a Science taxonomy and 10 Science figures. Next decisions are how to publish exchange drafts and whether to fix the image gate for figure questions. See the [report](../../plans/reports/claude-261116-1307-tsa-2026-dot1-reading-science-import.md).
+- Date and implementer: 2026-11-16, Asia/Bangkok; Codex, single agent. No delegation or independent review.
+- Starting state: clean `feat/track-b-data-auth` at `527c54b`, one local commit ahead of the remote.
+- Authorized scope: image-store injection into all Bank publication services and owner approval; receipt-backed exchange
+  candidate discovery and ordered passage bundles; regression tests and the four requested documentation surfaces.
+- Result: all requested suites pass. On physical copies, nine Reading drafts and image-bearing `SCIE-T26SC-000101`
+  became approved and selectable, with two passage bundles. All immutable content and every Math workflow state were
+  preserved. All 1,410 retained Bank file hashes match; real stock remains 276 Math + 100 Reading and 141 exchange DRAFTs.
+- Review: inline review with the code-review skill found no remaining implementation issue. No independent review is claimed.
+- New owner decision: Science `SCIE-T26SC-000401`–`000404` share unsupported passage `\rightleftharpoons` and need
+  authorized content revisions or a separately approved contract proposal. No content gate or answer was changed.
+- Other owner decisions remain: the five Math key disagreements, nine uncertain keys, held duplicate `22b00db1`, and
+  approval of any real publication. Do not confirm a blanket batch while those decisions remain unresolved.
+- Evidence, commands, observed failures, retained-copy paths and follow-up are in the [report](../../plans/reports/codex-261116-1417-exchange-draft-publication.md).
+- Current Git reference: implementation commit `f529b55`; the companion documentation commit contains this handoff and report.
+- Ownership: the implementation is complete; the owner retains publication authority. No push or merge is authorized.
+
+# Previous handoff — program audit in progress
+
+**2026-11-16 (Reading and Science).** 35 more drafts are in the retained Bank (9 Reading, 26 Science), none selectable. New: passage import in the exchange importer, `bank:register-taxonomy`, a Science taxonomy and 10 Science figures. Those two engineering questions are resolved by the publication repair above; real publication still awaits the owner. See the [report](../../plans/reports/claude-261116-1307-tsa-2026-dot1-reading-science-import.md).
 
 **2026-11-16 (later).** The owner's 7 verification corrections are applied, and the TSA 2026 đợt 1 PDF was added: 106 Math drafts (agent-derived keys, not selectable) are in the retained Bank; Reading and Science are the next task and need passage import plus a Science taxonomy. See the [PDF import report](../../plans/reports/claude-261116-1014-tsa-2026-dot1-math-import.md).
 

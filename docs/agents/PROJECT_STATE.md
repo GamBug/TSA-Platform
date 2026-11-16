@@ -22,7 +22,13 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
-- 2026-11-16 (Reading and Science): 9 Reading and 26 Science questions from the same PDF were imported as unpublished DRAFTs (agent-derived keys; 18 questions skipped as defective). The importer now supports passages, a Science taxonomy exists, and 10 figures are in the image library. Open: figure drafts cannot be submitted (the publication service has no image store) and no owner route publishes exchange drafts. See the [report](../../plans/reports/claude-261116-1307-tsa-2026-dot1-reading-science-import.md).
+- 2026-11-16 (publication repair): Owner publication now finds receipt-backed exchange drafts, supplies inspected image
+  storage to submission and approval, and bundles exchange passages by question id. Copy-only rehearsal approved nine
+  Reading drafts and image-bearing Science draft `SCIE-T26SC-000101`; the retained Bank is byte-for-byte unchanged and
+  still serves 276 Math + 100 Reading, with all 141 exchange drafts unpublished. Science `000401`–`000404` remain blocked
+  by unsupported passage TeX. No schema or public contract changed. See the [report](../../plans/reports/codex-261116-1417-exchange-draft-publication.md).
+
+- 2026-11-16 (Reading and Science): 9 Reading and 26 Science questions from the same PDF were imported as unpublished DRAFTs (agent-derived keys; 18 questions skipped as defective). The importer now supports passages, a Science taxonomy exists, and 10 figures are in the image library. Those two blockers were repaired in the later checkpoint above; publication still requires the owner. See the [report](../../plans/reports/claude-261116-1307-tsa-2026-dot1-reading-science-import.md).
 
 - 2026-11-16 (later): The owner added the compiled TSA 2026 đợt 1 PDF (three shifts of Math, Reading, Science). 106 of its Math questions were imported as unpublished DRAFTs with agent-derived keys, under the existing OWNER_ATTESTED rights; 9 were skipped as inconsistent or duplicate. Reading and Science remain: they need passage import and a Science taxonomy. See the [report](../../plans/reports/claude-261116-1014-tsa-2026-dot1-math-import.md).
 
