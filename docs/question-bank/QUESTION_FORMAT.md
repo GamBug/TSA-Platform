@@ -119,6 +119,9 @@ All six types are scored all-or-nothing by the existing scoring engine; there is
   content it is an error (`CONTENT_VERSION_CONFLICT`). A lower version is an error (`CONTENT_VERSION_REGRESSION`).
   A new version of a quarantined question is refused (`PARENT_QUARANTINED`): the Bank blocks every descendant of a
   quarantined version, so it could never be served.
+- Publication validates the full immutable reference chain. If an ancestor contains unsupported rendered content, simply
+  changing the passage on a descendant does not make that chain valid. Prepare a corrected replacement under a new
+  question id and keep the defective original out of publication; never weaken validation or edit the old record.
 - Within one set, repeating a `question_id` is `DUPLICATE_QUESTION_ID`, and two questions with identical prompts are
   `DUPLICATE_QUESTION_CONTENT`.
 
@@ -182,14 +185,15 @@ question is good: a separate reviewer checks that, and the answer-verification w
      attested rights, and `npm run bank:register-taxonomy -- --name "<name>" --domain SCIENCE --skills SCIENCE_REASONING`
      adds a provisional taxonomy version for a subject that has none. Neither changes an existing record.
 3. **Review** as for any other draft. `npm run bank:owner-publish -- [--section MATH|READING|SCIENCE]` now includes
-   receipt-backed exchange DRAFTs and IN_REVIEW versions alongside factory imports, provided every source is a corpus
-   source. Ordinary manual drafts without an exchange receipt remain excluded. The command defaults to a dry run;
+   the latest receipt-backed exchange DRAFTs and IN_REVIEW versions alongside factory imports, provided every source is
+   a corpus source. Superseded parent versions and ordinary manual drafts without an exchange receipt remain excluded.
+   The command defaults to a dry run;
    writing still requires the exact printed `PUBLISH N SECTION` phrase (`ALL` when no section is selected).
    - The owner must review the stored keys, including agent-derived and uncertain keys, before confirming. Publication
      never changes answers. Rights, independent review, duplicate, delivery and selectability checks still apply.
    - Shared exchange passages receive bundles ordered by exchange question id. Factory passage ordering is preserved;
      existing bundles and passages whose questions lack import receipts are left untouched.
-   - Images use `TSA_IMAGE_STORE_DIRECTORY`, default `.local/track-b-images`, with the existing private local-store guards.
+   - Images use the operator-configured private store (`TSA_IMAGE_STORE_DIRECTORY`), with the existing local-store guards.
    - A dry run lists candidates and required rights changes; it does not prove that all content will pass review.
      Publication is incremental and can stop after earlier submissions or approvals. Correct blocked content through new
      immutable versions under owner authorization before retrying. For example, the current Science passage shared by

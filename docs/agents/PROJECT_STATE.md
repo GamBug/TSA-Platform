@@ -22,6 +22,12 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-16 (content review): The owner specified three Math edits and delegated the remaining correctness/clarity
+  decisions. A private reviewed package contains 42 higher versions and four replacement starch questions; all 46 pass
+  copy-only publication and grading checks. All 28 uncertainty tags in the original files were reviewed, plus the other
+  named disagreements and passage siblings. Owner publication now excludes superseded DRAFT parents. The retained Bank
+  and originals remain unchanged; real import/publication is still pending. See the [report](../../plans/reports/codex-261116-2332-question-content-review.md).
+
 - 2026-11-16 (publication repair): Owner publication now finds receipt-backed exchange drafts, supplies inspected image
   storage to submission and approval, and bundles exchange passages by question id. Copy-only rehearsal approved nine
   Reading drafts and image-bearing Science draft `SCIE-T26SC-000101`; the retained Bank is byte-for-byte unchanged and

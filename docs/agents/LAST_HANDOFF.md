@@ -1,4 +1,24 @@
-# Current handoff — exchange draft publication repair
+# Current handoff — delegated question content review
+
+- Date and implementer: 2026-11-16, Asia/Bangkok; Codex, single agent. Starting branch `feat/track-b-data-auth`, clean at `f70e48a`.
+- Owner decisions: use the requested replacement percentages, retain the qualifying-interval interpretation, define the
+  probability event explicitly, then resolve remaining flagged content for correct answers and clear wording.
+- Outcome: 42 higher-version drafts and four replacement starch roots are prepared privately. All 46 passed copy-only
+  submission, approval, selectability, grading and formula checks. Six revised passage bundles were created.
+- Safety: no retained Bank write, real import, approval, publication, push, merge, paid model call or duplicate change.
+  Original source files and immutable Bank rows are preserved. The owner publication selector now excludes stale parents.
+- The original source files have 28 uncertainty tags (19 Math, nine Reading/Science); the prior count of nine described
+  only Reading/Science. This pass reviewed that whole flagged set and the named disagreements, plus passage siblings.
+- Starch replacement ids are `SCIE-T26REV-000401` through `000404`. Their original parents contain unsupported TeX,
+  so the unchanged reference-chain check prevents a descendant repair; keep those four originals out of publication.
+- The final private package and manifest are in `data/corpus-ingest/pdf-2026-dot1/review-2026-11-16-r3/`; copy evidence is
+  under `.local/content-review-261116-2332/`. No private content or answer file is staged.
+- Content decisions are resolved; the remaining boundary is authorization for a backed-up retained import and owner
+  publication. The held duplicate remains withheld. No further per-question decision sheet is required for this set.
+- Current Git reference: safeguard commit `78e3ec9`; the companion documentation commit contains this handoff and report.
+- Commands, observed failures, evidence limits and commit references are in the [report](../../plans/reports/codex-261116-2332-question-content-review.md).
+
+# Previous handoff — exchange draft publication repair
 
 - Date and implementer: 2026-11-16, Asia/Bangkok; Codex, single agent. No delegation or independent review.
 - Starting state: clean `feat/track-b-data-auth` at `527c54b`, one local commit ahead of the remote.
