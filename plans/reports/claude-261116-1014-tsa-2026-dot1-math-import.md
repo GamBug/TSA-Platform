@@ -9,9 +9,9 @@ The owner added `TSA_Example_Questions/tsa-2026-dot-1-tong-hop-cac-phan-thi.pdf`
 - Source version registered with `npm run bank:register-source` (title "Corpus TSA 2026 dot 1 (AECK compilation)", file hash only).
 - 106 Math questions imported as DRAFT with `npm run questions:import` (batches `TSA2026D1-MATH-K1/K2/K3`: 39, 26 and 41): single choice, multiple choice, true/false groups, numeric, cloze and matching. 0 are selectable; 276 Math and 100 Reading items are still the only served stock.
 - 4 figures registered in the image library (`IMG-TSA-000001` to `000004`): the globe model, a circle diagram, the exponential graphs and a rational-function graph. Tables, pie charts and variation tables were transcribed to text or table blocks.
-- Every key was derived by solving the question from the page image, with exact arithmetic or brute force for numeric and counting items. Each draft carries the tags `agent-derived-key` and `tsa-2026-dot-1`; 18 also carry `key-uncertain` (ambiguous wording, answer format or a figure reading). Nothing is approved.
+- Every key was derived by solving the question from the page image, with exact arithmetic or brute force for numeric and counting items. Each draft carries the tags `agent-derived-key` and `tsa-2026-dot-1`; 19 also carry `key-uncertain` (ambiguous wording, answer format or a figure reading). Nothing is approved.
 
-## Not imported (14 questions)
+## Not imported (9 questions)
 
 | Shift | Question | Reason |
 |---|---|---|
