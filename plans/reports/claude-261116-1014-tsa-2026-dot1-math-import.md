@@ -27,6 +27,22 @@ The owner added `TSA_Example_Questions/tsa-2026-dot-1-tong-hop-cac-phan-thi.pdf`
 
 Also not imported: nothing from Reading (31 questions in passages) or Science (about 37 items in passages, figures and drag-drop sets). They need passage-based import and a Science taxonomy, which do not exist yet.
 
+## Cross-check against the owner-supplied answer file (2026-11-16)
+
+The owner added `TSA_Example_Questions/TSA_2026_Dot1_Giai_Day_Du_168_Cau.md` (answers and worked solutions for all 168 questions). Compared with the 106 imported Math drafts: 101 agree and 5 differ. Every skipped question is also flagged defective, ambiguous or underdetermined in that file for the same reasons (Kíp 1 Q14, Kíp 2 Q22 and Q25, Kíp 3 Q16 and Q17).
+
+Differences, by draft id (decide per item; nothing was changed):
+
+| Draft | Difference |
+|---|---|
+| `MATH-T26K1-000020` | The file marks all four statements true by rounding 47.5% and 52.5%; the draft uses exact percentages (two true). The file itself says an exact reading makes those two false. |
+| `MATH-T26K1-000026` | The file says no option is complete (the full interval is `1<t<3`); the draft picks the only option that lies inside it. |
+| `MATH-T26K1-000037` | The file computes `P(A)` (40.623%); the draft answers the printed `P(Ā)` (59.377%). One of the two reads the question differently. |
+| `MATH-T26K2-000030` | The file calls the function increasing on `(0;1)`; the figure shows a minimum near `x≈0.2`, so the draft marks it false. |
+| `MATH-T26K3-000033` | The file says "decreasing on each interval" is the intended true reading of the union; the draft marks it false. |
+
+The same file supplies Reading and Science answers; it will be the reference for those sections once passage import exists.
+
 ## Caveats
 
 - The PDF itself warns of errors from reconstruction by memory; several skipped items are internally inconsistent as printed.
