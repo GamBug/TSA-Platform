@@ -1,5 +1,7 @@
 # Current handoff — program audit in progress
 
+**2026-11-16 (later).** The owner's 7 verification corrections are applied, and the TSA 2026 đợt 1 PDF was added: 106 Math drafts (agent-derived keys, not selectable) are in the retained Bank; Reading and Science are the next task and need passage import plus a Science taxonomy. See the [PDF import report](../../plans/reports/claude-261116-1014-tsa-2026-dot1-math-import.md).
+
 **2026-11-16 update (Claude Code session, single agent).** Added `tsa-question/1` (portable question format, offline
 validator, standalone AI prompt, exportable package), an image asset library (migration 032), a draft importer
 (migration 033), `bank:correct`, and a blind verification workflow, plus the resumed-notice fix. Of the five Math items
