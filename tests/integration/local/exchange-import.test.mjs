@@ -265,13 +265,23 @@ test('owner publication includes exchange drafts and inspects question, option a
   document.questions.push(...images.questions);
   const applied = await importQuestions({ dataDirectory, sourceVersionId, topicMap: { PROBABILITY: 'ALGEBRA' }, document, confirm: `IMPORT ${document.questions.length}`, log: silent });
   assert.equal(applied.imported, document.questions.length, JSON.stringify(applied.plan?.problems));
+  const superseded = applied.created.find(entry => entry.questionId === 'MATH-GEO-000007');
+  const successor = structuredClone(document.questions.find(question => question.question_id === superseded.questionId));
+  successor.metadata.content_version = 2;
+  successor.content_blocks[0].content += ' Dùng hình và các dữ kiện đã cho để trả lời.';
+  const revised = await importQuestions({ dataDirectory, sourceVersionId,
+    document: { format: document.format, batch_id: 'OWNER-EXCHANGE-V2', passages: [], questions: [successor] },
+    confirm: 'IMPORT 1', log: silent });
+  assert.equal(revised.imported, 1);
   database = await startPersistentPostgres(dataDirectory);
   let ids, before, passageIds;
   try {
     const candidates = (await listOwnerCandidates(database.ownerPool)).versions;
     ids = candidates.map(v => v.id);
     passageIds = candidates.map(v => v.stimulusVersionId).filter(Boolean);
-    assert.equal(ids.length, document.questions.length, 'receipt-backed MANUAL drafts are owner candidates');
+    assert.ok(!ids.includes(superseded.versionId), 'an unpublished parent cannot overwrite its successor');
+    assert.ok(ids.includes(revised.created[0].versionId));
+    assert.equal(ids.length, document.questions.length, 'only the latest receipt-backed MANUAL drafts are owner candidates');
     before = (await database.ownerPool.query('SELECT question_version_id, answer_key FROM tsa_private.question_secrets ORDER BY question_version_id')).rows;
   } finally { await database.stop(); }
   const imageStore = await createLocalImageStore({ rootDirectory: imageStoreDirectory, enabled: true, env });
@@ -306,6 +316,9 @@ test('owner publication includes exchange drafts and inspects question, option a
     const rows = (await database.ownerPool.query(`SELECT w.state, tsa.bank_question_selection_allowed(v.id) AS selectable
       FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id=v.id WHERE v.id=ANY($1)`, [ids])).rows;
     assert.ok(rows.every(r => r.state === 'APPROVED' && r.selectable));
+    const original = (await database.ownerPool.query(`SELECT w.state, tsa.bank_question_selection_allowed(w.question_version_id) AS selectable
+      FROM tsa.question_workflow w WHERE w.question_version_id=$1`, [superseded.versionId])).rows[0];
+    assert.deepEqual(original, { state: 'DRAFT', selectable: false }, 'publication leaves the superseded draft untouched');
     const bundled = (await database.ownerPool.query(`SELECT r.exchange_question_id FROM tsa.bundle_members bm
       JOIN tsa_private.exchange_import_receipts r ON r.question_version_id=bm.question_version_id ORDER BY bm.ordinal`)).rows;
     assert.deepEqual(bundled.map(r => r.exchange_question_id), ['MATH-PUBLISH-000001', 'MATH-PUBLISH-000002']);
