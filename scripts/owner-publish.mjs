@@ -5,6 +5,7 @@
 // Only the project owner runs the confirmed form; agents never approve items.
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createLocalImageStore } from '../src/modules/media/local-image-store.mjs';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
 import {
@@ -56,7 +57,7 @@ export async function session(origin, actorKey) {
   return post;
 }
 
-export async function ownerPublish({ dataDirectory, section = null, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
+export async function ownerPublish({ dataDirectory, section = null, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
   const before = await inspect(dataDirectory, section);
   const counts = Object.fromEntries(OWNER_SECTIONS.map((name) => [name, before.versions.filter((row) => row.section === name).length]));
   const { unsupported, targets, sources } = planOwnerPublication(before);
@@ -74,14 +75,16 @@ export async function ownerPublish({ dataDirectory, section = null, confirm, log
     return { published: 0, phrase };
   }
 
-  // Phase 1: the normal workspace (backup, migrations) and the existing Bank routes.
+  const imageStore = targets.some(row => row.hasImages) ? await createLocalImageStore({ rootDirectory: imageStoreDirectory, enabled: true,
+    env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' } }) : null;
+  // The normal workspace backs up before migrations and workflow changes.
   // Numeric-answer versions (question/2) are served by the numeric routes, which need the numeric runtime opt-in.
   const numeric = targets.some((row) => row.schemaVersion === 'question/2');
   const clozeMatching = targets.some((row) => row.schemaVersion === 'question/3');
   const runtime = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true',
     ...((numeric || clozeMatching) ? { LOCAL_STUDENT_ENABLED: 'true' } : {}),
     ...(numeric ? { LOCAL_NUMERIC_PRACTICE_ENABLED: 'true' } : {}),
-    ...(clozeMatching ? { LOCAL_CLOZE_MATCHING_ENABLED: 'true' } : {}) }, dataDirectory, port: 0 });
+    ...(clozeMatching ? { LOCAL_CLOZE_MATCHING_ENABLED: 'true' } : {}) }, dataDirectory, imageStore, port: 0 });
   try {
     const manager = await session(runtime.origin, 'bankManager');
     for (const source of sources.filter((row) => !row.allowed)) {
@@ -96,14 +99,14 @@ export async function ownerPublish({ dataDirectory, section = null, confirm, log
     }
   } finally { await runtime.close(); }
 
-  // Phase 2: owner maintenance — singleton records, passage bundles, then approval with every publication check.
+  // Owner maintenance records singletons and bundles, then repeats every publication check.
   const database = await startPersistentPostgres(dataDirectory);
   try {
     for (const row of targets) await ownerConfirmSingleton(database.ownerPool, row.id);
     const bundles = await createPassageBundles(database.ownerPool, targets.filter((row) => row.stimulusVersionId).map((row) => row.stimulusVersionId));
     log(`Passage bundles created: ${bundles}`);
     let published = 0;
-    for (const row of targets) { await ownerApprove(database.ownerPool, row.id); published += 1; }
+    for (const row of targets) { await ownerApprove(database.ownerPool, row.id, { imageStore }); published += 1; }
     log(`Approved and published: ${published}. Start the demo with: npm run demo:uni`);
     return { published, phrase };
   } finally { await database.stop(); }

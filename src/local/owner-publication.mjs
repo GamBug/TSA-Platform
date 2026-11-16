@@ -14,7 +14,7 @@ export const OWNER_RIGHTS = Object.freeze({
     + 'the written evidence privately and accepts responsibility. Recorded as OWNER_ATTESTED in docs/decisions/OPEN_DECISIONS.md.',
 });
 const APPROVAL_REASON = 'Owner approval through the owner publication command (the project owner operating the local reviewer '
-  + 'account). Corpus permission OWNER_ATTESTED, docs/decisions/OPEN_DECISIONS.md 2026-11-11. Source keys are authoritative.';
+  + 'account). Corpus permission OWNER_ATTESTED, docs/decisions/OPEN_DECISIONS.md 2026-11-11. The owner is responsible for reviewing the stored keys, including agent-derived keys.';
 const RUBRIC = Object.freeze(Object.fromEntries(
   ['correctness', 'unambiguous', 'relevant', 'language', 'explanation', 'rights'].map((key) => [key, true])));
 
@@ -32,11 +32,14 @@ export async function listOwnerCandidates(client, { section = null } = {}) {
     SELECT v.id, v.section::text AS section, w.state::text AS state, w.revision::integer AS revision,
            v.content_hash AS "contentHash", v.created_by AS "createdBy", v.stimulus_version_id AS "stimulusVersionId",
            v.schema_version AS "schemaVersion",
+           (EXISTS(SELECT 1 FROM tsa.question_assets qa WHERE qa.question_version_id=v.id)
+             OR EXISTS(SELECT 1 FROM tsa.stimulus_assets sa WHERE sa.stimulus_version_id=v.stimulus_version_id)) AS "hasImages",
            ARRAY(SELECT s.id FROM tsa.bank_question_sources(v.id) s ORDER BY s.id) AS "sourceVersionIds",
            EXISTS(SELECT 1 FROM tsa.duplicate_group_members m WHERE m.question_id=v.question_id) AS grouped,
            EXISTS(SELECT 1 FROM tsa.bundle_members bm WHERE bm.question_version_id=v.id) AS bundled
       FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id=v.id
-     WHERE v.origin='IMPORTED' AND w.state IN ('DRAFT','IN_REVIEW') AND ($1::text IS NULL OR v.section::text=$1)
+     WHERE (v.origin='IMPORTED' OR (v.origin='MANUAL' AND EXISTS
+       (SELECT 1 FROM tsa_private.exchange_import_receipts er WHERE er.question_version_id=v.id))) AND w.state IN ('DRAFT','IN_REVIEW') AND ($1::text IS NULL OR v.section::text=$1)
        AND EXISTS(SELECT 1 FROM tsa.bank_question_sources(v.id) s)
        AND NOT EXISTS(SELECT 1 FROM tsa.bank_question_sources(v.id) s WHERE s.id NOT IN (${CORPUS_SOURCES}))
      ORDER BY v.section, v.id`, [section])).rows;
@@ -54,8 +57,11 @@ export async function createPassageBundles(ownerPool, stimulusVersionIds) {
     await withTransaction(ownerPool, async (client) => {
       const members = (await client.query(`
         SELECT v.id, EXISTS(SELECT 1 FROM tsa.bundle_members bm WHERE bm.question_version_id=v.id) AS bundled
-          FROM tsa.question_versions v JOIN tsa_private.factory_import_receipts r ON r.question_version_id=v.id
-         WHERE v.stimulus_version_id=$1 ORDER BY r.batch_key, r.item_key, r.candidate_ordinal`, [stimulusVersionId])).rows;
+          FROM tsa.question_versions v
+          LEFT JOIN tsa_private.factory_import_receipts r ON r.question_version_id=v.id
+          LEFT JOIN tsa_private.exchange_import_receipts er ON er.question_version_id=v.id
+         WHERE v.stimulus_version_id=$1 AND (r.question_version_id IS NOT NULL OR er.question_version_id IS NOT NULL)
+         ORDER BY er.exchange_question_id, r.batch_key, r.item_key, r.candidate_ordinal, v.version_no, v.id`, [stimulusVersionId])).rows;
       const all = (await client.query('SELECT count(*)::integer AS n FROM tsa.question_versions WHERE stimulus_version_id=$1', [stimulusVersionId])).rows[0].n;
       if (members.length === 0 || members.length !== all || members.some((member) => member.bundled)) return;
       const ids = members.map((member) => member.id), bundleId = randomUUID();
@@ -99,7 +105,7 @@ export async function ownerConfirmSingleton(ownerPool, versionId, { reviewerId =
 }
 
 /** Approve one IN_REVIEW version as the owner; every application publication check must pass. */
-export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_REVIEWER_ID, reason = APPROVAL_REASON } = {}) {
+export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_REVIEWER_ID, reason = APPROVAL_REASON, imageStore = null } = {}) {
   return withTransaction(ownerPool, async (client) => {
     const privileged = (await client.query(`SELECT r.rolsuper OR d.datdba=r.oid AS ok FROM pg_roles r
       JOIN pg_database d ON d.datname=current_database() WHERE r.rolname=current_user`)).rows[0]?.ok;
@@ -111,7 +117,7 @@ export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_RE
       throw new Error('The approving account must differ from the author and import operator');
     }
     // question/2 (numeric answers) needs the numeric opt-in; every other check is identical.
-    await assertPublicationChecks(client, target, null, { enableNumericQuestions: target.schema_version === 'question/2', enableClozeMatching: target.schema_version === 'question/3' });
+    await assertPublicationChecks(client, target, imageStore, { enableNumericQuestions: target.schema_version === 'question/2', enableClozeMatching: target.schema_version === 'question/3' });
     const reviewId = randomUUID();
     await client.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
       VALUES($1,$2,$3,$4,'APPROVE',$5::jsonb,$6)`, [reviewId, versionId, target.content_hash, reviewerId, JSON.stringify(RUBRIC), reason]);

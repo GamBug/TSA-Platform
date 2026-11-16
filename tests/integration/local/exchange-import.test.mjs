@@ -6,8 +6,8 @@ import path from 'node:path';
 import { test } from 'node:test';
 import sharp from 'sharp';
 import { importQuestions } from '../../../scripts/questions-import.mjs';
-import { session } from '../../../scripts/owner-publish.mjs';
-import { OWNER_RIGHTS } from '../../../src/local/owner-publication.mjs';
+import { ownerPublish, session } from '../../../scripts/owner-publish.mjs';
+import { createPassageBundles, listOwnerCandidates, OWNER_RIGHTS, ownerApprove, ownerConfirmSingleton } from '../../../src/local/owner-publication.mjs';
 import { startPersistentPostgres } from '../../../src/local/postgres.mjs';
 import { createTrackBRuntime } from '../../../src/local/track-b.mjs';
 import { createLocalImageStore } from '../../../src/modules/media/local-image-store.mjs';
@@ -18,7 +18,7 @@ const EXAMPLES = new URL('../../../docs/question-bank/examples/valid/', import.m
 const example = async (name) => JSON.parse(await readFile(new URL(name, EXAMPLES), 'utf8'));
 const silent = () => {};
 
-async function buildWorkspace(directory) {
+async function buildWorkspace(directory, sourcePrefix = 'Exchange import fixture') {
   const dataDirectory = path.join(directory, 'bank');
   await (await createTrackBRuntime({ env, dataDirectory, port: 0 })).close();
   const sourceId = randomUUID();
@@ -28,7 +28,7 @@ async function buildWorkspace(directory) {
   try {
     for (const [key, versionId] of Object.entries(ids)) {
       const id = key === 'rights' ? sourceId : randomUUID();
-      await database.ownerPool.query(`INSERT INTO tsa.sources (id, title, canonical_uri, owner_reference, origin, created_by) VALUES ($1, $2, NULL, NULL, 'EXTERNAL', NULL)`, [id, `Exchange import fixture ${key}`]);
+      await database.ownerPool.query(`INSERT INTO tsa.sources (id, title, canonical_uri, owner_reference, origin, created_by) VALUES ($1, $2, NULL, NULL, 'EXTERNAL', NULL)`, [id, `${sourcePrefix} ${key}`]);
       await database.ownerPool.query(`INSERT INTO tsa.source_versions (id, source_id, version_no, content_hash, metadata, evidence_uri) VALUES ($1, $2, 1, $3, '{}'::jsonb, NULL)`,
         [versionId, id, `sha256:${(key === 'rights' ? 'a' : 'b').repeat(64)}`]);
     }
@@ -237,4 +237,82 @@ test('a validated set imports as DRAFTs, replays idempotently, versions on conte
       assert.equal((await verified.ownerPool.query('SELECT count(*)::int AS n FROM tsa.stimulus_versions')).rows[0].n, 1, 'one stimulus for the whole run');
     } finally { await verified.stop(); }
   });
+});
+
+
+test('owner publication includes exchange drafts and inspects question, option and passage images', { timeout: 600_000 }, async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsa-exchange-publication-'));
+  await chmod(directory, 0o700);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const { dataDirectory, sourceVersionId, codes } = await buildWorkspace(directory, 'Corpus exchange publication fixture');
+  const imageStoreDirectory = path.join(directory, 'objects');
+  let database;
+  const document = await example('reading-passage.json');
+  document.batch_id = 'OWNER-EXCHANGE-001';
+  document.passages[0].content_blocks.push({ type: 'image', asset_id: codes[0], alt: 'Passage figure' });
+  document.passages[0].asset_refs = [codes[0]];
+  document.questions.forEach((q, index) => { q.subject = 'MATH'; q.topic = 'ALGEBRA'; q.question_id = `MATH-PUBLISH-00000${2 - index}`; });
+  const images = await buildSet(codes);
+  for (const question of images.questions) {
+    if (!question.asset_refs.includes(codes[0])) {
+      question.content_blocks.push({ type: 'image', asset_id: codes[0], alt: 'Question figure' });
+      question.asset_refs.push(codes[0]);
+    }
+  }
+  const optionOnly = images.questions.find(q => q.question_id === 'MATH-GEO-000008');
+  optionOnly.options[0].content_blocks.push(...optionOnly.content_blocks.filter(b => b.type === 'image'));
+  optionOnly.content_blocks = optionOnly.content_blocks.filter(b => b.type !== 'image');
+  document.questions.push(...images.questions);
+  const applied = await importQuestions({ dataDirectory, sourceVersionId, topicMap: { PROBABILITY: 'ALGEBRA' }, document, confirm: `IMPORT ${document.questions.length}`, log: silent });
+  assert.equal(applied.imported, document.questions.length, JSON.stringify(applied.plan?.problems));
+  database = await startPersistentPostgres(dataDirectory);
+  let ids, before, passageIds;
+  try {
+    const candidates = (await listOwnerCandidates(database.ownerPool)).versions;
+    ids = candidates.map(v => v.id);
+    passageIds = candidates.map(v => v.stimulusVersionId).filter(Boolean);
+    assert.equal(ids.length, document.questions.length, 'receipt-backed MANUAL drafts are owner candidates');
+    before = (await database.ownerPool.query('SELECT question_version_id, answer_key FROM tsa_private.question_secrets ORDER BY question_version_id')).rows;
+  } finally { await database.stop(); }
+  const imageStore = await createLocalImageStore({ rootDirectory: imageStoreDirectory, enabled: true, env });
+  const emptyStore = await createLocalImageStore({ rootDirectory: path.join(directory, 'empty-objects'), enabled: true, env });
+  for (const store of [null, emptyStore]) {
+    const runtime = await createTrackBRuntime({ env, dataDirectory, imageStore: store, port: 0 });
+    try {
+      const author = await session(runtime.origin, 'author');
+      await assert.rejects(author(`/api/v1/question-versions/${applied.created[0].versionId}/submit-review`, { expectedRevision: 1 }),
+        /422 (VALIDATION_ERROR|ASSET_SANITIZATION_REQUIRED)/, 'disabled or missing image bytes cannot be submitted');
+    } finally { await runtime.close(); }
+  }
+  const runtime = await createTrackBRuntime({ env, dataDirectory, imageStore, port: 0 });
+  try {
+    const author = await session(runtime.origin, 'author');
+    await author(`/api/v1/question-versions/${applied.created[0].versionId}/submit-review`, { expectedRevision: 1 });
+  } finally { await runtime.close(); }
+  database = await startPersistentPostgres(dataDirectory);
+  try {
+    await ownerConfirmSingleton(database.ownerPool, applied.created[0].versionId);
+    await assert.rejects(ownerApprove(database.ownerPool, applied.created[0].versionId, { imageStore: emptyStore }),
+      error => error.code === 'ASSET_SANITIZATION_REQUIRED');
+  } finally { await database.stop(); }
+  const dry = await ownerPublish({ dataDirectory, imageStoreDirectory, log: silent });
+  assert.deepEqual(dry, { published: 0, phrase: `PUBLISH ${ids.length} ALL` });
+  await assert.rejects(ownerPublish({ dataDirectory, imageStoreDirectory, confirm: 'PUBLISH 999 ALL', log: silent }), /Confirmation does not match/);
+  const result = await ownerPublish({ dataDirectory, imageStoreDirectory, confirm: dry.phrase, log: silent });
+  assert.equal(result.published, ids.length);
+  database = await startPersistentPostgres(dataDirectory);
+  try {
+    await database.ownerPool.query("SELECT set_config('tsa.enable_numeric_practice','true',false), set_config('tsa.enable_cloze_matching','true',false)");
+    const rows = (await database.ownerPool.query(`SELECT w.state, tsa.bank_question_selection_allowed(v.id) AS selectable
+      FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id=v.id WHERE v.id=ANY($1)`, [ids])).rows;
+    assert.ok(rows.every(r => r.state === 'APPROVED' && r.selectable));
+    const bundled = (await database.ownerPool.query(`SELECT r.exchange_question_id FROM tsa.bundle_members bm
+      JOIN tsa_private.exchange_import_receipts r ON r.question_version_id=bm.question_version_id ORDER BY bm.ordinal`)).rows;
+    assert.deepEqual(bundled.map(r => r.exchange_question_id), ['MATH-PUBLISH-000001', 'MATH-PUBLISH-000002']);
+    assert.equal(await createPassageBundles(database.ownerPool, passageIds), 0, 'existing bundles are not duplicated');
+    const profiles = (await database.ownerPool.query('SELECT profile FROM tsa_private.question_delivery_checks WHERE question_version_id=ANY($1)', [ids])).rows;
+    assert.equal(profiles.length, ids.length);
+    assert.ok(profiles.every(row => row.profile.includes('inspected-image')), 'every image draft uses the inspected delivery profile');
+    assert.deepEqual((await database.ownerPool.query('SELECT question_version_id, answer_key FROM tsa_private.question_secrets ORDER BY question_version_id')).rows, before);
+  } finally { await database.stop(); }
 });

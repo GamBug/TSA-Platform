@@ -176,7 +176,7 @@ function errorResponse(status, code, requestId) {
 }
 
 /** Create the staff Bank boundary using its restricted pool and trusted identity service. */
-export async function createBankHandler({ bankPool, identityService, trustedOrigin, enableNumericQuestions = false, enableClozeMatching = false, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false, enableFixedSealing = false, enableFixedSealMetadata = false }) {
+export async function createBankHandler({ bankPool, identityService, trustedOrigin, imageStore = null, enableNumericQuestions = false, enableClozeMatching = false, enableReviewContext = false, enableReviewEvidence = false, enableReviewHistory = false, enableDatasetPreflight = false, enableFixedDiagnostics = false, enableFixedStockRehearsal = false, enableFixedSealing = false, enableFixedSealMetadata = false }) {
   if (!bankPool || !identityService || typeof identityService.authenticate !== 'function'
       || typeof identityService.validateMutation !== 'function') {
     throw new TypeError('A restricted Bank pool and local identity service are required');
@@ -202,17 +202,17 @@ export async function createBankHandler({ bankPool, identityService, trustedOrig
   const [sources, questionsV1, publicationV1] = await Promise.all([
     createSourceService({ bankPool, identityService }),
     createQuestionService({ bankPool, identityService }),
-    createPublicationService({ bankPool, identityService }),
+    createPublicationService({ bankPool, identityService, imageStore }),
   ]);
   const numericServices = enableNumericQuestions ? {
     questions: await createQuestionService({ bankPool, identityService, enableNumericQuestions: true }),
-    publication: await createPublicationService({ bankPool, identityService, enableNumericQuestions: true }),
+    publication: await createPublicationService({ bankPool, identityService, imageStore, enableNumericQuestions: true }),
     reviewContext: enableReviewContext
       ? await createReviewContextService({ bankPool, identityService, enableNumericQuestions: true }) : null,
   } : null;
   const clozeMatchingServices = enableClozeMatching ? {
     questions: await createQuestionService({ bankPool, identityService, enableClozeMatching: true }),
-    publication: await createPublicationService({ bankPool, identityService, enableClozeMatching: true }),
+    publication: await createPublicationService({ bankPool, identityService, imageStore, enableClozeMatching: true }),
     reviewContext: enableReviewContext
       ? await createReviewContextService({ bankPool, identityService, enableClozeMatching: true }) : null,
   } : null;

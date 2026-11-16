@@ -116,6 +116,7 @@ export async function createTrackBRuntime({
   port = DEFAULT_PORT,
   pgBin,
   prepareDatabase,
+  imageStore = null,
   localRoutes = {},
 } = {}) {
   assertLocalEnvironment(env);
@@ -258,10 +259,10 @@ export async function createTrackBRuntime({
     validateLocalSyntheticConfig(handlerEnv);
     const identityService = await createLocalSyntheticIdentityService(identityPool, { env: handlerEnv });
     const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv });
-    const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealMetadata: true });
-    const numericBankHandler = numericEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin,
+    const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealMetadata: true });
+    const numericBankHandler = numericEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore,
       enableNumericQuestions: true, enableReviewContext: true }) : null;
-    const clozeMatchingBankHandler = clozeMatchingEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin,
+    const clozeMatchingBankHandler = clozeMatchingEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore,
       enableClozeMatching: true, enableReviewContext: true }) : null;
     let sourceSeed = null;
     sourceSeed = await ensureLocalSourceSeed({
