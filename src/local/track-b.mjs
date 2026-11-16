@@ -209,7 +209,7 @@ export async function createTrackBRuntime({
 
     const rate = Object.freeze({ capacity: 100, refillPerSecond: 10 });
     const student = studentEnabled ? await prepareStudentComponents({
-      identityPool, examPool, workerPool, env, port,
+      identityPool, examPool, workerPool, env, port, imageStore,
       pollMilliseconds: 100, sweepBatchSize: 10, executorId: 'local-retained-student',
       leaseSeconds: 30, retrySeconds: 1,
       createRate: rate, saveRate: { user: rate, attempt: rate }, enableNumericPractice: numericEnabled,

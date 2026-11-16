@@ -5,6 +5,8 @@ import { spawn } from 'node:child_process';
 import { lstat, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createLocalImageStore } from '../modules/media/local-image-store.mjs';
 import { backupLocalDatabase } from './database-backup.mjs';
 import { startPersistentPostgres } from './postgres.mjs';
 import { createTrackBRuntime } from './track-b.mjs';
@@ -126,6 +128,8 @@ export async function startUniDemo({
   port = UNI_DEMO_DEFAULT_PORT,
   pgBin,
   sourceCredit = process.env.DEMO_UNI_SOURCE_CREDIT,
+  imageStoreDirectory = mode === 'PUBLISHED'
+    ? process.env.TSA_IMAGE_STORE_DIRECTORY ?? fileURLToPath(new URL('../../.local/track-b-images', import.meta.url)) : null,
 } = {}) {
   if (!UNI_DEMO_MODES.includes(mode)) throw new TypeError('mode must be PUBLISHED or REHEARSAL');
   if (mode === 'PUBLISHED' && (sourceArchive !== undefined || typeof sourceDataDirectory !== 'string')) {
@@ -141,7 +145,15 @@ export async function startUniDemo({
   try {
     const clusterDirectory = path.join(root, 'cluster');
     await restoreArchive({ archive: exported.archive, roles: exported.roles, clusterDirectory, workDirectory: root, pgBin });
+    // Open existing private library objects only; a demo never creates an image library.
+    const imageDirectory = imageStoreDirectory === null ? null : await lstat(imageStoreDirectory).catch(error => {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    });
+    const imageStore = imageDirectory ? await createLocalImageStore({ rootDirectory: imageStoreDirectory, enabled: true,
+      env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' } }) : null;
     runtime = await createTrackBRuntime({
+      imageStore,
       env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_STUDENT_ENABLED: 'true', LOCAL_FULL_SIMULATION_ENABLED: 'true',
         LOCAL_NUMERIC_PRACTICE_ENABLED: 'true', LOCAL_CLOZE_MATCHING_ENABLED: 'true' },
       dataDirectory: clusterDirectory, port, pgBin,

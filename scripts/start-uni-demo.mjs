@@ -72,7 +72,8 @@ export async function startUniDemoFromEnvironment({ env = process.env, rehearsal
   const port = parsePort(env.DEMO_UNI_PORT);
   if (!rehearsal) {
     return startUniDemo({ mode: 'PUBLISHED', port, sourceCredit: env.DEMO_UNI_SOURCE_CREDIT,
-      sourceDataDirectory: env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b') });
+      sourceDataDirectory: env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b'),
+      imageStoreDirectory: env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images') });
   }
   // The fixture builder lives with the tests; it is loaded only for an explicit rehearsal.
   const { buildRehearsalSource, REHEARSAL_DEFAULT_NUMERIC } = await import('./uni-demo-rehearsal-source.mjs');

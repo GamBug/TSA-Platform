@@ -9,6 +9,8 @@ import { formatDemoSummary } from '../../../scripts/start-uni-demo.mjs';
 import { migrate } from '../../../src/modules/database/migrate.mjs';
 import { bootstrapLocalSyntheticIdentity } from '../../../src/modules/identity/local-synthetic.mjs';
 import { startPersistentPostgres } from '../../../src/local/postgres.mjs';
+import { createImageFixture } from '../student-runtime/image-fixture.mjs';
+import { backupLocalDatabase } from '../../../src/local/database-backup.mjs';
 import { buildDemoNotice, startUniDemo } from '../../../src/local/uni-demo.mjs';
 import { bankRequest, loginActor } from '../bank/harness.mjs';
 
@@ -199,4 +201,52 @@ test('published numeric-answer items get their own practice, delivered and grade
   assert.ok(result, 'the numeric attempt is graded');
   assert.equal(result.policyVersion, 'practice-binary-v2');
   assert.equal(result.correctCount, 4);
+});
+
+
+test('the demo delivers private library images to the owning student and guards explanation release', { timeout: 120_000 }, async (t) => {
+  const fixture = await createImageFixture(t);
+  await fixture.approveImage();
+  const sourceArchive = await backupLocalDatabase({ connectionConfig: fixture.harness.database.connectionConfig,
+    directory: path.join(fixture.directory, 'archive') });
+  const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive,
+    imageStoreDirectory: path.join(fixture.directory, 'objects') });
+  t.after(() => demo.close());
+  const student = await loginActor(demo, 'studentA');
+  const other = await loginActor(demo, 'studentB');
+  const catalog = await json(await bankRequest(demo, student, '/api/v1/catalog', { query: 'limit=100' }));
+  const receipt = await json(await bankRequest(demo, student, '/api/v1/attempts', {
+    method: 'POST', key: randomUUID(), body: { blueprintVersionId: catalog.items[0].blueprintVersionId } }), 201);
+  await json(await bankRequest(demo, student, `/api/v1/attempts/${receipt.attemptId}/start`, { method: 'POST', key: randomUUID(), body: {} }));
+  const route = `/api/v1/attempts/${receipt.attemptId}/assets/`;
+  const question = await bankRequest(demo, student, `${route}${fixture.assets.QUESTION.id}`, { query: 'purpose=question' });
+  assert.equal(question.status, 200, await question.clone().text());
+  assert.equal(question.headers.get('content-type'), 'image/png');
+  assert.equal(question.headers.get('cache-control'), 'private, no-store');
+  assert.deepEqual(Buffer.from(await question.arrayBuffer()), fixture.assets.QUESTION.bytes);
+  assert.equal((await bankRequest(demo, other, `${route}${fixture.assets.QUESTION.id}`, { query: 'purpose=question' })).status, 404);
+  assert.equal((await bankRequest(demo, student, `${route}${fixture.assets.EXPLANATION.id}`, { query: 'purpose=explanation' })).status, 404);
+  await json(await bankRequest(demo, student, `/api/v1/attempts/${receipt.attemptId}/submit`, { method: 'POST', key: randomUUID(), body: {} }));
+  let result;
+  for (let tries = 0; tries < 100; tries += 1) {
+    const response = await bankRequest(demo, student, `/api/v1/attempts/${receipt.attemptId}/result`);
+    if (response.status === 200) { result = await response.json(); break; }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.ok(result, 'grading releases the result');
+  const explanation = await bankRequest(demo, student, `${route}${fixture.assets.EXPLANATION.id}`, { query: 'purpose=explanation' });
+  assert.equal(explanation.status, 200);
+  assert.deepEqual(Buffer.from(await explanation.arrayBuffer()), fixture.assets.EXPLANATION.bytes);
+  const missing = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive,
+    imageStoreDirectory: path.join(fixture.directory, 'no-image-store') });
+  t.after(() => missing.close());
+  const missingStudent = await loginActor(missing, 'studentA');
+  const missingCatalog = await json(await bankRequest(missing, missingStudent, '/api/v1/catalog', { query: 'limit=100' }));
+  const missingReceipt = await json(await bankRequest(missing, missingStudent, '/api/v1/attempts', {
+    method: 'POST', key: randomUUID(), body: { blueprintVersionId: missingCatalog.items[0].blueprintVersionId } }), 201);
+  await json(await bankRequest(missing, missingStudent, `/api/v1/attempts/${missingReceipt.attemptId}/start`, {
+    method: 'POST', key: randomUUID(), body: {} }));
+  assert.equal((await bankRequest(missing, missingStudent, `/api/v1/attempts/${missingReceipt.attemptId}/assets/${fixture.assets.QUESTION.id}`,
+    { query: 'purpose=question' })).status, 404, 'a real owned attempt still cannot read images without a store');
+  await absent(path.join(fixture.directory, 'no-image-store'));
 });
