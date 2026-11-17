@@ -95,6 +95,32 @@ describe("local static server public-file boundary", () => {
     }
   });
 
+  it("serves the React student app only from its build index and flat asset files", async () => {
+    const handler = createPrototypeHandler();
+    const redirect = await handler({ method: "GET", url: "/student" });
+    assert.equal(redirect.status, 308);
+    assert.equal(redirect.headers.Location, "/student/");
+    const index = await handler({ method: "GET", url: "/student/" });
+    // A missing build is reported plainly instead of falling back to another page.
+    assert.ok([200, 503].includes(index.status));
+    if (index.status === 200) {
+      assert.equal(index.headers["Content-Type"], "text/html; charset=utf-8");
+      const script = /src="(\/student\/assets\/[^"]+\.js)"/.exec(index.body.toString("utf8"))?.[1];
+      assert.ok(script, "index references a script bundle");
+      const bundle = await handler({ method: "GET", url: script });
+      assert.equal(bundle.status, 200);
+      assert.equal(bundle.headers["Content-Type"], "text/javascript; charset=utf-8");
+    } else {
+      assert.match(index.body.toString("utf8"), /npm run build:student/);
+    }
+    for (const url of [
+      "/student/../server.mjs", "/student/assets/%2e%2e/package.json", "/student/package.json",
+      "/student/src/main.tsx", "/student/assets/missing.js", "/student/assets/notes.txt", "/student/assets/.hidden.js",
+    ]) {
+      assert.equal((await handler({ method: "GET", url })).status, 404, url);
+    }
+  });
+
   it("routes mock APIs without exposing source files or accepting non-mock server paths", async () => {
     const handler = createPrototypeHandler();
     const catalog = await handler({ method: "GET", url: "/mock/catalog" });

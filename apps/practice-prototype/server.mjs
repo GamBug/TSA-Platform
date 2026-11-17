@@ -68,6 +68,44 @@ function notFound() {
   return result(404, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }, "Not found.");
 }
 
+// The React student app (apps/candidate-web) is served from its build output at /student/.
+// Only index.html and plainly named files directly inside assets/ with a known type are public.
+const STUDENT_APP_ROOT = resolve(ROOT, "../candidate-web/dist");
+const STUDENT_ASSET_TYPES = {
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+};
+
+async function studentAppResponse(pathname) {
+  if (pathname === "/student") return result(308, { Location: "/student/", "Cache-Control": "no-store" }, "");
+  let filePath;
+  let contentType;
+  if (pathname === "/student/" || pathname === "/student/index.html") {
+    filePath = resolve(STUDENT_APP_ROOT, "index.html");
+    contentType = "text/html; charset=utf-8";
+  } else {
+    const match = /^\/student\/assets\/([A-Za-z0-9_-][A-Za-z0-9._-]*)$/.exec(pathname);
+    const extension = match && /\.[a-z0-9]+$/.exec(match[1])?.[0];
+    contentType = extension && STUDENT_ASSET_TYPES[extension];
+    if (!contentType || match[1].includes("..")) return notFound();
+    filePath = resolve(STUDENT_APP_ROOT, "assets", match[1]);
+  }
+  try {
+    const content = await readFile(filePath);
+    return result(200, { "Content-Type": contentType, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }, content);
+  } catch {
+    if (contentType.startsWith("text/html")) {
+      return result(503, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+        "The student app is not built. Run: npm run build:student");
+    }
+    return notFound();
+  }
+}
+
 export function createPrototypeHandler({ mockService = createMockApiService() } = {}) {
   return async ({ method = "GET", url = "/", headers = {}, body }) => {
     let parsedUrl;
@@ -80,6 +118,9 @@ export function createPrototypeHandler({ mockService = createMockApiService() } 
       return mockService.handle({ method, url: `${parsedUrl.pathname}${parsedUrl.search}`, headers, body });
     }
     if (method !== "GET") return notFound();
+    if (parsedUrl.pathname === "/student" || parsedUrl.pathname.startsWith("/student/")) {
+      return studentAppResponse(parsedUrl.pathname);
+    }
     const relativePath = PUBLIC_FILES.get(parsedUrl.pathname);
     if (relativePath === undefined) return notFound();
     try {

@@ -1,0 +1,156 @@
+/* Fonts are bundled locally (SIL OFL 1.1, via Fontsource); no runtime font service is used. */
+@import '@fontsource/be-vietnam-pro/400.css';
+@import '@fontsource/be-vietnam-pro/500.css';
+@import '@fontsource/be-vietnam-pro/600.css';
+@import '@fontsource/be-vietnam-pro/700.css';
+@import '@fontsource-variable/fraunces/opsz.css';
+@import '@fontsource-variable/jetbrains-mono/index.css';
+@import 'tailwindcss';
+
+:root {
+  /* Giấy & Bề mặt (Paper & Flat Surfaces) */
+  --paper-bg: #F6F1E7;
+  --paper-sheet: #FBF8F1;
+  --paper-recessed: #EDE5D5;
+
+  /* Đường kẻ & Lưới ô ly (Rules & Notebook Margin) */
+  --rule-ink: #D9D0BF;
+  --rule-ink-strong: #B9AE99;
+  --margin-red-line: rgba(196, 50, 43, 0.28);
+  --oly-line-minor: rgba(27, 34, 48, 0.048);
+  --oly-line-major: rgba(27, 34, 48, 0.085);
+
+  /* Mực bút máy (Fountain-Pen Ink) */
+  --ink-primary: #1B2230;
+  --ink-secondary: #485164;
+  --ink-muted: #555E70;
+
+  /* Mực bút đỏ giáo viên — Điểm nhấn duy nhất (Teacher Red Accent) */
+  --pen-red: #C4322B;
+  --pen-red-hover: #A62620;
+  --pen-red-wash: #F8EAE8;
+
+  /* Trạng thái chấm bài & cảnh báo (Semantic Ink Marks) */
+  --ink-green: #2F6B4F;
+  --ink-green-wash: #E6F0EB;
+  --ink-ochre: #B7791F;
+  --ink-ochre-wash: #F6EFE0;
+
+  /* Họ phông chữ (Typography Families) */
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+}
+
+@theme {
+  --color-paper: var(--paper-bg);
+  --color-paper-sheet: var(--paper-sheet);
+  --color-paper-recessed: var(--paper-recessed);
+  --color-rule: var(--rule-ink);
+  --color-rule-strong: var(--rule-ink-strong);
+  --color-ink: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-pen-red: var(--pen-red);
+  --color-pen-red-hover: var(--pen-red-hover);
+  --color-pen-red-wash: var(--pen-red-wash);
+  --color-ink-green: var(--ink-green);
+  --color-ink-green-wash: var(--ink-green-wash);
+  --color-ochre: var(--ink-ochre);
+  --color-ochre-wash: var(--ink-ochre-wash);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+@layer base {
+  html {
+    background-color: var(--paper-bg);
+    color: var(--ink-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--paper-bg);
+    color: var(--ink-primary);
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  ::selection {
+    background-color: var(--pen-red-wash);
+    color: var(--pen-red);
+  }
+
+  /* Vòng tiêu điểm 3px rõ nét cho điều hướng bàn phím (WCAG AA) */
+  :focus-visible {
+    outline: 3px solid var(--pen-red);
+    outline-offset: 2px;
+  }
+
+  .bg-pen-red:focus-visible {
+    outline-color: var(--ink-primary);
+  }
+}
+
+/* Mặt giấy kẻ ô ly 4mm (~15.1px -> chuẩn lưới 16px = 4mm ở tỷ lệ đọc tiêu chuẩn)
+   CHỈ áp dụng cho bề mặt tờ câu hỏi & nháp, tuyệt đối không phủ toàn trang */
+.question-oly-surface {
+  background-color: var(--paper-sheet);
+  background-image:
+    linear-gradient(to right, var(--oly-line-minor) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--oly-line-minor) 1px, transparent 1px),
+    linear-gradient(to right, var(--oly-line-major) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--oly-line-major) 1px, transparent 1px);
+  background-size:
+    16px 16px,
+    16px 16px,
+    64px 64px,
+    64px 64px;
+  background-position: -1px -1px;
+}
+
+/* Đường kẻ lề đôi kiểu vở học sinh Việt Nam */
+.notebook-margin-double {
+  border-right: 1px solid var(--margin-red-line);
+  position: relative;
+}
+
+.notebook-margin-double::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 3px;
+  width: 1px;
+  background-color: var(--margin-red-line);
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .notebook-margin-lg {
+    border-right: 1px solid var(--margin-red-line);
+    position: relative;
+  }
+
+  .notebook-margin-lg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 3px;
+    width: 1px;
+    background-color: var(--margin-red-line);
+    pointer-events: none;
+  }
+}
+
+/* Chữ số đẳng rộng cho đồng hồ, số thứ tự câu, toạ độ và đáp án điền số */
+.tabular-figures {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+}
