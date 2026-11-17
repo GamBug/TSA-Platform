@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "reading-capture-manifest/1",
+  "operator": "repository synthetic demonstration",
+  "files": [
+    {"path": "../../tests/ai/fixtures/reading-captures/single.txt", "kind": "SYNTHETIC", "source": "original engineering fixture", "rightsStatus": "OPERATOR_DECLARED_PERMISSION", "rightsNotes": "Authored for this tool's tests; no third-party content."},
+    {"path": "../../tests/ai/fixtures/reading-captures/multiple.txt", "kind": "SYNTHETIC", "source": "original engineering fixture", "rightsStatus": "OPERATOR_DECLARED_PERMISSION", "rightsNotes": "Authored for this tool's tests; no third-party content."},
+    {"path": "../../tests/ai/fixtures/reading-captures/truth-ambiguous.txt", "kind": "SYNTHETIC", "source": "original engineering fixture", "rightsStatus": "OPERATOR_DECLARED_PERMISSION", "rightsNotes": "Authored for this tool's tests; no third-party content."}
+  ]
+}

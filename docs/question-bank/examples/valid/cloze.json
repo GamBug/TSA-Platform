@@ -1,0 +1,69 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "EXAMPLE-CLOZE-001",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "MATH-ALG-000005",
+      "question_type": "CLOZE",
+      "subject": "MATH",
+      "topic": "ALGEBRA",
+      "difficulty": "EASY",
+      "tags": [
+        "arithmetic-sequence"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Cho cấp số cộng $(u_n)$ có số hạng đầu $u_1=2$ và công sai $d=3$. Khi đó $u_5=$ (1) và tổng năm số hạng đầu $S_5=$ (2)."
+        }
+      ],
+      "response_config": {
+        "fields": [
+          {
+            "field_id": "u5",
+            "label": "(1) Giá trị của u5"
+          },
+          {
+            "field_id": "s5",
+            "label": "(2) Giá trị của S5"
+          }
+        ],
+        "max_length": 8
+      },
+      "answer": {
+        "accepted_values": {
+          "u5": [
+            "14"
+          ],
+          "s5": [
+            "40"
+          ]
+        }
+      },
+      "answer_validation": {
+        "match": "EXACT_AFTER_NFC_TRIM",
+        "case_sensitive": true,
+        "diacritics": "PRESERVE"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "$u_5=u_1+4d=2+12=14$ và $S_5=\\frac{5(u_1+u_5)}{2}=\\frac{5\\cdot 16}{2}=40$."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

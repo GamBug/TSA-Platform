@@ -1,0 +1,13 @@
+Home
+Time remaining: 29:45
+Passage 1
+[1] An original engineering example: trees shade a street.
+[2] Shade reduces direct sunlight on the pavement.
+Question 1
+Select one. According to the passage, what do trees shade?
+A
+A street
+B
+A distant ocean
+Correct answer: A
+Explanation: Synthetic test text, not a third-party explanation.

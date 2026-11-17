@@ -380,7 +380,7 @@ export const QuotaSchema = z.discriminatedUnion("dimension", [
 ]);
 
 /** Generic immutable blueprint configuration; future approved profiles may have multiple sections. */
-export const BlueprintConfigSchema = z
+const BlueprintConfigBaseSchema = z
   .object({
     schemaVersion: z.literal("blueprint/1"),
     name: NonEmptyString,
@@ -396,8 +396,10 @@ export const BlueprintConfigSchema = z
     scoringPolicy: z.literal("practice-binary-v1"),
     releasePolicy: z.literal("after-grade-v1"),
   })
-  .strict()
-  .superRefine((blueprint, context) => {
+  .strict();
+export const BlueprintConfigSchema = BlueprintConfigBaseSchema.superRefine(validateBlueprintStructure);
+type BlueprintStructure = Omit<z.infer<typeof BlueprintConfigBaseSchema>, "allowedTypes" | "schemaVersion" | "scoringPolicy"> & { allowedTypes: string[] };
+export function validateBlueprintStructure(blueprint: BlueprintStructure, context: z.RefinementCtx): void {
     const sectionIds = blueprint.sections.map((section) => section.id);
     if (new Set(sectionIds).size !== sectionIds.length) {
       context.addIssue({ code: "custom", path: ["sections"], message: "Blueprint section entry IDs must be unique" });
@@ -430,7 +432,8 @@ export const BlueprintConfigSchema = z
       }
       quotaKeys.add(quotaKey);
     }
-  });
+}
+
 
 /** Owner-approved MVP profile guard layered over the generic multi-section blueprint schema. */
 export const MvpBlueprintConfigSchema = BlueprintConfigSchema.superRefine((blueprint, context) => {
@@ -546,7 +549,7 @@ export const CreationReceiptSchema = z
  * Student attempt view. This is intentionally an MVP one-domain test view,
  * never a continuous MATH → READING → SCIENCE examination flow.
  */
-export const AttemptViewSchema = z
+const AttemptViewBaseSchema = z
   .object({
     attemptId: CanonicalUuid,
     state: AttemptStateSchema,
@@ -565,8 +568,14 @@ export const AttemptViewSchema = z
     answers: z.array(AnswerAckSchema),
     closure: ClosureSchema,
   })
-  .strict()
-  .superRefine((view, context) => {
+  .strict();
+export const AttemptViewSchema = AttemptViewBaseSchema.superRefine(validateAttemptViewStructure);
+
+type AttemptStructure = Omit<z.infer<typeof AttemptViewBaseSchema>, "slots" | "answers"> & {
+  slots: Array<{ slotId: string; ordinal: number; interaction: { type: string } }>;
+  answers: Array<{ slotId: string; value: { type: string } }>;
+};
+export function validateAttemptViewStructure(view: AttemptStructure, context: z.RefinementCtx): void {
     validateFormModeReuseMode(view, context);
     const section = view.sections[0]!;
     if (section.section !== view.domain) {
@@ -618,7 +627,8 @@ export const AttemptViewSchema = z
         context.addIssue({ code: "custom", path: ["answers", index, "value", "type"], message: "Answer type must match its slot interaction" });
       }
     }
-  });
+}
+
 
 export type CreationReceipt = z.infer<typeof CreationReceiptSchema>;
 export type StudentSlot = z.infer<typeof StudentSlotSchema>;
@@ -972,7 +982,7 @@ export function serializeErrorResponse(response: unknown): string {
 
 type IssueReporter = (path: PropertyKey[], message: string) => void;
 
-function validateFormModeReuseMode(
+export function validateFormModeReuseMode(
   value: { formMode: z.infer<typeof FormModeSchema>; reuseMode: z.infer<typeof ReuseModeSchema> },
   context: z.RefinementCtx,
 ): void {
@@ -1003,7 +1013,7 @@ export function parseResponseForInteraction(interaction: Interaction, value: unk
   return response;
 }
 
-function validateAnswerKey(
+export function validateAnswerKey(
   interaction: Interaction,
   answerKey: AnswerKey,
   report: IssueReporter,

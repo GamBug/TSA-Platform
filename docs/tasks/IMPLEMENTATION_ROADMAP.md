@@ -1,6 +1,367 @@
 # Implementation roadmap
 
+Current WEB-004 saved-read supplement,2026-10-27: local pending/error/retry/cancel
+for history/current-attempt reads preserves context and fences late navigation/
+identity completion. Independent Firefox offscreen P2 repaired; actual focused
+controls/feedback visible with nearest local scroll. Root and separate native
+Sol6.1/Medium final Chrome10/37/213responses/Firefox10/37 PASS, state18/B038/build/
+boundaries/docs PASS; no unresolved review finding. Native Luna/XHigh bounded test
+writer. [Evidence/limits](../reviews/WEB_004_SAVED_READ_RECOVERY_VERIFICATION.md).
+No server contract/SDK/clock/scoring/reuse change. Human accessibility and lawful
+stock remain external; previous clean checkout is historical, not new-source proof.
+
+Current WEB-004 history supplement,2026-10-27: root-selected UI gap beyond10 history
+entries closed using existing owned GET; readable dates, progressive reveal/focus,
+truthful cached-data retry and request/session fencing. Root initial two-engine
+10/30, domains78/B011/26/B034/build/boundaries/docs PASS; separate native Sol6.1/
+Medium final-source Chrome10/31/202responses and Firefox10/31 no findings, all16
+genuine entries accessible/first history unchanged/account state cleared/header
+maxdelta0. [Evidence/limits](../reviews/WEB_004_HISTORY_VERIFICATION.md). No API,
+SQL, scoring, clock or reuse-policy change; manual AT and lawful stock remain human.
+Clean no-hardlink e7b9e5d locked install/build/B034/Chrome10/31/201responses/Firefox
+10/31/B011/26/boundaries/docs PASS, clone Git empty. Automatic cleanup, no retry or
+manual setup; root reproduction only, final reviewed app hashes unchanged.
+
+Current WEB-004 supplement,2026-10-27: owner-requested red primary accents, solid
+hero/logo and stable navigation implemented. Browse header now persists outside
+route columns; reserved scrollbar space, common local fonts and explicit responsive
+rows fix observed jumps and actual PG tablet overflow. Builder B011/26; root two
+engine short8/26 each, staff50/34, keyboard6/6, B032/build/boundaries/docs PASS.
+Separate native Sol6.1/Medium independent realPG tenwidths/B011/26/Firefox8/26
+review no remaining findings. [Exact evidence/limits](../reviews/WEB_004_HEADER_STABILITY_VERIFICATION.md).
+No API/SQL/scoring/timing changes. Qualified accessibility and lawful reviewed
+inventory remain external; earlier scoped historical proposal references below do
+not supersede the implemented B11 disposition recorded above those histories.
+
+Current B11.1,2026-10-26: renewed owner choice authority selected optional local
+personalNEW_ONLY Math2/180+Science2/180, now implemented and independently reviewed.
+Original4/2/4 Mvp guard/public artifacts/solver/fixed predicates unchanged. Root
+assembly83/student44/Bank161/contracts161/critical9/launcher13 and Chrome7/18/110+
+Firefox7/18 PASS; separate read-only gpt-6-luna source/PG10/HTTP1/finalbrowsers no
+remaining blocker (reasoning not exposed, no Sol/Medium claim). Shared false by
+default, disposable explicit demo only. [Evidence/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).
+No shorter Reading/review/fixed or automatic fallback. Lawful reviewed stock and
+qualified manual accessibility remain external, not supplied by technical delegation. Clean no-hardlink9cccfcb install/build/focused10/Chrome7/18/110/Firefox7/18/launcher13/
+drift/import/docs PASS, final clone Git empty. [Concise supervisor sequence](../guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md)
+now accompanies the full engineering guide.
+
+Current WEB-004 supplement2026-10-26: real Firefox native200% automation now runs
+through mixed saves/reload, submission/Escape, grading/released explanation/Space
+and catalog return. Root6checks/8captures, default4/4 and fixed6/19 PASS; actual
+factor2/DPR2/CSS640 with fixed physical1280 window, no CSS/pinch substitution.
+Clean no-hardlink7b2457a locked install/build/native6/8/default4/4/consumer/docs
+PASS, final clone Git empty. No application defect found/changed. [Evidence](../reviews/WEB_004_NATIVE_ZOOM_VERIFICATION.md).
+Actual native Luna/XHigh normal-entitlement read-only fallback reviewed both native
+and B10.2 supplements; independent Chrome6/19/86, Firefox fixed6/19/native6/8 PASS,
+no actionable finding. Preferred Sol capacity remains limited, no Sol/Medium claim.
+Qualified manual/AT acceptance and B11 frozen-policy authorization remain external.
+
+Current B10.1,2026-10-26: separately selected under standing engineering delegation,
+implemented existing frozen fixed student contracts for supported B9 seals. Opt-in
+disposable3domain demo, native consent, owned immutable-form attempts, durable H1,
+first-history/current rights, save/reload/grade/released review and truthful recovery.
+Actual independent Sol6.1/Medium source/PG/HTTP/Chrome review no unresolved findings;
+root Firefox/targeted/broad regressions pass. Shared flags remain false. No new
+human approval, production or accepted real-content/accessibility claim.
+Clean no-hardlinkd903ae4 locked install/build/focused16/launcher10/Chrome5/Firefox5
+unchanged-source retry/defaultdomains78/drift/import/docs PASS, final clone Git empty;
+first Firefox cleanup timeout retained. [Evidence](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+[B11 proposal](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md) is unimplemented
+and requires frozen count-policy disposition; current4/2/4 guard unchanged. Remaining parent
+WEB-003 engineering scope is separately selected shorter profiles; human-qualified
+stock/accessibility remain external. Historical proposals below are superseded only
+by their recorded scoped decisions.
+
+Current B9.1,2026-10-26: local fixed sealing/private EXAM metadata implemented under
+recorded specific owner go-ahead. Current eligible stock/immutable snapshots/rights
+horizon, no attempts/history or fixed student delivery. Root focused12/Bank161/
+contracts161/assembly63/Chrome50/Firefox18/defaultdomains78 PASS; independent source/
+core7+races4/upgrade1/DTO5/Chrome50 no unresolved finding. Clean no-hardlink5b37a30
+install/build/focused12/Chrome50/Firefox18/defaultdomains78/drift/import/docs PASS,
+final clone Git empty.
+[Evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md). Historical
+proposal paragraphs below are superseded only in this exact scope.
+
+Current existing staff-session repair,2026-10-26: actual old-confirmation defect
+reproduced and fixed through nonce/epoch/refresh fencing and GET-only recovery.
+Root Chrome48/Firefox17/B032/local15/import/docs PASS, independent final source/
+Chrome48/B032 PASS, no unresolved findings. Clean no-hardlink5c397b0 install/
+build/Chrome48/Firefox17/docs/import PASS, final clone Git empty.
+[Evidence](../reviews/WEB_002_STAFF_SESSION_BINDING_VERIFICATION.md). No new API/role.
+B9 source-only design review now completed, response-ID P2 repaired/rechecked;
+[review](../reviews/WEB_002_B9_DESIGN_REVIEW.md). It remains proposed, not owner approval.
+
+Next privileged milestone B9.1,2026-10-26: concrete
+[fixed sealing/list/detail proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md)
+prepared as required by the standing mission; PROPOSED / HUMAN_APPROVAL_REQUIRED,
+not implementation approval. Preserve B7 reference-only filtering and B8 no-form
+rehearsals. New candidate fixed delivery remains separate. Current bounded staff
+publication-status clarity passed existing Chrome46/Firefox16/B032 checks;
+[evidence](../reviews/WEB_002_PUBLICATION_STATUS_CLARITY_VERIFICATION.md). No independent
+review of that earlier display checkpoint is claimed; B9 now has the separate
+source-only review above. The earlier reviewer usage interruption is historical.
+
+Current WEB-003,2026-10-26: explicit session-bound REVIEW_ALLOWED practice now works
+through fresh consent, reserved Start, persistent answers, grading/released review
+and labeled history in all three domains. NEW_ONLY remains strict/default; no
+fixed delivery or shorter profile was added. Actual PG/HTTP/Chrome/Firefox and
+independent source/PG/browser/security reviews pass in their recorded scopes;
+additional final independent browser rerun was usage-limited. Clean no-hardlink
+15edb19 install/build/targeted20/reviewChrome65/Firefox9/defaultdomains78/drift/
+boundaries/built/docs PASS, final clone Git empty. [Evidence/limits](../reviews/WEB_003_REVIEW_PRACTICE_VERIFICATION.md).
+
+Current SEC-001,2026-10-25: exact patched Zod4.6.7 replaces observed vulnerable
+4.1.12; all other pins/frozen sources/artifacts unchanged. Root156contracts/Bank149/
+assembly50/critical9/student34/domains78/Chrome46/Firefox16/audit0 PASS; separate
+reviewer targeted compatibility/integrity checks no findings. Clean no-hardlink
+3cd49be install/build/contracts156/focused12/domains78/Chrome46/Firefox16/emitted/
+boundaries/docs/audit0 PASS, final clone Git empty. [Evidence](../reviews/SEC_001_ZOD_REMEDIATION_VERIFICATION.md).
+TEST-002 G now verified/reviewed and clean4dd3fca install/build/results7 PASS.
+H.1 current-domain barrier extension target3/allocation18 and independent target3/
+abortprobe2 and final root fullassembly53 PASS; clean no-hardlink4e26296 install/build/assembly53/results7/docs PASS, clone Git empty. No runtime/mode/contract expansion.
+[Current scoped acceptance/remaining inputs](../reviews/TRACK_B_LOCAL_ACCEPTANCE_2026_10_25.md).
+
+Current B8.1, 2026-10-25: actual eligible Bank rehearsal implemented with separate
+immutable021 storage, current EXAM command, audited BANK replay and role-scoped UI.
+[Evidence/limits](../reviews/WEB_002_B8_BANK_STOCK_REHEARSAL_VERIFICATION.md). Root
+PG/upgrade/regressions/Chrome PASS; actual delegate Firefox16 PASS, independent
+PG6/upgrade3/Chrome46/source final no findings. Clean no-hardlink b886737 install/build/focused12/Chrome46/Firefox16/built/drift/import/docs PASS; final clone Git empty. Old-pin Zod advisory subsequently fixed in SEC-001. This captures historical eligibility, creates no form or
+attempt and does not attest rights/human review or current stock. Next explicit
+fixed sealing scope follows completed rehearsal acceptance.
+
+Current B7.2, 2026-10-25: manager stored fixed reference discovery/replay diagnostics
+with audited narrow020 function and genuine synthetic solver fixtures implemented.
+[Actual PG/browser/regression/independent evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+Personal runs/table SELECT remain denied; list metadata is distinct from replay
+verification; no Bank eligibility capture/sealed forms/fixed delivery/publication.
+Clean no-hardlink e9cd346 locked install/build/focused47/Chrome44/Firefox13/built/
+drift/import/docs PASS without patches/manual SQL/API setup, final clone Git status
+empty. Final copy-only root Chrome44/Firefox13 and independent source checks PASS.
+
+Current B7.1, 2026-10-25: additive internal fixed reference/replay implemented
+without widening personal manifest modes. Old byte/result/node-count compatibility,
+fixed oracle/goldens, actual PostgreSQL assembly/student and three-domain browser
+verification PASS, separate read-only review no findings. [Exact evidence](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
+Next narrow stored-run audited diagnostics and useful staff UI, no personal data
+disclosure or fixed-delivery/publication claim.
+
+Current B6.1, 2026-10-24: manager-only explicit canonical dataset preflight over
+unchanged internal service. Selection/pin/count/shortfall/blocker/recovery/focus
+verification, actual PG/Chrome/Firefox and independent review PASS. [Exact evidence/limits](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+No accepted inventory/rights/human/assembly-feasibility inference; frozen fixed
+manifest/replay semantics and source-only opaque-import compatibility are separate.
+Clean no-hardlink c158d57 install/build/focused41/Chrome40/Firefox12/built/drift/
+import/docs PASS, no patches/manual SQL/API setup; final clone Git status empty.
+No new grants/migrations or publication action.
+
+Current B5.1 recorded manager history, 2026-10-24: exact explicit latest20 read
+with current workflow separate, untrusted verbatim reasons inert, no qualification/
+rights/eligibility inference. [Actual PostgreSQL/browser/independent evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+No migration/grants/frozen contract change. Clean no-hardlink bd41e26 install/
+build/focused37/Chrome37/Firefox11/built/drift/import/docs PASS without patches/
+manual SQL/API setup; final clone Git status empty. Fixed-run
+diagnostics/eligibility/qualified human inputs remain separate.
+
+Current author editor, 2026-10-24: existing-route compact SC/MC/TF form with
+explicit key validation, exact persistent private-preview reload and mobile/
+keyboard evidence, separately reviewed with no findings. [Actual checks/limits](../reviews/WEB_002_AUTHOR_EDITOR_VERIFICATION.md).
+No backend/schema/role/rights/publication changes.
+
+Current B4.1, 2026-10-24: selected under owner engineering-choice delegation,
+negative dispositions/receipt recovery and original-import-operator repair
+implemented with actual PostgreSQL/Chrome/Firefox evidence and independent review.
+[Exact outcomes and limits](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+Fresh no-hardlink f8aaf12 locked install/build/focused33/Chrome32/Firefox9/built/
+drift/docs PASS without patches/manual SQL/API setup; final clone Git status empty. Next existing-contract author form
+completeness; no APPROVE/rights-edit/publication or fabricated human evidence.
+
+Current B3.1 author handoff, 2026-10-24: explicit whole-proposal owner approval;
+implementation and actual PG/Chromium/Firefox/recovery verification complete,
+independent review final no findings after P3 repair. [Evidence](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md)
+and [demo](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+No backend policy/grant/migration/student contract changes. Clean no-hardlink
+bd45327 install/build/focused27/Chrome28/Firefox/built/drift/docs PASS, no patches/
+manual SQL/API setup, final clone Git status empty.
+Next [B4.1 negative-disposition proposal](../decisions/WEB_002_B4_NEGATIVE_DISPOSITIONS_PROPOSAL.md)
+was subsequently selected under delegated authority and implemented above.
+Rights/publication and qualified human input remain separate.
+
+Current read-only staff queue UX, 2026-10-24: existing IN_REVIEW metadata shortcut
+verified Chrome24/B032 and separately reviewed (source/syntax/whitespace only).
+No new privilege or workflow command. Next [B3.1 author handoff proposal](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md)
+was explicitly approved and implemented above; this historical sequencing does
+not authorize further privileged frontend actions.
+
+Current B2.1 staff increment, 2026-10-24: explicit owner approval recorded; private
+current recorded evidence GET/strict DTO/UI and actual role/closure/read-only/cap/
+browser verification complete, independently reviewed with no final findings.
+[Runtime evidence](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md) and
+[demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+No B1/student contract, grant or migration change. Fresh no-hardlink clone9d98687
+install/build/focused22/Chrome23/Firefox/built/drift/docs PASS with no patches/manual
+SQL/API setup and final clean clone Git status. Broader review/rights/diagnostic contracts
+and qualified human inventory/accessibility remain distinct.
+
+Current B1.2 staff increment, 2026-10-23: owner-approved private version inspection,
+read-only role/rights guards and narrow019 authorship predicate are implemented and
+independently reviewed, with actual PostgreSQL/Chromium/Firefox evidence.
+[Runtime verification](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md) and
+[staff demonstration](../guides/TRACK_B_SUPERVISOR_DEMO.md#optional-staff-demonstration).
+Clean no-hardlink clone147dd71 install/build/focused15/Chrome/Firefox/built/drift/
+docs PASS with no patches/manual DB setup and clean clone Git status.
+The formerly proposed [B2.1 recorded-evidence read](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md)
+was explicitly approved and is verified above. Full staff evidence/
+review/publication/diagnostics and human inventory/accessibility remain separate;
+B1 approval does not grant those capabilities. Prior sequencing below is historical.
+
+Current execution focus, 2026-10-23: complete the local Track B presentation,
+then the authorized staff subset. Three independently timed persistent domain
+journeys and visible math/table/mobile repairs have automated evidence and
+independent engineering review. [Demo guide](../guides/TRACK_B_SUPERVISOR_DEMO.md)
+and [current verification](../reviews/TRACK_B_PRODUCT_DEMO_VERIFICATION_2026_10_23.md).
+Final clean-checkout reproduction PASS at `be4705d`; the bounded local student presentation milestone is complete. Existing-route staff metadata
+filters/pages and approved B1.2 private inspection are independently reviewed and
+verified. Additional private evidence requires the separate B2.1 decision above.
+Qualified content/rights/accessibility and production requirements remain separate.
+Historical proposed sequencing below is retained, not current gate status.
+
+Current owner disposition, 2026-10-21: **G2/G3 OWNER_ACCEPTED**.
+[Authority and remaining implementation/evidence limits](../decisions/G2_G3_OWNER_ACCEPTANCE_2026_10_21.md).
+Earlier unaccepted gate statements below describe historical checkpoints.
+
+
+Owner disposition, 2026-10-19: **G1 ACCEPTED; FOUND-002 COMPLETED** against
+implementation `0e67485` and audit baseline `81ef8aa`. Mandatory evidence in the
+[final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) is satisfied. Scoped owner record:
+[OPEN_DECISIONS](../decisions/OPEN_DECISIONS.md#g1--owner-acceptance-and-bounded-track-b-execution-2026-10-19).
+Unrelated downstream decisions remain pending; G2/G3 disposition above supersedes historical pending references. Earlier pending-G1
+statements below describe historical checkpoints, superseded by this disposition.
+
+
 Status: **PROPOSED** Phase 02.75 sequencing. Scoped G0 implementation authorization is recorded in [decisions](../decisions/OPEN_DECISIONS.md) on 2026-10-17; this roadmap is not an ADR approval or production-readiness record. [Backlog](TASK_BACKLOG.md) owns task status; decisions owns approval records. The three product stages below are independently demonstrable and may advance in parallel. Exit evidence is future evidence to be recorded by the accountable task owner, not work completed by this roadmap.
+
+## Active priority — Track B first, 2026-10-19
+
+Owner directive prioritizes visible Track B product progress (~85%) and lightweight
+Track A preparation (~15%); these are priorities, not effort/token quotas.
+G1 ACCEPTED by owner, disposition commit `27350b3`; FOUND-002 COMPLETED. Existing
+B0 finalization and same-app B0.1 polish are explicitly authorized; integrated work
+retains its remaining prerequisites and unresolved decision boundaries.
+
+| Milestone | Dependency / executable scope | Demonstrable exit |
+|---|---|---|
+| B0 now | No G1 dependency for isolated mock UI; no approved-content or real-backend claim | Vietnamese local landing/catalog, MATH fixture navigation/selection, countdown, confirmation and demo result; startup + automated and browser evidence. Repeat synthetic content visibly labeled. |
+| B0.1 verified | Same app and existing synthetic fixture; no fresh content needed | Clear/count/focus, resume same in-memory deadline/answers, submit summary and separate post-grade review. Eleven Node tests and actual desktop/mobile browser verification pass. Distinct lawful content and other renderers remain follow-on work. |
+| B2 foundations enabling B1 | Owner G1 acceptance → DATA-001 → explicitly scoped local AUTH-001 → BANK-001 ingestion → BANK-002 human review/publication evidence → owner G2 disposition | Minimal controlled staff import/review/publication supplies approved stock; do not defer this dependency until after claiming a real exam. |
+| B1 integrated mini exam | Above gates + ASSEMBLY-001/002, EXAM-001/002 and SCORE-001 acceptance | Immutable allocation, server timing, persisted answers, closure/scoring and authorized result. Reconcile owner's ten-question target with existing separate 4/2/4 domain profiles before integration; no combined attempt assumed. |
+| B3 offline Factory bridge | Working bank/publication boundaries plus Factory/INT prerequisites and own approvals | Draft-only import through human review; no live generation on student paths. |
+
+Recommended implementation: Codex Luna / XHigh for bounded frontend/mock and later
+frozen adapter/test slices (low relative cost); Sol 6.1 / Medium coordination and
+independent verification. Terra only for demonstrated complex DB/security segments.
+No Astra. Maximum one writing worker and two child agents; no downstream work
+started by this roadmap.
+
+Lightweight Track A preparation (no benchmarking, scraping or provider calls):
+
+| Candidate source inventory | Usage basis / current disposition |
+|---|---|
+| Existing repository synthetic contract fixtures | Technical test/demo material only, attributed to exact file; not approved seed stock, Vietnamese subject review or a legal-clearance claim. |
+| Future owner/human-authored original practice items | Require named author, rights attestation, evidence and a different human subject reviewer before publication. |
+| Existing research inventory S1 HUST scheme PDF / S2 HUST handbook announcement | Reference/source-verification only, as recorded in RESEARCH_ASSESSMENT; no sample-question reuse/training permission established. No new retrieval or scraping in B0. |
+| Existing research inventory S3 UIT / ViQuAD | Research assessment records contact/user-agreement conditions; no agreement or corpus usage authorized here. No download, ingestion or training. |
+| Explicitly licensed/open/public-domain inputs | No specific collection approved here; verify exact license, allowed use, attribution, territory/dates and immutable version before ingestion. |
+
+Quality/rubric preparation reuses existing contracts: identify MATH/READING/SCIENCE;
+SINGLE_CHOICE/MULTIPLE_CHOICE/TRUE_FALSE_GROUP; taxonomy version and shared-stimulus
+bundles. Assess correctness, unique/complete answer, ambiguity, Vietnamese clarity,
+explanation evidence, curriculum relevance, rights/provenance and duplicate/equivalence
+flags separately. Record PASS/FAIL/INCONCLUSIVE against exact hashes; no model score
+substitutes for independent human approval. Dataset evaluation additionally needs
+frozen held-out labels, no leakage and an owner-accepted protocol before benchmarking.
+
+## Active Stage 4B contract batch — 2026-10-19
+
+Owner [scoped D1–D6 approval](../decisions/OPEN_DECISIONS.md#d1d6-scoped-contract-approval--stage-4b--2026-10-19)
+supersedes the historical Stage 4 proposals below only within its recorded scope.
+No whole ADR, missing evidence, production readiness or G1 advancement is implied.
+
+| Increment | Dependencies and evidence | State |
+|---|---|---|
+| D1 shortage reconciliation | Existing 422 eligible/unseen versus 503 unknown semantics; bounded FOUND-007 acceptance | Verified in `07ced30`; allocation implementation is later work |
+| D2 identity and fingerprint | Exact versioned bytes, immutable reference closure, independent hash goldens | Accepted `07ced30` |
+| D4 Factory v2 | D2; full source/rights/assets/ancestry, atomic DRAFT-only receipts, v1 compatibility | Accepted `d65e08b` |
+| D3 assembly/replay | D2; manifest/slot goldens, exhaustive oracle, measured caps and replay failures | Accepted `8a09b92`, repair `3af1b34` |
+| D5/D6 routes and boundaries | Existing approved DTOs; separate consumer entries, generated route types/OpenAPI, actual owner/release HTTP egress | Accepted `a6ec4ad` |
+| Integration evidence | All above; full required suite, generated drift and consumer restriction checks | Local suite PASS; G1 ACCEPTED by owner 2026-10-19 |
+
+Luna / XHigh implemented the batch; Sol / Medium owns technical specification,
+independent review, integration and shared records. Coordinator completed bounded
+integration repairs after worker capacity errors; all reservations are released.
+A read-only Luna scout supplied narrow evidence. No Terra/Astra, dependency change,
+push, merge, deployment or paid API occurred. Later DATA/AUTH/BANK/ASSEMBLY services retain their own gates.
+
+## Active integrated Track B batch — owner approval, 2026-10-19
+
+[Scoped DATA/AUTH approval](../decisions/OPEN_DECISIONS.md#data-001--auth-001--scoped-local-track-b-approval-2026-10-19)
+authorizes PostgreSQL, reviewed SQL and server-only access, immutable versions and
+snapshots, private-data separation and transaction safety. It also authorizes the
+synthetic-only local identity adapter after DATA-001; production activation must
+fail closed. Existing frontend/contracts remain stable; no ORM expansion.
+
+| Order | Executable dependency and evidence |
+|---|---|
+| DATA-001 — local foundation accepted `37c9f6a` | Bank-core migration/adapter first, then form/attempt/history/jobs schema. Independently verify fresh install, populated upgrade, FK/immutability/role negatives, atomic rollback and real two-connection barriers. Partial schema tests do not complete the task. |
+| AUTH-001 local — accepted `6f73272` | Accepted DATA-001; server-side fixed synthetic identities, sessions, role/object checks, invalidation and CSRF/origin negatives. Current B0 mock cookie is not acceptance. Production OIDC/MFA/provider configuration remains later. |
+| BANK-001 ingestion — manual `679c380`, staff `021dec0` verified | Accepted DATA/AUTH and frozen G1 contracts; register evidence, validate/import immutable drafts and keep keys server-only. Existing frontend may consume the resulting local staff adapter. No automatic publication. |
+| BANK-002 / DATA-002 | Accepted ingestion plus named independent human review process, lawful exact-version rights and reviewed stock. Synthetic integration fixtures cannot substitute for these prerequisites. |
+| B1 | Published stock/G2 and accepted allocation/attempt/closure/scoring components; preserve separate 4/2/4 domain profiles. No gate advancement by passing fixtures alone. |
+
+As of 2026-10-20, the existing app has a persistent synthetic-only staff workspace
+on 4174 (`021dec0`), with actual auth/Bank APIs, DRAFT creation and reload/restart
+persistence. Local13/13 tests and both Chromium journeys pass independently;
+practice exam behavior remains mock. Canonical Factory v2 PostgreSQL transport/receipts
+is verified in `d376791` (Bank21, DATA34, AUTH5, local13 tests); this is draft
+ingestion, not AI generation. Terra/Medium implemented its immutable graph/opaque-ID
+mapping and atomic asset
+persistence; Luna/XHigh completed acceptance repairs; Sol independently reviewed
+and verified. All writer reservations released. Named human review and rights-cleared inventory
+still block publication and downstream G2/assembly; synthetic roles are no substitute.
+
+Codex Luna / XHigh implements bounded slices; Sol / Medium independently reviews
+and verifies. Terra only for demonstrated complexity. One writing worker; no
+Astra, push, merge, deployment or paid APIs. Historical proposals below are
+superseded only within the current recorded approval scope.
+
+## Proposed post-G1 prerequisite batch — 2026-10-19
+
+The [final audit](../reviews/G1_ACCEPTANCE_AUDIT.md) recommends owner acceptance
+of G1 at `0e67485`; G1 is NOT ESTABLISHED until explicit owner disposition. This
+is a proposed assignment sequence, not downstream implementation authorization.
+Existing gate/card criteria below remain unchanged.
+
+| Order / task | Actual prerequisites and required decision | Bounded deliverable and acceptance evidence | Recommended agent/platform / reason / relative cost |
+|---|---|---|---|
+| First: DATA-001 relational foundation | Owner G1/FOUND-002 acceptance and task assignment; disposition of affected proposed database/ADR mechanisms before choosing them. Scoped H1/H2/H3, 600-second deadline and non-retroactive ordinary admission edits are already approved. | Freeze a table/constraint/migration matrix against approved contracts, then implement in bounded increments. Real PostgreSQL fresh install/populated upgrade, FK/check/unique failures, immutable links, cross-form rejection, history preservation, rollback compatibility and two-connection barrier/lock-order tests. No contract tests substituted for DB evidence. | Codex Luna / XHigh for bounded migration fixtures/increments after specification freeze; low–medium. Terra / Medium only for a specifically assigned complex multi-table migration/locking segment beyond that scope; medium, justified by irreversible integrity/concurrency risk. Sol / Medium independently reviews migrations and evidence. |
+| Next: AUTH-001 local development | DATA-001, FOUND-002, G0 and explicit owner approval of the synthetic-data-only identity stub. No durable approval of that stub is currently recorded. Production OIDC provider/data-flow choices are separate later work. | Server-enforced roles/own-object checks, factory/job-kind isolation, session invalidation, BOLA/CSRF/property negatives; local stub impossible to enable in production. Accepted local evidence can supply G2; requiring G2 first would create a cycle. | Codex Luna / XHigh for bounded adapters and negative fixtures; low–medium. Sol / Medium necessary independent security review; no production identity implementation implied. |
+| Then: BANK-001 ingestion | G1, DATA-001, AUTH-001 and affected rights/versioning mechanisms approved. | Validate/dry-run exact hashes, provenance/rights, stimulus/assets and atomic idempotent draft-only receipts in real persistence; stale/altered payload and rights failures reject without partial writes. | Codex Luna / XHigh for frozen parser/adapter slices; low–medium, with Sol / Medium integrity review. |
+| Then: BANK-002 human publication | DATA-001/AUTH-001/G1, accepted BANK-001 ingestion evidence and a named independent human review process. It does not wait for the complete BANK-001 milestone or G2. | Human-only exact-hash approval, no self-approval/inherited approval; duplicate resolution, canonical equivalence audit, quarantine/revocation. Real DB concurrent approve/withdraw and authorization tests. BANK-001 plus BANK-002 evidence establishes G2 only by owner disposition. | Codex Luna / XHigh for bounded commands/tests, Sol / Medium independent integrity/security review. Named human reviewer performs content approval. |
+| Independent preparation: DATA-003 → DATA-002 | G0 lawful scope and named distinct author/reviewer; DATA-002 additionally needs affected ADR-002/003 scope approved. Manifest preparation does not require Bank implementation; canonical import awaits BANK-001. | Original/lawfully cleared 12/6/12 mini-bank manifest, source/rights attestations, three interactions and reading bundle. Hash/count/schema preflight plus independent Vietnamese clarity, answer, rights and duplicate review. Test two NEW_ONLY attempts under constraints; counts alone do not prove feasibility. | Human author and independent content reviewer; Codex Luna / XHigh only for manifest tooling/schema/feasibility checks, low cost. Agent output cannot grant rights or human approval. |
+| Independent research: FOUND-003 / RESEARCH-002 | Scoped research assignment under G0, provenance/rights boundaries and research-review scope. No website, Bank, G2 or live paid model dependency. | Dated primary-source applicability evidence; dataset/source/taxonomy gap matrix, lawful input policy and reproducible two-adapter evaluation protocol. Distinguish official profile verification from reuse permission and unofficial scoring. | Codex Luna / XHigh for bounded evidence organization and fixtures; Sol / Medium for protocol/source interpretation; low–medium. No paid API or presumed model availability. |
+| Follow-on: AI-003 / AI-001 | AI-003: rights-cleared sources, named independent labelers and owner-accepted RESEARCH-002 plan. AI-001: G1, FOUND-002, lawful fixtures and explicit task assignment. | Frozen held-out hashes/partitions and leakage audit; standalone fixture/fake-provider adapter with deterministic canonical draft output and negative validation. AI-002 quality claims await lawful independent held-out labels and AI-001. Live adapters retain provider/input/privacy/cost approvals. | Codex Luna / XHigh for deterministic fixtures/fake adapters, low–medium; human labelers and Sol protocol review where required. |
+
+Independent tracks: source research and lawful human seed preparation can proceed
+beside DATA-001 once their own approvals/assignments exist; a G1-approved fake
+adapter can also proceed independently of DB/auth. Keep at most one writing agent
+and two child agents; serialize overlapping schemas/migrations and shared tracking
+files. Read-only verification and human content review may run concurrently.
+
+Consolidated next owner scope: accept or reject G1; separately assign DATA-001 and
+dispose only its affected proposed mechanisms; explicitly scope AUTH-001's local
+synthetic stub; nominate lawful-source scope and independent authors/reviewers/
+labelers; assign the early research protocol. These are later-task decisions,
+not outstanding G1 acceptance gaps. No production provider or paid spend is needed
+for the first database/synthetic-fixture/research-planning batch.
 
 ## Current owner-approved MVP boundary
 
@@ -15,7 +376,7 @@ The MVP has independent one-domain practice tests: MATH has 4 questions, READING
 | G2 — Bank publication boundary | G1 plus DATA-001/AUTH-001 permit BANK-001 ingestion and BANK-002 independent review/publication. Verified BANK-001 ingestion **and** BANK-002 publication evidence → G2. | Exact-version rights, immutable versions, validation/review/equivalence records, human-only approval and eligible-bank publication are demonstrably separate from draft creation. G2 does not gate either producer; factory credentials cannot approve or publish. |
 | G3 — Integration readiness | FACTORY-001 (including FACTORY-002/003), AI-002, G2, technical-MVP assembly/attempt/scoring evidence, and INT-002 controlled-import proof → G3 → INT-001. | Before G3 passes, INT-002 accepts the same package twice as one durable receipt, rejects changed content under the same identity, and imports no partial stimulus bundle. A human-approved subset becomes eligible bank stock without changing the factory, assembly or exam contracts. |
 
-G1 defines interfaces, not a second production store or a requirement to deploy the website. G2 is the sole path from any manual or factory draft to selectable stock. G3 is an evidence gate, not a prerequisite of INT-002 or any other task that supplies its evidence. No gate converts a PROPOSED ADR into approval. No downstream gate is currently passed; the G0 authorization is an owner scope record, not implementation or release evidence.
+G1 defines interfaces, not a second production store or a requirement to deploy the website. G2 is the sole path from any manual or factory draft to selectable stock. G3 is an evidence gate, not a prerequisite of INT-002 or any other task that supplies its evidence. No gate converts a PROPOSED ADR into approval. G1 is owner-accepted; G2/G3 remain unestablished; the G0 authorization is an owner scope record, not implementation or release evidence.
 
 ## Lifecycle dependency validation model
 
@@ -69,3 +430,75 @@ The following assignments may run concurrently after their stated gates when the
 A coordinated integrator sequences shared migrations, G1 fixtures and state-file updates. Role/provider names do not imply assignment. Follow the [handoff protocol](../agents/HANDOFF_PROTOCOL.md); preserve all unresolved architecture decisions and obtain the required owner approval before implementation or live provider use.
 
 No calendar or throughput commitment is made. Next action: assign an accountable owner for the first implementation task, then establish G1 through FOUND-002 under the recorded authorization and unresolved-decision limits. No paid LLM API request is authorized by this roadmap.
+
+
+## Proposed Stage 4 bounded autopilot — 2026-10-19
+
+Status: Stage 4A COMPLETED under the owner's 2026-10-19 "STAGE 4A — BOUNDED
+AUTOPILOT ACTIVATION"; Stage 4B remains NOT STARTED. These are bounded subtasks
+of FOUND-002/FOUND-007, not new tasks or changed dependencies. Engineering
+checkpoint `dadd60e`; [handoff](../agents/LAST_HANDOFF.md) records independent
+checks. The [single decision packet](../reviews/G1_STAGE4A_DECISIONS.md) owns
+current READY/BLOCKED/DEPENDENT classification; recommendations remain unapproved.
+
+### Verified gaps and first batch
+
+Stage 3 supplies local JS/declaration build and emitted-runtime smoke evidence.
+Existing schemas, source package exports and components-only OpenAPI are unchanged.
+The [historical G1 gap assessment](../agents/ORCHESTRATOR_HANDOFF.md#g1-acceptance-001-audit-actual-remaining-criteriagaps)
+at that historical checkpoint required: FOUND-007 owner acceptance; exact content/hash/fingerprint rules;
+complete assembly/replay and publication-lock encoding; Factory stimulus/assets
+and source/rights transport; released-result wire alignment; accepted route/client
+contracts; strict independent consumer/private-boundary evidence; and recorded
+version/support/license/advisory review. Hosted CI remains unobserved; no push is
+authorized. Broader database/browser/provider enforcement is later runtime work,
+not an invented G1 prerequisite. Stage 4A now supplies the scoped dependency
+review and emitted consumer/type evidence; the remaining semantic, artifact and
+import-boundary gaps are classified in the linked decision packet.
+
+Stage 4A batch below was executed; its criteria remain the scope boundary:
+
+| Subtask | Dependency and reserved scope | Acceptance | Agent / complexity / relative cost |
+|---|---|---|---|
+| A: dependency evidence | No unresolved product decision; installed manifests/lockfile read-only; one review record under `docs/reviews/` | Exact installed/locked versions, licenses/support and dated primary advisory sources, commands/results and unresolved findings recorded; no installs/upgrades or claim that an unavailable advisory check passed | `tsa_builder`, Luna / XHigh; S–M / low; bounded evidence gathering |
+| B: decision packet | Existing task-specific specs/tests only; one proposal under `docs/reviews/`; no authoritative spec/source changes | One field-level gap matrix with options, recommended choices, consumer impact/migration, golden-example expectations and precise owner sign-off scopes for FOUND-007, identity, assembly, transport and result/routes | `tsa_builder`, Luna / XHigh; M / medium; structured reconciliation without implementation |
+| C: existing-contract consumer evidence | Current immutable semantics; only new synthetic fixtures/tests in separately reserved paths under `packages/contracts/test/` | Independent producer/consumer serialization against emitted modules; malformed/unknown fields rejected; safe projections exclude private fields; changed-response and optional-field cases distinguish current strict-schema behavior from future approved evolution | `tsa_builder`, Luna / XHigh; M / medium; focused fixtures using established contracts |
+| D: integration review | A–C complete; coordinator alone updates shared package scripts, CI and tracking records if needed | Review actual diffs; build/smoke/typecheck/tests/drift/docs/whitespace pass; no schema/export/dependency drift; explicit gap dispositions; unresolved G1 criteria stay open | Sol 6.1 / Medium; S–M / low–medium; necessary integration review |
+
+The configured model/effort recommendations use existing subscription clients;
+future availability/quota is not verified. If a recommended role is unavailable,
+pause its dispatch and report that limitation; no paid or automatic model fallback.
+Independent review is proposed, not performed for Stage 4. No Astra.
+
+### Ordering, concurrency and batch boundary
+
+Run A and B concurrently only as separately owned records (or read-only outputs),
+with at most two child threads. Default to one writer: otherwise serialize them
+unless the owner explicitly authorizes two isolated worktrees. C follows B's scope
+check and runs while the coordinator reads A/B; serialize its shared script/CI
+integration through D. Record exact file reservations in dispatch prompts before
+starting. Never let workers concurrently edit `src/index.ts`, generated artifacts,
+package scripts, decisions, backlog/state or handoffs.
+
+Batch ended after A–D and a concise owner decision packet. It did not attempt to
+close every G1 gap, install a bundler/framework, start DATA-001 or advance G1.
+Bundle isolation remains unproven by shared-schema consumer fixtures alone.
+No push, merge, deployment, paid API or new architecture is implied. Stage 4A
+local commits were explicitly authorized by its activation directive;
+Stage 4B and its commit scope still require an explicit assignment.
+
+### Follow-on work conditional on owner decisions
+
+| Work | Prerequisite | Independently verifiable exit | Suggested worker / complexity / relative cost |
+|---|---|---|---|
+| Computed identity/fingerprint vectors | Approved immutable fields, encoding/normalization, self-reference and versioning rules | Exact byte/hash goldens plus tamper, Unicode and equivalent-input negatives | Luna / XHigh; M / medium; Terra / Medium only for demonstrated algorithmic complexity |
+| Full assembly replay references | Approved tie/order/search-count/lock encoding rules; identity vectors if replay uses their hashes | Frozen manifest-to-slot goldens, tie/boundary/search-exhaustion cases; no database transaction claim | Luna / XHigh initially; L / medium–high; Terra / Medium only if complexity justifies escalation |
+| Complete Factory transport | Approved stimulus/assets and rights/provenance fields | Strict positive/negative complete-bundle producer/consumer fixtures; draft-only receipt invariant | Luna / XHigh; M / medium |
+| Released result and route/client artifacts | Approved release wire shape, route operations and client target/tool scope | Generated artifacts reproduce exactly; mutation drift fails; strict consumer evolution cases; public/released/private boundary checks | Luna / XHigh; M–L / medium–high; Sol / Medium independent boundary review |
+| G1 acceptance assessment | All accepted FOUND-002/FOUND-007 evidence, dependency review and boundary gaps disposed | Criterion-by-criterion evidence, no missing check labelled PASS; owner gate disposition, no automatic advancement | Sol / Medium read-only; M / medium |
+
+The owner must approve the field-level semantic choices above, FOUND-007's exact
+scope/closure, the next batch assignment and any dependency/tool/export changes
+needed later. Existing H1/H2/H3/Start TTL/admission-edit approvals remain intact;
+no whole ADR is approved by this plan. Lawful sources and provider/privacy/spend
+choices are separate gates for later real-data/live-provider work.

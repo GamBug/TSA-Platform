@@ -1,0 +1,290 @@
+import {parsePersonalPracticeConfig} from '../assembly/practice-profiles.mjs';
+import {
+  AttemptHistoryPageSchema,
+  AttemptHistoryQuerySchema,
+  CatalogEntrySchema,
+  CatalogPageSchema,
+  CatalogQuerySchema,
+} from '../../../packages/contracts/dist/internal.js';
+import { withTransaction } from '../database/pool.mjs';
+import { BankCommandError, reject, requireActor, UUID_PATTERN } from '../bank/common.mjs';
+import { parseClozeMatchingConfig, parseNumericPracticeConfig } from '../assembly/versioned-contracts.mjs';
+import { FullSimulationCatalogPageV3Schema } from '../../../packages/contracts/dist/simulation.js';
+import { SimulationAttemptHistoryPageV3Schema } from '../../../packages/contracts/dist/student-v3.js';
+
+const DEFAULT_PAGE_LIMIT = 20;
+const MAX_CURSOR_LENGTH = 1_024;
+const UTC_MICROSECOND_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+
+function isRecord(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function parseJson(value) {
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); }
+  catch { return null; }
+}
+
+function parsePageQuery(rawQuery, schema) {
+  let query;
+  if (rawQuery instanceof URLSearchParams) {
+    query = Object.create(null);
+    for (const [name, value] of rawQuery) {
+      if (Object.hasOwn(query, name)) reject(422, 'VALIDATION_ERROR');
+      query[name] = value;
+    }
+  } else if (rawQuery === undefined || rawQuery === null) {
+    query = {};
+  } else if (isRecord(rawQuery)) {
+    query = rawQuery;
+  } else {
+    reject(422, 'VALIDATION_ERROR');
+  }
+
+  const parsed = schema.safeParse(query);
+  if (!parsed.success) reject(422, 'VALIDATION_ERROR');
+  return Object.freeze({
+    limit: parsed.data.limit ?? DEFAULT_PAGE_LIMIT,
+    cursor: parsed.data.cursor ?? null,
+  });
+}
+
+function canonicalObject(value, expectedKeys) {
+  if (!isRecord(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length === expectedKeys.length && keys.every((key) => expectedKeys.includes(key));
+}
+
+function encodeCursor(value) {
+  const cursor = Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+  if (cursor.length < 1 || cursor.length > MAX_CURSOR_LENGTH) reject(503, 'TEMPORARILY_UNAVAILABLE');
+  return cursor;
+}
+
+function isUtcMicrosecondInstant(value) {
+  if (typeof value !== 'string' || !UTC_MICROSECOND_INSTANT.test(value)
+      || value.startsWith('0000-') || Number.isNaN(Date.parse(value))) return false;
+  try { return new Date(value).toISOString().slice(0, 23) === value.slice(0, 23); }
+  catch { return false; }
+}
+
+function decodeCursor(encoded, kind, allowFixed = false) {
+  if (encoded === null) return null;
+  if (typeof encoded !== 'string' || encoded.length > MAX_CURSOR_LENGTH || !/^[A-Za-z0-9_-]+$/.test(encoded)) {
+    reject(422, 'VALIDATION_ERROR');
+  }
+  let bytes;
+  let text;
+  let value;
+  try {
+    bytes = Buffer.from(encoded, 'base64url');
+    text = bytes.toString('utf8');
+    value = JSON.parse(text);
+  } catch {
+    reject(422, 'VALIDATION_ERROR');
+  }
+  if (bytes.toString('base64url') !== encoded || Buffer.from(text, 'utf8').compare(bytes) !== 0
+      || JSON.stringify(value) !== text) {
+    reject(422, 'VALIDATION_ERROR');
+  }
+
+  if (kind === 'catalog') {
+    if (value?.v === 2) {
+      if (!allowFixed || !canonicalObject(value, ['v','kind','phase','afterFormId'])
+        || value.kind !== 'catalog' || value.phase !== 'fixed'
+        || !(value.afterFormId === null || (typeof value.afterFormId === 'string' && UUID_PATTERN.test(value.afterFormId)))
+        || encoded !== encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:value.afterFormId})) reject(422,'VALIDATION_ERROR');
+      return Object.freeze({phase:'fixed',afterFormId:value.afterFormId});
+    }
+
+    if (!canonicalObject(value, ['v', 'kind', 'afterBlueprintId'])
+        || value.v !== 1 || value.kind !== 'catalog'
+        || typeof value.afterBlueprintId !== 'string' || !UUID_PATTERN.test(value.afterBlueprintId)) {
+      reject(422, 'VALIDATION_ERROR');
+    }
+    if (encoded !== encodeCursor({ v: 1, kind: 'catalog', afterBlueprintId: value.afterBlueprintId })) {
+      reject(422, 'VALIDATION_ERROR');
+    }
+    return Object.freeze({ afterBlueprintId: value.afterBlueprintId });
+  }
+
+  if (!canonicalObject(value, ['v', 'kind', 'beforeCreatedAt', 'beforeId'])
+      || value.v !== 1 || value.kind !== 'history'
+      || !isUtcMicrosecondInstant(value.beforeCreatedAt)
+      || typeof value.beforeId !== 'string' || !UUID_PATTERN.test(value.beforeId)) {
+    reject(422, 'VALIDATION_ERROR');
+  }
+  if (encoded !== encodeCursor({
+    v: 1, kind: 'history', beforeCreatedAt: value.beforeCreatedAt, beforeId: value.beforeId,
+  })) reject(422, 'VALIDATION_ERROR');
+  return Object.freeze({ beforeCreatedAt: value.beforeCreatedAt, beforeId: value.beforeId });
+}
+
+function parseEnvelope(value, expectedKeys) {
+  const envelope = parseJson(value);
+  if (!canonicalObject(envelope, expectedKeys)) reject(503, 'TEMPORARILY_UNAVAILABLE');
+  return envelope;
+}
+
+function parseCatalogEnvelope(value, limit, fixed = false, allowShort = false, allowReadingExperiment = false, allowNumeric = false, allowClozeMatching = false) {
+  const envelope = parseEnvelope(value, ['items', 'next']);
+  const rawItems = envelope.items;
+  if (!Array.isArray(rawItems) || rawItems.length > limit || !(envelope.next === null
+      || (typeof envelope.next === 'string' && UUID_PATTERN.test(envelope.next)))) {
+    reject(503, 'TEMPORARILY_UNAVAILABLE');
+  }
+
+  const seen = new Set();
+  const items = rawItems.map((raw) => {
+    if (!isRecord(raw) || !canonicalObject(raw, ['entry', 'config'])) reject(503, 'TEMPORARILY_UNAVAILABLE');
+    const config = (allowClozeMatching && parseClozeMatchingConfig(parseJson(raw.config)))
+      || (allowNumeric && parseNumericPracticeConfig(parseJson(raw.config)))
+      || parsePersonalPracticeConfig(parseJson(raw.config),{allowShort:allowShort&&!fixed,allowReadingExperiment:allowReadingExperiment&&!fixed});
+    const parsedEntry = CatalogEntrySchema.safeParse(parseJson(raw.entry));
+    if (!config || !parsedEntry.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
+    const entry = parsedEntry.data;
+    const section = config.sections[0];
+    const identityId = fixed ? entry.formId : entry.blueprintVersionId;
+    if (entry.mode !== (fixed ? 'PUBLISHED_FIXED' : 'PERSONALIZED_PRACTICE')
+        || (fixed ? entry.repeatsAllowed !== true : entry.reviewAllowed !== false)
+        || entry.name !== config.name
+        || entry.domain !== section.section || entry.questionCount !== section.count
+        || entry.durationSeconds !== section.durationSeconds || entry.profileKind !== config.profileKind
+        || seen.has(identityId)) reject(503,'TEMPORARILY_UNAVAILABLE');
+    seen.add(identityId);
+    // Return only the frozen public catalog entry; the validated blueprint config stays private.
+    return entry;
+  });
+
+  const nextCursor = envelope.next === null ? null : fixed
+    ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:envelope.next})
+    : encodeCursor({v:1,kind:'catalog',afterBlueprintId:envelope.next});
+  const page = CatalogPageSchema.safeParse({ items, nextCursor });
+  if (!page.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
+  return page.data;
+}
+
+function mergePersonalCatalogPages(left,right,limit){
+  const items=[...left.items,...right.items].sort((a,b)=>a.blueprintVersionId<b.blueprintVersionId?-1:a.blueprintVersionId>b.blueprintVersionId?1:0);
+  const unique=[];const seen=new Set();
+  for(const item of items){
+    if(seen.has(item.blueprintVersionId))continue;
+    seen.add(item.blueprintVersionId);unique.push(item);
+  }
+  const more=unique.length>limit||left.nextCursor!==null||right.nextCursor!==null;
+  const shown=unique.slice(0,limit);
+  const nextCursor=more&&shown.length?encodeCursor({v:1,kind:'catalog',afterBlueprintId:shown.at(-1).blueprintVersionId}):null;
+  return CatalogPageSchema.parse({items:shown,nextCursor});
+}
+
+function parseHistoryEnvelope(value, limit) {
+  const envelope = parseEnvelope(value, ['items', 'next']);
+  if (!Array.isArray(envelope.items) || envelope.items.length > limit) reject(503, 'TEMPORARILY_UNAVAILABLE');
+  let next = null;
+  if (envelope.next !== null) {
+    if (!canonicalObject(envelope.next, ['createdAt', 'id'])
+        || !isUtcMicrosecondInstant(envelope.next.createdAt)
+        || typeof envelope.next.id !== 'string' || !UUID_PATTERN.test(envelope.next.id)) {
+      reject(503, 'TEMPORARILY_UNAVAILABLE');
+    }
+    next = encodeCursor({
+      v: 1,
+      kind: 'history',
+      beforeCreatedAt: envelope.next.createdAt,
+      beforeId: envelope.next.id,
+    });
+  }
+  const page = AttemptHistoryPageSchema.safeParse({ items: envelope.items, nextCursor: next });
+  if (!page.success) reject(503, 'TEMPORARILY_UNAVAILABLE');
+  return page.data;
+}
+
+async function runQuery(examPool, work, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false) {
+  try { return await withTransaction(examPool, work, { role: 'tsa_exam', enableNumericPractice, enableFullSimulation, enableClozeMatching }); }
+  catch (error) {
+    if (error instanceof BankCommandError) throw error;
+    reject(503, 'TEMPORARILY_UNAVAILABLE');
+  }
+}
+
+/** Owner-scoped catalog and compact attempt-history reads over the restricted exam role. */
+export function createStudentDirectoryService({ examPool, identityService, enableReviewPractice = false, enableFixedPractice = false, enableShortPractice = false, enableReadingExperiment = false, enableNumericPractice = false, enableFullSimulation = false, enableClozeMatching = false } = {}) {
+  if (!examPool || typeof examPool.connect !== 'function') throw new TypeError('examPool is required');
+  if (!identityService || typeof identityService.mayPerform !== 'function') {
+    throw new TypeError('identityService is required');
+  }
+
+  if (typeof enableShortPractice !== 'boolean') throw new TypeError('Short practice opt-in must be boolean');
+  if (typeof enableReadingExperiment !== 'boolean') throw new TypeError('Reading experiment opt-in must be boolean');
+  if (typeof enableFixedPractice !== 'boolean') throw new TypeError('Fixed practice opt-in must be boolean');
+  if (typeof enableReviewPractice !== 'boolean') throw new TypeError('Review practice opt-in must be boolean');
+  if (typeof enableClozeMatching !== 'boolean') throw new TypeError('Cloze/matching opt-in must be boolean');
+
+  async function catalog(principal, rawQuery = {}) {
+    const userId = requireActor(identityService, principal, 'candidate.attempt.read');
+    const query = parsePageQuery(rawQuery, CatalogQuerySchema);
+    const cursor = decodeCursor(query.cursor, 'catalog', enableFixedPractice);
+    const page = await runQuery(examPool, async (client) => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [userId]);
+      if (enableFullSimulation) {
+        const value=(await client.query('SELECT tsa.exam_simulation_catalog($1::integer,$2::uuid) AS result',[query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result;
+        if (!value || !Array.isArray(value.items) || value.items.length>query.limit || (value.next!==null && !UUID_PATTERN.test(value.next))) reject(503,'TEMPORARILY_UNAVAILABLE');
+        return FullSimulationCatalogPageV3Schema.parse({items:value.items,nextCursor:value.next===null?null:encodeCursor({v:1,kind:'catalog',afterBlueprintId:value.next})});
+      }
+      if (enableClozeMatching) return parseCatalogEnvelope((await client.query(
+        'SELECT tsa.exam_cloze_matching_catalog_page($1::integer,$2::uuid) AS result', [query.limit, cursor?.afterBlueprintId ?? null],
+      )).rows[0]?.result, query.limit, false, false, false, false, true);
+      if (enableNumericPractice) return parseCatalogEnvelope((await client.query(
+        'SELECT tsa.exam_numeric_catalog_page($1::integer,$2::uuid) AS result', [query.limit, cursor?.afterBlueprintId ?? null],
+      )).rows[0]?.result, query.limit, false, false, false, true);
+      const fixedPage = async (limit, after) => parseCatalogEnvelope((await client.query(
+        'SELECT tsa.exam_fixed_catalog_page($1::integer,$2::uuid) AS result', [limit,after])).rows[0]?.result, limit, true);
+      if (cursor?.phase === 'fixed') return fixedPage(query.limit,cursor.afterFormId);
+      let personal = parseCatalogEnvelope((await client.query(
+        enableShortPractice?'SELECT tsa.exam_short_catalog_page($1::integer,$2::uuid) AS result':'SELECT tsa.exam_catalog_page($1::integer,$2::uuid) AS result',
+        [query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result,query.limit,false,enableShortPractice);
+      if(enableReadingExperiment){
+        await client.query("SELECT set_config('tsa.enable_reading_experiment','true',true)");
+        const experiment=parseCatalogEnvelope((await client.query(
+          'SELECT tsa.exam_reading_experiment_catalog_page($1::integer,$2::uuid) AS result',
+          [query.limit,cursor?.afterBlueprintId??null])).rows[0]?.result,query.limit,false,false,true);
+        personal=mergePersonalCatalogPages(personal,experiment,query.limit);
+      }
+      if (!enableFixedPractice || personal.nextCursor !== null) return personal;
+      const remaining = query.limit-personal.items.length;
+      const fixed = await fixedPage(Math.max(1,remaining),null);
+      if (remaining === 0) return {items:personal.items,nextCursor:fixed.items.length
+        ? encodeCursor({v:2,kind:'catalog',phase:'fixed',afterFormId:null}) : null};
+      return CatalogPageSchema.parse({items:[...personal.items,...fixed.items],nextCursor:fixed.nextCursor});
+    }, enableNumericPractice, enableFullSimulation, enableClozeMatching);
+    // Capability flags only advertise their own mode; fixed rows never gain reviewAllowed.
+    return enableReviewPractice && !enableNumericPractice && !enableClozeMatching ? {...page,items:page.items.map(entry => entry.mode === 'PERSONALIZED_PRACTICE'
+      && !(['MATH','SCIENCE'].includes(entry.domain)&&entry.questionCount===2&&entry.durationSeconds===180)
+      && !(entry.domain==='READING'&&entry.questionCount===20&&entry.durationSeconds===1800)
+      ? {...entry,reviewAllowed:true} : entry)} : page;
+  }
+
+  async function history(principal, rawQuery = {}) {
+    const userId = requireActor(identityService, principal, 'candidate.attempt.read');
+    const query = parsePageQuery(rawQuery, AttemptHistoryQuerySchema);
+    const cursor = decodeCursor(query.cursor, 'history');
+    const value = await runQuery(examPool, async (client) => {
+      await client.query("SELECT set_config('tsa.local_user_id',$1,true)", [userId]);
+      const result = await client.query(
+        enableFullSimulation ? 'SELECT tsa.exam_simulation_history($1::integer,$2::timestamptz,$3::uuid) AS result' : 'SELECT tsa.exam_history_page($1::integer,$2::timestamptz,$3::uuid) AS result',
+        [query.limit, cursor?.beforeCreatedAt ?? null, cursor?.beforeId ?? null],
+      );
+      return result.rows[0]?.result;
+    }, enableNumericPractice, enableFullSimulation, enableClozeMatching);
+    if (enableFullSimulation) {
+      if (!value || !Array.isArray(value.items) || value.items.length>query.limit || (value.next!==null && (!isUtcMicrosecondInstant(value.next?.createdAt) || !UUID_PATTERN.test(value.next?.id)))) reject(503,'TEMPORARILY_UNAVAILABLE');
+      return SimulationAttemptHistoryPageV3Schema.parse({items:value.items,nextCursor:value.next===null?null:encodeCursor({v:1,kind:'history',beforeCreatedAt:value.next.createdAt,beforeId:value.next.id})});
+    }
+    return parseHistoryEnvelope(value, query.limit);
+  }
+
+  return Object.freeze({ catalog, history });
+}

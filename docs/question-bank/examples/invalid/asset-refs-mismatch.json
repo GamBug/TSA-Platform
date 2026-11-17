@@ -1,0 +1,99 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "INVALID-005",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "MATH-GEO-000007",
+      "question_type": "SINGLE_CHOICE",
+      "subject": "MATH",
+      "topic": "GEOMETRY",
+      "difficulty": "MEDIUM",
+      "tags": [
+        "cube",
+        "angle"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Quan sát hình vẽ biểu diễn hình lập phương $ABCD.A'B'C'D'$ cạnh $a$."
+        },
+        {
+          "type": "image",
+          "asset_id": "IMG-GEO-000123",
+          "alt": "Hình lập phương ABCD.A'B'C'D' với các đỉnh được đặt tên",
+          "caption": "Hình 1"
+        },
+        {
+          "type": "text",
+          "content": "Góc giữa đường thẳng $AC$ và đường thẳng $A'B'$ bằng"
+        }
+      ],
+      "options": [
+        {
+          "option_id": "A",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$30^\\circ$"
+            }
+          ]
+        },
+        {
+          "option_id": "B",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$45^\\circ$"
+            }
+          ]
+        },
+        {
+          "option_id": "C",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$60^\\circ$"
+            }
+          ]
+        },
+        {
+          "option_id": "D",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$90^\\circ$"
+            }
+          ]
+        }
+      ],
+      "response_config": {
+        "selection": "SINGLE"
+      },
+      "answer": {
+        "option_id": "B"
+      },
+      "answer_validation": {
+        "match": "EXACT_SELECTION"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Vì $A'B'\\parallel AB$ nên góc cần tìm là góc giữa $AC$ và $AB$. Tam giác $ABC$ vuông cân tại $B$ nên $\\widehat{CAB}=45^\\circ$."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

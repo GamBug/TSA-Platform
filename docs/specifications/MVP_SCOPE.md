@@ -1,5 +1,13 @@
 # MVP scope
 
+Current local B11 addition2026-10-26: renewed owner choice delegation selected
+optional personal NEW_ONLY MATH2/180+SCIENCE2/180 profiles. Original one-domain
+MVP4/2/4 guard/profiles and all fixed/rehearsal support remain unchanged; no short
+Reading or silent fallback. Shared capability defaultsfalse, disposable demo only.
+[Exact selected scope/authority](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md),
+[executed evidence](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md). This does
+not accept real content, qualified accessibility or whole historical ADRs below.
+
 Status: PROPOSED implementation scope under the owner's Phase 02.75 product requirements; ADR-002/004/007/008 require implementation review. This document owns scope; [engine](EXAM_ENGINE_SPEC.md), [question model](QUESTION_SCHEMA.md) and [assembly](EXAM_ASSEMBLY_SPEC.md) own behavior.
 
 ## Three independently demonstrable milestones

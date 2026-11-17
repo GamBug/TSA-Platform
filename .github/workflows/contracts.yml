@@ -1,4 +1,4 @@
-name: Contract verification
+name: Contract and offline verification
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    name: TypeScript contracts
+    name: Contracts and offline regressions
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -27,11 +27,32 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      - name: Build contracts
+        run: npm run build
+
+      - name: Smoke test emitted JavaScript
+        run: npm run test:built
+
+      - name: Test emitted consumers
+        run: npm run test:consumers
+
       - name: Run contract tests
         run: npm test
 
+      - name: Test isolated B0 prototype
+        run: npm run test:b0
+
+      - name: Test offline AI and student client boundaries
+        run: node --test tests/ai/*.test.mjs tests/critical/persistent-api-*.test.mjs
+
+      - name: Test documentation checker regressions
+        run: npm run test:docs
+
       - name: Verify generated OpenAPI artifact
         run: npm run contracts:check
+
+      - name: Verify student consumer import boundary
+        run: npm run contracts:consumer-check
 
       - name: Verify documentation
         run: npm run docs:check

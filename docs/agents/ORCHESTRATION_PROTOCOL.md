@@ -6,12 +6,12 @@
 
 ## 1. Start of every coordinator session
 
-1. Read `AGENTS.md` in full, including the owner's English-language agent-work requirement. Follow any higher-priority owner instructions.
-2. Read `docs/agents/ORCHESTRATION_PROTOCOL.md` and `docs/agents/ORCHESTRATOR_HANDOFF.md` (this charter and current baton).
-3. Read `docs/agents/PROJECT_STATE.md`, `docs/agents/LAST_HANDOFF.md`, `docs/tasks/TASK_BACKLOG.md`, `docs/tasks/IMPLEMENTATION_ROADMAP.md`, and `docs/decisions/OPEN_DECISIONS.md`.
-4. Run `git status --short`, `git log -5 --oneline`, and, when useful, `git diff --check`. Inspect the relevant contracts and code before assigning work.
-5. Reconcile discrepancies between the baton and the checked-out repository. Report conflicts; never silently substitute stale handoff facts for live repository evidence.
-6. On the initial takeover, **do not edit files, launch implementation, approve decisions, change statuses, install packages, or commit** unless the owner explicitly asks. First summarize current state and offer the smallest next options.
+1. Read `AGENTS.md` in full and the current `docs/agents/PROJECT_STATE.md`.
+2. Read only the assigned task card and verify its dependencies, ownership, scope and checks.
+3. Read task-specific specifications and decision evidence linked by that card only.
+4. Read archived navigation records on demand; do not load historical handoffs or backlog entries by default.
+5. Check `git status --short`, current branch and HEAD before editing; preserve unrelated changes.
+6. At handoff, record only verified state and actual command results in coordinated shared records.
 
 ## 2. Authority and precedence
 
@@ -72,3 +72,139 @@ When the owner approves, make a minimal record in `OPEN_DECISIONS.md` and only n
 - **Recommended smallest next step:** owner decision or one tightly scoped task, with clear owner/file boundaries.
 - **Ready-to-paste agent prompt:** only when owner wants to assign work.
 - **Handoff update:** only if actual new evidence or owner decisions justify it.
+
+## 8. Project-local Codex dispatch controls
+
+Owner-authorized setup scope, 2026-10-18: project-local orchestration configuration
+and narrow operating documentation only. Application work, migrations, contract
+changes, backlog status changes and gate advancement are not authorized by setup.
+Later rollout/pilot/autopilot examples are templates, not current assignments.
+
+`.codex/config.toml` selects Sol 6.1 / Medium for coordination and Luna / XHigh as
+the subagent default. `.codex/agents/*.toml` declares `tsa_scout` (Luna / XHigh),
+`tsa_builder` (Luna / XHigh), `tsa_complex_builder` (Terra / Medium), and
+`tsa_reviewer` (Sol 6.1 / Medium). Confirm actual model access and routing before
+dispatch; catalog presence is not execution proof or a quota guarantee. No Astra
+role, paid API orchestration, automatic model fallback or nested delegation.
+
+Owner policy update, 2026-10-18: use Luna / XHigh for normal discovery,
+implementation, debugging and test development. Escalate to Terra only for a
+demonstrated complexity or capability reason, recorded in the dispatch prompt.
+Use Sol / Medium for coordination and integration review, with the read-only
+reviewer reserved for independent review. Never select a more expensive model
+merely because it is available. Astra requires explicit owner approval before
+any invocation; this configuration defines no Astra role. Do not repeatedly retry
+the same unsuccessful approach; diagnose the cause before changing the approach.
+
+Explicit `model` and `model_reasoning_effort` in a custom-role file take precedence
+over spawn values and `[agents]` defaults. Keep both fields explicit so the Terra
+and Sol specialist roles retain Medium instead of inheriting Luna's XHigh default.
+See the [official custom-agent precedence documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents).
+
+The configured limit is **two open spawned-agent threads**, excluding the
+coordinator. Default to **one writing implementer**. Two writers require explicitly
+approved isolated worktrees and proven disjoint ownership; this setup grants no
+such assignment. Close completed native agent threads before replacing them.
+Other runtimes may expose different limits/tools; observe this project's lower
+limit manually when its configuration is not loaded.
+
+Use sections 1–6 and HANDOFF_PROTOCOL as authority, not role-file descriptions.
+Every dispatch prompt must contain objective, exact source paths, prerequisites
+and authorization, actual platform/model/effort and reason, reserved/forbidden
+files, positive/negative behavior, test commands, stop conditions and handoff.
+For model overrides requiring isolated context, use `fork_turns="none"`; give the
+worker only the task inputs. The coordinator serializes shared contracts,
+migrations and backlog/state/handoff/decision updates. A role never owns files
+merely because its name suggests responsibility.
+
+Before writes, record HEAD, branch, dirty-file ownership and reservations; use a
+feature branch or isolated worktree, preserve owner changes and never implement
+on `main`. No commits, merges, pushes, releases, new service accounts, secrets or
+real student data without the relevant explicit authorization. A later owner-
+approved batch may authorize local feature-branch commits only within that batch.
+Unresolved product/architecture/rights/privacy/cost choices go to the owner under
+section 5; PROPOSED ADRs and passing tests do not approve them.
+
+### Owner-trust execution policy — 2026-10-18
+
+Approval: human project owner, 2026-10-18, "OWNER DIRECTIVE — FULL ACCESS TRUST
+POLICY". When the owner deliberately selects Full Access, that is intentional
+execution authorization, not a permission mismatch. Two modes are valid:
+
+| Mode | Effective settings | Execution rule |
+|---|---|---|
+| Trusted autonomous | `danger-full-access`, `approval_policy=never` | Accepted when explicitly selected by the owner; execute assigned work without redundant permission checks or confirmations. |
+| Controlled | `workspace-write`, `approval_policy=on-request` | Accepted for restricted sessions; respect sandbox and approval boundaries. |
+
+Do not stop, downgrade access or request a restricted session merely because the
+owner selected Full Access / never. Do not silently escalate a restricted session
+or bypass a denied operation. Actual runtime and higher-priority controls remain
+binding; this policy does not change security settings. Project defaults remain
+workspace-write/on-request with restricted network. Custom agents inherit parent
+permissions; read-only role instructions are behavioral, not a separate sandbox.
+Record actual mode and model routing as evidence, not repeated approval gates.
+
+Within an assigned task, the orchestrator may plan, delegate to configured workers,
+edit relevant files, run tools/tests, diagnose and repair failures, independently
+verify output, and maintain progress/handoffs without approval of routine choices.
+Full Access does not authorize product changes, sensitive-information exposure,
+unrelated destructive operations, unapproved Astra or prohibited Git operations.
+Task scope and explicit exclusions remain binding in either mode.
+
+This permanent policy supersedes the former fresh workspace-write/on-request
+requirement for writing pilots. Historical probes describe their sessions only.
+The concise owner approval record is in
+[decisions](../decisions/OPEN_DECISIONS.md#owner-trust-execution-policy--2026-10-18).
+
+Run task-level checks and, for relevant implementation changes, `npm run typecheck`,
+`npm test`, `npm run contracts:check`, `npm run docs:check`, and `git diff --check`
+under pinned Node 24.18.0/npm 11.16.0. Record exact PASS/FAIL/NOT RUN and environment;
+no dependency installation or wider check is implied by a read-only assignment.
+Diagnose repeated failed repairs before retrying; repair routine implementation
+and quality-check failures within the approved scope. Stop only for a decision
+materially changing approved scope, an explicitly prohibited operation, an
+unrecoverable technical blocker, a critical security/data-integrity risk, or
+completion of the approved pilot. Resolve recoverable ownership, routing or tool
+issues within the assignment; do not silently substitute models or claim missing
+verification passed. Full Access by itself is not a stop condition.
+
+Use HANDOFF_TEMPLATE and section 6 for durable handoff; identify what was genuinely
+delegated, actual model evidence, changed paths, checks, risks and next authorization.
+If native custom-role routing is unavailable, use an explicitly model-selected,
+isolated-context session with the corresponding role instructions pasted in its
+task prompt. If that is unavailable too, the owner opens a separate subscription
+client session and pastes the same complete prompt. Confirm its model and return
+its real output/diff; report manual dispatch, never simulated review or automatic
+role loading. Do not launch a paid API runner as a fallback.
+
+## 9. Claude Code dispatch mapping
+
+Owner instruction, 2026-11-10: when the work runs in Claude Code, follow the same workflow,
+authority, limits and handoff rules as section 8. Only the models differ. A Claude Code
+session never relaxes a Codex-era rule; where section 8 names a Codex role, use its mapping here.
+
+| Role in section 8 | Claude Code equivalent | Model | Notes |
+|---|---|---|---|
+| Coordinator and integrator (Sol 6.1) | The main session | Fable, or Opus when Fable is unavailable | Owns shared contracts, migrations, backlog, state, handoff and decision updates. |
+| `tsa_scout`, `tsa_builder`, `tsa_light_builder` (Luna) | Subagent with `model: haiku` | Haiku 5.5 | Only when the owner's prompt starts with `[SUBAI]`. Otherwise the main session does this work itself. One writer by default. |
+| `tsa_complex_builder` (Terra) | Subagent with `model: opus` | Opus | Only for a demonstrated complexity or capability reason recorded in the dispatch prompt. |
+| `tsa_reviewer` (Sol 6.1, read-only) | Read-only subagent with `model: opus` | Opus (or Fable) | Independent of the implementing session; never reviews its own work. |
+
+Rules that carry over unchanged:
+
+- Subagents are off by default. Owner instruction, 2026-11-15: spawn a subagent only when the
+  owner's prompt starts with the `[SUBAI]` tag; without it, the main session does all work itself.
+  When the tag is present, delegate bounded work to Haiku subagents. Do not use a stronger model
+  merely because it is available.
+- Keep at most two open subagents and default to one writing implementer. Give each subagent only its
+  task inputs, an explicit file allowlist, acceptance commands, stop conditions and the handoff status
+  line (`DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT`).
+- Every task prompt still carries the recommended agent/platform, model, reasoning setting and reason.
+  A model-routing claim needs the actual model evidence; do not simulate a review or silently
+  substitute a model. If a subagent is unavailable (for example at a usage limit), record that, then
+  resume it or hand the prompt to the owner.
+- The owner's `ok` is still required before commits, and the prohibitions on push, merge, approval,
+  publication, paid API calls and retained-database changes without a backup stay in force.
+- Run long verification suites in the background once the code is stable, and record exact commands
+  and results. A one-time budget instruction (such as spending tokens until a reset time) applies to
+  that session only and is not a standing permission.

@@ -36,3 +36,15 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Persistent synthetic-only local PostgreSQL data
+.local/
+
+# Private corpus source and derived working data
+/TSA_Example_Questions/
+/data/research/
+
+/data/corpus-ingest/
+
+# CP6 rehearsal screenshots stay local; report.json is the tracked record
+/plans/reports/cp6-uni-demo-evidence/*.png

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "taxonomy/1",
+  "taxonomyVersionId": "12cb164d-ca9d-47cc-b881-0cbf450bffad",
+  "name": "Private manual Reading experiment taxonomy",
+  "versionNo": 1,
+  "nodes": [
+    {
+      "id": "609699be-31b4-43db-9d2f-f0e477f86786",
+      "code": "READING",
+      "kind": "DOMAIN",
+      "parentId": null,
+      "metadata": {
+        "purpose": "LOCAL_PRIVATE_DRAFT_REVIEW"
+      }
+    },
+    {
+      "id": "13da69ac-e1e6-423b-a28f-1f91fe0d53d9",
+      "code": "READING_REASONING",
+      "kind": "SKILL",
+      "parentId": "609699be-31b4-43db-9d2f-f0e477f86786",
+      "metadata": {
+        "purpose": "LOCAL_PRIVATE_DRAFT_REVIEW"
+      }
+    }
+  ],
+  "definitionHash": "sha256:ea797c6a47598412c9b3dfc5da0da1cbdb5244dfad60274d803a05b117d05616"
+}

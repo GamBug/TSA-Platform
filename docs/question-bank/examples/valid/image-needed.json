@@ -1,0 +1,99 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "EXAMPLE-NEEDS-IMAGE-001",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "MATH-GEO-000009",
+      "question_type": "SINGLE_CHOICE",
+      "subject": "MATH",
+      "topic": "GEOMETRY",
+      "difficulty": "MEDIUM",
+      "tags": [
+        "pyramid",
+        "angle"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Cho hình chóp tứ giác đều $S.ABCD$ như hình vẽ."
+        },
+        {
+          "type": "image_request",
+          "request_id": "NEW-IMG-001",
+          "description": "Hình chóp tứ giác đều S.ABCD với đáy là hình vuông ABCD, các đỉnh được ghi tên, đường khuất vẽ nét đứt.",
+          "alt": "Hình chóp tứ giác đều S.ABCD"
+        },
+        {
+          "type": "text",
+          "content": "Góc giữa cạnh bên $SA$ và mặt đáy $(ABCD)$ là góc nào dưới đây?"
+        }
+      ],
+      "options": [
+        {
+          "option_id": "A",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$\\widehat{SAB}$"
+            }
+          ]
+        },
+        {
+          "option_id": "B",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$\\widehat{SAO}$"
+            }
+          ]
+        },
+        {
+          "option_id": "C",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$\\widehat{SOA}$"
+            }
+          ]
+        },
+        {
+          "option_id": "D",
+          "content_blocks": [
+            {
+              "type": "text",
+              "content": "$\\widehat{ASB}$"
+            }
+          ]
+        }
+      ],
+      "response_config": {
+        "selection": "SINGLE"
+      },
+      "answer": {
+        "option_id": "B"
+      },
+      "answer_validation": {
+        "match": "EXACT_SELECTION"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Hình chiếu của $S$ lên đáy là tâm $O$ của hình vuông nên góc giữa $SA$ và đáy là $\\widehat{SAO}$."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

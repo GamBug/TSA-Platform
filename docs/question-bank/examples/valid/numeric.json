@@ -1,0 +1,52 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "EXAMPLE-NUMERIC-001",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "MATH-PROB-000004",
+      "question_type": "NUMERIC",
+      "subject": "MATH",
+      "topic": "PROBABILITY",
+      "difficulty": "MEDIUM",
+      "tags": [
+        "combinatorics",
+        "rounding"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Một hộp chứa 5 viên bi đỏ và 3 viên bi xanh có cùng kích thước. Lấy ngẫu nhiên đồng thời 2 viên bi. Tính xác suất để lấy được 2 viên bi cùng màu (làm tròn kết quả đến hàng phần trăm)."
+        }
+      ],
+      "response_config": {
+        "label": "Đáp số",
+        "format": "DECIMAL"
+      },
+      "answer": {
+        "value": "0.46"
+      },
+      "answer_validation": {
+        "match": "EXACT_DECIMAL"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Số cách lấy 2 viên bi là $C_8^2=28$. Số cách lấy 2 viên cùng màu là $C_5^2+C_3^2=10+3=13$. Xác suất là $\\frac{13}{28}\\approx 0{,}46$."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

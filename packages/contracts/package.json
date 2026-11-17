@@ -7,10 +7,58 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./student": {
+      "types": "./src/student.ts",
+      "default": "./src/student.ts"
+    },
+    "./student-v2": {
+      "types": "./src/student-v2.ts",
+      "default": "./src/student-v2.ts"
+    },
+    "./released-review-v2": {
+      "types": "./src/released-review-v2.ts",
+      "default": "./src/released-review-v2.ts"
+    },
+    "./released-review": {
+      "types": "./src/released-review.ts",
+      "default": "./src/released-review.ts"
+    },
+    "./internal": {
+      "types": "./src/internal.ts",
+      "default": "./src/internal.ts"
+    },
+    "./staff": {
+      "types": "./src/staff.ts",
+      "default": "./src/staff.ts"
+    },
+    "./student-v3": {
+      "types": "./src/student-v3.ts",
+      "default": "./src/student-v3.ts"
+    },
+    "./released-review-v3": {
+      "types": "./src/released-review-v3.ts",
+      "default": "./src/released-review-v3.ts"
+    },
+    "./student-v4": {
+      "types": "./src/student-v4.ts",
+      "default": "./src/student-v4.ts"
+    },
+    "./released-review-v4": {
+      "types": "./src/released-review-v4.ts",
+      "default": "./src/released-review-v4.ts"
+    },
+    "./staff-v3": {
+      "types": "./src/staff-v3.ts",
+      "default": "./src/staff-v3.ts"
+    },
+    "./simulation": {
+      "types": "./src/simulation.ts",
+      "default": "./src/simulation.ts"
     }
   },
   "dependencies": {
-    "zod": "4.1.12"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@asteasolutions/zod-to-openapi": "8.5.0"

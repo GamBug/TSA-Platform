@@ -45,3 +45,17 @@ default to English.
 
 This rule does not require translating historical
 documents or modifying existing text unnecessarily.
+
+## Agent recommendation with every task prompt
+
+Owner instruction recorded on 2026-10-18: every task prompt must include a
+recommended agent/platform, model, reasoning setting when available, and a short
+task-specific reason for the choice. The owner has Codex Plus and Antigravity PRO;
+prefer these existing subscriptions and preserve the prohibition on paid LLM API
+calls. Do not assume current model availability or quotas. If a recommendation
+depends on an unverified model listing, state that condition and provide a fallback.
+Distinguish the implementing agent from any proposed independent reviewer; a
+recommendation does not authorize delegation or establish that review occurred.
+Claude Code sessions follow the same workflow with different models: the main session does the
+work itself, and subagents are used only when the owner's prompt starts with `[SUBAI]`; see
+[the Claude Code dispatch mapping](docs/agents/ORCHESTRATION_PROTOCOL.md#9-claude-code-dispatch-mapping).

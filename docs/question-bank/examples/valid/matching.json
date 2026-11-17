@@ -1,0 +1,94 @@
+{
+  "format": "tsa-question-set/1",
+  "batch_id": "EXAMPLE-MATCH-001",
+  "passages": [],
+  "questions": [
+    {
+      "schema_version": "tsa-question/1",
+      "question_id": "MATH-ANA-000006",
+      "question_type": "MATCHING",
+      "subject": "MATH",
+      "topic": "CALCULUS",
+      "difficulty": "EASY",
+      "tags": [
+        "derivatives"
+      ],
+      "content_blocks": [
+        {
+          "type": "text",
+          "content": "Ghép mỗi hàm số ở cột bên trái với đạo hàm của nó."
+        }
+      ],
+      "response_config": {
+        "rows": [
+          {
+            "row_id": "r1",
+            "label": "sin x"
+          },
+          {
+            "row_id": "r2",
+            "label": "cos x"
+          },
+          {
+            "row_id": "r3",
+            "label": "e^x"
+          },
+          {
+            "row_id": "r4",
+            "label": "ln x"
+          }
+        ],
+        "targets": [
+          {
+            "target_id": "t1",
+            "label": "cos x",
+            "max_uses": 1
+          },
+          {
+            "target_id": "t2",
+            "label": "-sin x",
+            "max_uses": 1
+          },
+          {
+            "target_id": "t3",
+            "label": "e^x",
+            "max_uses": 1
+          },
+          {
+            "target_id": "t4",
+            "label": "1/x",
+            "max_uses": 1
+          }
+        ]
+      },
+      "answer": {
+        "assignments": {
+          "r1": "t1",
+          "r2": "t2",
+          "r3": "t3",
+          "r4": "t4"
+        }
+      },
+      "answer_validation": {
+        "match": "EXACT_ASSIGNMENT"
+      },
+      "asset_refs": [],
+      "explanation": [
+        {
+          "type": "text",
+          "content": "Các đạo hàm cơ bản: $(\\sin x)'=\\cos x$, $(\\cos x)'=-\\sin x$, $(e^x)'=e^x$, $(\\ln x)'=\\frac{1}{x}$."
+        }
+      ],
+      "scoring_config": {
+        "policy": "BINARY_ALL_OR_NOTHING",
+        "points": 1
+      },
+      "metadata": {
+        "created_at": "2026-11-16T00:00:00Z",
+        "updated_at": "2026-11-16T00:00:00Z",
+        "status": "DRAFT",
+        "content_version": 1
+      }
+    }
+  ]
+}

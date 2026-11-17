@@ -1,0 +1,9 @@
+Home
+Passage 1
+[1] An original engineering example: trees shade a street.
+[2] Shade reduces direct sunlight on the pavement.
+Question 2: Select all. Infer the effects described.
+A. The street receives shade.
+B. Direct sunlight reaches less pavement.
+C. Trees always eliminate all heat.
+Correct answer: A,B

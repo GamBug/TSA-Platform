@@ -1,6 +1,6 @@
 # API contracts
 
-Status: PROPOSED `api/v1`, ADR-003, except owner-approved ADR-004 H1 create-conflict, H2 admission, H3 one-domain MVP policy, Start TTL, and non-retroactive ordinary admission-schedule edits. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. No generated client or executable schema exists yet. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
+Status: PROPOSED `api/v1`, ADR-003, except owner-approved ADR-004 H1 create-conflict, H2 admission, H3 one-domain MVP policy, Start TTL, and non-retroactive ordinary admission-schedule edits. Representative typed wire contracts for the MVP; FOUNDATION implementation must encode these as runtime schemas/OpenAPI and contract tests before separately assigned frontend/backend work. FOUND-002 now supplies runtime validators and generated operation types/OpenAPI; see the scoped Stage 4B addendum below. Mutation services and deployed authentication remain later work. Domain types refer to [question schema](../specifications/QUESTION_SCHEMA.md); lifecycle/timing semantics belong to [engine](../specifications/EXAM_ENGINE_SPEC.md).
 
 ## Transport and access
 
@@ -72,6 +72,114 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 
 ## Staff endpoints
 
+### Delegated B7.2 captured fixed-reference diagnostics — 2026-10-25
+
+[Exact selected policy/DTO/migration/impact](../decisions/WEB_002_B7_STORED_DIAGNOSTICS_DECISION.md)
+adds opt-in current-manager GET `/assembly-runs` and
+`/assembly-runs/{assemblyRunId}/diagnostics`. Narrow fixed-only audited DB function,
+no assembly table SELECT or personal runs; strict private list/aggregate replay
+DTOs, not the broader proposed candidate-pool AssemblyDiagnostic below. Metadata
+list is not replay verification; explicit detail must match stored canonical inputs/
+result. No fixed creation/publication/student delivery or eligibility promise.
+[Executed evidence](../reviews/WEB_002_B7_STORED_DIAGNOSTICS_VERIFICATION.md).
+
+### Additive internal fixed reference — 2026-10-25
+
+[B7.1 selected contract/impact](../decisions/WEB_002_B7_FIXED_REFERENCE_DECISION.md)
+adds internal-only fixed-assembly-manifest/1 and fixed reference/replay. No HTTP
+route or DTO here; old personal schemas/bytes/results stay stable. Stored fixed
+HTTP diagnostics/discovery remain a separate scope. [Actual compatibility and regressions](../reviews/WEB_002_B7_FIXED_REFERENCE_VERIFICATION.md).
+
+### Delegated B6.1 canonical preflight addendum — 2026-10-24
+
+[Exact selected decision](../decisions/WEB_002_B6_CANONICAL_PREFLIGHT_DECISION.md)
+adds private opt-in POST `/datasets/preflight`, current BANK_MANAGER/diagnostics
+role and CSRF required, no idempotency header required for this pure read. Strict
+pinned versions→canonical counts/shortfalls/mandatory blockers and version workflow
+observations; no raw internal manifest/review packet/reference/actor/history data.
+This is NOT accepted stock/current rights/human review/publication eligibility or
+fixed-run assembly feasibility. Existing core helper/transaction and frozen schemas
+stay stable. [Actual runtime/review](../reviews/WEB_002_B6_RUNTIME_VERIFICATION.md).
+
+### Delegated B5.1 recorded-history addendum — 2026-10-24
+
+[Exact additive decision/impact/policy](../decisions/WEB_002_B5_REVIEW_HISTORY_DECISION.md)
+adds private opt-in GET `/question-versions/{versionId}/review-history`, current
+BANK_MANAGER plus bank.diagnostics.read only. Latest20 decisions in a read-only
+snapshot, current workflow and qualification/eligibility separate. No added
+structured question secrets/actor identities; arbitrary stored reason is explicitly
+verbatim untrusted private text and may contain pasted sensitive material. No
+redaction promise. No B1–B4/student/root/released change or new grant/migration/
+approval command. [Executed evidence](../reviews/WEB_002_B5_RUNTIME_VERIFICATION.md).
+
+### B9.1 local fixed sealing addendum —2026-10-26
+
+[Specific owner response/context](../decisions/OPEN_DECISIONS.md#web-002-b91--scoped-owner-go-ahead2026-10-26)
+permits the independently reviewed local B9 proposal. Additive private staff schemas
+register POST /assemblies and GET /fixed-forms[/formId] under /api/v1 for current
+EXAM_MANAGER plus exam.assembly.write. Exact blueprint/hash/window/optional seed,
+server capture/horizon, immutable receipt, safe bounded metadata and current stored
+availability follow the [proposal](../decisions/WEB_002_B9_FIXED_SEALING_PROPOSAL.md).
+Errors match body/header request IDs; success has only a fresh HTTP header and
+byte-stable replay body. No public/student/released or personal manifest change,
+raw table grant, candidate impersonation or student fixed delivery. B7 references
+exclude form-linked runs; B8 no-form rehearsals remain separate.
+[Runtime evidence/limits](../reviews/WEB_002_B9_FIXED_SEALING_VERIFICATION.md).
+
+### Delegated B4.1 negative-disposition addendum — 2026-10-24
+
+[Recorded authority](../decisions/OPEN_DECISIONS.md#web-002-b41--engineering-scope-selected-under-owner-delegation-2026-10-24)
+selects the unchanged reviewed B4 proposal. Strict private StaffRejectReview and
+StaffQuarantine request/receipt types describe existing POST reviews (REJECT only)
+and quarantine. B3 command CSRF/idempotency headers/error unions are reused.
+No root/student/released DTO changes. Receipt is historical; private read loss
+after rejection leaves current state unobserved. Quarantine can return503 after
+commit/drain failure; retry uses the same key/body. No APPROVE/rights/publication
+UI or human qualification inferred. [Runtime evidence](../reviews/WEB_002_B4_RUNTIME_VERIFICATION.md).
+
+### Approved B3.1 author handoff addendum — 2026-10-24
+
+Owner whole-B3.1 approval: [exact frozen scope](../decisions/WEB_002_B3_DRAFT_HANDOFF_PROPOSAL.md),
+[authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b31--owner-approved-author-draft-handoff-2026-10-24).
+The existing submit-review POST now has strict private request/receipt schemas,
+operation/header/body artifact and explicit local AUTHOR_OWN DRAFT UI confirmation.
+Existing backend AUTHOR/created_by policy is unchanged. An idempotent receipt is
+separate from current workflow observation; failed/uncertain transport is never
+shown as success, and retry retains the same captured body/key. B1/B2 GET types and
+all student/released/public contracts remain stable. No new route/grant/migration,
+review decision, rights edit, quarantine or publication UI.
+[Actual implementation and review](../reviews/WEB_002_B3_RUNTIME_VERIFICATION.md).
+The broader staff table below remains proposed except specifically approved scope.
+
+### Approved B2.1 recorded evidence addendum — 2026-10-23
+
+The owner approved exact [B2.1](../decisions/WEB_002_B2_RIGHTS_EVIDENCE_PROPOSAL.md);
+[authority/hash](../decisions/OPEN_DECISIONS.md#web-002-b21--owner-approved-recorded-evidence-read-2026-10-23).
+One local opt-in `GET /api/v1/question-versions/{versionId}/review-evidence` uses
+strict `StaffReviewEvidenceSchema` on `@tsa/contracts/staff`, its own operation in
+the separate private staff artifact. BANK_MANAGER or current independent IN_REVIEW
+REVIEWER only; no AUTHOR_OWN basis, student/released/root-export changes, new grants
+or writes. Current recorded text is verbatim and may contain pasted identifiers/
+question/key material; additional structured secrets and arbitrary evidence JSON
+are not projected. No automatic links/media retrieval. B1 remains unchanged.
+[Executed checks and review status](../reviews/WEB_002_B2_RUNTIME_VERIFICATION.md).
+Broader proposed staff commands/DTOs below are not approved by this addendum.
+
+### Approved B1.2 private inspection addendum — 2026-10-23
+
+The human owner approved the exact [B1.2 contract](../decisions/WEB_002_REVIEW_CONTEXT_V1_PROPOSED.md)
+by its committed hash; [durable authority](../decisions/OPEN_DECISIONS.md#web-002-b12--owner-approved-private-inspection-2026-10-23).
+Only `GET /question-versions/{versionId}/review-context` and its narrow019 Boolean
+authorship predicate/private staff namespace are approved by that disposition.
+Current BANK_MANAGER, trusted local AUTHOR_OWN, or independent IN_REVIEW reviewer
+scope applies; sources/held/unsafe content gates may return metadata with no preview.
+The response is `staff-review-context/1`, no-store, read-only and local synthetic-only.
+Ordinary students and student-runtime composition gain no access. Raw evidence,
+review/publication/rights/quarantine/diagnostic/media operations remain outside B1.
+The broader proposed staff table below is not approved wholesale by this addendum.
+[Implemented/observed verification](../reviews/WEB_002_B1_RUNTIME_VERIFICATION.md).
+
+
 | Method/path | Role | Typed request → response |
 |---|---|---|
 | POST `/sources` | AUTHOR | `{title:string,canonicalUri:string|null,origin:"OWNED"|"EXTERNAL"}` → 201 `{sourceId:UUID}` |
@@ -87,6 +195,10 @@ The Result type is a separate released-only DTO; never reuse it for active deliv
 | POST `/assemblies` | EXAM_MANAGER | `{mode:"PUBLISHED_FIXED",blueprintVersionId:UUID,seed?:number,availableFrom:Instant,availableUntil:Instant}` → 201 `{assemblyRunId:UUID,formId:UUID,state:"SEALED",seed:number,manifestHash:string}`; bounded synchronous MVP assembly |
 | GET `/forms/{id}` | EXAM_MANAGER | fixed forms only; personal IDs return 404 → 200 `{formId:UUID,blueprintVersionId:UUID,contentHash:string,slots:{slotId:UUID,questionVersionId:UUID,ordinal:number}[]}`; keys require separate reviewed bank access |
 | GET `/assembly-runs/{id}/diagnostics` | BANK_MANAGER | fixed assembly runs only; personal IDs return 404 → 200 AssemblyDiagnostic; audited, no keys/explanations; does not authorize POST assembly |
+
+Implemented rights timestamp validation rejects calendar values, years and offsets
+that PostgreSQL cannot store with `422 VALIDATION_ERROR`. Fractional seconds pass
+through unchanged; see the [timestamp boundary and precision checks](../../tests/integration/bank/rights-timestamps.test.mjs).
 
 ```typescript
 type RightsStatus = "OWNED"|"LICENSED"|"OPEN_LICENSE"|"PUBLIC_DOMAIN"|
@@ -225,3 +337,117 @@ Staff import/publication uses current bank commands. Factory service credentials
 Personalized manifests include sensitive history/exclusion sets: ordinary EXAM_MANAGER/BANK_MANAGER roles cannot read them through form/diagnostic endpoints. Student projections expose only their safe receipt/view/shortage. Administrative historical replay of a personal run requires an explicitly assigned, audited maintenance operation under approved data access policy, not a new broadly accessible endpoint. Fixed-run diagnostics keep existing role rules. Review approval additionally requires a recorded resolved reuse-equivalence decision for the exact identity; the bank rejects unresolved duplicate flags even if the submitted rubric is true.
 
 Offering management is initially an EXAM_MANAGER-only validated internal command: `{blueprintVersionId,enabled,availableFrom,availableUntil,startTtlSeconds:600,reviewEnabled,expectedRevision}`; validate the approved immutable blueprint, finite interval and the required TTL value of exactly 600 seconds; update under publication lock and audit. Missing or invalid TTL configuration rejects activation and attempt creation; it cannot silently permit unlimited start time. The committed rule is `min(created_at + 600 seconds, applicable_admission_end_at_creation)`, stored atomically with the attempt and never recomputed on replay. No student may activate arbitrary blueprints. A future staff HTTP adapter must freeze its transport before independent implementation.
+
+## Stage 4B scoped consumer and egress contract — routes/1
+
+Owner D5/D6 approval (2026-10-19) preserves all nine student routes above and
+all approved timing/reuse rules. Add strict runtime schemas for CatalogEntry/page,
+CreateAttempt, empty Start/Submit body, StartReceipt, UUID path params, bounded
+pagination and asset purpose; reuse existing DTOs for all other bodies. Preserve
+omitted PERSONALIZED_PRACTICE/NEW_ONLY defaults; REVIEW_ALLOWED and fixed requests
+require acknowledgeRepeats:true. Idempotency-Key remains required for mutations.
+Generate committed TypeScript operation maps (method/path/params/query/body/success
+and error types) directly from the runtime registry, not handwritten client copies.
+The original root package remains backward compatible; new subpaths are student,
+released-review and internal. Student exports are an explicit public allowlist;
+private/Factory/identity/assembly schemas and AnswerKey are not student exports.
+Released-review adds only authorized result/item/key types to its own entry.
+
+Student OpenAPI contains the eight non-result operations and public components.
+Released-review OpenAPI contains GET /attempts/{id}/result and its released-only
+components. Asset response is binary image bytes, never a JSON object key/proxy.
+Generate and non-mutatingly check both OpenAPI artifacts and the two operation-map
+artifacts together; a missing/changed artifact fails. Existing question/1 and
+factory-package/1 readers remain valid. Any artifact evolution is coordinated
+with strict consumer tests; historical fixture behavior is retained.
+
+A framework-independent actual HTTP Request->Response handler covers existing
+GET attempt-view and released-result paths with injected server auth/read models;
+this is a reusable boundary adapter, not a deployed application/database service.
+Never accept user identity, roles, state, release or holds from request data.
+Authenticate, read access metadata, return indistinguishable 404 for missing or
+non-owner attempts, and reject withdrawn/INVALIDATED content with 410 before
+loading private snapshots. Result loading requires GRADED and releaseAuthorized;
+otherwise return 409 RESULT_NOT_READY. Recheck access after loading, including a
+server revision token covering state/release/withdrawal; changed revision fails
+closed with 503 and no payload. Backend transaction/lock enforcement remains
+later implementation, not proven by this adapter's synthetic tests.
+
+Project only the explicit AttemptView/StudentSlot/AnswerAck/Closure or authorized
+review fields, including nested objects, then validate before serializing. DTO
+attemptId must equal the requested ID. Reject malformed nested data rather than
+serialize it. Every response is application/json, no-store, nosniff; no raw error,
+provider/provenance data, HTML/hydration or private inactive slots. Use existing
+error types; new strict route-only transport error codes MALFORMED_JSON (400),
+NOT_FOUND (404), PAYLOAD_TOO_LARGE (413) describe already documented statuses,
+without changing the existing root ErrorCode enum. No unauthorized result loader
+call or response/log side channel is allowed. Injected failures become a generic
+503 response; no exception text is returned. This adapter does not implement
+mutation state machines, sessions/CSRF, asset serving or production authorization.
+
+Acceptance uses real Request/Response egress plus loopback HTTP integration with
+synthetic loaders: foreign/unknown, held/ungraded/withdrawn and racing revision
+requests expose no private data and do not load private content unnecessarily;
+authorized released review includes exactly the permitted fields. Enforce student
+consumer import restrictions in CI and compile negative imports against student
+subpath; keeping internal root compatibility must not become a student escape.
+
+Additional route-only documented error mappings are FORM_NOT_OPEN (409) and
+FORM_UNAVAILABLE (410); existing root ErrorCode remains unchanged for compatibility.
+The idempotency key alphabet is printable non-space ASCII U+0021–U+007E, 1..128
+characters; values remain opaque and are never evaluated or used as identity.
+Attempt-view egress must also match DTO state to the server access-guard state;
+a stale active DTO cannot expose slots after the server reports closure. The
+final guard/revision must still match before any response body is emitted.
+
+Registry headers describe selected normalized contractual headers, not every
+standard HTTP header/cookie. Cookie authentication and mutation CSRF/Origin rules
+above remain binding; this batch freezes no new session-cookie/token transport.
+New route query cursors are opaque nonempty strings bounded to 1,024 characters;
+wire pagination limits are decimal strings 1..100, with parsed internal numbers.
+Generated operation requests infer schema input types, response bodies infer output
+types, and response-header maps include the required positive-seconds Retry-After
+on 429. Existing safe optional error details and public component names remain
+compatible. Generated type artifacts pin their corresponding OpenAPI digest.
+
+The server access record is `{attemptId,ownerId,state,withdrawn,releaseAuthorized,
+revision}`; revision is an opaque nonempty token covering access changes. Capture
+an immutable primitive snapshot before awaiting loaders; do not let a loader mutate
+the snapshot used for the final comparison. Malformed path/query input returns the
+documented 422 validation envelope. Attempt answers may reference only delivered
+slot option/statement IDs; unknown nested response keys/IDs fail closed. Preserve
+existing partial-answer behavior and do not invent a new minimum-selection rule.
+
+
+## B10.1 local fixed student implementation —2026-10-26
+
+The existing frozen fixed CatalogEntry/CreateAttempt/receipt/view/history/result
+contracts are now implemented for supported real B9 seals behind an explicit
+`enableFixedPractice:false` default. No public field/route/error/schema/version or
+StudentShortage change. The opt-in disposable synthetic three-domain launcher alone
+enables new fixed catalog/assignment. Each assignment creates an owned attempt on
+an existing immutable form, not a new assembly. Global H1, stable first-history,
+DB-clock admission/Start timing, current rights and released-result ownership apply.
+Old receipts and owned lifecycle remain available when the new capability is off.
+Internal v2 catalog cursors have a fixed phase and null unconsumed sentinel; public
+opaque cursor shape and old v1 cursors remain compatible. Native student consent is
+separate from personal review. B9's false delivery receipt field remains historical
+seal-operation scope, not a current student-access decision.
+[Selected scope](../decisions/WEB_003_B10_FIXED_STUDENT_DECISION.md),
+[verification](../reviews/WEB_003_B10_FIXED_STUDENT_VERIFICATION.md).
+
+
+## B11.1 optional local shorter personal profiles —2026-10-26
+
+Under renewed owner choice delegation, supported pinned MATH2/180 and SCIENCE2/180
+profiles use existing frozen personal NEW_ONLY catalog/create/shortage/lifecycle
+contracts. Shared enableShortPractice defaultsfalse; explicit disposable launcher
+only. No new public field/route/error or root/solver/golden change, and original
+Mvp4/2/4 guard plus fixed/rehearsal predicates remain unchanged. A current same-
+parent SHORTER_PROFILE alternative is metadata, not feasibility proof or automatic
+allocation. Short REVIEW_ALLOWED/fixed/Reading1 are unsupported. Creation preserves
+receipt-first/global H1/history/current rights/clocks; disabled new creation retains
+owned lifecycle. Client exact metadata is session-bound and unknown after loss of
+proof; no duration/profile inference from domain or implicit Start on conflict.
+[Scope/authority](../decisions/WEB_003_B11_SHORTER_PROFILE_PROPOSAL.md),
+[actual verification/limits](../reviews/WEB_003_B11_SHORTER_PROFILE_VERIFICATION.md).

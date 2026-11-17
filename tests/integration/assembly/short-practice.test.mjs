@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {randomUUID} from 'node:crypto';
+import {createAllocationFixture} from './fixtures.mjs';
+import {seedShortStudentProfiles} from '../student-runtime/short-fixture.mjs';
+import {createAllocationService} from '../../../src/modules/assembly/allocation.mjs';
+import {createStudentDirectoryService} from '../../../src/modules/attempts/directory.mjs';
+import {withTransaction} from '../../../src/modules/database/pool.mjs';
+import {MvpBlueprintConfigSchema} from '../../../packages/contracts/dist/internal.js';
+
+test('B11 pinned personal short profiles recover a real unseen shortage without relaxing default, fixed, review or history boundaries',{timeout:30000},async(t)=>{
+ const f=await createAllocationFixture({questionCount:6,blueprintCount:4});t.after(()=>f.close());
+ const [short]=await seedShortStudentProfiles(f);assert.equal(MvpBlueprintConfigSchema.safeParse(short.config).success,false);
+ const off=createStudentDirectoryService({examPool:f.examPool,identityService:f.identityService,enableReviewPractice:true});
+ const directory=createStudentDirectoryService({examPool:f.examPool,identityService:f.identityService,enableShortPractice:true,enableReviewPractice:true});
+ assert.equal((await off.catalog(f.principals.studentA)).items.length,1);
+ const rows=[];let cursor;do{const page=await directory.catalog(f.principals.studentA,{limit:'1',...(cursor?{cursor}:{})});rows.push(...page.items);cursor=page.nextCursor;}while(cursor);
+ assert.equal(rows.length,2);assert.equal(new Set(rows.map(row=>row.blueprintVersionId)).size,2);
+ assert.equal(rows.find(row=>row.blueprintVersionId===short.versionId).reviewAllowed,false);
+ assert.equal(rows.find(row=>row.blueprintVersionId===f.blueprint.versionId).reviewAllowed,true);
+ const options={examPool:f.examPool,identityService:f.identityService},disabled=createAllocationService(options);
+ const enabled=createAllocationService({...options,enableShortPractice:true,enableReviewPractice:true});
+ const body={blueprintVersionId:short.versionId};
+ await assert.rejects(disabled.create(f.principals.studentA,randomUUID(),body),{status:422,code:'UNSUPPORTED_TYPE'});
+ await assert.rejects(enabled.create(f.principals.studentA,randomUUID(),{...body,mode:'PERSONALIZED_PRACTICE',reuseMode:'REVIEW_ALLOWED',acknowledgeRepeats:true}),{status:422,code:'UNSUPPORTED_TYPE'});
+ const full=await enabled.create(f.principals.studentA,randomUUID(),{blueprintVersionId:f.blueprint.versionId});
+ await assert.rejects(enabled.create(f.principals.studentA,randomUUID(),body),{status:409,code:'CONCURRENT_ATTEMPT_EXISTS'});
+ await f.pool.query("UPDATE tsa.attempts SET state='CANCELLED',cancellation_reason='FORM_WITHDRAWN' WHERE id=$1",[full.body.attemptId]);
+ const before=(await f.pool.query('SELECT question_id,first_attempt_id FROM tsa.student_question_history WHERE user_id=$1 ORDER BY question_id',[f.principals.studentA.userId])).rows;
+ assert.equal(before.length,4);
+ await assert.rejects(enabled.create(f.principals.studentA,randomUUID(),{blueprintVersionId:f.blueprint.versionId}),error=>{
+  assert.equal(error.code,'INSUFFICIENT_UNSEEN_INVENTORY');assert.ok(error.details.alternatives.some(row=>row.kind==='SHORTER_PROFILE'&&row.blueprintVersionId===short.versionId));return true;
+ });
+ const key=randomUUID(),created=await enabled.create(f.principals.studentA,key,body);
+ assert.equal(created.status,201);assert.equal(created.body.reuseMode,'NEW_ONLY');
+ assert.equal((await f.pool.query('SELECT count(*)::integer AS n FROM tsa.form_slots WHERE form_id=$1',[created.body.formId])).rows[0].n,2);
+ assert.equal((await f.pool.query('SELECT count(*)::integer AS n FROM tsa.student_question_history WHERE user_id=$1',[f.principals.studentA.userId])).rows[0].n,6);
+ const retained=(await f.pool.query('SELECT question_id,first_attempt_id FROM tsa.student_question_history WHERE user_id=$1 AND first_attempt_id=$2 ORDER BY question_id',[f.principals.studentA.userId,full.body.attemptId])).rows;
+ assert.deepEqual(retained,before);
+ await f.pool.query("UPDATE tsa.attempts SET state='CANCELLED',cancellation_reason='FORM_WITHDRAWN' WHERE id=$1",[created.body.attemptId]);
+ assert.deepEqual(await disabled.create(f.principals.studentA,key,body),{...created,replayed:true});
+ await assert.rejects(enabled.create(f.principals.studentA,randomUUID(),body),error=>{assert.equal(error.code,'INSUFFICIENT_UNSEEN_INVENTORY');assert.deepEqual(error.details.alternatives,[]);return true;});
+ assert.equal((await f.pool.query('SELECT tsa.fixed_stock_blueprint_supported($1) AS allowed',[short.versionId])).rows[0].allowed,false);
+ assert.equal((await f.pool.query("SELECT has_table_privilege('tsa_exam','tsa_private.short_practice_profiles','SELECT') AS allowed")).rows[0].allowed,false);
+ await assert.rejects(withTransaction(f.examPool,c=>c.query('SELECT * FROM tsa_private.short_practice_profiles'),{role:'tsa_exam'}),{code:'42501'});
+ await assert.rejects(f.pool.query('DELETE FROM tsa_private.short_practice_profiles WHERE blueprint_version_id=$1',[short.versionId]));
+});

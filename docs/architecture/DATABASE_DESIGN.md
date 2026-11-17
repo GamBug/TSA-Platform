@@ -1,6 +1,21 @@
 # Relational database design
 
+Scoped owner approval, 2026-10-19: PostgreSQL/reviewed SQL, relational integrity,
+immutable versions/snapshots, private separation and transaction safety for local
+Track B are approved in OPEN_DECISIONS. The historical PROPOSED labels below do
+not override that scoped approval; unrelated ADR scope remains proposed.
+
 Status: PROPOSED, ADR-003, except the owner-approved ADR-004 H1 global active-attempt constraint, H2 admission semantics and H3 one-domain MVP tests. PostgreSQL logical specification, not executable migrations. Domain authority: [questions](../specifications/QUESTION_SCHEMA.md), [assembly](../specifications/EXAM_ASSEMBLY_SPEC.md), [attempts](../specifications/EXAM_ENGINE_SPEC.md). Factory tables are implemented by early Track A (AI-001/FACTORY-001), independently of website completion; no speculative psychometric tables are required in MVP.
+
+Local implementation checkpoint: reviewed migrations001–004 implement the
+relational foundation, synthetic-only sessions and bounded manual Bank ingestion.
+Migration004 adds nullable legacy source origin/creator and private append-only,
+namespace-scoped reference nodes; new Bank commands require explicit metadata.
+Bank receipts reuse actor/route-scoped RLS on `idempotency_records`. First-time
+staff mutations acquire the exclusive bank singleton guard before source/question
+locks; rights and duplicate changes advance eligibility revision. A restricted
+boolean dependency probe prevents rights edits requiring unimplemented holds.
+This is not publication, Factory persistence, exam-service or deployment acceptance.
 
 ## Conventions
 
@@ -168,3 +183,89 @@ Factory DB credentials claim only factory job kinds, read approved sources and a
 Proposed active-account history retention must outlive the shorter proposed 12-month result retention, or strict NEW_ONLY would forget prior assignments. History, allocation revision and personal manifests are protected personal data; approved erasure requires a controlled user-locked purge and cannot promise no-repeat after account removal/new account creation. Published versions retain minimum source/rights, validation, review and import evidence even if raw model responses expire under an approved policy. Normal deletion of referenced versions, forms, score runs and receipts is restricted; exceptional erasure/incident removal uses audited invalidation/purge rather than an ordinary mutable edit.
 
 Migration implementation should expand/backfill/contract: add nullable provenance links and new tables/constraints, backfill first assignments from retained attempts plus `form_slots` (including fixed/review attempts and never-started attempts), create singleton memberships and canonicalize confirmed merges, then turn on strict allocation only after a complete historical coverage audit. If old assignments are unavailable, record the coverage gap and obtain an explicit owner migration policy; never label an incomplete backfill strict NEW_ONLY. Add indexes concurrently where PostgreSQL requires it, validate FKs/checks on populated data, and test a fresh install and populated upgrade with duplicate, mismatched owner/version/form, rollback, two-connection allocation and publication races. A compatibility rollback disables new allocation/publication paths while preserving immutable versions, history, receipts and exams; it does not delete or rewrite them. Coordinate actual migration file ownership between DATA-001 and FACTORY-001. All constraints and transaction behavior here remain REQUIRES_VERIFICATION until implemented and tested on PostgreSQL.
+
+
+## Track B prerequisite verification scope — 2026-10-19
+
+G1 is owner-accepted (`27350b3`); this does not approve ADR-001/003 in full. The
+next bounded database probe tests only approved H1 partial uniqueness across all
+active modes and the committed immutable 600-second/capped start deadline in a
+private disposable cluster. Executed independently on PostgreSQL 18.6: 11 named
+checks PASS, both real cross-mode lock waits/23505 outcomes, concurrent distinct-user
+success, rollback, TTL/cap, immutable fields and exclusive predicate. See
+[probe](../../tests/integration/database/approved-invariants/README.md). Mutable
+schedule-edit and application start transactions were NOT tested. These fixtures
+are not migrations or a second product store; passing them proves neither the
+complete proposed schema nor application transactions. Production schema/adapter choices remain gated by affected ADR
+scope. No synthetic identity handle is promoted into AUTH-001 approval.
+
+| Authority | Executable now | Still required before integrated implementation |
+|---|---|---|
+| H1, TTL600, non-retroactive ordinary admission edits | Disposable uniqueness/blocking/rollback/deadline fixture probes | Full DATA-001 schema and real application transaction evidence |
+| G1 versioned DTO/identity/transport contracts | Frozen input fixtures and boundary tests | Affected ADR-001/003 database mechanisms; upgrade/history/private-table constraints |
+| AUTH-001 | Negative fixture planning | Explicit synthetic-only local stub scope and DATA-001 acceptance; production OIDC remains separately gated |
+| Bank/seed | Existing lawful-source inventory and schema/rights preflight planning | Named author/independent human reviewer, lawful rights evidence, validated drafts and publication controls |
+
+## G1 shared job dispatch contract — job-dispatch/1
+
+The final G1 audit freezes a minimal internal transport for existing logical work,
+not a new queue or database migration. Exact strict fields: schemaVersion
+`job-dispatch/1`, jobId (lowercase UUID), kind, dedupKey, payloadRef, state.
+`factory_produce_unit` names the existing factory_items production-unit job;
+`exam_grade_attempt` names the existing attempt-closure grading job. These are
+technical names for already specified responsibilities, not new workflow stages.
+No wildcard kind is accepted. Additional kinds require coordinated versioning.
+
+FACTORY executor contracts accept only factory_produce_unit; EXAM accepts only
+exam_grade_attempt. Executor identity must be server-derived by later adapters;
+contract validation is not authentication or DB permission enforcement. Shared
+states retain exactly QUEUED, RUNNING, SUCCEEDED, FAILED_RETRYABLE, FAILED_FINAL,
+CANCELLED. dedupKey and payloadRef are opaque nonblank strings preserved verbatim;
+actual domain-derived deduplication, payload lookup and secret-handling remain
+producer/adapter responsibilities. Embed no payload, credentials or publication
+assertion in this dispatch shape. Emit it only through the internal package entry.
+
+This envelope is not the complete jobs persistence row. Leases, fencing tokens,
+attempt counters, timing, retries, transactions and grants remain DATA-001,
+AUTH-001, EXAM-002 and FACTORY task work. This technical encoding changes no
+approved product behavior, existing root schema, public route or dependency.
+
+## DATA-001 bank-core checkpoint — 2026-10-19
+
+Migration `001_bank_core.sql` and `src/modules/database/{pool,migrate}.mjs`
+implement the first local PostgreSQL foundation. Coordinator independently ran
+`npm run test:db:foundation` against PostgreSQL18.6: 17 reported tests PASS,
+zero failures/skips. Evidence covers fresh/reapplied/checksummed migrations,
+numeric order, additive populated upgrade, failed-DDL rollback, composite bank
+FKs, immutable content/evidence, private-schema and Factory role restrictions,
+parameterized queries and broken-connection disposal. The disposable harness
+uses a private Unix socket with TCP disabled. These are actual DB tests, not
+contract-only assertions. Runtime remains Node24.18.0/npm11.16.0.
+
+Run `DATABASE_URL='<owner-controlled PostgreSQL DSN>' npm run db:migrate` only
+with separate migration credentials; no automatic rollback or destructive reset
+is provided. Application credentials must be restricted role members, never the
+migration superuser. Stored JSON guards are coarse storage bounds; Bank commands
+must apply the frozen question/1 validator and serialized-byte limit. No
+publication eligibility or complete DATA-001 acceptance follows from this slice.
+Forms/attempts/history/jobs, real allocation races and local AUTH follow next.
+
+## DATA-001 local relational acceptance — 2026-10-19
+
+Migration002 adds form/attempt/history/score/job/receipt storage and integrity
+guards. Sol independently ran `npm run test:db:foundation`: 34 reported tests
+PASS on PostgreSQL18.6, zero skips/failures. Actual lock barriers cover both
+H1 mode winners, concurrent distinct users, winner rollback, cancel/start and
+stable-history serialization. Valid seals/grades and atomic negative cases,
+600/capped immutable deadlines after ordinary edits, pending-grade receipt pin,
+expired-reservation cleanup and populated001→002 preservation pass. Coarse
+storage bounds do not replace frozen contract validation at command boundaries.
+
+Child composition must commit with its immutable parent; additive upgrade leaves
+unknown legacy xid/original timestamp NULL rather than inventing evidence. Exam
+RLS reads require live job/executor/fencing context; this is read scoping, not
+authentication or a lease-claim worker. No real allocation/cleanup HTTP service,
+rights fan-out, grading worker or deployed DB guarantee follows from fixture
+transactions. Those remain their owning tasks. DATA-001 local schema/adapter
+acceptance unlocks the explicitly approved AUTH-001 local development path;
+G2/G3 remain unchanged. Owner AGENTS.md and all accepted contracts preserved.

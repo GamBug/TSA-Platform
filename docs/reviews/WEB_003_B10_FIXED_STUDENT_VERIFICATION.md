@@ -1,0 +1,232 @@
+# WEB-003 B10.1 fixed student practice verification
+
+2026-10-26 Asia/Bangkok; branch feat/track-b-data-auth, base3d41eb3/B9 source5b37a30.
+Root accountable implementer/integrator under the recorded standing engineering
+choice delegation. This is separately selected student scope, not an extension of
+B9's staff-only go-ahead or an invented human approval.
+[Decision](../decisions/WEB_003_B10_FIXED_STUDENT_DECISION.md),
+[design review](WEB_003_B10_DESIGN_REVIEW.md),
+[walkthrough](../guides/TRACK_B_SUPERVISOR_DEMO.md).
+
+## Implemented
+
+Migration024 is additive: a private owner-only eligibility helper and two narrow
+candidate EXECUTE functions provide safe fixed catalog pagination and atomic owned
+assignment. Only supported real B9 seals participate; legacy/reference/personal
+forms are excluded. Current admission/rights/withdrawal apply. No student request
+creates forms/runs/slots/keys or selects/generates questions. Frozen public schemas,
+solver/goldens, scoring and timing policies are unchanged. Shared enableFixedPractice
+is false; only the explicitly opted-in disposable three-domain demo enables it.
+
+Existing personal v1 cursors remain accepted. Internally versioned v2 fixed-phase
+cursors use a null unconsumed sentinel at an exact personal-page boundary; no item
+is skipped or duplicated. Flag-off rejects v2 but preserves old personal catalog.
+Receipt replay precedes new-admission/H1 checks, including when creation is disabled.
+Separate committed H1 preflight preserves stale cleanup even if later assignment
+rolls back; in-commit read-only reconciliation closes the intervening-attempt race.
+Global H1 covers fixed, NEW_ONLY and REVIEW_ALLOWED. First stable assignment history
+is preserved on explicit fixed repeats and still constrains later NEW_ONLY.
+
+Student cards distinguish shared fixed forms from personal practice and display a
+safe form reference even for identical titles. Native unchecked repeat consent pins
+session/key/body at dialog opening. Cancel/Escape sends no assignment. Uncertain
+acknowledgement retries the same intent; post-receipt read failure recovers through
+GET only. Reservation requires explicit Start. Fixed labels persist through exam,
+result/review/history; reload reads existing state. Before Start, missing catalog
+metadata shows unknown duration rather than guessing a personal profile. Existing
+owned delivery continues after new fixed creation/catalog is disabled.
+
+SDK validates exact returned attempt ID before cache/display/result loading. API
+responses are fenced across session cookie rotation; old identity responses cannot
+clear a newer identity's cache. Actual CSRF403 classification remains intact.
+B9's immutable studentDeliverySupported:false receipt now has operation-local copy;
+it does not assess live access under the separate student capability.
+
+## Executed verification
+
+All data is original synthetic fixture machinery, including automated review/rights
+records. No real content, qualified human review or publication permission is implied.
+Commands run from the repository root with installed pinned prerequisites:
+
+| Command | Observed result |
+|---|---|
+| `node --test tests/integration/assembly/fixed-allocation.test.mjs tests/integration/assembly/fixed-upgrade.test.mjs` | PASS2: cursor boundaries, shared-form assignments, receipt/retake/history, flag-off replay; populated023→024 preserves every existing table row, old function owner/ACL/definition and table grant. Migration is repeatable. |
+| `node --test tests/integration/assembly/fixed-boundary.test.mjs` | Native Luna PASS9: exact SQL consent/invalid IDs/raw privilege denial; real fixed/personal NEW_ONLY and REVIEW_ALLOWED locks in both winner orders; stale TTL cleanup survives injected later INSERT rollback; DB admission; rights withdrawal/replay; current candidate-role revocation. |
+| `node --test tests/integration/student-runtime/fixed-practice.test.mjs` | Root PASS1: actual HTTP/SDK all3 fixed domains, save/reload/grade100/released review, original sealed key after corrected Bank publication, owned lifecycle after flag-off runtime restart, foreign fixed view/result404, CSRF/Origin403, owned history. No replacement forms. |
+| `node --test tests/critical/persistent-api-fixed-attempt.test.mjs` | PASS4: wrong retake rejected before result/cache; valid target; held read rejected after cookie rotation; stale response preserves newer identity's cached save. |
+| `node --test tests/integration/student-runtime/fixture-demo.test.mjs` | PASS10: all existing profiles plus opt-in fixed three-domain automatic setup/listener/real catalog/SIGINT teardown; malformed/missing profile opt-ins rejected. |
+| `npm run test:student:fixed` | PASS5 checks/17 captures, Chrome156, desktop1280 and mobile375. Four catalog seals include identical-title MATH forms with distinct visible references. All3 domain flows, native consent/Escape/focus, real committed lost ACK/exact replay, failed GET/read-only recovery, explicit Start, saved reload, grade100/review/history and held real fixed GET across external A→B rotation. |
+| `npm run test:student:fixed:firefox` | PASS5 checks/17 captures, actual Firefox desktop1280/narrow500, same three-domain helper and session fence. |
+| `npm run test:assembly` | Final PASS74, including the final9 boundary cases. |
+| `npm run test:student` | PASS40 after SDK403 compatibility repair. |
+| `npm run test:bank` | PASS161 with migration024 included in existing latest-upgrade assertions. |
+| `npm test` | PASS161; no public artifact/schema change. |
+| `npm run test:b0` | PASS32. |
+| `npm run test:critical:student` | PASS9 generated actual HTTP state-machine/security cases. |
+| `npm run test:student:domains` | PASS4 checks/8 captures/78 API responses, existing default NEW_ONLY three-domain flow. |
+| `npm run test:student:review` | PASS7 checks/11 captures/65 API responses, existing explicit personal-review flow. |
+| `npm run test:track-b:browser` | PASS50 checks/34 captures, existing staff B1–B9 including current seal-operation copy. |
+| `npm run test:staff:firefox` | PASS18 checks/42 captures, existing student/staff Firefox regression including B9. |
+| `npm run build`, `npm run typecheck`, `npm run contracts:check`, `npm run contracts:consumer-check`, `npm run test:built`, `npm run docs:check` | PASS. Existing preserved-input-whitespace documentation warning only; no documentation errors. |
+
+Root logs are ignored `.local/b10-*`; screenshots/reports are private local `/tmp`
+artifacts, not committed. Browser output prints aggregate scenario evidence, not
+session tokens or private keys. Root inspected the real375px fixed catalog capture;
+references wrap and controls remain readable without document overflow.
+
+Initial failures were repaired, not counted as passes: null cursor dereference;
+missing CREATED in fixed receipt (transaction had committed, then DTO validation
+failed); test assumed nonexistent result.review; test supplied SC answers to mixed
+MATH types; async test omitted await on the sealer; SDK nonce fence overwrote actual
+CSRF403 with401. Existing read adapter supplies error-body requestId but does not
+promise an X-Request-Id header; the supplementary GET test was corrected to its
+existing contract. Mutation errors retain matching header/body IDs.
+
+## Independent review
+
+Actual separate native Sol6.1/Medium `/root/b9_design_review` stayed read-only.
+Reviewed design/authority, SQL, allocation/catalog/attempt/HTTP integration, grants,
+SDK/UI, tests and browser helper. Root repaired independently identified wrong-retake
+cache acceptance, H1 cleanup transaction/race, indistinguishable same-title forms,
+held read session rotation, and stale-response cache invalidation. No self-review
+is labeled independent. Native Luna/XHigh SDK/UI and bounded test writers released
+ownership; root wrote SQL/services/browser/launcher/integration/shared records.
+
+Independent actual earlier corePG/upgrade/HTTP PASS3; final SDK4+fixedHTTP1+existing
+domains3 PASS8 after403 compatibility fix. Independent Chrome PASS5/17captures/
+77 inspected API responses at `/tmp/tsa-b10-independent-chrome`, including mobile375;
+reviewer actually inspected its narrow screenshot. No independent Firefox or clean
+clone execution is claimed. Final boundary9+corrected-version/flag-off HTTP1 independently PASS10. All final
+source findings repaired/rechecked; no unresolved finding. Independent final SDK/
+HTTP/domain command also validates preserved CSRF403; independent Chromium preceded
+only that denial-classification tweak (successful held-GET logic unchanged).
+
+Final independently recorded stable SHA256:
+
+```text
+024         c152fdfecbaf131a4fd4ca3282039ca3eed4372067b38badec7b54556187f2f3
+allocation  ac3d3cbface8d25b61cacdd30d3f7a34bbf375d46ce197b973b6ca342f99225e
+directory   5107de24d6c21029c451ef1123c0943ab886e0b897de9edb86cb211cf53e597a
+SDK         986b468a5311c240a07c594fd43d1ff4f1889aa5c97821adaab9074acd5cd027
+main        4a68aa9cd09589edc020a564aa8f236d73897dafe53c6c2e8167acc055482d29
+boundary    f35e8cf7ba92e4e313da2fd814deb3ca767f08d844887d30680c507e7ad1d429
+HTTP test   ae79ed235394c99e01706daa81add3ee66c36a933b496377ac5680766c733b2a
+```
+
+## Limits and continuation
+
+AUTOMATED_PASS and INDEPENDENTLY_REVIEWED apply only to the executed scopes above.
+MANUAL_CHECK_PENDING: qualified assistive-technology/native200%zoom/full
+accessibility. HUMAN_APPROVAL_REQUIRED: lawful accepted12 MATH/6 READING/12 SCIENCE
+stock and qualified independent content review. No performance target/load or
+production readiness is established. B10-specific browser quarantine/race exhaustiveness
+is not claimed; existing B9/Bank rights/quarantine regressions remain separate evidence.
+Retained local workspace and production do not enable new fixed creation. No new
+staff approval/publication/scheduling/withdrawal privileges were introduced.
+
+Clean-checkout reproduction and final local checkpoint are recorded below after
+source acceptance. Next ready engineering scope remains bounded integrated acceptance
+and existing-contract student/staff usability; shorter profiles require a separate
+specific selection and real eligible inventory, never silent fallback.
+
+
+## Clean-checkout reproduction — d903ae4
+
+Root created a no-hardlink clone `/tmp/tsa-b10-clean-mug6hckp` of exact source
+d903ae4, without owner AGENTS.md/research changes, existing node_modules or local
+fixture data. `npm ci --ignore-scripts` PASS (observed audit0); build PASS. Exact
+commands executed sequentially in that checkout:
+
+```sh
+npm ci --ignore-scripts
+npm run build
+node --test tests/integration/assembly/fixed-allocation.test.mjs tests/integration/assembly/fixed-boundary.test.mjs tests/integration/assembly/fixed-upgrade.test.mjs tests/critical/persistent-api-fixed-attempt.test.mjs tests/integration/student-runtime/fixed-practice.test.mjs
+node --test tests/integration/student-runtime/fixture-demo.test.mjs
+npm run test:student:fixed
+npm run test:student:fixed:firefox
+npm run test:student:domains
+npm run contracts:check
+npm run contracts:consumer-check
+npm run docs:check
+git status --porcelain=v1
+```
+
+Focused16 and launcher10 PASS. Chrome5checks/17captures and defaultdomains78
+responses PASS. Firefox's first run completed all5checks/17captures but its DELETE
+session cleanup exceeded20seconds, exiting1; it is **not** counted as a passing
+run. The exact same Firefox command was rerun on the unchanged source checkout:
+exit0,5checks/17captures, normal cleanup. No source/dependency/profile patch or
+relaxed assertion was used. This observed automation teardown flake remains a
+limitation; the launcher teardown tests separately passed. Contract drift/consumer/
+documentation checks PASS. Final clone Git output was empty. No independent clean
+clone/Firefox review claimed. Root logs `.local/b10-clean-*` retain both the initial
+failure and explicit retry; no generated evidence/credentials/databases committed.
+
+Source checkpoint d903ae4 contains the reviewed implementation and initial records.
+A following documentation checkpoint records this clean evidence and the separate
+B11 shorter-profile proposal. Original frozen MVP4/2/4 counts remain enforced;
+B11 is not implemented/approved and does not block this demonstration.
+
+
+## B10.2 fixed save/conflict supplement —2026-10-26
+
+Base3f3ebe8, root sole writer of the existing fixed journey helper and its Chrome/
+Firefox adapters. No application, SQL, fixture, package, public contract or frozen
+vector changed. This closes a named acceptance gap: B10 added a fixed-specific
+save-reconciliation read branch, while earlier negative browser save cases used
+personal attempts. Reused the existing scenario rather than adding a harness.
+
+Actual root `npm run test:student:fixed` PASS6checks/19captures/86 inspected API
+responses, Chrome156 at1280/375. Actual root `npm run test:student:fixed:firefox`
+PASS6checks/19captures, Firefox156 at1280/500; final exit0 and cleanup normal. Within
+the first encountered SINGLE_CHOICE item of the three-domain fixed journey:
+
+- Controlled fetch transport failure occurs before the PUT reaches PostgreSQL.
+  The draft stays selected, the UI says unsaved, and navigation/submission/catalog
+  exit stay disabled; no answer row exists. Explicit retry sends identical body/key
+  and acknowledges revision1. This injection is not a claim of browser-level offline
+  network emulation; the older personal Chromium offline check remains separate.
+- A real second browser tab/window reloads the same owned fixed attempt and saves
+  optionC at revision2. Stale first-tab optionB fails with actual revision conflict,
+  preserves the unsaved draft, and offers explicit reload. GET-only reload preserves
+  optionC/revision2 and the fixed-mode label without another PUT or new attempt.
+- The next optionB actually commits revision3 but its successful HTTP response is
+  deliberately dropped. UI remains unconfirmed until explicit identical body/key
+  replay. PostgreSQL remains revision3, not4. Original Start/deadline text and shared
+  form stay unchanged. All3 final domain attempts still grade100/release/review.
+
+Initial Chromium run reached the real conflict but screenshot capture waited for
+animation frames on a background tab, timing out. Root closed the already-saved
+second tab before capture; conflict/reload assertions remain unchanged. Final
+Chrome/Firefox reruns pass. This was a harness defect, not an application repair.
+Root actually inspected375px conflict capture: prominent unsaved warning, selected
+local draft, explicit reload and disabled navigation are readable. No formal
+accessibility/nativezoom acceptance is inferred.
+
+Root syntax checks for all3 changed scripts and git diff --check PASS. Original
+B10 clean-checkout evidence above continues to describe exact d903ae4; no new clean
+clone of this test-only supplement is claimed. Existing B10 product source hashes
+and independent review are unchanged. At source checkpoint1432c71, B10.2 was
+AUTOMATED_PASS / PENDING_REVIEW because the preferred independent reviewer reached
+its usage limit. That initial capacity state is historical: the actual normal-
+entitlement native Luna/XHigh closure below now supplies independent supplement
+review. No model/access/quota restriction bypass or Sol/Medium execution claim.
+
+
+## B10.2 independent review closure —2026-10-26
+
+The pending supplement review above is now closed in the actual native Luna/XHigh
+fallback scope. The preferred Sol6.1/Medium capacity remained limited; the existing
+normal-entitlement `/root/b9_contracts` delegate, which authored none of these
+browser scripts, performed a separate read-only task. No restriction bypass or
+Sol/Medium execution claim. Exact source3f3ebe8..1432c71 three-script diff inspected;
+no actionable finding. Real PostgreSQL/synthetic transport distinctions, two-tab
+conflict/GET-only recovery, exact-body/key replay and unchanged revision3 verified.
+
+Independent existing Chrome fixed alias PASS6checks/19captures/86responses and
+Firefox fixed alias PASS6/19; syntax/whitespace PASS. Reviewer actually inspected
+narrow conflict capture; no repository edits. Native200% review separately PASS6/8.
+[Exact commands, report/source hashes and attribution](WEB_004_NATIVE_ZOOM_VERIFICATION.md#independent-review-closure-2026-10-26).
+No independent supplement clean clone/broad backend or formal human accessibility
+claim. Original B10 clean-reproduced application source is unchanged. B10.2 status
+is AUTOMATED_PASS / INDEPENDENTLY_REVIEWED in this bounded scope, not full TEST-002.
