@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createPrototypeHandler } from "../server.mjs";
+import { createPrototypeHandler, legacyStudentRedirect } from "../server.mjs";
 import { privateQuestionFixture, privateTrueFalseGroupFixture } from "../src/private-question-fixture.mjs";
 
 const privateExplanationSentinels = [privateQuestionFixture, privateTrueFalseGroupFixture]
@@ -92,6 +92,16 @@ describe("local static server public-file boundary", () => {
     assert.match(license.body.toString("utf8"), /SIL OPEN FONT LICENSE Version 1.1/);
     for (const url of ["/fonts/manifest.json", "/fonts/README.md", "/fonts/unregistered.woff2", "/fonts/../src/private-question-fixture.mjs"]) {
       assert.equal((await handler({ method: "GET", url })).status, 404, url);
+    }
+  });
+
+  it("maps retired student UI links to React student app modes only", () => {
+    assert.equal(legacyStudentRedirect("/?student=postgres"), "/student/");
+    assert.equal(legacyStudentRedirect("/?student=postgres-v2"), "/student/?mode=numeric");
+    assert.equal(legacyStudentRedirect("/index.html?student=postgres-v4"), "/student/?mode=interactions");
+    assert.equal(legacyStudentRedirect("/?student=postgres-v3"), "/student/?mode=simulation");
+    for (const url of ["/", "/?student=other", "/?student=__proto__", "/app/main.js?student=postgres", "/student/?student=postgres"]) {
+      assert.equal(legacyStudentRedirect(url), null, url);
     }
   });
 

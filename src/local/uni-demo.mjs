@@ -154,6 +154,7 @@ export async function startUniDemo({
       env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' } }) : null;
     runtime = await createTrackBRuntime({
       imageStore,
+      redirectLegacyStudentUi: true,
       env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_STUDENT_ENABLED: 'true', LOCAL_FULL_SIMULATION_ENABLED: 'true',
         LOCAL_NUMERIC_PRACTICE_ENABLED: 'true', LOCAL_CLOZE_MATCHING_ENABLED: 'true' },
       dataDirectory: clusterDirectory, port, pgBin,
@@ -181,10 +182,10 @@ export async function startUniDemo({
     demoDirectory: root,
     urls: Object.freeze({
       staff: `${runtime.origin}/`,
-      student: `${runtime.origin}/?student=postgres`,
-      simulation: `${runtime.origin}/?student=postgres-v3`,
-      numeric: `${runtime.origin}/?student=postgres-v2`,
-      clozeMatching: `${runtime.origin}/?student=postgres-v4`,
+      student: `${runtime.origin}/student/`,
+      simulation: `${runtime.origin}/student/?mode=simulation`,
+      numeric: `${runtime.origin}/student/?mode=numeric`,
+      clozeMatching: `${runtime.origin}/student/?mode=interactions`,
     }),
     close() {
       closing ??= (async () => {

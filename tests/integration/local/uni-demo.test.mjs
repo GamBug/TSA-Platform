@@ -165,7 +165,12 @@ test('published numeric-answer items get their own practice, delivered and grade
   assert.deepEqual(report.offerings.map((offering) => [offering.kind, offering.section]),
     [['SECTION_PRACTICE', 'MATH'], ['NUMERIC_PRACTICE', 'MATH']]);
   assert.match(formatDemoSummary(demo), /Numeric practice: Mathematics offered \(5\/4\)/);
-  assert.match(demo.urls.numeric, /\?student=postgres-v2$/);
+  assert.match(demo.urls.numeric, /\/student\/\?mode=numeric$/);
+  // The retired student UI links open the matching React student app mode.
+  const legacy = await fetch(`${demo.origin}/?student=postgres-v2`, { redirect: 'manual' });
+  assert.equal(legacy.status, 303);
+  assert.equal(legacy.headers.get('location'), '/student/?mode=numeric');
+  assert.equal((await fetch(`${demo.origin}/`, { redirect: 'manual' })).status, 200, 'staff landing stays available');
 
   const student = await loginActor(demo, 'studentA');
   const numericOffering = report.offerings.find((offering) => offering.kind === 'NUMERIC_PRACTICE');

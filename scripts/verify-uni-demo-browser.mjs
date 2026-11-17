@@ -145,84 +145,73 @@ try {
   await command('Runtime.enable');
   await command('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
 
-  // 2. Student catalog with the three notices.
-  await navigate(ready.urls.student, `Boolean(${query('persistent-login')})`, 'student login screen');
-  await click('persistent-login-studentA');
-  await waitFor(`Boolean(${query('catalog-grid')})&&Boolean(${query('demo-start')})`, 'student catalog');
-  assert.equal(await evaluate(`document.querySelectorAll('[data-testid="demo-start"]').length`), 3, 'three section profiles from published stock');
+  // 2. Student catalog in the React student app with the three notices.
+  const answerOnScreen = async (label) => {
+    const option = await evaluate(`(document.querySelector('#question-title')?.innerText.match(/nêu nhãn ([ABC])\./)||[])[1]?.toLowerCase()??''`);
+    assert.ok(option, `${label}: rehearsal item states its label`);
+    await click(`option-${option}`);
+    await waitFor(`/^Đã lưu/.test(${query('save-status')}?.textContent??'')`, `${label} saved`);
+  };
+  await navigate(ready.urls.student, `Boolean(${query('login-studentA')})`, 'student login screen');
+  await click('login-studentA');
+  await waitFor(`document.querySelectorAll('[data-testid="catalog-item"]').length===3`, 'student catalog');
   const catalogNotice = await readNotice('catalog');
   assert.match(catalogNotice, /Luyện tập không chính thức — không liên kết với Đại học Bách khoa Hà Nội \(HUST\)\./);
   assert.match(catalogNotice, /Dự án phi lợi nhuận: không quảng cáo, không thu phí\./);
   assert.match(catalogNotice, /Nguồn nội dung: Câu hỏi tổng hợp do dự án tự biên soạn để diễn tập/);
   assert.match(catalogNotice, /DIỄN TẬP · NỘI DUNG TỔNG HỢP/);
   await capture('01-student-catalog-notices');
-  report.checks.push('Catalog shows the unofficial/not-affiliated, non-profit and content-source notices with the rehearsal label');
+  report.checks.push('React student app catalog shows three section profiles and the unofficial/not-affiliated, non-profit and content-source notices with the rehearsal label');
 
-  // 3. Topic practice on one published topic, answered correctly, to a released result.
-  const geometry = `[...document.querySelectorAll('[data-testid="topic-select"]')].find(i=>i.closest('label').innerText.includes('Hình học'))`;
-  await click('topic-practice-open');
-  await clickElement(geometry, 'published geometry topic');
-  await evaluate(`(()=>{const c=${query('topic-question-count')};c.value='3';c.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
-  await waitFor(`(()=>{const e=${geometry};return Boolean(e&&e.checked&&!${query('topic-start')}.disabled)})()`, 'topic selection ready');
-  await capture('02-topic-practice-selection');
-  await click('topic-start');
-  await click('created-start');
-  await waitFor('Boolean(document.querySelector("#question-title"))', 'topic attempt started');
-  const topicAttempt = await activeAttempt('v1');
-  assert.equal(topicAttempt.slots.length, 3);
-  for (const [position, slot] of topicAttempt.slots.entries()) {
+  // 3. Section practice (topic practice is paused), answered correctly, to a released result.
+  await click('start-MATH');
+  await waitFor(`Boolean(${query('attempt-workspace')})&&Boolean(document.querySelector('#question-title'))`, 'practice attempt started');
+  const practiceAttempt = await activeAttempt('v1');
+  for (const [position] of practiceAttempt.slots.entries()) {
     if (position) await click('question-next');
-    await click(`option-${answerLabel(slot)}`);
-    await waitFor(`${query('save-status')}.classList.contains('saved')`, `topic answer ${position + 1} saved`);
+    await answerOnScreen(`practice answer ${position + 1}`);
   }
   await click('submit-open');
   await click('submit-confirm');
-  await waitFor(`Boolean(${query('result')})`, 'topic result released');
-  const topicResult = await evaluate(`fetch('/api/v1/attempts/${topicAttempt.attemptId}/result').then(r=>r.json())`);
-  assert.deepEqual([topicResult.correctCount, topicResult.totalCount], [3, 3]);
-  assert.equal(await evaluate(`Boolean(${query('result')}.querySelector('[data-testid="demo-notice"]'))`), true, 'notice sits on the result card');
-  await readNotice('topic result');
-  await capture('03-topic-practice-result');
-  report.checks.push('Topic practice: 3 published geometry items answered, submitted and graded 3/3; notices visible on the result page');
+  await waitFor(`Boolean(${query('result')})`, 'practice result released', 30_000);
+  const practiceResult = await evaluate(`fetch('/api/v1/attempts/${practiceAttempt.attemptId}/result').then(r=>r.json())`);
+  assert.equal(practiceResult.correctCount, practiceResult.totalCount);
+  assert.equal(await evaluate(`Boolean(${query('result')}.querySelector('[data-testid="demo-notice"]'))`), true, 'notice sits on the result page');
+  await readNotice('practice result');
+  await capture('03-section-practice-result');
+  report.checks.push(`Section practice: ${practiceResult.totalCount} published Mathematics items answered, submitted and graded ${practiceResult.correctCount}/${practiceResult.totalCount}; notices visible on the result page`);
 
   // 4. Full simulation: three sections, return navigation, per-section and total correct counts.
-  await navigate(ready.urls.simulation, `Boolean(${query('demo-start')})`, 'full-simulation offering');
-  const offerNotice = await readNotice('simulation offering');
-  assert.match(offerNotice, /Unofficial practice — not affiliated with HUST\./);
-  assert.match(offerNotice, /Non-profit project: no ads, no fees\./);
-  assert.match(offerNotice, /Content source: Original synthetic questions written by the project for rehearsal/);
-  assert.match(offerNotice, /REHEARSAL · SYNTHETIC CONTENT/);
+  await navigate(ready.urls.simulation, `Boolean(${query('simulation-create')})`, 'full-simulation offering');
+  await readNotice('simulation offering');
   await capture('04-full-simulation-offering');
+  await click('simulation-create');
   await click('demo-start');
-  await waitFor(`Boolean(${query('section-math')})&&Boolean(${query('option-a')})`, 'mathematics opened');
-  const plan = [['math', 'Mathematics', 3], ['reading', 'Reading', 2], ['science', 'Science', 1]];
+  await waitFor(`Boolean(${query('section-math')})&&Boolean(document.querySelector('#question-title'))`, 'mathematics opened');
+  const plan = [['math', 3, 40], ['reading', 2, 20], ['science', 1, 40]];
   let simulationId;
-  for (const [sectionId, name, answers] of plan) {
+  for (const [sectionId, answers, total] of plan) {
     if (sectionId !== 'math') {
       await click(`section-${sectionId}`);
-      await waitFor(`document.querySelector('[role="tabpanel"]')?.getAttribute('aria-label')===${JSON.stringify(name)}&&Boolean(${query('option-a')})`, `${name} opened`);
+      await waitFor(`${query(`section-${sectionId}`)}?.getAttribute('aria-selected')==='true'&&Boolean(document.querySelector('#question-title'))`, `${sectionId} opened`);
     }
     const view = await activeAttempt('v3');
     simulationId = view.attemptId;
-    const slots = view.slots.filter((slot) => slot.sectionId === sectionId);
-    assert.equal(slots.length, sectionId === 'reading' ? 20 : 40);
+    assert.equal(view.slots.filter((slot) => slot.sectionId === sectionId).length, total);
     for (let position = 0; position < answers; position++) {
       if (position) await click('question-next');
-      await click(`option-${answerLabel(slots[position])}`);
-      await waitFor(`${query('save-status')}.classList.contains('saved')`, `${name} answer ${position + 1} saved`);
+      await answerOnScreen(`${sectionId} answer ${position + 1}`);
     }
   }
   await click('section-math');
-  await waitFor(`document.querySelector('[role="tabpanel"]')?.getAttribute('aria-label')==='Mathematics'&&${query('section-math')}.innerText.includes('Clock running')`, 'returned to mathematics with time remaining');
+  await waitFor(`/Đang tính giờ/.test(${query('section-math')}?.innerText??'')`, 'returned to mathematics with time remaining');
   await capture('05-full-simulation-in-progress');
   await click('submit-open');
-  await waitFor('Boolean(document.querySelector("dialog[open]"))', 'submit-all confirmation');
   await click('submit-confirm');
   await waitFor(`Boolean(${query('result')})`, 'simulation result released', 30_000);
-  assert.equal(await evaluate(`${query('result')}.querySelector('h2').textContent`), '6 / 100 correct');
-  for (const [sectionId, name, answers] of plan) {
-    assert.equal(await evaluate(`[...${query(`result-${sectionId}`)}.cells].map(c=>c.textContent).join('|')`),
-      `${name}|${answers}|${sectionId === 'reading' ? 20 : 40}`);
+  assert.equal((await evaluate(`${query('result-score')}.innerText`)).replace(/\s+/g, ''), '6/100');
+  for (const [sectionId, answers, total] of plan) {
+    assert.match(await evaluate(`${query(`result-${sectionId}`)}.innerText`), new RegExp(`${answers}/${total}$`));
   }
   await readNotice('simulation result');
   await capture('06-full-simulation-result');
@@ -230,9 +219,8 @@ try {
   report.checks.push('Full simulation: 100 questions, three section clocks, return to Mathematics, result 6/100 with Mathematics 3/40, Reading 2/20, Science 1/40; notices visible');
 
   // 5. Staff review queue: unpublished items stay with staff.
-  await click('simulation-home');
-  await click('simulation-logout');
-  await waitFor(`Boolean(${query('persistent-login')})`, 'student signed out');
+  await click('logout');
+  await waitFor(`Boolean(${query('login-studentA')})`, 'student signed out');
   await navigate(ready.urls.staff, `Boolean(${query('staff-open')})`, 'landing with staff entry');
   await click('staff-open');
   await waitFor(`Boolean(${query('staff-login')})`, 'staff login');

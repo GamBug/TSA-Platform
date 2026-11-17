@@ -23,13 +23,13 @@ async function stop(child) {
   if (!done) { child.kill('SIGKILL'); await once(child, 'close'); }
 }
 
-async function journeyPage(browser, viewport) {
+async function journeyPage(browser, viewport, base = origin) {
   const page = await browser.newPage({ viewport });
   const problems = [];
   page.on('pageerror', (error) => problems.push(`page error: ${error.message}`));
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (/^https?:$/.test(url.protocol) && url.origin !== origin) problems.push(`third-party request: ${url.origin}`);
+    if (/^https?:$/.test(url.protocol) && url.origin !== base) problems.push(`third-party request: ${url.origin}`);
   });
   const byId = (id) => page.locator(`[data-testid="${id}"]`).first();
   const snap = async (name) => {
@@ -146,8 +146,65 @@ async function fullSimulation(browser, viewport, actor, label) {
   await page.close();
 }
 
+/** Synthetic cloze/matching fixture with known keys: every answer correct, matching by drag, tap and list. */
+async function clozeMatching(browser, viewport, base, label) {
+  const { page, problems, byId, snap } = await journeyPage(browser, viewport, base);
+  await page.goto(`${base}/student/?mode=interactions`);
+  await login(byId, 'studentA');
+  await page.locator('[data-testid^="start-"]').first().click();
+  await byId('attempt-workspace').waitFor();
+  const count = await page.locator('[data-testid^="question-jump-"]').count();
+  const kinds = [];
+  for (let position = 0; position < count; position += 1) {
+    if (position) await byId('question-next').click();
+    await page.locator('#question-title').waitFor();
+    if (await byId('cloze-response-control').count()) {
+      kinds.push('cloze');
+      await byId('cloze-answer-city').fill('Ha Noi');
+      await byId('cloze-answer-ratio').fill('3:2');
+      // Leaving with unsaved typing asks for confirmation first.
+      if (position < count - 1) {
+        await byId('question-next').click();
+        assert.match(await byId('screen-message').innerText(), /chưa lưu/);
+      }
+      await byId('answer-save').click();
+    } else if (await byId('matching-response-control').count()) {
+      kinds.push('matching');
+      await byId('matching-card-target-red').dragTo(byId('matching-drop-row-a'));
+      await byId('matching-card-target-blue').click();
+      await byId('matching-drop-row-b').click();
+      await byId('matching-answer-row-c').selectOption('target-green');
+      assert.equal(await byId('matching-card-target-red').isDisabled(), true, 'a used card cannot be placed twice');
+      await snap(`${label}-matching`);
+      await byId('answer-save').click();
+    } else if (await byId('numeric-answer-input').count()) {
+      kinds.push('numeric');
+      await byId('numeric-answer-input').fill('1.5');
+      await byId('answer-save').click();
+    } else if (await byId('true-false-group').count()) {
+      kinds.push('true-false');
+      await page.locator('label:has(input[data-testid="tf-statement-a-true"])').click();
+      await page.waitForFunction(() => !document.querySelector('input[data-testid="tf-statement-b-false"]')?.disabled);
+      await page.locator('label:has(input[data-testid="tf-statement-b-false"])').click();
+    } else {
+      kinds.push('choice');
+      await page.locator('label:has(input[data-testid="option-b"])').click();
+    }
+    await page.waitForFunction(() => /^Đã lưu/.test(document.querySelector('[data-testid="save-status"]')?.textContent ?? ''), null, { timeout: 10_000 });
+  }
+  assert.ok(kinds.includes('cloze') && kinds.includes('matching'), `fixture delivered cloze and matching (${kinds})`);
+  await byId('submit-open').click();
+  await byId('submit-confirm').click();
+  await byId('result').waitFor({ timeout: 30_000 });
+  assert.equal((await byId('result-score').innerText()).replace(/\s+/g, ''), `${count}/${count}`, 'every answer graded correct');
+  assert.deepEqual(problems, []);
+  report.checks.push(`${label}: cloze/matching practice ${count}/${count} correct (${kinds.join(', ')}); matching by drag, tap and list; unsaved-change warning shown`);
+  await page.close();
+}
+
 await mkdir(artifacts, { recursive: true });
 let launcher;
+let fixture;
 let browser;
 let log = '';
 try {
@@ -170,11 +227,25 @@ try {
   await fullSimulation(browser, desktop, 'studentA', 'desktop');
   await sectionPractice(browser, mobile, 'studentB', 'mobile');
   await fullSimulation(browser, mobile, 'studentB', 'mobile');
+
+  let fixtureLog = '';
+  fixture = spawn(process.execPath, ['scripts/start-student-fixture.mjs'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, NODE_ENV: 'test', LOCAL_SYNTHETIC_ONLY: 'true', STUDENT_FIXTURE_DEMO: 'true', STUDENT_FIXTURE_CLOZE_MATCHING: 'true' } });
+  for (const stream of [fixture.stdout, fixture.stderr]) stream.on('data', (chunk) => { fixtureLog += chunk; });
+  let ready = null;
+  for (let waited = 0; waited < 180_000 && !ready; waited += 100) {
+    if (fixture.exitCode !== null) throw new Error(`Cloze/matching fixture exited:\n${fixtureLog}`);
+    const line = fixtureLog.split('\n').find((entry) => entry.startsWith('{"event":"ready"'));
+    if (line) ready = JSON.parse(line); else await delay(100);
+  }
+  assert.ok(ready, `Cloze/matching fixture did not become ready:\n${fixtureLog}`);
+  await clozeMatching(browser, desktop, new URL(ready.url).origin, 'desktop');
   console.log(JSON.stringify({ status: 'PASS', ...report }, null, 2));
 } catch (error) {
   console.error(error);
   process.exitCode = 1;
 } finally {
   await browser?.close();
+  await stop(fixture);
   await stop(launcher);
 }

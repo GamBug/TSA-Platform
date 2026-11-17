@@ -11,8 +11,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@legacy': path.resolve(__dirname, '../practice-prototype/public/app'),
+      '@': path.resolve(import.meta.dirname, './src'),
+      '@legacy': path.resolve(import.meta.dirname, '../practice-prototype/public/app'),
     },
   },
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false, assetsInlineLimit: 0 },

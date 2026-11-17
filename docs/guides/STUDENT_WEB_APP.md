@@ -3,8 +3,11 @@
 The student practice experience rebuilt in React from the owner's Figma Make design ("notebook and
 red pen"): paper surfaces, a grid-paper question canvas, one teacher-red accent, Fraunces headings and
 JetBrains Mono for clocks and counts. It lives in `apps/candidate-web` and talks only to the existing
-local APIs; grading, clocks, saving and release rules stay on the server. The original student app is
-unchanged and still serves topic practice.
+local APIs; grading, clocks, saving and release rules stay on the server. The original student screens are
+retired from the university demo: its old `?student=` links redirect to the matching mode here, and
+topic practice is paused until it is rebuilt in this app. Their code stays only as the harness for the
+existing student browser suites (reservations, rate limits, expiry, admission, images and others) and
+the synthetic fixtures, until those checks are moved to this app.
 
 ## Run it
 
@@ -50,6 +53,16 @@ npm run test:student-web:browser   # disposable rehearsal demo; desktop and mobi
 
 The browser check starts its own rehearsal demo on port 4182 (`STUDENT_WEB_VERIFY_PORT`), uses
 `/snap/bin/chromium` unless `STUDENT_BROWSER` is set, and stops the demo afterwards. It covers section
-practice with review, numeric practice and the full simulation (6/100 with 3/40, 2/20, 1/40). Cloze and
-matching, including drag-and-drop, were checked manually against the synthetic cloze/matching fixture;
-they are not yet in the automated check.
+practice with review, numeric practice and the full simulation (6/100 with 3/40, 2/20, 1/40) at
+desktop width, and section practice and the simulation again at phone width. It then starts the synthetic cloze/matching fixture and answers all six questions correctly, matching one row
+by drag, one by tap and one from the list, and checks the unsaved-change warning.
+
+## Design reference
+
+`design/figma-make/` holds the source of the owner's Figma Make export "Define TSA Practice Visual
+System" (2026-11-17): the "notebook and red pen" tokens and grid-paper styles (`src/data/tokens.ts`,
+`src/index.css`) and the five mock screens. It is a standalone mock-up with invented sample data and is
+not built, served or tested. The original archive (80,245 bytes, SHA-256
+`63d43b02327bdf145653529a21356164eda3afbf914159020047608ce4c3f4da`) is not committed because the
+repository does not track archives; Figma Make's run and deploy scripts, lockfile, favicon and its
+`vite.config.ts` (Figma hosting plugins and an analytics loader) were left out.

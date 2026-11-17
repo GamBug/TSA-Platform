@@ -22,6 +22,14 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-17 (old student UI retired): Owner decision: the university demo sends students only to the React
+  student app; old `?student=` links redirect to its matching mode, and the launcher and run of show list only
+  the new links. Topic practice is paused until the owner asks to resume it. The original student screens stay
+  only as the harness for the existing student browser suites and fixtures. The automated browser check now also
+  covers cloze/matching with drag, tap and list matching (6/6). The Figma export's source is kept in
+  `design/figma-make/` (the archive itself is not tracked). `test:student-web:browser`, `test:demo:uni:browser`,
+  `test:demo:uni`, `test:b0` and `test:docs` pass.
+
 - 2026-11-17 (React student app): At the owner's request the student experience was rebuilt in React from the
   owner's Figma Make design (`apps/candidate-web`, served at `/student/`; see the [guide](../guides/STUDENT_WEB_APP.md)
   and [plan](../../plans/261117-2227-react-student-app/plan.md)). It covers section practice, numeric, cloze/matching

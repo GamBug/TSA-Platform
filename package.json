@@ -99,7 +99,7 @@
     "demo:uni": "npm run build && node scripts/start-uni-demo.mjs",
     "demo:uni:rehearsal": "npm run build && node scripts/start-uni-demo.mjs --rehearsal",
     "test:demo:uni": "npm run build && node --test tests/integration/local/uni-demo-seed.test.mjs tests/integration/local/uni-demo.test.mjs",
-    "test:demo:uni:browser": "npm run build && node scripts/verify-uni-demo-browser.mjs",
+    "test:demo:uni:browser": "npm run build && npm run build:student && node scripts/verify-uni-demo-browser.mjs",
     "test:local": "node --test tests/integration/local/*.test.mjs",
     "test:track-b:browser": "node scripts/verify-track-b-browser.mjs",
     "test:student:review": "STUDENT_REVIEW_PRACTICE_TEST=true node scripts/verify-student-browser.mjs",

@@ -118,6 +118,8 @@ export async function createTrackBRuntime({
   prepareDatabase,
   imageStore = null,
   localRoutes = {},
+  // When true, the retired student UI links (/?student=...) redirect to the React student app.
+  redirectLegacyStudentUi = false,
 } = {}) {
   assertLocalEnvironment(env);
   if (prepareDatabase !== undefined && typeof prepareDatabase !== 'function') throw new TypeError('prepareDatabase must be a function');
@@ -249,6 +251,7 @@ export async function createTrackBRuntime({
       port,
       maxRequestBytes: MAX_INTEGRATED_REQUEST_BYTES,
       integratedRequestHandler,
+      redirectLegacyStudentUi,
     });
     const address = await listen(server, port);
     const origin = `http://127.0.0.1:${address.port}`;

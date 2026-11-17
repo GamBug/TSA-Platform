@@ -52,7 +52,7 @@ export function DemoNoticePanel() {
   const rehearsal = notice.contentMode === 'REHEARSAL'
   return (
     <aside data-testid="demo-notice" aria-label="Thông tin về trang luyện tập"
-      className={`border border-rule border-l-[3px] border-l-ochre bg-ochre-wash px-4 py-3 text-[13px] leading-relaxed text-ink rounded-[3px]`}>
+      className={`${rehearsal ? 'demo-notice--rehearsal ' : ''}border border-rule border-l-[3px] border-l-ochre bg-ochre-wash px-4 py-3 text-[13px] leading-relaxed text-ink rounded-[3px]`}>
       {rehearsal && <strong data-testid="demo-notice-mode" className="block mb-1 text-xs tracking-wide">DIỄN TẬP · NỘI DUNG TỔNG HỢP</strong>}
       <ul className="list-disc pl-5">
         <li data-testid="demo-notice-unofficial">Luyện tập không chính thức — không liên kết với Đại học Bách khoa Hà Nội (HUST).</li>

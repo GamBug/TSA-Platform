@@ -205,11 +205,23 @@ async function sendResponse(outgoing, method, response) {
   outgoing.end(method === "HEAD" ? undefined : response.body);
 }
 
+// The original student UI is retired from demos; its links open the matching React student app mode.
+const LEGACY_STUDENT_MODES = { postgres: "", "postgres-v2": "?mode=numeric", "postgres-v4": "?mode=interactions", "postgres-v3": "?mode=simulation" };
+
+export function legacyStudentRedirect(url) {
+  let parsed;
+  try { parsed = new URL(url, "http://127.0.0.1"); } catch { return null; }
+  if (parsed.pathname !== "/" && parsed.pathname !== "/index.html") return null;
+  const mode = parsed.searchParams.get("student");
+  return mode !== null && Object.hasOwn(LEGACY_STUDENT_MODES, mode) ? `/student/${LEGACY_STUDENT_MODES[mode]}` : null;
+}
+
 export function createPrototypeServer({
   port = DEFAULT_PORT,
   mockService = createMockApiService(),
   maxRequestBytes = MAX_REQUEST_BYTES,
   integratedRequestHandler,
+  redirectLegacyStudentUi = false,
 } = {}) {
   if (!Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1 || maxRequestBytes > 1024 * 1024) {
     throw new TypeError("maxRequestBytes must be an integer from 1 through 1048576");
@@ -228,6 +240,11 @@ export function createPrototypeServer({
         body = requestBody.body;
       }
       const url = incoming.url ?? "/";
+      const legacyTarget = redirectLegacyStudentUi && method === "GET" ? legacyStudentRedirect(url) : null;
+      if (legacyTarget) {
+        await sendResponse(outgoing, method, result(303, { Location: legacyTarget, "Cache-Control": "no-store" }, ""));
+        return;
+      }
       if (typeof integratedRequestHandler === "function" && requestLike(method, new URL(url, "http://127.0.0.1").pathname)) {
         const host = incoming.headers.host ?? "127.0.0.1";
         const fetchRequest = new Request(`http://${host}${url}`, {
