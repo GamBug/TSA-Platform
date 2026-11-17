@@ -28,6 +28,13 @@ release rules and question formats stay server-owned and unchanged.
 - Unofficial-practice and non-affiliation notices stay visible on catalog and result pages.
 - The old app keeps working at its current URLs until the new app passes the same browser journeys.
 
+## Progress
+
+- Phase 1 done (`dcb791f`). Phases 2, 3 and 5 done: verified against the rehearsal demo (Math, Reading, Science,
+  numeric) and the synthetic cloze/matching fixture, desktop and mobile, including drag, tap and list matching.
+- Cloze questions are typed answers with no word list in the question format, so drag-and-drop applies to matching
+  only; a cloze word bank would be a format change and is out of scope.
+
 ## Phases
 
 | # | Phase | Done when |

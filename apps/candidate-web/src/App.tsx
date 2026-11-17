@@ -1,384 +1,124 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { HomeScreen } from './components/HomeScreen'
-import { QuestionScreen } from './components/QuestionScreen'
-import { ResultScreen } from './components/ResultScreen'
-import { SectionSwitcherScreen } from './components/SectionSwitcherScreen'
-import { TopicCatalogScreen } from './components/TopicCatalogScreen'
-import {
-  FULL_QUESTION_BANK,
-  READING_PASSAGES,
-  SECTION_CONFIGS,
-  TOPIC_CATALOG,
-  buildInitialSimulationSample,
-  getQuestionsForSection,
-  getQuestionsForTopic,
-} from './data/tsaContent'
-import type {
-  CatalogFetchState,
-  QuestionItem,
-  ScreenId,
-  SectionClockState,
-  SectionId,
-  TopicEntry,
-  UserAnswer,
-} from './types/tsa'
+import React, { useCallback, useEffect, useState } from 'react'
+import { apiFor, MODES, readMode } from '@/api/mode'
+import type { ApiError, Attempt, CatalogProfile } from '@/api/types'
+import { LoginScreen } from '@/screens/LoginScreen'
+import { CatalogScreen } from '@/screens/CatalogScreen'
+import { AttemptScreen } from '@/screens/AttemptScreen'
+import { Masthead, PageFooter } from '@/ui/Shell'
 
-const SCREEN_TABS: Array<{ id: ScreenId; num: string; label: string }> = [
-  { id: 'home', num: '1', label: 'Chọn chế độ' },
-  { id: 'catalog', num: '2', label: 'Mục lục chủ đề' },
-  { id: 'question', num: '3', label: 'Làm bài' },
-  { id: 'sections', num: '4', label: 'Chuyển phần thi' },
-  { id: 'result', num: '5', label: 'Kết quả' },
-]
+type View =
+  | { name: 'loading' }
+  | { name: 'login'; message: string | null }
+  | { name: 'catalog'; message: string | null }
+  | { name: 'attempt'; attempt: Attempt }
+
+const mode = readMode()
+const api = apiFor(mode)
+
+function messageOf(error: unknown): string {
+  return (error as ApiError)?.message || 'Yêu cầu chưa hoàn tất. Hãy thử lại.'
+}
+
+function isAuthError(error: unknown): boolean {
+  const code = (error as ApiError)?.code
+  return code === 'UNAUTHENTICATED' || code === 'FORBIDDEN'
+}
 
 export default function App() {
-  const initialSim = useMemo(() => buildInitialSimulationSample(), [])
-
-  const [screen, setScreen] = useState<ScreenId>('home')
-  const [practiceMode, setPracticeMode] = useState<'topic' | 'simulation'>('simulation')
-
-  // Trạng thái Mục lục chủ đề (Screen 2)
-  const [catalogFilter, setCatalogFilter] = useState<SectionId | 'all'>('all')
-  const [catalogFetchState, setCatalogFetchState] = useState<CatalogFetchState>('ready')
-  const [selectedEmptyTopic, setSelectedEmptyTopic] = useState<TopicEntry | null>(null)
-  const [activeTopic, setActiveTopic] = useState<TopicEntry>(TOPIC_CATALOG[0])
-
-  // Trạng thái Bài làm & Chấm điểm (Screen 3, 4, 5)
-  const [activeSection, setActiveSection] = useState<SectionId>('math')
-  const [questionIndex, setQuestionIndex] = useState<number>(0)
-  const [answers, setAnswers] = useState<Record<string, UserAnswer>>(initialSim.answers)
-  const [flagged, setFlagged] = useState<Record<string, boolean>>(initialSim.flagged)
-  const [isGradedReview, setIsGradedReview] = useState<boolean>(false)
-
-  // Trạng thái lưu bài tự động
-  const [isSavingNow, setIsSavingNow] = useState<boolean>(false)
-  const [savedTimestamp, setSavedTimestamp] = useState<string | null>('14:22')
-
-  // Đồng hồ từng phần thi giả lập: Toán bình thường (>5p), Đọc hiểu (<5p), Khoa học (Khoá/Hết giờ mẫu)
-  const [sectionClocks, setSectionClocks] = useState<Record<SectionId, SectionClockState>>({
-    math: { remainingSeconds: 42 * 60 + 18, status: 'active' },
-    reading: { remainingSeconds: 4 * 60 + 36, status: 'active' },
-    science: { remainingSeconds: 0, status: 'expired' },
-  })
+  const [view, setView] = useState<View>({ name: 'loading' })
+  const [profiles, setProfiles] = useState<CatalogProfile[] | null>(null)
+  const [actor, setActor] = useState<string | undefined>()
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     document.documentElement.lang = 'vi'
-    document.title = 'TSA Practice — Luyện tập đánh giá tư duy'
   }, [])
 
-  // Đếm ngược mỗi giây cho phần thi đang mở khi ở màn hình Làm bài hoặc Chuyển phần
-  useEffect(() => {
-    if (practiceMode !== 'simulation' || isGradedReview) return
-    if (screen !== 'question' && screen !== 'sections') return
+  const showCatalog = useCallback(async (message: string | null = null) => {
+    setView({ name: 'catalog', message })
+    setProfiles(null)
+    try {
+      const { domains } = await api.loadCatalog()
+      setProfiles(domains)
+    } catch (error) {
+      if (isAuthError(error)) setView({ name: 'login', message: messageOf(error) })
+      else { setProfiles([]); setView({ name: 'catalog', message: messageOf(error) }) }
+    }
+  }, [])
 
-    const interval = window.setInterval(() => {
-      setSectionClocks((prev) => {
-        const current = prev[activeSection]
-        if (current.status !== 'active' || current.remainingSeconds <= 0) return prev
-        const nextSec = current.remainingSeconds - 1
-        return {
-          ...prev,
-          [activeSection]: {
-            remainingSeconds: nextSec,
-            status: nextSec <= 0 ? 'expired' : 'active',
-          },
+  // Resume an open attempt first; otherwise land on the catalog. Never auto-select an account.
+  const restore = useCallback(async () => {
+    try {
+      const { attempt } = await api.openDemoSession()
+      if (attempt && ['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED'].includes(attempt.state)) {
+        setView({ name: 'attempt', attempt })
+      } else await showCatalog()
+    } catch (error) {
+      if (isAuthError(error)) setView({ name: 'login', message: null })
+      else setView({ name: 'login', message: messageOf(error) })
+    }
+  }, [showCatalog])
+
+  useEffect(() => { void restore() }, [restore])
+
+  const login = async (actorKey: 'studentA' | 'studentB') => {
+    setBusy(true)
+    try {
+      await api.loginCandidate(actorKey)
+      setActor(actorKey === 'studentA' ? 'A' : 'B')
+      await restore()
+    } catch (error) {
+      setView({ name: 'login', message: messageOf(error) })
+    } finally { setBusy(false) }
+  }
+
+  const logout = async () => {
+    setBusy(true)
+    try { await api.logout() } catch { /* the session is cleared locally either way */ }
+    setActor(undefined)
+    setBusy(false)
+    setView({ name: 'login', message: 'Đã đăng xuất.' })
+  }
+
+  const start = async (profile: CatalogProfile) => {
+    setBusy(true)
+    try {
+      const { attempt } = await api.startDemo(profile.domain, profile.blueprintVersionId)
+      setView({ name: 'attempt', attempt })
+    } catch (error) {
+      const existing = (error as ApiError)?.details?.existingAttemptId
+      if ((error as ApiError)?.code === 'CONCURRENT_ATTEMPT_EXISTS' && typeof existing === 'string') {
+        try {
+          const { attempt } = await api.readAttempt(existing)
+          const resumed = attempt.state === 'CREATED' ? (await api.startReservedAttempt(existing)).attempt : attempt
+          setView({ name: 'attempt', attempt: resumed })
+        } catch (inner) {
+          // The open attempt belongs to another practice mode (for example numeric answers), which this mode cannot show.
+          setView({ name: 'catalog', message: isAuthError(inner) ? messageOf(inner)
+            : 'Bạn đang có một bài luyện tập khác chưa nộp ở chế độ khác. Hãy mở lại chế độ đó (ví dụ “Điền đáp án số”) để làm tiếp hoặc nộp bài, rồi quay lại đây.' })
         }
-      })
-    }, 1000)
-
-    return () => window.clearInterval(interval)
-  }, [practiceMode, isGradedReview, screen, activeSection])
-
-  const activeQuestions: QuestionItem[] = useMemo(() => {
-    if (practiceMode === 'topic') {
-      return getQuestionsForTopic(activeTopic.id)
-    }
-    return getQuestionsForSection(activeSection)
-  }, [practiceMode, activeTopic.id, activeSection])
-
-  const activeClock = sectionClocks[activeSection]
-  const isCurrentSectionLocked =
-    practiceMode === 'simulation' &&
-    (activeClock.status !== 'active' || activeClock.remainingSeconds <= 0)
-
-  const handleChangeAnswer = (questionId: string, answer: UserAnswer) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: answer }))
-    setIsSavingNow(true)
-    window.setTimeout(() => {
-      const now = new Date()
-      const hh = String(now.getHours()).padStart(2, '0')
-      const mm = String(now.getMinutes()).padStart(2, '0')
-      setSavedTimestamp(`${hh}:${mm}`)
-      setIsSavingNow(false)
-    }, 220)
+      } else if (isAuthError(error)) setView({ name: 'login', message: messageOf(error) })
+      else setView({ name: 'catalog', message: messageOf(error) })
+    } finally { setBusy(false) }
   }
 
-  const handleToggleFlag = (questionId: string) => {
-    setFlagged((prev) => ({ ...prev, [questionId]: !prev[questionId] }))
-  }
-
-  const handleOpenCatalog = (initialFilter: SectionId | 'all' = 'all') => {
-    setCatalogFilter(initialFilter)
-    setSelectedEmptyTopic(null)
-    setCatalogFetchState('ready')
-    setScreen('catalog')
-  }
-
-  const handleSelectTopic = (topic: TopicEntry) => {
-    if (topic.questionCount === 0) {
-      setSelectedEmptyTopic(topic)
-      return
-    }
-    setSelectedEmptyTopic(null)
-    setPracticeMode('topic')
-    setActiveTopic(topic)
-    setActiveSection(topic.section)
-    setIsGradedReview(false)
-    setQuestionIndex(0)
-    setScreen('question')
-  }
-
-  const handleStartFullSimulation = () => {
-    setPracticeMode('simulation')
-    setIsGradedReview(false)
-    setSectionClocks({
-      math: { remainingSeconds: 42 * 60 + 18, status: 'active' },
-      reading: { remainingSeconds: 4 * 60 + 36, status: 'active' },
-      science: { remainingSeconds: 56 * 60 + 40, status: 'active' },
-    })
-    setActiveSection('math')
-    setQuestionIndex(0)
-    setScreen('question')
-  }
-
-  const handleEnterSection = (secId: SectionId) => {
-    setPracticeMode('simulation')
-    setIsGradedReview(false)
-    setActiveSection(secId)
-    setQuestionIndex(0)
-    setScreen('question')
-  }
-
-  const handleLockSection = (secId: SectionId) => {
-    setSectionClocks((prev) => ({
-      ...prev,
-      [secId]: { ...prev[secId], status: 'finished' },
-    }))
-  }
-
-  const handleReopenDemoSection = (secId: SectionId) => {
-    const defaults: Record<SectionId, number> = {
-      math: 42 * 60 + 18,
-      reading: 4 * 60 + 36,
-      science: 56 * 60 + 40,
-    }
-    setSectionClocks((prev) => ({
-      ...prev,
-      [secId]: { remainingSeconds: defaults[secId], status: 'active' },
-    }))
-  }
-
-  const handleSetDemoTimerState = (state: 'normal' | 'under5' | 'expired') => {
-    setSectionClocks((prev) => {
-      if (state === 'normal') {
-        return { ...prev, [activeSection]: { remainingSeconds: 38 * 60 + 15, status: 'active' } }
-      }
-      if (state === 'under5') {
-        return { ...prev, [activeSection]: { remainingSeconds: 4 * 60 + 12, status: 'active' } }
-      }
-      return { ...prev, [activeSection]: { remainingSeconds: 0, status: 'expired' } }
-    })
-  }
-
-  const handleReviewQuestion = (question: QuestionItem) => {
-    setIsGradedReview(true)
-    if (practiceMode === 'topic') {
-      const list = getQuestionsForTopic(activeTopic.id)
-      const idx = list.findIndex((q) => q.id === question.id)
-      if (idx >= 0) {
-        setQuestionIndex(idx)
-        setScreen('question')
-        return
-      }
-    }
-    setPracticeMode('simulation')
-    setActiveSection(question.section)
-    const secList = getQuestionsForSection(question.section)
-    const idx = secList.findIndex((q) => q.id === question.id)
-    setQuestionIndex(idx >= 0 ? idx : 0)
-    setScreen('question')
-  }
-
-  const activeSectionConfig =
-    SECTION_CONFIGS.find((s) => s.id === activeSection) ?? SECTION_CONFIGS[0]
-
-  const resultQuestions =
-    practiceMode === 'topic' ? getQuestionsForTopic(activeTopic.id) : FULL_QUESTION_BANK
-
+  const signedIn = view.name === 'catalog' || view.name === 'attempt'
   return (
-    <div className="min-h-screen bg-paper text-ink">
-      {/* KHUNG CHÍNH 1440PX TRÊN DESKTOP / TRÀN GỌN 390PX TRÊN DI ĐỘNG */}
-      <div className="max-w-[1440px] mx-auto border-x border-rule min-h-screen flex flex-col bg-paper">
-        {/* THANH ĐẦU TRANG VỞ & CHUYỂN MÀN HÌNH */}
-        <header className="border-b border-ink bg-paper px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setScreen('home')}
-              className="flex items-center gap-2 min-h-[44px] px-1 text-left cursor-pointer"
-            >
-              <span className="font-display text-base sm:text-lg font-bold tracking-tight text-ink">
-                TSA Practice
-              </span>
-            </button>
-            <span className="hidden md:inline-block text-xs text-ink-muted border-l border-rule pl-3">
-              Bản luyện tập không chính thức
-            </span>
-          </div>
-
-          {/* Điều hướng 5 màn hình để chuyển nhanh trên cả 1440px và 390px */}
-          <nav
-            aria-label="Điều hướng các màn hình luyện tập"
-            className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5 sm:pb-0"
-          >
-            {SCREEN_TABS.map((tab) => {
-              const isCurrent = screen === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setScreen(tab.id)}
-                  aria-current={isCurrent ? 'page' : undefined}
-                  className={`px-2.5 sm:px-3 min-h-[44px] text-xs font-semibold border rounded-[3px] whitespace-nowrap cursor-pointer transition-colors ${
-                    isCurrent
-                      ? 'bg-ink text-paper-sheet border-ink'
-                      : 'bg-paper-sheet text-ink-secondary border-rule hover:border-ink hover:text-ink'
-                  }`}
-                >
-                  <span className="tabular-figures mr-1">{tab.num}.</span>
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
-          </nav>
-        </header>
-
-        {/* NỘI DUNG MÀN HÌNH ĐANG HIỂN THỊ */}
-        <main className="flex-1">
-          {screen === 'home' && (
-            <HomeScreen
-              onOpenCatalog={handleOpenCatalog}
-              onStartFullSimulation={handleStartFullSimulation}
-              onOpenSectionSwitcher={() => {
-                setPracticeMode('simulation')
-                setScreen('sections')
-              }}
-            />
-          )}
-
-          {screen === 'catalog' && (
-            <TopicCatalogScreen
-              topics={TOPIC_CATALOG}
-              sectionFilter={catalogFilter}
-              onChangeFilter={setCatalogFilter}
-              fetchState={catalogFetchState}
-              onSetFetchState={setCatalogFetchState}
-              selectedEmptyTopic={selectedEmptyTopic}
-              onSelectTopic={handleSelectTopic}
-              onClearEmptyTopic={() => setSelectedEmptyTopic(null)}
-              onBackHome={() => setScreen('home')}
-            />
-          )}
-
-          {screen === 'question' && (
-            <QuestionScreen
-              mode={practiceMode}
-              headerLabel={
-                practiceMode === 'topic'
-                  ? `Chuyên đề ${activeTopic.orderNumber} · ${activeTopic.title}`
-                  : `Thi thử 100 câu · ${activeSectionConfig.title}`
-              }
-              sectionId={activeSection}
-              questions={activeQuestions}
-              currentIndex={Math.min(questionIndex, Math.max(0, activeQuestions.length - 1))}
-              onSelectIndex={setQuestionIndex}
-              passages={READING_PASSAGES}
-              answers={answers}
-              onChangeAnswer={handleChangeAnswer}
-              flagged={flagged}
-              onToggleFlag={handleToggleFlag}
-              remainingSeconds={activeClock.remainingSeconds}
-              isLocked={isCurrentSectionLocked}
-              isGradedReview={isGradedReview}
-              savedTimestamp={savedTimestamp}
-              isSavingNow={isSavingNow}
-              onBackToCatalogOrSections={() =>
-                setScreen(practiceMode === 'simulation' ? 'sections' : 'catalog')
-              }
-              onFinishOrSubmit={() => {
-                if (isGradedReview) {
-                  setScreen('result')
-                } else if (practiceMode === 'simulation') {
-                  setScreen('sections')
-                } else {
-                  setIsGradedReview(true)
-                  setScreen('result')
-                }
-              }}
-              onSetDemoTimerState={handleSetDemoTimerState}
-            />
-          )}
-
-          {screen === 'sections' && (
-            <SectionSwitcherScreen
-              sections={SECTION_CONFIGS}
-              sectionClocks={sectionClocks}
-              activeSection={activeSection}
-              answers={answers}
-              flagged={flagged}
-              onEnterSection={handleEnterSection}
-              onLockSection={handleLockSection}
-              onReopenDemoSection={handleReopenDemoSection}
-              onSubmitFullSimulation={() => {
-                setPracticeMode('simulation')
-                setIsGradedReview(true)
-                setScreen('result')
-              }}
-              onBackHome={() => setScreen('home')}
-            />
-          )}
-
-          {screen === 'result' && (
-            <ResultScreen
-              title={
-                practiceMode === 'topic'
-                  ? `Tổng kết chuyên đề ${activeTopic.orderNumber}: ${activeTopic.title}`
-                  : 'Tổng kết bài thi thử đầy đủ (100 câu)'
-              }
-              subtitle={
-                practiceMode === 'topic'
-                  ? 'Thống kê số câu đúng ở chuyên đề vừa luyện. Nhấn «Xem lời giải» để mở lại từng câu trên giấy ô ly.'
-                  : 'Số câu làm đúng theo từng phần thi (Toán / Đọc hiểu / Khoa học) được ghi nhận độc lập như phiếu chấm bút đỏ.'
-              }
-              questions={resultQuestions}
-              answers={answers}
-              flagged={flagged}
-              onReviewQuestion={handleReviewQuestion}
-              onBackHome={() => setScreen('home')}
-            />
-          )}
-        </main>
-
-        {/* CHÂN TRANG ĐƠN GIẢN */}
-        <footer className="border-t border-rule bg-paper-recessed px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-ink-secondary">
-          <span>
-            TSA Practice — Bản luyện tập không chính thức dành cho học sinh THPT tự ôn tập.
-          </span>
-          <span className="tabular-figures text-[11px] text-ink-muted">
-            Phím tắt khi làm bài: A–D chọn · N câu sau · F đánh dấu
-          </span>
-        </footer>
-      </div>
+    <div className="min-h-dvh flex flex-col bg-paper text-ink">
+      {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn ? logout : undefined} />}
+      {view.name === 'loading' && <main className="flex-1 px-8 py-16 text-sm text-ink-secondary" role="status">Đang mở phiên luyện tập…</main>}
+      {view.name === 'login' && <LoginScreen busy={busy} message={view.message} onLogin={login} />}
+      {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} onStart={start} />}
+      {view.name === 'attempt' && (
+        <AttemptScreen
+          api={api}
+          apiVersion={MODES[mode].apiVersion}
+          initial={view.attempt}
+          onExit={(message) => void showCatalog(message ?? null)}
+          onSessionLost={(message) => setView({ name: 'login', message })}
+        />
+      )}
+      {view.name !== 'attempt' && <PageFooter />}
     </div>
   )
 }
