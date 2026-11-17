@@ -1,40 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ApiError, AnswerValue, Attempt, ReviewSlot, Slot, StudentApi } from '@/api/types'
+import type { ApiError, Attempt, ReviewSlot, StudentApi } from '@/api/types'
 import { ContentBlocks } from '@/content/ContentBlocks'
 import { AnswerControl, KIND_LABELS } from '@/attempt/Interactions'
 import { TimerChip, formatClockMMSS } from '@/components/TimerChip'
 import { IconFlag, IconArrowLeft, IconArrowRight } from '@/components/Icons'
 import { buttonClass, Notice } from '@/ui/Shell'
 import { ResultView } from '@/screens/ResultView'
+import { isAnswered, useFlags } from '@/attempt/progress'
 
 const DOMAIN_NAMES: Record<string, string> = { MATH: 'Tư duy Toán học', READING: 'Tư duy Đọc hiểu', SCIENCE: 'Tư duy Khoa học' }
-
-function isAnswered(slot: Slot, value: AnswerValue | undefined): boolean {
-  if (!value) return false
-  const interaction = slot.interaction
-  switch (value.type) {
-    case 'SINGLE_CHOICE': return typeof value.optionId === 'string'
-    case 'MULTIPLE_CHOICE': return interaction.type === 'MULTIPLE_CHOICE' && value.optionIds.length >= interaction.minSelections
-    case 'TRUE_FALSE_GROUP': return interaction.type === 'TRUE_FALSE_GROUP' && interaction.statements.every(({ id }) => value.statementValues.some((item) => item.statementId === id))
-    case 'NUMERIC_RESPONSE': return typeof value.value === 'string' && value.value.trim().length > 0
-    case 'CLOZE': return interaction.type === 'CLOZE' && interaction.fields.every(({ id }) => typeof value.values[id] === 'string' && (value.values[id] as string).trim().length > 0)
-    case 'MATCHING': return interaction.type === 'MATCHING' && interaction.rows.every(({ id }) => typeof value.assignments[id] === 'string')
-  }
-}
-
-function useFlags(attemptId: string) {
-  const key = `tsa-student-web:flags:${attemptId}`
-  const [flags, setFlags] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(sessionStorage.getItem(key) ?? '[]')) } catch { return new Set() }
-  })
-  const toggle = (slotId: string) => setFlags((current) => {
-    const next = new Set(current)
-    if (next.has(slotId)) next.delete(slotId); else next.add(slotId)
-    try { sessionStorage.setItem(key, JSON.stringify([...next])) } catch { /* flags stay in memory */ }
-    return next
-  })
-  return { flags, toggle }
-}
 
 export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost }: {
   api: StudentApi

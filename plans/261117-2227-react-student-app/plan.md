@@ -1,6 +1,6 @@
 # React student app from the Figma design
 
-Status: IN PROGRESS · Owner decision 2026-11-17 (chat): rebuild the student experience as a React app using the
+Status: DONE (first version) · owner decides when to retire the old student app · Owner decision 2026-11-17 (chat): rebuild the student experience as a React app using the
 owner's Figma Make export (`TSA_Figma_UIUX/Define TSA Practice Visual System.zip`) as the visual and component base,
 connected to the existing local API. An earlier CSS-only restyle was rolled back at the owner's request.
 
@@ -32,6 +32,10 @@ release rules and question formats stay server-owned and unchanged.
 
 - Phase 1 done (`dcb791f`). Phases 2, 3 and 5 done: verified against the rehearsal demo (Math, Reading, Science,
   numeric) and the synthetic cloze/matching fixture, desktop and mobile, including drag, tap and list matching.
+- Phases 4 and 6 done: full simulation (6/100 with 3/40, 2/20, 1/40 on desktop and mobile), automated browser
+  check `npm run test:student-web:browser`, launcher prints the new links, guide `docs/guides/STUDENT_WEB_APP.md`.
+- Follow-ups: add cloze/matching (and drag-and-drop) to the automated browser check; topic practice; retiring the
+  old student app is an owner decision.
 - Cloze questions are typed answers with no word list in the question format, so drag-and-drop applies to matching
   only; a cloze word bank would be a format change and is out of scope.
 

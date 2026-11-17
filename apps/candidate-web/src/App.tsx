@@ -4,6 +4,7 @@ import type { ApiError, Attempt, CatalogProfile } from '@/api/types'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { CatalogScreen } from '@/screens/CatalogScreen'
 import { AttemptScreen } from '@/screens/AttemptScreen'
+import { SimulationScreen } from '@/screens/SimulationScreen'
 import { Masthead, PageFooter } from '@/ui/Shell'
 
 type View =
@@ -11,6 +12,7 @@ type View =
   | { name: 'login'; message: string | null }
   | { name: 'catalog'; message: string | null }
   | { name: 'attempt'; attempt: Attempt }
+  | { name: 'simulation' }
 
 const mode = readMode()
 const api = apiFor(mode)
@@ -48,6 +50,8 @@ export default function App() {
 
   // Resume an open attempt first; otherwise land on the catalog. Never auto-select an account.
   const restore = useCallback(async () => {
+    // The simulation screen reads its own attempts and reports a missing session itself.
+    if (mode === 'simulation') { setView({ name: 'simulation' }); return }
     try {
       const { attempt } = await api.openDemoSession()
       if (attempt && ['CREATED', 'IN_PROGRESS', 'SUBMITTED', 'EXPIRED'].includes(attempt.state)) {
@@ -102,10 +106,10 @@ export default function App() {
     } finally { setBusy(false) }
   }
 
-  const signedIn = view.name === 'catalog' || view.name === 'attempt'
+  const signedIn = view.name === 'catalog' || view.name === 'attempt' || view.name === 'simulation'
   return (
     <div className="min-h-dvh flex flex-col bg-paper text-ink">
-      {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn ? logout : undefined} />}
+      {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn ? logout : undefined} sticky={view.name !== 'simulation'} />}
       {view.name === 'loading' && <main className="flex-1 px-8 py-16 text-sm text-ink-secondary" role="status">Đang mở phiên luyện tập…</main>}
       {view.name === 'login' && <LoginScreen busy={busy} message={view.message} onLogin={login} />}
       {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} onStart={start} />}
@@ -118,7 +122,8 @@ export default function App() {
           onSessionLost={(message) => setView({ name: 'login', message })}
         />
       )}
-      {view.name !== 'attempt' && <PageFooter />}
+      {view.name === 'simulation' && <SimulationScreen onSessionLost={(message) => setView({ name: 'login', message })} />}
+      {view.name !== 'attempt' && view.name !== 'simulation' && <PageFooter />}
     </div>
   )
 }

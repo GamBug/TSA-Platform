@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { loadDemoNotice, type DemoNotice } from '@legacy/demo-notice.js'
 import { MODES, modeHref, type PracticeMode } from '@/api/mode'
 
-export function Masthead({ mode, actorLabel, onLogout }: { mode: PracticeMode; actorLabel?: string; onLogout?: () => void }) {
+export function Masthead({ mode, actorLabel, onLogout, sticky = true }: { mode: PracticeMode; actorLabel?: string; onLogout?: () => void; sticky?: boolean }) {
   return (
-    <header className="sticky top-0 z-30 bg-paper border-b border-ink">
+    <header className={`${sticky ? 'sticky top-0' : 'relative'} z-30 bg-paper border-b border-ink`}>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-3">
         <div className="flex items-baseline gap-3 min-w-0">
           <a href={modeHref('practice')} className="font-display text-lg sm:text-xl font-bold text-ink tracking-tight">TSA Practice</a>

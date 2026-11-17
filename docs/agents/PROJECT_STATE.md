@@ -22,6 +22,14 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-17 (React student app): At the owner's request the student experience was rebuilt in React from the
+  owner's Figma Make design (`apps/candidate-web`, served at `/student/`; see the [guide](../guides/STUDENT_WEB_APP.md)
+  and [plan](../../plans/261117-2227-react-student-app/plan.md)). It covers section practice, numeric, cloze/matching
+  with drag-and-drop matching, and the full simulation, through the existing APIs with no contract change; topic
+  practice and staff screens stay in the original app, which is unchanged. An earlier CSS-only restyle was rolled
+  back. `test:student-web`, `test:student-web:browser` (desktop and mobile), `test:b0`, `test:demo:uni`, the
+  student leakage test and `test:docs` pass. Cloze/matching was checked manually on the synthetic fixture only.
+
 - 2026-11-17 (student image delivery): The local university demo connects the existing private image library to student
   delivery. Copy-only Chromium journeys passed for real Math and Science stem, option and passage figures, cloze/matching,
   mobile enlargement, answer reload and correct grading; synthetic explanation release also passed. All requested suites
