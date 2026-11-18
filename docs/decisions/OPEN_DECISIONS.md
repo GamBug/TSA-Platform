@@ -1,5 +1,30 @@
 # Architectural decisions and open questions
 
+## Public demo launch and real full simulation — 2026-11-18
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-18.
+Evidence: "Wanna completed demo and ready to public on live url in 24th November 26"; "we gonna need
+enrich our ques bank. an complete 40/20/40 test is esential."; selected answers "Guests, staff off",
+"Both" (Science source), "New combined taxonomy", "1 complete test"; "my cousin has VPS … He tell this
+evening he gonna give me access." Plan: [public demo launch](../../plans/261118-1305-public-demo-launch/plan.md).
+
+1. **Public visitors** sign in as one-click synthetic guests (one guest per browser, no personal data).
+   The staff workspace is not reachable on the public URL; staff work stays on the owner's machine.
+2. **Real full simulation is required** (supersedes [no full simulation — 2026-11-11](#university-demo-scope-no-full-simulation--2026-11-11)):
+   at least one complete 40 Math / 20 Reading / 40 Science test without repeated questions, from
+   published real content only. Synthetic items are never substituted.
+3. **Combined taxonomy.** Register one new taxonomy version covering Math, Reading and Science and import
+   the simulation pool into it as new DRAFT questions. Existing questions, versions and taxonomy versions
+   stay unchanged. No database rule change is authorized.
+4. **Science enrichment.** Owner-supplied Science files are imported first; any remaining gap is filled
+   with original AI-written Science passages and questions produced through existing subscriptions (no
+   paid API). Every AI-written question needs validation and the owner's individual approval before
+   publication. Publication of any question remains the owner's action.
+5. **Hosting.** A VPS provided by the owner's relative (access expected 2026-11-18 evening). Deployment
+   to that server of the student-only public mode, with published items only, is authorized for the demo
+   period. Existing services on that server must not be disturbed. Pushing to the Git remote is not
+   authorized by this entry; the domain is still open.
+
 ## Question correction, portable format and image library — 2026-11-16
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-16.

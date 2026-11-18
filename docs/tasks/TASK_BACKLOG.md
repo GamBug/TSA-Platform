@@ -6,6 +6,7 @@ CP0 and CP1 are complete; see the [baseline report](../../plans/reports/codex-26
 
 | CP | Task | Status | Dependency / next step |
 |---|---|---|---|
+| [Public demo launch](../../plans/261118-1305-public-demo-launch/plan.md) | Live URL on 2026-11-24 with one complete real 40/20/40 test | CP0 IN PROGRESS | [Owner decisions 2026-11-18](../decisions/OPEN_DECISIONS.md#public-demo-launch-and-real-full-simulation--2026-11-18); open: domain, Science files, review slot, source credit |
 | [CP2 Full simulation](../../plans/261108-1553-codex-autonomous-demo/cp2-full-simulation.md) | Build the 100-question timed simulation | TODO | Depends on CP1 |
 | [CP3 Corpus ingestion](../../plans/261108-1553-codex-autonomous-demo/cp3-corpus-ingestion.md) | Prepare permitted-corpus DRAFT ingestion | TODO | Depends on CP1; no publication before rights evidence and owner approval |
 | [CP4 Cloze and matching](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md) | Add cloze and matching interactions | DONE (committed) | [Report](../../plans/reports/claude-261110-1215-cp4.md); commits and retained import await the owner |
