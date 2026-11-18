@@ -1,3 +1,14 @@
+# Current handoff — simulation pool selection (CP2 steps 1–3)
+
+- Date and implementer: 2026-11-18, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth` after the CP1 commit; `TSA_Figma_UIUX/` is the owner's and was left alone.
+- Authorized scope: [CP2 steps 1–3](../../plans/261118-1305-public-demo-launch/cp2-content-enrichment.md): backup, combined taxonomy, pool selection, dry runs; every database write on a copy.
+- Outcome: backup of `.local/track-b` verified (1,410 files, identical hashes; the retained Bank is unchanged). "TSA simulation taxonomy v1" registered on the copy. Eleven exchange files select Math 40 and Reading 20 exactly and 16 Science choice items; the Science gap is **24** items (suggested new passage sizes: 6+6+6+6, 5+5+5+5+4 or 4+4+4+6+6).
+- **Blocker:** pool questions copied from served Math/Reading are exact twins. Creating them opens exact-duplicate relations that hide the served originals (Math 196 → 156 deliverable, Reading 100 → 80 served on the copy) and stop the copies being approved (`CONSTRAINT_CONFLICT`). Do **not** import the pool into the retained Bank until the owner chooses how to resolve the twins (recommended: adjudicate them as equivalent through the existing equivalence service, an owner step that still has to be built and rehearsed).
+- Tooling added: `bank:register-taxonomy --domains`, `bank:owner-publish --taxonomy-version`, tests and a format-guide note. No migration, contract, key, application route or retained Bank change.
+- Verification: new and related suites pass (7, 8, 53, 13 tests; none skipped). No browser journey, second reviewer, AI Science writing or owner approval exists yet.
+- Private evidence: `data/corpus-ingest/simulation-pool/` (selection, exchange files, topic maps, `run-import.sh`), `.local/sim-pool-rehearsal/` (copy with the imported drafts), `.local/track-b-backups/pre-simulation-pool-261118/` and its `.sha256` manifest.
+- Details, commands, results, limits and the owner's next action are in the [report](../../plans/reports/claude-261119-simulation-pool-selection.md).
+
 # Current handoff — public demo mode (CP1)
 
 - Date and implementer: 2026-11-18, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Starting branch `feat/track-b-data-auth` at `c5606a6`; `TSA_Figma_UIUX/` is the owner's untracked folder and was left alone.

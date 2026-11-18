@@ -3,7 +3,7 @@ import test from 'node:test';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ownerPublish, planOwnerPublication } from '../../../scripts/owner-publish.mjs';
+import { ownerPublish, planOwnerPublication, restrictToTaxonomy } from '../../../scripts/owner-publish.mjs';
 import { createTrackBRuntime } from '../../../src/local/track-b.mjs';
 import { startPersistentPostgres } from '../../../src/local/postgres.mjs';
 
@@ -57,4 +57,16 @@ test('confirming zero publication candidates does not create sessions, backups o
   assert.deepEqual(await snapshot(), before);
   assert.deepEqual((await readdir(`${dataDirectory}-backups`)).sort(), backups);
   assert.ok(messages.some(line => line.includes('no rights or workflow changes were made')));
+});
+
+test('a taxonomy restriction keeps only that taxonomy\'s candidates and the sources they need', () => {
+  const inside = { ...supported, id: 'inside' };
+  const outside = { ...supported, id: 'outside', sourceVersionIds: ['skipped-only'] };
+  const before = { versions: [inside, outside], sources };
+  const snapshot = structuredClone(before);
+  const restricted = restrictToTaxonomy(before, ['inside', 'not-a-candidate']);
+  assert.deepEqual(restricted.versions, [inside]);
+  assert.deepEqual(planOwnerPublication(restricted).sources.map(row => row.id), ['selected-only', 'shared']);
+  assert.deepEqual(restrictToTaxonomy(before, []).versions, []);
+  assert.deepEqual(before, snapshot, 'restriction must not mutate inspection evidence');
 });

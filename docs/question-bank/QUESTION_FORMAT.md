@@ -183,12 +183,15 @@ question is good: a separate reviewer checks that, and the answer-verification w
    - Two owner commands prepare what the importer needs, both dry runs unless confirmed: `npm run bank:register-source --
      --file <path> --title "Corpus <name>"` records a corpus document (hash only) as a source version under the owner's
      attested rights, and `npm run bank:register-taxonomy -- --name "<name>" --domain SCIENCE --skills SCIENCE_REASONING`
-     adds a provisional taxonomy version for a subject that has none. Neither changes an existing record.
+     adds a provisional taxonomy version for a subject that has none; `--domains "MATH=MATH_REASONING;READING=READING_REASONING;SCIENCE=SCIENCE_REASONING"`
+     registers one version with several domains, which is what a single test form that mixes subjects needs. Neither changes an existing record.
 3. **Review** as for any other draft. `npm run bank:owner-publish -- [--section MATH|READING|SCIENCE]` now includes
    the latest receipt-backed exchange DRAFTs and IN_REVIEW versions alongside factory imports, provided every source is
    a corpus source. Superseded parent versions and ordinary manual drafts without an exchange receipt remain excluded.
    The command defaults to a dry run;
    writing still requires the exact printed `PUBLISH N SECTION` phrase (`ALL` when no section is selected).
+   `--taxonomy-version <uuid>` limits the candidates to drafts authored in that taxonomy version, so a reviewed pool can be
+   published without the other unpublished drafts.
    - The owner must review the stored keys, including agent-derived and uncertain keys, before confirming. Publication
      never changes answers. Rights, independent review, duplicate, delivery and selectability checks still apply.
    - Shared exchange passages receive bundles ordered by exchange question id. Factory passage ordering is preserved;
@@ -200,6 +203,12 @@ question is good: a separate reviewer checks that, and the answer-verification w
      `SCIE-T26SC-000401`–`000404` uses unsupported `\rightleftharpoons`; those drafts remain blocked.
 
 The [publication rehearsal report](../../plans/reports/codex-261116-1417-exchange-draft-publication.md) records copy-only verification and remaining owner decisions.
+
+**Exact copies of published questions.** A draft whose normalised content equals any other question in the same section
+(any taxonomy, any state) is recorded with an OPEN exact-duplicate relation when it is created. While a relation is open,
+neither question is selectable and the new one cannot be approved, so importing a copy of a served question hides the served
+one until the relation is resolved through equivalence adjudication. Import only content that is not already in the Bank,
+or plan that adjudication first.
 
 Planning is all-or-nothing: the importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
 `image_request`, an unknown or retired asset (in a question or its passage), an unmapped or ambiguous topic, a missing source

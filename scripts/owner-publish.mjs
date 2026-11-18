@@ -1,6 +1,7 @@
 // Owner command: publish the corpus DRAFTs of the retained Bank.
 //   npm run bank:owner-publish                         dry run: counts and the confirmation phrase
 //   npm run bank:owner-publish -- --section READING    limit to one section
+//   npm run bank:owner-publish -- --taxonomy-version <uuid>   limit to versions authored in one taxonomy version
 //   npm run bank:owner-publish -- --confirm "PUBLISH 100 READING"
 // Only the project owner runs the confirmed form; agents never approve items.
 import path from 'node:path';
@@ -24,10 +25,23 @@ export function planOwnerPublication(before) {
   return { unsupported, targets, sources: before.sources.filter((source) => sourceIds.has(source.id)) };
 }
 
-async function inspect(dataDirectory, section) {
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/** Keep only candidates whose version belongs to the named taxonomy version. Pure; the input is not mutated. */
+export function restrictToTaxonomy(before, allowedVersionIds) {
+  const allowed = new Set(allowedVersionIds);
+  return { ...before, versions: before.versions.filter((row) => allowed.has(row.id)) };
+}
+
+async function inspect(dataDirectory, section, taxonomyVersionId) {
+  if (taxonomyVersionId !== null && !UUID_PATTERN.test(taxonomyVersionId)) throw new TypeError('--taxonomy-version must be a UUID');
   const database = await startPersistentPostgres(dataDirectory);
-  try { return await listOwnerCandidates(database.ownerPool, { section }); }
-  finally { await database.stop(); }
+  try {
+    const before = await listOwnerCandidates(database.ownerPool, { section });
+    if (taxonomyVersionId === null) return before;
+    const ids = (await database.ownerPool.query('SELECT id FROM tsa.question_versions WHERE taxonomy_version_id = $1', [taxonomyVersionId])).rows.map((row) => row.id);
+    return restrictToTaxonomy(before, ids);
+  } finally { await database.stop(); }
 }
 
 /** Log in one local account against the running workspace and return a request helper. */
@@ -57,8 +71,8 @@ export async function session(origin, actorKey) {
   return post;
 }
 
-export async function ownerPublish({ dataDirectory, section = null, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
-  const before = await inspect(dataDirectory, section);
+export async function ownerPublish({ dataDirectory, section = null, taxonomyVersionId = null, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
+  const before = await inspect(dataDirectory, section, taxonomyVersionId);
   const counts = Object.fromEntries(OWNER_SECTIONS.map((name) => [name, before.versions.filter((row) => row.section === name).length]));
   const { unsupported, targets, sources } = planOwnerPublication(before);
   const phrase = confirmationPhrase(targets.length, section);
@@ -66,7 +80,7 @@ export async function ownerPublish({ dataDirectory, section = null, confirm, ima
   log(`Corpus sources without display rights: ${sources.filter((source) => !source.allowed).length} of ${sources.length}`);
   if (unsupported.length) log(`Skipped (other protocol or unknown author): ${unsupported.length}`);
   if (confirm === undefined) {
-    log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}--confirm "${phrase}"`);
+    log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}${taxonomyVersionId ? `--taxonomy-version ${taxonomyVersionId} ` : ''}--confirm "${phrase}"`);
     return { published: 0, phrase };
   }
   if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
@@ -116,8 +130,9 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   const args = process.argv.slice(2), options = {};
   for (let index = 0; index < args.length; index += 2) {
     if (args[index] === '--section' && OWNER_SECTIONS.includes(args[index + 1])) options.section = args[index + 1];
+    else if (args[index] === '--taxonomy-version' && typeof args[index + 1] === 'string') options.taxonomyVersionId = args[index + 1];
     else if (args[index] === '--confirm' && typeof args[index + 1] === 'string') options.confirm = args[index + 1];
-    else { process.stderr.write('Usage: npm run bank:owner-publish -- [--section MATH|READING|SCIENCE] [--confirm "PUBLISH N SECTION"]\n'); process.exit(1); }
+    else { process.stderr.write('Usage: npm run bank:owner-publish -- [--section MATH|READING|SCIENCE] [--taxonomy-version <uuid>] [--confirm "PUBLISH N SECTION"]\n'); process.exit(1); }
   }
   try {
     await ownerPublish({ ...options, dataDirectory: process.env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b') });
