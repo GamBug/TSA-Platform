@@ -19,9 +19,10 @@ function jsonResponse(status, payload, cookies = []) {
   return new Response(JSON.stringify(payload), { status, headers });
 }
 
-function sessionCookies(token, csrf, maxAge = LOCAL_SESSION_HOURS * 60 * 60) {
-  const attributes = `Path=/; Max-Age=${maxAge}; SameSite=Strict`;
-  // Secure is omitted only because this handler accepts explicitly configured loopback HTTP origins.
+function sessionCookies(token, csrf, maxAge = LOCAL_SESSION_HOURS * 60 * 60, { publicOrigin = false } = {}) {
+  // Secure is omitted only because the local handler accepts explicitly configured loopback HTTP origins.
+  // Behind the public HTTPS origin the cookies are Secure and Lax, so a shared link keeps its guest.
+  const attributes = publicOrigin ? `Path=/; Max-Age=${maxAge}; SameSite=Lax; Secure` : `Path=/; Max-Age=${maxAge}; SameSite=Strict`;
   return [
     `${LOCAL_SESSION_COOKIE}=${token}; ${attributes}; HttpOnly`,
     `${LOCAL_CSRF_COOKIE}=${csrf}; ${attributes}`,
@@ -121,15 +122,50 @@ function genericUnavailable() {
   return jsonResponse(503, { error: 'LOCAL_AUTH_UNAVAILABLE' });
 }
 
-/** Validate the local-only boundary before returning an HTTP handler. */
-export async function createLocalAuthHandler({ pool, env = process.env } = {}) {
+export const GUEST_POOL_EXHAUSTED_MESSAGE = 'Bản demo đã đủ lượt truy cập, vui lòng thử lại sau.';
+
+/**
+ * Validate the local-only boundary before returning an HTTP handler.
+ * `publicGuests` ({ guestPool, limiter }) selects the public demo profile: only
+ * GET /local-auth/session and POST /local-auth/guest exist; every other path is a 404.
+ */
+export async function createLocalAuthHandler({ pool, env = process.env, publicGuests = null, guestPool = 0 } = {}) {
   if (!pool || typeof pool.query !== 'function' || typeof pool.connect !== 'function') {
     throw new TypeError('A configured PostgreSQL pool is required');
   }
+  if (publicGuests !== null && (typeof publicGuests?.limiter?.take !== 'function' || !Number.isSafeInteger(publicGuests.guestPool))) {
+    throw new TypeError('publicGuests requires a guestPool size and a limiter');
+  }
   const trustedOrigin = validateLocalSyntheticConfig(env);
-  const identity = await createLocalSyntheticIdentityService(pool, { env });
+  // `guestPool` without `publicGuests` is the staff profile on a database that carries guests;
+  // it exists only for startup work and is never routed to visitors.
+  const identity = await createLocalSyntheticIdentityService(pool, publicGuests
+    ? { env, guestPool: publicGuests.guestPool } : { env, guestPool, guestsOnly: false });
 
-  return async function handleLocalAuth(request) {
+  async function handleGuest(request, context) {
+    const principal = await identity.authenticate(request);
+    const empty = await readStrictEmptyBody(request);
+    if (empty.tooLarge) return jsonResponse(413, { error: 'PAYLOAD_TOO_LARGE' });
+    if (!empty.ok) return jsonResponse(400, { error: 'INVALID_REQUEST' });
+    if (principal?.authenticated) {
+      // This browser already holds a guest: resume it. The CSRF cookie stays the client's copy.
+      const checked = await identity.validateMutation(request);
+      if (!checked) return jsonResponse(403, { error: 'CSRF_REJECTED' });
+      return jsonResponse(200, { authenticated: true, principal: publicPrincipal(checked) });
+    }
+    const verdict = publicGuests.limiter.take(context.clientIp ?? 'unknown');
+    if (!verdict.allowed) {
+      return new Response(JSON.stringify({ error: 'GUEST_RATE_LIMITED' }), { status: 429, headers: {
+        'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff', 'retry-after': String(verdict.retryAfterSeconds) } });
+    }
+    const session = await identity.startGuestSession();
+    if (!session) return jsonResponse(503, { error: 'GUEST_POOL_EXHAUSTED', message: GUEST_POOL_EXHAUSTED_MESSAGE });
+    return jsonResponse(201, { authenticated: true, principal: publicPrincipal(session.principal), csrfToken: session.csrf },
+      sessionCookies(session.token, session.csrf, undefined, { publicOrigin: true }));
+  }
+
+  return async function handleLocalAuth(request, context = {}) {
     let requestOrigin;
     try { requestOrigin = new URL(request.url).origin; }
     catch { return jsonResponse(400, { error: 'BAD_REQUEST' }); }
@@ -141,10 +177,9 @@ export async function createLocalAuthHandler({ pool, env = process.env } = {}) {
     const parsedRequestUrl = new URL(request.url);
     if (parsedRequestUrl.search) return jsonResponse(400, { error: 'INVALID_REQUEST' });
     const path = parsedRequestUrl.pathname;
-    if (path !== '/local-auth/bootstrap' && path !== '/local-auth/session'
-        && path !== '/local-auth/login' && path !== '/local-auth/logout') {
-      return jsonResponse(404, { error: 'NOT_FOUND' });
-    }
+    const knownPaths = publicGuests ? ['/local-auth/session', '/local-auth/guest']
+      : ['/local-auth/bootstrap', '/local-auth/session', '/local-auth/login', '/local-auth/logout'];
+    if (!knownPaths.includes(path)) return jsonResponse(404, { error: 'NOT_FOUND' });
 
     try {
       if (request.method === 'GET' && path === '/local-auth/session') {
@@ -158,6 +193,8 @@ export async function createLocalAuthHandler({ pool, env = process.env } = {}) {
       if (request.headers.get('origin') !== trustedOrigin) {
         return jsonResponse(403, { error: 'ORIGIN_REJECTED' });
       }
+
+      if (path === '/local-auth/guest') return await handleGuest(request, context);
 
       if (path === '/local-auth/bootstrap') {
         const principal = await identity.authenticate(request);

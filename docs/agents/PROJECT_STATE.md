@@ -22,6 +22,12 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-18 (public demo mode, CP1): `DEMO_PUBLIC=true npm run demo:uni` now has a public student-only mode for a
+  reverse-proxied https origin: one synthetic guest per browser, staff paths 404, Host/Origin pinned, security
+  headers, `/healthz`, per-address guest limit. The local demo is unchanged. The student app still signs in with the
+  local A/B login, so it needs the guest call (CP3) before use behind the public URL. Required suites pass; see the
+  [report](../../plans/reports/claude-261119-public-mode.md) and [plan](../../plans/261118-1305-public-demo-launch/plan.md).
+
 - 2026-11-17 (old student UI retired): Owner decision: the university demo sends students only to the React
   student app; old `?student=` links redirect to its matching mode, and the launcher and run of show list only
   the new links. Topic practice is paused until the owner asks to resume it. The original student screens stay

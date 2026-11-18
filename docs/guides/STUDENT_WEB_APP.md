@@ -28,6 +28,14 @@ allowlist (index plus `assets/` files with known types); without a build it answ
 | `/student/?mode=interactions` | Cloze and matching | v4 |
 | `/student/?mode=simulation` | Full simulation, 100 questions, three section clocks | v3 |
 
+## Public mode
+
+Behind `DEMO_PUBLIC=true` the server answers only `/student/` and the candidate APIs, and the
+synthetic students A and B are not offered: each browser starts as its own guest through
+`POST /local-auth/guest` (see the [run of show](TRACK_B_SUPERVISOR_RUN_OF_SHOW.md#public-mode)).
+The app reads `publicDemo` from `/local/demo-notice` to know it is in this mode. The app's
+sign-in screen still uses the local A/B login; switching it to the guest call is separate work.
+
 ## Behavior
 
 - Demo accounts are chosen explicitly (synthetic A or B); an unfinished attempt is resumed first.

@@ -9,11 +9,12 @@ import { fileURLToPath } from 'node:url';
 import { createLocalImageStore } from '../modules/media/local-image-store.mjs';
 import { backupLocalDatabase } from './database-backup.mjs';
 import { startPersistentPostgres } from './postgres.mjs';
-import { createTrackBRuntime } from './track-b.mjs';
+import { createTrackBRuntime, PUBLIC_DEMO_DEFAULT_GUEST_POOL, PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR } from './track-b.mjs';
 import { DEMO_SECTIONS, seedUniDemoOfferings } from './uni-demo-seed.mjs';
 
 export const UNI_DEMO_DEFAULT_PORT = 4180;
 export const UNI_DEMO_MODES = Object.freeze(['PUBLISHED', 'REHEARSAL']);
+export const PUBLIC_DEMO_GUEST_PATH = '/local-auth/guest';
 const DEMO_OWNER_ROLE = 'tsa_local_owner';
 const TOOL_TIMEOUT_MS = 60_000;
 const MAX_CREDIT_LENGTH = 500;
@@ -128,6 +129,10 @@ export async function startUniDemo({
   port = UNI_DEMO_DEFAULT_PORT,
   pgBin,
   sourceCredit = process.env.DEMO_UNI_SOURCE_CREDIT,
+  // Public mode: serve only the student app to guest identities behind this https origin.
+  publicOrigin,
+  guestPool = PUBLIC_DEMO_DEFAULT_GUEST_POOL,
+  guestsPerHour = PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR,
   imageStoreDirectory = mode === 'PUBLISHED'
     ? process.env.TSA_IMAGE_STORE_DIRECTORY ?? fileURLToPath(new URL('../../.local/track-b-images', import.meta.url)) : null,
 } = {}) {
@@ -138,6 +143,9 @@ export async function startUniDemo({
   if (mode === 'REHEARSAL' && (sourceDataDirectory !== undefined
       || typeof sourceArchive?.archive !== 'string' || typeof sourceArchive?.roles !== 'string')) {
     throw new TypeError('REHEARSAL mode requires an archive of a synthetic source Bank');
+  }
+  if (publicOrigin !== undefined && (typeof publicOrigin !== 'string' || !/^https:\/\//.test(publicOrigin))) {
+    throw new TypeError('The public demo origin must be an https origin');
   }
   const exported = mode === 'PUBLISHED' ? await exportBankArchive({ dataDirectory: sourceDataDirectory, pgBin }) : sourceArchive;
   const root = await mkdtemp(path.join(os.tmpdir(), 'tsa-uni-demo-'));
@@ -158,13 +166,15 @@ export async function startUniDemo({
       env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_STUDENT_ENABLED: 'true', LOCAL_FULL_SIMULATION_ENABLED: 'true',
         LOCAL_NUMERIC_PRACTICE_ENABLED: 'true', LOCAL_CLOZE_MATCHING_ENABLED: 'true' },
       dataDirectory: clusterDirectory, port, pgBin,
+      publicDemo: publicOrigin === undefined ? null : { origin: publicOrigin, guestPool, guestsPerHour },
       prepareDatabase: async (ownerPool) => {
         const report = await seedUniDemoOfferings(ownerPool);
         notice = buildDemoNotice({ mode, report, sourceCredit });
         return report;
       },
       localRoutes: { '/local/demo-notice': (request) => request.method === 'GET'
-        ? Response.json(notice, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+        // Public mode adds one flag the student app reads: guests start at publicDemo.guestPath.
+        ? Response.json(publicOrigin === undefined ? notice : { ...notice, publicDemo: { enabled: true, guestPath: PUBLIC_DEMO_GUEST_PATH } }, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
         : Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405 }) },
     });
   } catch (error) {
@@ -175,17 +185,26 @@ export async function startUniDemo({
   return Object.freeze({
     mode,
     origin: runtime.origin,
+    publicOrigin: publicOrigin ?? null,
     port: runtime.port,
     report: runtime.prepared,
     notice,
     sourceBackup: mode === 'PUBLISHED' ? exported.archive : null,
     demoDirectory: root,
-    urls: Object.freeze({
+    urls: publicOrigin === undefined ? Object.freeze({
       staff: `${runtime.origin}/`,
       student: `${runtime.origin}/student/`,
       simulation: `${runtime.origin}/student/?mode=simulation`,
       numeric: `${runtime.origin}/student/?mode=numeric`,
       clozeMatching: `${runtime.origin}/student/?mode=interactions`,
+    }) : Object.freeze({
+      // No staff workspace exists in public mode; the proxy reaches the loopback listener at `listen`.
+      staff: null,
+      student: `${publicOrigin}/student/`,
+      simulation: `${publicOrigin}/student/?mode=simulation`,
+      numeric: `${publicOrigin}/student/?mode=numeric`,
+      clozeMatching: `${publicOrigin}/student/?mode=interactions`,
+      listen: runtime.origin,
     }),
     close() {
       closing ??= (async () => {

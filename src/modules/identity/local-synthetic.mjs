@@ -50,6 +50,48 @@ const POLICY_ROLES = Object.freeze({
   'exam.fixed-form.read': ['EXAM_MANAGER'],
 });
 
+// Public demo guests: pre-created synthetic candidates, one per visitor browser.
+export const LOCAL_GUEST_MAX_POOL = 9_999;
+const GUEST_SUBJECT_PATTERN = /^guest-(\d{4})$/;
+
+export function localGuestActor(index) {
+  if (!Number.isSafeInteger(index) || index < 1 || index > LOCAL_GUEST_MAX_POOL) {
+    throw new RangeError(`guest index must be an integer from 1 through ${LOCAL_GUEST_MAX_POOL}`);
+  }
+  const label = String(index).padStart(4, '0');
+  return Object.freeze({
+    id: `00000000-0000-4000-9000-${index.toString(16).padStart(12, '0')}`,
+    subject: `guest-${label}`,
+    displayName: `Demo Guest ${label}`,
+    roles: Object.freeze(['CANDIDATE']),
+  });
+}
+
+function validateGuestPool(guestPool) {
+  if (!Number.isSafeInteger(guestPool) || guestPool < 1 || guestPool > LOCAL_GUEST_MAX_POOL) {
+    throw new RangeError(`guestPool must be an integer from 1 through ${LOCAL_GUEST_MAX_POOL}`);
+  }
+  return guestPool;
+}
+
+/** Return the guest actor a user row stands for, or null when it is not a valid pool guest. */
+function guestActorForRow({ userId, issuer, subject }, guestPool) {
+  const match = GUEST_SUBJECT_PATTERN.exec(subject ?? '');
+  if (!match || issuer !== LOCAL_SYNTHETIC_ISSUER) return null;
+  const index = Number(match[1]);
+  if (index < 1 || index > guestPool) return null;
+  const actor = localGuestActor(index);
+  return actor.id === userId ? { ...actor, key: 'guest' } : null;
+}
+
+function expectedUserRows(guestPool) {
+  const actors = Object.values(LOCAL_SYNTHETIC_ACTORS);
+  for (let index = 1; index <= guestPool; index++) actors.push(localGuestActor(index));
+  return actors
+    .map(({ id, subject }) => ({ id, issuer: LOCAL_SYNTHETIC_ISSUER, subject }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
 const SESSION_LIFETIME_SQL = "interval '8 hours'";
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const TRUSTED_PRINCIPALS = new WeakSet();
@@ -189,7 +231,7 @@ async function assertSafeIdentityConnection(pool) {
   return true;
 }
 
-async function assertSyntheticOnlyDatabase(pool) {
+async function assertSyntheticOnlyDatabase(pool, guestPool = 0) {
   return withTransaction(pool, async (client) => {
     const marker = await client.query(
       'SELECT profile, seed_version FROM tsa_private.local_synthetic_environment WHERE singleton');
@@ -200,9 +242,7 @@ async function assertSyntheticOnlyDatabase(pool) {
     const result = await client.query(
       'SELECT id, issuer, subject FROM tsa.users ORDER BY id');
     const actual = normalizeActorRows(result.rows);
-    const expected = Object.values(LOCAL_SYNTHETIC_ACTORS)
-      .map(({ id, subject }) => ({ id, issuer: LOCAL_SYNTHETIC_ISSUER, subject }))
-      .sort((left, right) => left.id.localeCompare(right.id));
+    const expected = expectedUserRows(guestPool);
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       throw new Error('Database contains an unknown or modified identity; local synthetic mode is refused');
     }
@@ -210,8 +250,7 @@ async function assertSyntheticOnlyDatabase(pool) {
   }, { role: 'tsa_identity' });
 }
 
-export async function bootstrapLocalSyntheticIdentity(pool, { env = process.env } = {}) {
-  validateLocalSyntheticConfig(env);
+async function assertMigrationOwnerConnection(pool) {
   const connection = await pool.query(`
     SELECT current_user AS current_name, role_row.rolsuper AS is_superuser,
            database_row.datdba = role_row.oid AS is_database_owner
@@ -223,6 +262,11 @@ export async function bootstrapLocalSyntheticIdentity(pool, { env = process.env 
   if (!bootstrapRole || (!bootstrapRole.is_superuser && !bootstrapRole.is_database_owner)) {
     throw new Error('Explicit synthetic bootstrap requires the database migration owner connection');
   }
+}
+
+export async function bootstrapLocalSyntheticIdentity(pool, { env = process.env } = {}) {
+  validateLocalSyntheticConfig(env);
+  await assertMigrationOwnerConnection(pool);
 
   return withTransaction(pool, async (client) => {
     const marker = await client.query(
@@ -262,6 +306,57 @@ export async function bootstrapLocalSyntheticIdentity(pool, { env = process.env 
   });
 }
 
+/**
+ * Public demo only: on the disposable migration-owner connection, create the guest pool
+ * and revoke every session that came with the restored copy. Existing staff and student
+ * actors stay (published rows reference them) but a guest-only identity service never
+ * authenticates them.
+ */
+export async function preparePublicGuestIdentity(pool, { env = process.env, guestPool } = {}) {
+  validateLocalSyntheticConfig(env);
+  validateGuestPool(guestPool);
+  await assertMigrationOwnerConnection(pool);
+  return withTransaction(pool, async (client) => {
+    const marker = await client.query(
+      'SELECT profile, seed_version FROM tsa_private.local_synthetic_environment WHERE singleton FOR UPDATE');
+    if (marker.rows.length !== 1 || marker.rows[0].profile !== 'SYNTHETIC_ONLY'
+        || marker.rows[0].seed_version !== 'local-identity/1') {
+      throw new Error('Public guests require an explicitly initialized SYNTHETIC_ONLY database');
+    }
+    const existing = normalizeActorRows((await client.query('SELECT id, issuer, subject FROM tsa.users ORDER BY id')).rows);
+    const expected = expectedUserRows(guestPool);
+    const known = new Set(expected.map((row) => row.id));
+    const existingById = new Map(existing.map((row) => [row.id, row]));
+    const base = Object.values(LOCAL_SYNTHETIC_ACTORS);
+    for (const row of existing) {
+      if (!known.has(row.id)) throw new Error('Database contains an unknown or modified identity; public guests are refused');
+    }
+    for (const actor of base) {
+      if (existingById.get(actor.id)?.subject !== actor.subject) {
+        throw new Error('Database is missing a synthetic actor; public guests are refused');
+      }
+    }
+    const missing = [];
+    for (let index = 1; index <= guestPool; index++) {
+      const actor = localGuestActor(index);
+      if (!existingById.has(actor.id)) missing.push(actor);
+    }
+    if (missing.length) {
+      await client.query(
+        `INSERT INTO tsa.users (id, issuer, subject, display_name)
+         SELECT id, $1, subject, display_name FROM unnest($2::uuid[], $3::text[], $4::text[]) AS guest(id, subject, display_name)`,
+        [LOCAL_SYNTHETIC_ISSUER, missing.map((actor) => actor.id), missing.map((actor) => actor.subject),
+          missing.map((actor) => actor.displayName)]);
+      await client.query(
+        "INSERT INTO tsa.user_roles (user_id, role) SELECT unnest($1::uuid[]), 'CANDIDATE'::tsa.user_role",
+        [missing.map((actor) => actor.id)]);
+    }
+    const revoked = await client.query(
+      'UPDATE tsa_private.local_auth_sessions SET revoked_at = clock_timestamp() WHERE revoked_at IS NULL');
+    return { guests: guestPool, createdGuests: missing.length, revokedSessions: revoked.rowCount };
+  });
+}
+
 async function insertSession(pool, { token, csrf, userId = null }) {
   const id = randomUUID();
   const result = await withTransaction(pool, async (client) => client.query(
@@ -283,7 +378,7 @@ async function createGuestSession(pool) {
   return { ...session, token, csrf };
 }
 
-async function sessionByToken(pool, token) {
+async function sessionByToken(pool, token, { guestPool = 0, guestsOnly = false } = {}) {
   if (!SESSION_TOKEN_PATTERN.test(token)) return null;
   return withTransaction(pool, async (client) => {
     const result = await client.query(
@@ -297,10 +392,12 @@ async function sessionByToken(pool, token) {
     let actor = null;
     let roles = [];
     if (row.user_id) {
-      actor = Object.entries(LOCAL_SYNTHETIC_ACTORS)
-        .map(([key, value]) => ({ ...value, key }))
-        .find((value) => value.id === row.user_id && value.subject === row.subject
-          && row.issuer === LOCAL_SYNTHETIC_ISSUER);
+      // A guest-only service (public demo) never authenticates staff or student actors.
+      actor = guestsOnly ? guestActorForRow({ userId: row.user_id, issuer: row.issuer, subject: row.subject }, guestPool)
+        : Object.entries(LOCAL_SYNTHETIC_ACTORS)
+          .map(([key, value]) => ({ ...value, key }))
+          .find((value) => value.id === row.user_id && value.subject === row.subject
+            && row.issuer === LOCAL_SYNTHETIC_ISSUER);
       if (!actor) return null;
       const roleRows = await client.query('SELECT role FROM tsa.user_roles WHERE user_id = $1 ORDER BY role', [row.user_id]);
       roles = roleRows.rows.map((item) => item.role);
@@ -312,11 +409,11 @@ async function sessionByToken(pool, token) {
   }, { role: 'tsa_identity' });
 }
 
-async function authenticateLocalRequest(pool, request) {
+async function authenticateLocalRequest(pool, request, guests) {
   const cookies = cookieValues(request);
   const token = cookies.get(LOCAL_SESSION_COOKIE);
   if (!token || !SESSION_TOKEN_PATTERN.test(token)) return null;
-  const session = await sessionByToken(pool, token);
+  const session = await sessionByToken(pool, token, guests);
   return session?.principal ?? null;
 }
 
@@ -371,7 +468,7 @@ function requestHasTrustedOrigin(request, env = process.env) {
   return hasTrustedRequestOrigin(request, trustedOrigin);
 }
 
-async function validateLocalMutation(pool, request, env = process.env) {
+async function validateLocalMutation(pool, request, env = process.env, guests) {
   if (!requestHasTrustedOrigin(request, env)) return null;
   const cookies = cookieValues(request);
   const sessionToken = cookies.get(LOCAL_SESSION_COOKIE);
@@ -379,7 +476,7 @@ async function validateLocalMutation(pool, request, env = process.env) {
   const csrfHeader = request.headers.get('x-csrf-token');
   if (!sessionToken || !csrfCookie || !csrfHeader || csrfCookie !== csrfHeader
       || !SESSION_TOKEN_PATTERN.test(csrfHeader)) return null;
-  const session = await sessionByToken(pool, sessionToken);
+  const session = await sessionByToken(pool, sessionToken, guests);
   if (!session) return null;
   const suppliedHash = Buffer.from(digest(csrfHeader));
   const storedHash = Buffer.from(session.csrfHash);
@@ -427,6 +524,44 @@ async function loginSyntheticActor(pool, guestPrincipal, actorKey) {
   }, { role: 'tsa_identity' });
 }
 
+/**
+ * Give this browser the next guest nobody has used yet. A guest is never recycled: once it has
+ * had a session it counts as used. One advisory lock serializes claims so two visitors never
+ * share a guest. Returns null when the pool is exhausted.
+ */
+async function startGuestSession(pool, guestPool) {
+  const token = createOpaqueToken();
+  const csrf = createOpaqueToken();
+  return withTransaction(pool, async (client) => {
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['tsa-local-guest-claim']);
+    const free = await client.query(
+      `SELECT u.id, u.issuer, u.subject FROM tsa.users u
+        WHERE u.issuer = $1 AND u.subject ~ '^guest-[0-9]{4}$' AND u.disabled_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM tsa_private.local_auth_sessions s WHERE s.user_id = u.id)
+        ORDER BY u.id LIMIT 1`, [LOCAL_SYNTHETIC_ISSUER]);
+    if (free.rows.length === 0) return null;
+    const actor = guestActorForRow({ userId: free.rows[0].id, issuer: free.rows[0].issuer, subject: free.rows[0].subject }, guestPool);
+    if (!actor) throw new Error('Guest pool contains an unexpected identity');
+    const roles = (await client.query('SELECT role FROM tsa.user_roles WHERE user_id = $1 ORDER BY role', [actor.id]))
+      .rows.map((row) => row.role);
+    if (!roles.includes('CANDIDATE')) throw new Error('Guest pool contains an identity without the candidate role');
+    const created = await client.query(
+      `WITH timestamp_value AS MATERIALIZED (SELECT clock_timestamp() AS created_at)
+       INSERT INTO tsa_private.local_auth_sessions
+        (id, token_hash, csrf_hash, user_id, created_at, expires_at)
+       SELECT $1, $2, $3, $4, timestamp_value.created_at,
+              timestamp_value.created_at + ${SESSION_LIFETIME_SQL}
+         FROM timestamp_value
+       RETURNING id, expires_at`,
+      [randomUUID(), digest(token), digest(csrf), actor.id]);
+    return {
+      token,
+      csrf,
+      principal: safePrincipal(actor, roles, created.rows[0].id, created.rows[0].expires_at),
+    };
+  }, { role: 'tsa_identity' });
+}
+
 async function revokeLocalSession(pool, principal) {
   if (!TRUSTED_PRINCIPALS.has(principal) || !principal.sessionId) return false;
   return withTransaction(pool, async (client) => {
@@ -437,20 +572,33 @@ async function revokeLocalSession(pool, principal) {
   }, { role: 'tsa_identity' });
 }
 
-/** Validate the process, connection and database before exposing local auth operations. */
-export async function createLocalSyntheticIdentityService(pool, { env = process.env } = {}) {
+/**
+ * Validate the process, connection and database before exposing local auth operations.
+ * `guestPool` says the database carries that many pre-created guests (public demo). With
+ * `guestsOnly` (the default whenever a pool is given) the service is the public profile: only
+ * guests authenticate and the fixed actor login is unavailable. `guestsOnly: false` keeps the
+ * staff profile for startup work that must run before any request is served.
+ */
+export async function createLocalSyntheticIdentityService(pool, { env = process.env, guestPool = 0, guestsOnly = guestPool > 0 } = {}) {
   validateLocalSyntheticConfig(env);
+  if (guestPool !== 0) validateGuestPool(guestPool);
+  if (guestsOnly && guestPool === 0) throw new TypeError('guestsOnly needs a guest pool');
   await assertSafeIdentityConnection(pool);
-  await assertSyntheticOnlyDatabase(pool);
+  await assertSyntheticOnlyDatabase(pool, guestPool);
+  const guests = Object.freeze({ guestPool, guestsOnly });
   return Object.freeze({
+    guestMode: guestsOnly,
     createGuestSession: () => createGuestSession(pool),
-    authenticate: (request) => authenticateLocalRequest(pool, request),
-    validateMutation: (request) => validateLocalMutation(pool, request, env),
-    login: (principal, actorKey) => loginSyntheticActor(pool, principal, actorKey),
+    startGuestSession: async () => {
+      if (!guestsOnly) throw new Error('Guest sessions are available only in the public demo profile');
+      return startGuestSession(pool, guestPool);
+    },
+    authenticate: (request) => authenticateLocalRequest(pool, request, guests),
+    validateMutation: (request) => validateLocalMutation(pool, request, env, guests),
+    login: (principal, actorKey) => guestsOnly ? Promise.resolve(null) : loginSyntheticActor(pool, principal, actorKey),
     revoke: (principal) => revokeLocalSession(pool, principal),
     mayPerform,
     loadOwnedAttempt: (principal, attemptId) => loadOwnedAttempt(pool, principal, attemptId),
     withOwnedAttempt: (principal, attemptId, operation) => withOwnedAttempt(pool, principal, attemptId, operation),
   });
 }
-

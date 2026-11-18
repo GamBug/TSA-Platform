@@ -1,4 +1,14 @@
-# Current handoff — student image delivery
+# Current handoff — public demo mode (CP1)
+
+- Date and implementer: 2026-11-18, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Starting branch `feat/track-b-data-auth` at `c5606a6`; `TSA_Figma_UIUX/` is the owner's untracked folder and was left alone.
+- Authorized scope: CP1 of the [public demo launch plan](../../plans/261118-1305-public-demo-launch/cp1-public-mode.md).
+- Outcome: `DEMO_PUBLIC=true DEMO_PUBLIC_ORIGIN=https://<domain> npm run demo:uni` serves only `/student/` and the candidate APIs, one synthetic guest per browser (`POST /local-auth/guest`), 404 for every staff path, Host/Origin pinned to the public origin, security headers, `GET /healthz`. The local demo is unchanged. No migration, contract, retained Bank, `apps/candidate-web` or `data/` change.
+- Verification: build, `test:demo:public` (13, new), `test:demo:uni` (17), `test:critical:privacy` (2), `test:student` (85), `test:student-web` (2), `test:b0` (112) and `test:docs` (13) all pass. Browser suites and a real-browser CSP check over https were not run.
+- For CP3: the app reads `publicDemo` from `/local/demo-notice` and must sign in through `/local-auth/guest`; the current A/B login is 404 in public mode. For CP4: the proxy must forward Host and Origin and append `X-Forwarded-For`; health probe is `http://127.0.0.1:4180/healthz`. Offerings built at start expire after one day (restart daily or widen the window).
+- Review: `/code-review` run on the diff; outcome in the report. No independent human or second-agent review is claimed.
+- Details, guest flow, env vars, commands and limits are in the [report](../../plans/reports/claude-261119-public-mode.md).
+
+# Previous handoff — student image delivery
 
 - Date and implementer: 2026-11-17, Asia/Bangkok; Codex, single agent. Starting branch `feat/track-b-data-auth`, clean at `60cc4a0`.
 - Authorized scope: connect the image library to local student delivery and browser-test it on disposable Bank copies.

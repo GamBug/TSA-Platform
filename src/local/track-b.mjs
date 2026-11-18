@@ -7,12 +7,15 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBankHandler } from '../http/bank.mjs';
 import { createLocalAuthHandler } from '../http/local-auth.mjs';
+import { createSlidingWindowLimiter } from '../http/guest-rate-limit.mjs';
 import { migrate } from '../modules/database/migrate.mjs';
 import { createDatabasePool } from '../modules/database/pool.mjs';
 import {
   bootstrapLocalSyntheticIdentity,
   createLocalSyntheticIdentityService,
+  LOCAL_GUEST_MAX_POOL,
   LOCAL_SYNTHETIC_ACTORS,
+  preparePublicGuestIdentity,
   validateLocalSyntheticConfig,
 } from '../modules/identity/local-synthetic.mjs';
 import { createPrototypeServer } from '../../apps/practice-prototype/server.mjs';
@@ -102,6 +105,37 @@ async function endPoolBounded(pool, label) {
   finally { clearTimeout(timer); }
 }
 
+export const PUBLIC_DEMO_DEFAULT_GUEST_POOL = 1_000;
+export const PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR = 10;
+
+function normalizePublicDemo(publicDemo) {
+  if (publicDemo === null) return null;
+  if (typeof publicDemo !== 'object' || Array.isArray(publicDemo)) throw new TypeError('publicDemo must be an object');
+  const { origin, guestPool = PUBLIC_DEMO_DEFAULT_GUEST_POOL, guestsPerHour = PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR } = publicDemo;
+  let parsed;
+  try { parsed = new URL(origin); } catch { parsed = null; }
+  if (!parsed || parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/'
+      || parsed.search || parsed.hash || parsed.origin !== origin) {
+    throw new Error('The public demo origin must be a canonical https origin such as https://demo.example');
+  }
+  if (!Number.isSafeInteger(guestPool) || guestPool < 1 || guestPool > LOCAL_GUEST_MAX_POOL) {
+    throw new RangeError(`The guest pool must be an integer from 1 through ${LOCAL_GUEST_MAX_POOL}`);
+  }
+  if (!Number.isSafeInteger(guestsPerHour) || guestsPerHour < 1 || guestsPerHour > 10_000) {
+    throw new RangeError('Guests per hour per address must be an integer from 1 through 10000');
+  }
+  return Object.freeze({ origin, guestPool, guestsPerHour });
+}
+
+function notFoundResponse(pathname) {
+  if (/^\/api\/v[1234](?:\/|$)/.test(pathname)) {
+    const requestId = randomUUID();
+    return response(404, { error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} } },
+      { 'x-request-id': requestId });
+  }
+  return response(404, { error: 'NOT_FOUND' });
+}
+
 function asError(code, message, requestId) {
   return response(503, { error: { code, message, requestId, details: {} } }, { 'x-request-id': requestId });
 }
@@ -120,8 +154,13 @@ export async function createTrackBRuntime({
   localRoutes = {},
   // When true, the retired student UI links (/?student=...) redirect to the React student app.
   redirectLegacyStudentUi = false,
+  // Public demo: { origin: 'https://…', guestPool, guestsPerHour } serves only the student app and
+  // candidate APIs to guest identities; staff routes and handlers do not exist. Off by default.
+  publicDemo = null,
 } = {}) {
   assertLocalEnvironment(env);
+  const publicMode = normalizePublicDemo(publicDemo);
+  if (publicMode && env.LOCAL_STUDENT_ENABLED !== 'true') throw new Error('The public demo requires the local student runtime');
   if (prepareDatabase !== undefined && typeof prepareDatabase !== 'function') throw new TypeError('prepareDatabase must be a function');
   if (localRoutes === null || typeof localRoutes !== 'object' || Object.entries(localRoutes).some(([route, handler]) =>
     !route.startsWith('/local/') || typeof handler !== 'function')) throw new TypeError('localRoutes must map /local/ paths to handlers');
@@ -188,6 +227,7 @@ export async function createTrackBRuntime({
       directory: `${absoluteDataDirectory}-backups`, pgBin });
     await migrate(ownerPool);
     await bootstrapLocalSyntheticIdentity(ownerPool, { env: bootstrapEnv });
+    if (publicMode) await preparePublicGuestIdentity(ownerPool, { env: bootstrapEnv, guestPool: publicMode.guestPool });
     await ensureLocalTaxonomy(ownerPool);
     const sourceSeedState = await inspectLocalSourceSeed(ownerPool);
     await ensureRuntimeRoles(ownerPool, { student: studentEnabled });
@@ -218,7 +258,16 @@ export async function createTrackBRuntime({
       enableClozeMatching: clozeMatchingEnabled, enableFullSimulation: fullSimulationEnabled,
     }) : null;
 
-    const integratedRequestHandler = async (request) => {
+    const isStudentApiPath = (pathname) => student && (
+      (fullSimulationEnabled && pathname.startsWith('/api/v3/'))
+      || pathname === '/api/v1/topics' || pathname === '/api/v1/topic-practice'
+      || pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
+      || pathname.startsWith('/api/v1/attempts/')
+      || (numericEnabled && (pathname === '/api/v2/catalog' || pathname === '/api/v2/attempts'
+        || pathname.startsWith('/api/v2/attempts/')))
+      || (clozeMatchingEnabled && (pathname === '/api/v4/catalog' || pathname === '/api/v4/attempts'
+        || pathname.startsWith('/api/v4/attempts/'))));
+    const integratedRequestHandler = async (request, context = {}) => {
       if (!routeHandlers) {
         const requestId = randomUUID();
         const pathName = new URL(request.url).pathname;
@@ -226,32 +275,28 @@ export async function createTrackBRuntime({
         return response(503, { error: 'LOCAL_WORKSPACE_UNAVAILABLE' });
       }
       const pathname = new URL(request.url).pathname;
+      if (publicMode) {
+        // Allow-list: guest session routes, the notice, and the candidate APIs. Everything else is a 404.
+        if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request, context);
+        if (pathname === '/local/demo-notice' && Object.hasOwn(localRoutes, pathname)) return localRoutes[pathname](request);
+        if (isStudentApiPath(pathname)) return routeHandlers.attemptHandler(request);
+        return notFoundResponse(pathname);
+      }
       if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request);
       if (pathname === TEMPLATE_PATH) return routeHandlers.templateHandler(request);
       if (Object.hasOwn(localRoutes, pathname)) return localRoutes[pathname](request);
-      if (student && fullSimulationEnabled && pathname.startsWith('/api/v3/')) return routeHandlers.attemptHandler(request);
-      if (student && (pathname === '/api/v1/topics' || pathname === '/api/v1/topic-practice'
-          || pathname === '/api/v1/catalog' || pathname === '/api/v1/attempts'
-          || pathname.startsWith('/api/v1/attempts/')
-          || (numericEnabled && (pathname === '/api/v2/catalog' || pathname === '/api/v2/attempts'
-            || pathname.startsWith('/api/v2/attempts/')))
-          || (clozeMatchingEnabled && (pathname === '/api/v4/catalog' || pathname === '/api/v4/attempts'
-            || pathname.startsWith('/api/v4/attempts/'))))) return routeHandlers.attemptHandler(request);
+      if (isStudentApiPath(pathname)) return routeHandlers.attemptHandler(request);
       if (clozeMatchingEnabled && pathname.startsWith('/api/v4/')) return routeHandlers.clozeMatchingBankHandler(request);
       if (numericEnabled && pathname.startsWith('/api/v2/')) return routeHandlers.numericBankHandler(request);
       if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) return routeHandlers.bankHandler(request);
-      if (/^\/api\/v[1234](?:\/|$)/.test(pathname)) {
-        const requestId = randomUUID();
-        return response(404, { error: { code: 'NOT_FOUND', message: 'Resource not found', requestId, details: {} } },
-          { 'x-request-id': requestId });
-      }
-      return response(404, { error: 'NOT_FOUND' });
+      return notFoundResponse(pathname);
     };
     server = createPrototypeServer({
       port,
       maxRequestBytes: MAX_INTEGRATED_REQUEST_BYTES,
       integratedRequestHandler,
       redirectLegacyStudentUi,
+      publicOrigin: publicMode?.origin ?? null,
     });
     const address = await listen(server, port);
     const origin = `http://127.0.0.1:${address.port}`;
@@ -260,36 +305,48 @@ export async function createTrackBRuntime({
       throw new Error('Configured LOCAL_AUTH_TRUSTED_ORIGIN does not match the bound loopback address');
     }
     validateLocalSyntheticConfig(handlerEnv);
-    const identityService = await createLocalSyntheticIdentityService(identityPool, { env: handlerEnv });
-    const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv });
-    const bankHandler = await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealMetadata: true });
-    const numericBankHandler = numericEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore,
-      enableNumericQuestions: true, enableReviewContext: true }) : null;
-    const clozeMatchingBankHandler = clozeMatchingEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore,
-      enableClozeMatching: true, enableReviewContext: true }) : null;
-    let sourceSeed = null;
-    sourceSeed = await ensureLocalSourceSeed({
-      authHandler, bankHandler, origin, existing: sourceSeedState,
+    const identityService = await createLocalSyntheticIdentityService(identityPool,
+      { env: handlerEnv, guestPool: publicMode?.guestPool ?? 0 });
+    const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv,
+      publicGuests: publicMode ? { guestPool: publicMode.guestPool,
+        limiter: createSlidingWindowLimiter({ limit: publicMode.guestsPerHour, windowMilliseconds: 3_600_000 }) } : null });
+    let bankHandler = null, numericBankHandler = null, clozeMatchingBankHandler = null, templateHandler = null;
+    // Public mode creates its staff handlers only for the startup seed, and never routes them.
+    const staffIdentity = publicMode
+      ? await createLocalSyntheticIdentityService(identityPool, { env: handlerEnv, guestPool: publicMode.guestPool, guestsOnly: false })
+      : identityService;
+    const staffAuth = publicMode
+      ? await createLocalAuthHandler({ pool: identityPool, env: handlerEnv, guestPool: publicMode.guestPool }) : authHandler;
+    const seedBankHandler = await createBankHandler({ bankPool, identityService: staffIdentity, trustedOrigin: origin, imageStore, enableReviewContext: true, enableReviewEvidence: true, enableReviewHistory: true, enableDatasetPreflight: true, enableFixedDiagnostics: true, enableFixedStockRehearsal: true, enableFixedSealMetadata: true });
+    const sourceSeed = await ensureLocalSourceSeed({
+      authHandler: staffAuth, bankHandler: seedBankHandler, origin, existing: sourceSeedState,
     });
-    const templateHandler = async (request) => {
-      const requestId = randomUUID();
-      let parsed;
-      try { parsed = new URL(request.url); }
-      catch { return response(400, { error: 'BAD_REQUEST' }); }
-      if (parsed.origin !== origin || request.headers.get('host')?.toLowerCase() !== new URL(origin).host.toLowerCase()) {
-        return response(403, { error: 'ORIGIN_REJECTED' });
-      }
-      if (parsed.search) return response(400, { error: 'INVALID_REQUEST' });
-      if (request.method !== 'GET') return response(405, { error: 'METHOD_NOT_ALLOWED' });
-      const principal = await identityService.authenticate(request);
-      if (!principal) return response(401, { error: 'UNAUTHENTICATED' });
-      if (!identityService.mayPerform(principal, 'bank.question.author')) return response(403, { error: 'FORBIDDEN' });
-      return response(200, { template: buildTemplate(sourceSeed), taxonomies: await listAuthoringTaxonomies(bankPool),
-        ...(numericEnabled || clozeMatchingEnabled ? { capabilities: {
-          ...(numericEnabled ? { numericQuestions: true } : {}),
-          ...(clozeMatchingEnabled ? { clozeMatching: true } : {}),
-        } } : {}) }, { 'x-request-id': requestId });
-    };
+    if (!publicMode) {
+      bankHandler = seedBankHandler;
+      numericBankHandler = numericEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore,
+        enableNumericQuestions: true, enableReviewContext: true }) : null;
+      clozeMatchingBankHandler = clozeMatchingEnabled ? await createBankHandler({ bankPool, identityService, trustedOrigin: origin, imageStore,
+        enableClozeMatching: true, enableReviewContext: true }) : null;
+      templateHandler = async (request) => {
+        const requestId = randomUUID();
+        let parsed;
+        try { parsed = new URL(request.url); }
+        catch { return response(400, { error: 'BAD_REQUEST' }); }
+        if (parsed.origin !== origin || request.headers.get('host')?.toLowerCase() !== new URL(origin).host.toLowerCase()) {
+          return response(403, { error: 'ORIGIN_REJECTED' });
+        }
+        if (parsed.search) return response(400, { error: 'INVALID_REQUEST' });
+        if (request.method !== 'GET') return response(405, { error: 'METHOD_NOT_ALLOWED' });
+        const principal = await identityService.authenticate(request);
+        if (!principal) return response(401, { error: 'UNAUTHENTICATED' });
+        if (!identityService.mayPerform(principal, 'bank.question.author')) return response(403, { error: 'FORBIDDEN' });
+        return response(200, { template: buildTemplate(sourceSeed), taxonomies: await listAuthoringTaxonomies(bankPool),
+          ...(numericEnabled || clozeMatchingEnabled ? { capabilities: {
+            ...(numericEnabled ? { numericQuestions: true } : {}),
+            ...(clozeMatchingEnabled ? { clozeMatching: true } : {}),
+          } } : {}) }, { 'x-request-id': requestId });
+      };
+    }
     const attemptHandler = student?.createHandler({ identityService, trustedOrigin: origin });
     routeHandlers = { authHandler, bankHandler, numericBankHandler, clozeMatchingBankHandler, templateHandler, attemptHandler };
     if (student) workerStop = student.startWorker();
@@ -302,6 +359,7 @@ export async function createTrackBRuntime({
       syntheticOnly: true,
       studentEnabled,
       fullSimulationEnabled,
+      publicDemo: publicMode,
       prepared,
       identityPool,
       bankPool,

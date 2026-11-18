@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { startUniDemo, UNI_DEMO_DEFAULT_PORT } from '../src/local/uni-demo.mjs';
+import { PUBLIC_DEMO_DEFAULT_GUEST_POOL, PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR } from '../src/local/track-b.mjs';
 import { DEMO_SECTIONS } from '../src/local/uni-demo-seed.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -14,6 +15,34 @@ function parsePort(value) {
   if (value === undefined || value === '') return UNI_DEMO_DEFAULT_PORT;
   if (!/^[1-9]\d{0,4}$/.test(value) || Number(value) > 65_535) throw new Error('DEMO_UNI_PORT must be an integer from 1 through 65535');
   return Number(value);
+}
+
+function parseBoundedInteger(name, value, fallback, maximum) {
+  if (value === undefined || value === '') return fallback;
+  if (!/^[1-9]\d{0,5}$/.test(value) || Number(value) > maximum) throw new Error(`${name} must be an integer from 1 through ${maximum}`);
+  return Number(value);
+}
+
+/**
+ * Public mode settings from the environment, or null for the local demo.
+ * DEMO_PUBLIC=true needs DEMO_PUBLIC_ORIGIN=https://<domain>; DEMO_GUEST_POOL and
+ * DEMO_GUESTS_PER_HOUR tune the guest pool size and the per-address creation limit.
+ */
+export function parsePublicDemoEnvironment(env) {
+  if (env.DEMO_PUBLIC !== undefined && !['true', 'false'].includes(env.DEMO_PUBLIC)) throw new Error('DEMO_PUBLIC must be true or false');
+  if (env.DEMO_PUBLIC !== 'true') {
+    if (env.DEMO_PUBLIC_ORIGIN) throw new Error('DEMO_PUBLIC_ORIGIN is only valid with DEMO_PUBLIC=true');
+    return null;
+  }
+  const origin = env.DEMO_PUBLIC_ORIGIN;
+  let parsed;
+  try { parsed = new URL(origin); } catch { parsed = null; }
+  if (!parsed || parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/'
+      || parsed.search || parsed.hash || parsed.origin !== origin) {
+    throw new Error('DEMO_PUBLIC=true requires DEMO_PUBLIC_ORIGIN to be a canonical https origin, for example https://demo.example');
+  }
+  return { origin, guestPool: parseBoundedInteger('DEMO_GUEST_POOL', env.DEMO_GUEST_POOL, PUBLIC_DEMO_DEFAULT_GUEST_POOL, 9_999),
+    guestsPerHour: parseBoundedInteger('DEMO_GUESTS_PER_HOUR', env.DEMO_GUESTS_PER_HOUR, PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR, 10_000) };
 }
 
 /** Human-readable stock and URL summary printed once the demo is ready. */
@@ -59,11 +88,13 @@ export function formatDemoSummary(demo) {
     `Numeric practice:  ${demo.urls.numeric}`,
     `Cloze/matching:    ${demo.urls.clozeMatching}`,
     `Full simulation:   ${demo.urls.simulation}`,
-    `Staff workspace:   ${demo.urls.staff}`,
+    demo.publicOrigin ? `Reverse proxy target: ${demo.urls.listen} (forward the original Host header; health check: ${demo.urls.listen}/healthz)`
+      : `Staff workspace:   ${demo.urls.staff}`,
     '',
     'Student links open the React student app (npm run build:student). Topic practice is paused until it is rebuilt.',
     '',
-    'Use a fresh private browser window. Local demo accounts need no password.',
+    ...(demo.publicOrigin ? ['PUBLIC MODE: student app and candidate APIs only. Every visitor browser gets its own synthetic guest; staff paths answer 404.']
+      : ['Use a fresh private browser window. Local demo accounts need no password.']),
     `Keep this terminal running. Ctrl+C stops the server and database and deletes the demo copy${mode === 'PUBLISHED' ? '; the private Bank gets no schema or data change' : ''}.`,
     'Guide: docs/guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md',
     '');
@@ -72,8 +103,10 @@ export function formatDemoSummary(demo) {
 
 export async function startUniDemoFromEnvironment({ env = process.env, rehearsal = false } = {}) {
   const port = parsePort(env.DEMO_UNI_PORT);
+  const publicDemo = parsePublicDemoEnvironment(env);
+  const publicOptions = publicDemo ? { publicOrigin: publicDemo.origin, guestPool: publicDemo.guestPool, guestsPerHour: publicDemo.guestsPerHour } : {};
   if (!rehearsal) {
-    return startUniDemo({ mode: 'PUBLISHED', port, sourceCredit: env.DEMO_UNI_SOURCE_CREDIT,
+    return startUniDemo({ mode: 'PUBLISHED', port, ...publicOptions, sourceCredit: env.DEMO_UNI_SOURCE_CREDIT,
       sourceDataDirectory: env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b'),
       imageStoreDirectory: env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images') });
   }
@@ -81,7 +114,7 @@ export async function startUniDemoFromEnvironment({ env = process.env, rehearsal
   const { buildRehearsalSource, REHEARSAL_DEFAULT_NUMERIC } = await import('./uni-demo-rehearsal-source.mjs');
   const source = await buildRehearsalSource({ numeric: REHEARSAL_DEFAULT_NUMERIC });
   try {
-    return await startUniDemo({ mode: 'REHEARSAL', port, sourceArchive: source });
+    return await startUniDemo({ mode: 'REHEARSAL', port, ...publicOptions, sourceArchive: source });
   } finally {
     await source.close();
   }

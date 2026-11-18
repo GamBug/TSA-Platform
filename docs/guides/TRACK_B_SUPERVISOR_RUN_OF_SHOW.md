@@ -95,6 +95,44 @@ Use a fresh private browser window. No password is needed.
 If the simulation is not offered, say so and show section practice instead. The
 terminal summary states the exact shortage.
 
+## Public mode
+
+`DEMO_PUBLIC=true npm run demo:uni` serves the student app and the candidate APIs to the
+public internet through a reverse proxy, and nothing else. It is the same disposable demo
+copy, restored from the private Bank at each start; every attempt is lost on restart.
+
+| Variable | Meaning |
+|---|---|
+| `DEMO_PUBLIC` | `true` enables public mode; `false` or unset keeps the local demo unchanged. |
+| `DEMO_PUBLIC_ORIGIN` | Required with `DEMO_PUBLIC`: the canonical public origin, for example `https://demo.example`. The launcher refuses to start if it is missing, not `https://`, or carries a path. |
+| `DEMO_GUEST_POOL` | Number of guest identities created at start, 1 to 9999 (default 1000). |
+| `DEMO_GUESTS_PER_HOUR` | New guests one client address may create per hour (default 10). |
+| `DEMO_UNI_PORT` | As before (default 4180). The server still binds `127.0.0.1` only. |
+
+Reverse proxy requirements: terminate TLS; forward the original `Host` header (a request whose
+Host is not the public host answers 403); forward `Origin` unchanged; append the client address
+to `X-Forwarded-For` (the last entry is used, and only when the request comes from the proxy on
+this machine). Probe `http://127.0.0.1:4180/healthz` for liveness; it answers `{"ok":true}` and touches no attempt.
+
+What a visitor can reach: `/student/` and its assets, the candidate APIs (`/api/v1` to `/api/v4`
+attempt, catalog and topic routes), `GET /local-auth/session`, `POST /local-auth/guest` and
+`GET /local/demo-notice`. Every other path, including `/`, the old student screens, the mock API and
+all staff, bank and exam-manager routes, answers 404 with no detail. No staff handler is created and
+no staff or fixed student account can sign in. Responses carry a Content-Security-Policy
+(`script-src 'self'`), `nosniff`, `Referrer-Policy: same-origin` and `X-Frame-Options: DENY`.
+
+Guest flow: the student app calls `POST /local-auth/guest` with an empty JSON body and the `Origin`
+header. A browser without a session gets the next unused guest (201, cookies `tsa_local_session`
+HttpOnly and `tsa_local_csrf`, both `Secure; SameSite=Lax`). A browser that already holds one sends
+the CSRF header and gets the same guest back (200, nothing consumed). Guests are never recycled:
+when all are taken the answer is 503 "Bản demo đã đủ lượt truy cập, vui lòng thử lại sau."; a client
+address over its hourly limit gets 429 with `Retry-After`. Sessions last 8 hours.
+`GET /local/demo-notice` carries `publicDemo: { enabled: true, guestPath: "/local-auth/guest" }` in public mode only.
+
+```sh
+npm run test:demo:public   # public mode: 404s, Host/Origin, guests, limits, headers, SIGTERM
+```
+
 ## Stop
 
 Press **Ctrl+C once** and wait for the prompt. The server, the worker and the
