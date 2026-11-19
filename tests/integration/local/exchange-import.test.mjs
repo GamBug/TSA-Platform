@@ -228,6 +228,15 @@ test('a validated set imports as DRAFTs, replays idempotently, versions on conte
     assert.equal((await counts(dataDirectory)).versions, before.versions + 2);
 
     assert.deepEqual((await importQuestions({ ...options, document })).plan.items.map((item) => item.action), ['SKIP', 'SKIP'], 'a repeat creates neither questions nor a second stimulus');
+    // A later batch may add a question to a passage that already exists: it reuses the stored stimulus instead of conflicting with it.
+    const later = await passageSet();
+    later.batch_id = 'IMPORT-TEST-PASSAGE-LATER';
+    const extra = structuredClone(later.questions[0]);
+    extra.question_id = 'MATH-PASS-000003';
+    extra.content_blocks[0].content += ' (câu bổ sung trong đợt sau)';
+    later.questions = [extra];
+    const addedLater = await importQuestions({ ...options, document: later, confirm: 'IMPORT 1' });
+    assert.equal(addedLater.imported, 1, JSON.stringify(addedLater.plan?.problems));
     const changed = await passageSet();
     changed.passages[0].content_blocks[0].content += ' Bổ sung một câu mới.';
     assert.deepEqual([...new Set((await importQuestions({ ...options, document: changed })).plan.problems.map((problem) => problem.code))], ['CONTENT_VERSION_CONFLICT'],

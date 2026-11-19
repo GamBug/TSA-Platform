@@ -5,7 +5,7 @@
 // question route requires for a stimulus: provenance (source and rights evidence) plus any image assets.
 import { createHash } from 'node:crypto';
 import { passageContent } from '../../packages/contracts/dist/question-exchange.js';
-import { MANUAL_REFERENCE_NAMESPACE, resolveReferenceGraph, storeReferenceGraph } from '../modules/bank/common.mjs';
+import { compareReference, MANUAL_REFERENCE_NAMESPACE, resolveReferenceGraph, storeReferenceGraph } from '../modules/bank/common.mjs';
 import { ensureAssetVersion } from '../modules/bank/image-library.mjs';
 import { withTransaction } from '../modules/database/pool.mjs';
 
@@ -46,9 +46,10 @@ export async function ensureStimulus(ownerPool, passage, { sourceVersionId, righ
     const assetNodes = assetRows.map((row) => ({ kind: 'asset', id: row.id, payload: { mediaType: row.mime, byteLength: Number(row.byte_size), bytesHash: row.content_hash }, references: [] }));
     const provenanceId = uuidFrom(`exchange-stimulus-provenance|${stimulusVersionId}`);
     const provenance = { kind: 'provenance', id: provenanceId, payload: { sourceVersionId, rightsEvidence: rightsDecisionId },
-      references: [{ kind: 'source', id: sourceVersionId }, { kind: 'evidence', id: rightsDecisionId }] };
+      // Stored reference lists are ordered by kind and id; a passage that already exists is compared against that order.
+      references: [{ kind: 'source', id: sourceVersionId }, { kind: 'evidence', id: rightsDecisionId }].sort(compareReference) };
     const stimulus = { kind: 'stimulus', id: stimulusVersionId, payload: { content, provenanceIds: [provenanceId] },
-      references: [{ kind: 'provenance', id: provenanceId }, ...assetNodes.map((node) => ({ kind: 'asset', id: node.id }))] };
+      references: [{ kind: 'provenance', id: provenanceId }, ...assetNodes.map((node) => ({ kind: 'asset', id: node.id }))].sort(compareReference) };
     const graph = await resolveReferenceGraph(client, MANUAL_REFERENCE_NAMESPACE, [{ kind: 'stimulus', id: stimulusVersionId }], [provenance, stimulus, ...assetNodes]);
     await storeReferenceGraph(client, MANUAL_REFERENCE_NAMESPACE, graph);
     const existing = await client.query('SELECT content_hash FROM tsa.stimulus_versions WHERE id = $1', [stimulusVersionId]);
