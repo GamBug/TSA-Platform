@@ -1,5 +1,19 @@
 # Architectural decisions and open questions
 
+## Source credit and one local start command — 2026-11-19
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-19.
+Evidence: the owner first proposed "from online questions, questions don't have copyright", then, after being
+told that line asserts a legal claim, chose "switch to safer non-profit wording".
+
+1. **Source credit.** The student-visible `DEMO_UNI_SOURCE_CREDIT` is "Questions collected from public online
+   sources, used non-profit." It makes no copyright or permission claim beyond the 2026-11-11 non-profit
+   corpus attestation. It closes the credit exclusion recorded on 2026-11-16.
+2. **One local start command.** `npm start` builds the React student app and runs `demo:uni` with this credit
+   as its default; an exported `DEMO_UNI_SOURCE_CREDIT` overrides it. `demo:uni` itself still refuses to start
+   without the variable, and the public server keeps its own value in `/etc/tsa/demo.env`, which this entry
+   does not change.
+
 ## Science from captures, twins keep one, all usable questions — 2026-11-19
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-19.

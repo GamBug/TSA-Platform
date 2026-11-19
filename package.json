@@ -10,6 +10,7 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run build:student && DEMO_UNI_SOURCE_CREDIT=\"${DEMO_UNI_SOURCE_CREDIT:-Questions collected from public online sources, used non-profit.}\" npm run demo:uni",
     "factory:fixture": "node tools/question-factory/generic-fixture-cli.mjs",
     "test:factory:generic": "node --test tests/ai/generic-fixture-factory.test.mjs tests/ai/generic-fixture-cli.test.mjs tests/integration/factory-bank-exam/generic-fixture-import.test.mjs",
     "test:generation": "node --test tests/ai/fake-generation-adapter.test.mjs tests/ai/generation-response-validation.test.mjs",
