@@ -66,7 +66,7 @@ export function DemoNoticePanel() {
 export function PageFooter() {
   return (
     <footer className="mt-auto border-t border-rule bg-paper px-4 sm:px-8 py-4 flex flex-wrap justify-between gap-2 text-xs text-ink-secondary">
-      <span>TSA Practice — bản luyện tập không chính thức cho học sinh THPT tự ôn tập.</span>
+      <span>TSA Practice — bản luyện tập không chính thức cho học sinh THPT tự ôn tập. <a href="/student/?page=about" data-testid="about-link" className="underline underline-offset-2 text-ink inline-flex items-center min-h-[44px] px-1">Giới thiệu</a></span>
       <span className="tabular-figures text-ink-muted">Phím tắt khi làm bài: A–D chọn · N câu sau · P câu trước · F đánh dấu</span>
     </footer>
   )

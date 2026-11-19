@@ -33,8 +33,16 @@ allowlist (index plus `assets/` files with known types); without a build it answ
 Behind `DEMO_PUBLIC=true` the server answers only `/student/` and the candidate APIs, and the
 synthetic students A and B are not offered: each browser starts as its own guest through
 `POST /local-auth/guest` (see the [run of show](TRACK_B_SUPERVISOR_RUN_OF_SHOW.md#public-mode)).
-The app reads `publicDemo` from `/local/demo-notice` to know it is in this mode. The app's
-sign-in screen still uses the local A/B login; switching it to the guest call is separate work.
+The app reads `publicDemo` from `/local/demo-notice` (`src/api/public.ts`). In public mode the landing
+card explains the site in three lines and offers one button, "Bắt đầu luyện tập", which calls the guest
+endpoint (a returning browser skips it and lands on the catalog). The 503 "pool used up" and 429
+"per-address limit" answers appear as messages on that card. There is no logout. The catalog leads with the
+"Thi thử đầy đủ — 100 câu, 150 phút" card when the server offers the full test, or a "opens when Science is
+complete" notice when it does not. The footer links to the About page (`/student/?page=about`: unofficial, no
+HUST affiliation, no official score, temporary guest data). Local mode is unchanged. The app routes by query
+only, so unknown `/student/...` paths stay 404 and unknown `mode`/`page` values open the section catalog.
+`npm run test:student-web:public` drives this through a throwaway TLS proxy at 1280, 768 and 360 px
+(screenshots in `.local/public-launch-qa/cp3/`).
 
 ## Behavior
 

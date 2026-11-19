@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import type { CatalogProfile } from '@/api/types'
-import { MODES, type PracticeMode } from '@/api/mode'
+import { MODES, modeHref, type PracticeMode } from '@/api/mode'
+import { simulationApi } from '@/api/simulation'
 import { buttonClass, DemoNoticePanel, Notice } from '@/ui/Shell'
 import { IconArrowRight } from '@/components/Icons'
 
@@ -11,11 +12,37 @@ export function formatDuration(seconds: number): string {
   return minutes >= 1 ? `${minutes} phút` : `${seconds} giây`
 }
 
-export function CatalogScreen({ mode, profiles, busy, message, onStart }: {
+/** Headline card on the public landing catalog: the real 40/20/40 test, or a notice while it is not offered. */
+function FullTestCard() {
+  const [offered, setOffered] = useState<boolean | null>(null)
+  useEffect(() => {
+    let alive = true
+    simulationApi.catalog().then((offers) => { if (alive) setOffered(offers.length > 0) }, () => { if (alive) setOffered(false) })
+    return () => { alive = false }
+  }, [])
+  if (offered === null) return null
+  if (!offered) {
+    return <p className="mt-6 border border-rule border-l-[3px] border-l-ochre bg-ochre-wash px-4 py-3 text-sm text-ink rounded-[3px]" data-testid="full-test-pending">
+      Bài thi thử đầy đủ (100 câu) sẽ mở khi phần Khoa học hoàn tất. Bạn vẫn có thể luyện từng phần bên dưới.</p>
+  }
+  return (
+    <div className="mt-6 border border-ink bg-paper-sheet px-5 py-5 rounded-[3px]" data-testid="full-test-card">
+      <p className="text-xs font-semibold text-pen-red tracking-wide uppercase mb-1">Nên thử trước</p>
+      <h2 className="font-display text-[24px] sm:text-[28px] font-semibold text-ink leading-tight">Thi thử đầy đủ — 100 câu, 150 phút</h2>
+      <p className="mt-2 text-sm leading-[1.68] text-ink-secondary max-w-[62ch]">
+        Ba phần thi liên tiếp: Toán học 40 câu (60 phút), Đọc hiểu 20 câu (30 phút), Khoa học 40 câu (60 phút). Mỗi phần có đồng hồ riêng; bạn có thể quay lại phần đã mở để xem và sửa câu trả lời khi phần đó còn thời gian.
+      </p>
+      <a href={modeHref('simulation')} data-testid="full-test-start" className={`${buttonClass.primary} mt-4`}>Vào thi thử <IconArrowRight size={14} /></a>
+    </div>
+  )
+}
+
+export function CatalogScreen({ mode, profiles, busy, message, publicDemo, onStart }: {
   mode: PracticeMode
   profiles: CatalogProfile[] | null
   busy: boolean
   message: string | null
+  publicDemo: boolean
   onStart: (profile: CatalogProfile) => void
 }) {
   return (
@@ -27,6 +54,7 @@ export function CatalogScreen({ mode, profiles, busy, message, onStart }: {
           Mục lục bài luyện tập
         </h1>
         <p className="mt-3 text-[15px] leading-[1.68] text-ink-secondary max-w-[62ch]">{MODES[mode].description} Đồng hồ chạy liên tục sau khi bắt đầu; tải lại trang không dừng đồng hồ.</p>
+        {publicDemo && mode === 'practice' && <FullTestCard />}
         <div className="mt-6"><DemoNoticePanel /></div>
         {message && <div className="mt-4"><Notice tone="error" testId="catalog-message">{message}</Notice></div>}
 

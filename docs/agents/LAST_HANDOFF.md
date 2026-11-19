@@ -1,3 +1,12 @@
+# Current handoff — public student UI (CP3)
+
+- Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.
+- Authorized scope: [CP3](../../plans/261118-1305-public-demo-launch/cp3-student-ui-public.md), inside `apps/candidate-web` and the browser scripts; no API change.
+- Outcome: guest start, landing text, About page, full-test headline card, meta tags, no logout in public mode; local mode unchanged.
+- Verification: `test:student-web:public` (new, 3 widths), `test:student-web`, `test:student-web:browser`, `test:demo:public` (13), `test:docs` pass. Not run: Android/iOS real devices, Firefox, Zalo/Facebook preview.
+- Open for the owner: contact line for About; domain for Open Graph URL/image. CP2 content (twins, Science) is still the critical path.
+- Details in the [report](../../plans/reports/claude-261119-public-student-ui.md).
+
 # Current handoff — simulation pool selection (CP2 steps 1–3)
 
 - Date and implementer: 2026-11-18, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth` after the CP1 commit; `TSA_Figma_UIUX/` is the owner's and was left alone.

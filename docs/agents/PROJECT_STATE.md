@@ -22,6 +22,13 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-19 (public student UI, CP3): The React student app now works behind the public URL: one-click guest start,
+  landing explanation, About page, full-test headline card on the catalog, social-preview meta tags, no logout in
+  public mode. New `npm run test:student-web:public` passes at 1280, 768 and 360 px through a TLS proxy (guest isolation,
+  reload, section practice, full 6/100 test, About, root 404). Local mode unchanged: `test:student-web`,
+  `test:student-web:browser`, `test:demo:public` (13) and `test:docs` pass. Open: owner contact line and Open Graph
+  image/URL need the final domain. See the [report](../../plans/reports/claude-261119-public-student-ui.md).
+
 - 2026-11-18 (public demo mode, CP1): `DEMO_PUBLIC=true npm run demo:uni` now has a public student-only mode for a
   reverse-proxied https origin: one synthetic guest per browser, staff paths 404, Host/Origin pinned, security
   headers, `/healthz`, per-address guest limit. The local demo is unchanged. The student app still signs in with the

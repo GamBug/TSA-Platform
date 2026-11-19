@@ -5,6 +5,8 @@ import { LoginScreen } from '@/screens/LoginScreen'
 import { CatalogScreen } from '@/screens/CatalogScreen'
 import { AttemptScreen } from '@/screens/AttemptScreen'
 import { SimulationScreen } from '@/screens/SimulationScreen'
+import { AboutScreen } from '@/screens/AboutScreen'
+import { loadPublicDemo, startGuest, type PublicDemo } from '@/api/public'
 import { Masthead, PageFooter } from '@/ui/Shell'
 
 type View =
@@ -15,6 +17,7 @@ type View =
   | { name: 'simulation' }
 
 const mode = readMode()
+const aboutPage = new URLSearchParams(window.location.search).get('page') === 'about'
 const api = apiFor(mode)
 
 function messageOf(error: unknown): string {
@@ -31,6 +34,7 @@ export default function App() {
   const [profiles, setProfiles] = useState<CatalogProfile[] | null>(null)
   const [actor, setActor] = useState<string | undefined>()
   const [busy, setBusy] = useState(false)
+  const [publicDemo, setPublicDemo] = useState<PublicDemo | null>(null)
 
   useEffect(() => {
     document.documentElement.lang = 'vi'
@@ -63,13 +67,30 @@ export default function App() {
     }
   }, [showCatalog])
 
-  useEffect(() => { void restore() }, [restore])
+  // Learn whether this server is the public demo before deciding which sign-in to offer.
+  useEffect(() => {
+    if (aboutPage) { void loadPublicDemo().then(setPublicDemo); return }
+    let alive = true
+    void loadPublicDemo().then((value) => { if (alive) { setPublicDemo(value); void restore() } })
+    return () => { alive = false }
+  }, [restore])
 
   const login = async (actorKey: 'studentA' | 'studentB') => {
     setBusy(true)
     try {
       await api.loginCandidate(actorKey)
       setActor(actorKey === 'studentA' ? 'A' : 'B')
+      await restore()
+    } catch (error) {
+      setView({ name: 'login', message: messageOf(error) })
+    } finally { setBusy(false) }
+  }
+
+  const guest = async () => {
+    if (!publicDemo?.enabled) return
+    setBusy(true)
+    try {
+      await startGuest(publicDemo.guestPath)
       await restore()
     } catch (error) {
       setView({ name: 'login', message: messageOf(error) })
@@ -106,13 +127,23 @@ export default function App() {
     } finally { setBusy(false) }
   }
 
+  const isPublic = publicDemo?.enabled === true
   const signedIn = view.name === 'catalog' || view.name === 'attempt' || view.name === 'simulation'
+  if (aboutPage) {
+    return (
+      <div className="min-h-dvh flex flex-col bg-paper text-ink">
+        <Masthead mode={mode} />
+        <AboutScreen />
+        <PageFooter />
+      </div>
+    )
+  }
   return (
     <div className="min-h-dvh flex flex-col bg-paper text-ink">
-      {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn ? logout : undefined} sticky={view.name !== 'simulation'} />}
+      {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn && !isPublic ? logout : undefined} sticky={view.name !== 'simulation'} />}
       {view.name === 'loading' && <main className="flex-1 px-8 py-16 text-sm text-ink-secondary" role="status">Đang mở phiên luyện tập…</main>}
-      {view.name === 'login' && <LoginScreen busy={busy} message={view.message} onLogin={login} />}
-      {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} onStart={start} />}
+      {view.name === 'login' && <LoginScreen busy={busy} message={view.message} publicDemo={isPublic} onLogin={login} onGuest={guest} />}
+      {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} publicDemo={isPublic} onStart={start} />}
       {view.name === 'attempt' && (
         <AttemptScreen
           api={api}
