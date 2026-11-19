@@ -22,6 +22,14 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-20 (real-pool browser check): New `npm run test:real-pool:browser` takes the whole 40/20/40 test in Chromium on the
+  published Bank, at 1280 px and 360 px, and inspects all 100 question screens (formulas, images, sideways scroll, saving,
+  console and network errors, result totals). It found and fixed two defects: long inline formulas pushed the page sideways on
+  phones, and formulas written as `$...$` inside table cells and captions were shown as raw TeX (a Science water-quality table;
+  the table's accessible name had the same problem). Both viewports now pass with 0 defects and 0 page problems; each run draws
+  a different random test (about 55 questions with formulas, about 30 with images). Test creation speedups are deployed:
+  50 simultaneous section attempts plus 10 simultaneous full tests pass live with no 5xx. Not run: real phones, Firefox, Safari.
+
 - 2026-11-19 (server packaging, CP4/CP5): The public demo runs on the shared VPS behind nginx with a valid certificate at
   `https://tsa.103.72.56.139.sslip.io`; `tsa.smartnovi.tech` waits for the owner's relative to add the DNS record, then
   Certbot and one environment line switch it. Live checks (`scripts/verify-public-live.mjs`) pass for isolation, no leakage,

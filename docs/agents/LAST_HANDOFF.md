@@ -1,4 +1,10 @@
-# Current handoff — server packaging and first deploy (CP4, CP5 in progress)
+# Current handoff — real-pool browser check and speedups (2026-11-20)
+
+- Implementer: Claude Code (Sonnet 5.5), single agent, with the owner's go-ahead for "speed fix, then browser journey". Branch `feat/track-b-data-auth`.
+- Done: public-mode test creation speedups (`src/local/public-demo-speedups.mjs`, self-proving at every start); `scripts/verify-real-pool-browser.mjs`; phone formula overflow fix; formulas in table cells, captions and accessible names (test `apps/candidate-web/test/table-math.test.mjs`). Release `demo-261120-rc5` is live at `https://tsa.103.72.56.139.sslip.io`.
+- Open: relative adds the `tsa.smartnovi.tech` DNS record, then Certbot and the origin setting; owner phone check; owner review of new questions (no explanations); Reading section practice still "not offered (100/2)"; real devices, Firefox and Safari not tested; restart the service at the freeze to clear test guests.
+
+# Previous handoff — server packaging and first deploy (CP4, CP5 in progress)
 
 - Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` left alone. The owner replayed the pool on the retained Bank (465 published) before this session.
 - Authorized: the owner gave SSH access to the shared VPS (`ssh vps`), chose `tsa.smartnovi.tech`, and allowed installs that do not disturb existing services.

@@ -32,6 +32,9 @@ function MathSpan({ tex, display = false, inline = false, accessibleText }: { te
   )
 }
 
+/** A caption as plain words for an accessible name: no dollar signs, and \text{...} reduced to its text. */
+const plainCaption = (text: string) => text.replace(/\\text\{([^}]*)\}/g, '$1').replace(/[$\\{}]/g, '')
+
 const INLINE_MATH = /\$(?=\S)([^$]+?)(?<=\S)\$/gu
 
 export function TextWithMath({ text }: { text: string }) {
@@ -94,13 +97,13 @@ export function ContentBlocks({ blocks, attemptId, apiVersion, purpose = 'questi
         if (block.type === 'math') return <MathSpan key={index} tex={block.tex} display={block.display} accessibleText={block.accessibleText} />
         if (block.type === 'table') {
           return (
-            <div key={index} tabIndex={0} role="region" aria-label={block.caption || 'Bảng dữ liệu câu hỏi'}
+            <div key={index} tabIndex={0} role="region" aria-label={plainCaption(block.caption ?? '') || 'Bảng dữ liệu câu hỏi'}
               className="my-4 max-w-full overflow-x-auto border border-rule-strong rounded-[3px]">
               <table className="w-full border-collapse text-sm text-left">
-                {block.caption && <caption className="px-3 py-2 text-left font-semibold bg-paper-recessed">{block.caption}</caption>}
-                <thead><tr>{(block.headers ?? []).map((value, column) => <th key={column} scope="col" className="px-3 py-2 bg-paper-recessed border-t border-rule">{value}</th>)}</tr></thead>
+                {block.caption && <caption className="px-3 py-2 text-left font-semibold bg-paper-recessed"><TextWithMath text={block.caption} /></caption>}
+                <thead><tr>{(block.headers ?? []).map((value, column) => <th key={column} scope="col" className="px-3 py-2 bg-paper-recessed border-t border-rule"><TextWithMath text={value} /></th>)}</tr></thead>
                 <tbody>{(block.rows ?? []).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="even:bg-paper">{row.map((value, column) => <td key={column} className="px-3 py-2 border-t border-rule min-w-[4em]">{value}</td>)}</tr>
+                  <tr key={rowIndex} className="even:bg-paper">{row.map((value, column) => <td key={column} className="px-3 py-2 border-t border-rule min-w-[4em]"><TextWithMath text={value} /></td>)}</tr>
                 ))}</tbody>
               </table>
             </div>
