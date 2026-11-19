@@ -22,6 +22,14 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-19 (server packaging, CP4): The public demo runs on the shared VPS behind nginx at `tsa.smartnovi.tech`
+  (not yet reachable by name: the DNS record and the TLS certificate are still open). Added `infra/server/` (provisioning,
+  release, Bank upload, systemd unit, nginx site) and the [runbook](../guides/PUBLIC_DEMO_RUNBOOK.md); `DEMO_OFFERING_DAYS`
+  keeps tests open beyond one day. On the server the real Bank reports "Full simulation: offered, at least 4 without
+  repeats"; restart takes about 18 s, a hard kill recovers in about 23 s, a stop leaves no process. The launcher needs
+  exactly PostgreSQL 18.6, so the server holds that version. `test:demo:uni` (18) and `test:docs` pass. The source-credit
+  line on the server is a visible temporary text the owner must replace.
+
 - 2026-11-19 (public student UI, CP3): The React student app now works behind the public URL: one-click guest start,
   landing explanation, About page, full-test headline card on the catalog, social-preview meta tags, no logout in
   public mode. New `npm run test:student-web:public` passes at 1280, 768 and 360 px through a TLS proxy (guest isolation,

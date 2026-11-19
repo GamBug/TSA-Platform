@@ -11,7 +11,7 @@ projects, so nothing below touches their nginx sites, Docker, firewall or users.
 | Public edge | The existing nginx and Certbot; one extra site `tsa.smartnovi.tech` proxies to `127.0.0.1:4180` |
 | App | `/opt/tsa-platform/releases/<release>`; `/opt/tsa-platform/current` points to the live one |
 | Service | `tsa-demo.service` (user `tsa`, `Restart=always`), runs `scripts/start-uni-demo.mjs` in public mode |
-| Node and PostgreSQL | Node 24.18.0 in `/opt/node` (not on the system path); PostgreSQL 18 binaries from the PGDG repository, **no cluster and no system service**: the launcher starts its own private PostgreSQL |
+| Node and PostgreSQL | Node 24.18.0 in `/opt/node` (not on the system path); PostgreSQL 18.6 binaries from the PGDG repository, held with `apt-mark hold` because the launcher accepts exactly 18.6; **no cluster and no system service**, the launcher starts its own private PostgreSQL |
 | Private Bank | `/var/lib/tsa/track-b` and `/var/lib/tsa/track-b-images` (mode 700, owner `tsa`), uploaded from the PC |
 | Settings | `/etc/tsa/demo.env` (mode 640, root:tsa), no secrets |
 

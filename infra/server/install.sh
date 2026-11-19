@@ -9,6 +9,8 @@ set -euo pipefail
 NODE_VERSION=24.18.0
 NODE_SHA256=55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742
 NODE_DIR=/opt/node-v${NODE_VERSION}
+# The launcher refuses any PostgreSQL other than this exact version (src/local/postgres.mjs).
+PG_PACKAGE_VERSION=18.6-1.pgdg22.04+2
 APP_ROOT=/opt/tsa-platform
 DATA_ROOT=/var/lib/tsa
 CONFIG_ROOT=/etc/tsa
@@ -19,7 +21,7 @@ sudo -n true || { echo 'This script needs passwordless sudo.' >&2; exit 1; }
 
 step "Service user and folders"
 getent passwd tsa >/dev/null || sudo useradd --system --home-dir "$DATA_ROOT" --shell /usr/sbin/nologin tsa
-sudo install -d -o tsa -g tsa -m 750 "$DATA_ROOT"
+sudo install -d -o tsa -g tsa -m 700 "$DATA_ROOT"   # the launcher requires a private parent
 sudo install -d -o tsa -g tsa -m 755 "$APP_ROOT" "$APP_ROOT/releases"
 sudo install -d -o root -g tsa -m 750 "$CONFIG_ROOT"
 
@@ -36,8 +38,8 @@ sudo ln -sfn "$NODE_DIR" /opt/node
 /opt/node/bin/node --version
 PATH=/opt/node/bin:$PATH /opt/node/bin/npm --version
 
-step "PostgreSQL 18 binaries (official PGDG repository; no cluster, no service)"
-if [ ! -x /usr/lib/postgresql/18/bin/postgres ]; then
+step "PostgreSQL 18.6 binaries (official PGDG repository, held; no cluster, no service)"
+if ! /usr/lib/postgresql/18/bin/postgres --version 2>/dev/null | grep -q ' 18\.6 '; then
   # No terminal exists on this connection: never let apt or dpkg ask a question.
   apt_get() { sudo env DEBIAN_FRONTEND=noninteractive apt-get -y -qq -o Dpkg::Options::=--force-confold "$@"; }
   apt_get update
@@ -52,8 +54,10 @@ if [ ! -x /usr/lib/postgresql/18/bin/postgres ]; then
   if ! grep -qs '^create_main_cluster *= *false' /etc/postgresql-common/createcluster.conf; then
     echo 'create_main_cluster = false' | sudo tee -a /etc/postgresql-common/createcluster.conf >/dev/null
   fi
-  apt_get install postgresql-18
+  apt_get install --allow-downgrades "postgresql-18=$PG_PACKAGE_VERSION" "postgresql-client-18=$PG_PACKAGE_VERSION" "postgresql-18-jit=$PG_PACKAGE_VERSION"
 fi
+# Hold the packages so unattended upgrades cannot move the demo to a version the launcher rejects.
+sudo apt-mark hold postgresql-18 postgresql-client-18 postgresql-18-jit >/dev/null
 /usr/lib/postgresql/18/bin/postgres --version
 if systemctl list-units --all --no-legend 'postgresql@*' | grep -q .; then
   echo 'NOTE: a PostgreSQL cluster unit exists on this host; review it, the demo does not use it.'

@@ -1,4 +1,12 @@
-# Current handoff — all-stock pool and twins (CP2 steps 3–4 complete on a copy)
+# Current handoff — server packaging and first deploy (CP4, CP5 in progress)
+
+- Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` left alone. The owner replayed the pool on the retained Bank (465 published) before this session.
+- Authorized: the owner gave SSH access to the shared VPS (`ssh vps`), chose `tsa.smartnovi.tech`, and allowed installs that do not disturb existing services.
+- Outcome: release `demo-261119-rc1` is installed and the service runs the real Bank on the server (full simulation offered; section, numeric and cloze/matching practice as locally). One nginx site was added; no other site, Docker, firewall or user changed. PostgreSQL 18.6 (held) and Node 24.18.0 were installed for the service only.
+- Still open: the owner must add the DNS `A` record `tsa.smartnovi.tech` to `103.72.56.139`, then the agent runs Certbot; the owner replaces the temporary source-credit line in `/etc/tsa/demo.env` and provides the About contact line; load, leakage and phone checks (CP5) and the Chromium journey on the real pool are not run.
+- Commands, results and rollback are in the [runbook](../guides/PUBLIC_DEMO_RUNBOOK.md); code in `infra/server/` and commit `4afd8c3` plus the follow-up fixes.
+
+# Previous handoff — all-stock pool and twins (CP2 steps 3–4 complete on a copy)
 
 - Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.
 - Owner decisions: [OPEN_DECISIONS 2026-11-19](../decisions/OPEN_DECISIONS.md): Science wholly from the captures; of any twin keep one; add all usable questions.
