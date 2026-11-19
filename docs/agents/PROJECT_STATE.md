@@ -22,8 +22,11 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
-- 2026-11-19 (server packaging, CP4): The public demo runs on the shared VPS behind nginx at `tsa.smartnovi.tech`
-  (not yet reachable by name: the DNS record and the TLS certificate are still open). Added `infra/server/` (provisioning,
+- 2026-11-19 (server packaging, CP4/CP5): The public demo runs on the shared VPS behind nginx with a valid certificate at
+  `https://tsa.103.72.56.139.sslip.io`; `tsa.smartnovi.tech` waits for the owner's relative to add the DNS record, then
+  Certbot and one environment line switch it. Live checks (`scripts/verify-public-live.mjs`) pass for isolation, no leakage,
+  grading and a full 100-question test, but starting a test is slow (about 30 s) and 12 simultaneous starts gave four 503s: see the
+  runbook's performance section. The About page now tells visitors to report wrong questions to whoever shared the link. Added `infra/server/` (provisioning,
   release, Bank upload, systemd unit, nginx site) and the [runbook](../guides/PUBLIC_DEMO_RUNBOOK.md); `DEMO_OFFERING_DAYS`
   keeps tests open beyond one day. On the server the real Bank reports "Full simulation: offered, at least 4 without
   repeats"; restart takes about 18 s, a hard kill recovers in about 23 s, a stop leaves no process. The launcher needs

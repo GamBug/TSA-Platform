@@ -62,6 +62,22 @@ the server never publishes anything.
 `track-b-backups/before-start-*` grows by about 4 MB per start. Delete old ones with
 `sudo find /var/lib/tsa/track-b-backups -maxdepth 1 -name 'before-start-*' -mtime +7 -exec rm -rf {} +`.
 
+## Live checks
+
+`node scripts/verify-public-live.mjs https://<host> [--guests 50] [--full 10]` checks the public surface (staff paths 404, foreign
+Origin refused), guest isolation, that the delivered test contains no key or staff field, and then runs the given numbers of
+concurrent Math section attempts and full 100-question tests, with grading. It needs `DEMO_GUESTS_PER_HOUR` above the guest count.
+Restart the service afterwards to clear the test guests and attempts.
+
+## Known performance limit (2026-11-19)
+
+Creating a test is slow on this server: a full 40/20/40 test takes about 30 s to build (about 8 s on a fast laptop), and a
+section practice about 8 s, because each creation re-checks rights and delivery for the whole published pool inside the database
+function `tsa.assembly_commit_simulation`. Several creations at once queue on the database connections: 12 simultaneous starts
+gave 4 temporary 503 answers, and 3 simultaneous full tests took about 3.5 minutes. Answering, reading and grading are fast
+(median request about 130 ms). Planner hints on the helper functions made it worse; caching the per-question checks for the
+life of the disposable copy is the candidate fix and needs the owner's decision.
+
 ## Rollback
 
 - **Code:** `ssh vps 'sudo ln -sfn /opt/tsa-platform/releases/<previous> /opt/tsa-platform/current && sudo systemctl restart tsa-demo'`

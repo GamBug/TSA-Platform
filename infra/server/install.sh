@@ -70,6 +70,9 @@ DEMO_PUBLIC=true
 DEMO_PUBLIC_ORIGIN=https://tsa.smartnovi.tech
 DEMO_UNI_PORT=4180
 DEMO_OFFERING_DAYS=14
+# A school or home network shares one address: allow many new guests per address, and a large pool.
+DEMO_GUEST_POOL=5000
+DEMO_GUESTS_PER_HOUR=300
 TRACK_B_DATA_DIRECTORY=/var/lib/tsa/track-b
 TSA_IMAGE_STORE_DIRECTORY=/var/lib/tsa/track-b-images
 PG_BIN=/usr/lib/postgresql/18/bin
