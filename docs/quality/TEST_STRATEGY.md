@@ -162,6 +162,8 @@ const pinnedExternalEvidenceLinks = new Set([
   '/tmp/tsa-vn-exams-research-20261020/authenticated-results.png',
   '/tmp/tsa-vn-exams-research-20261020/authenticated-review.png']);
 const sourceExtensions = new Set(['.cjs','.css','.cts','.go','.html','.java','.js','.jsx','.json','.kt','.mjs','.mts','.php','.py','.rb','.rs','.scss','.sh','.sql','.ts','.tsx','.vue','.yaml','.yml']);
+// Server configuration files shipped for the public demo (not source code, not documents).
+const approvedServerConfigs = new Set(['infra/server/tsa-demo.service', 'infra/server/nginx-tsa.conf']);
 const approvedCodexConfigs = new Set([
   '.codex/config.toml',
   '.codex/agents/tsa_scout.toml',
@@ -247,7 +249,7 @@ if(hash!=='97a5bbe5844626043a5aa92bef7813a1fdbe1ba7d0d65e2bce3970f4c0dd2284') er
 const reviewPath='docs/reviews/ARCHITECTURE_REVIEW_001.md';
 if(!safeFile(reviewPath)||crypto.createHash('sha256').update(fs.readFileSync(reviewPath)).digest('hex')!=='d78a114027d3441967a2a7756d1a44bf6c6e46a80d537c027a3265ce2669ee34') errors.push('Review input missing/changed');
 const unexpected=files.filter(p=>{
-  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)||approvedFontAssets.has(p)||approvedCaptureFixtures.has(p)||approvedCaptureEvidence.has(p)) return false;
+  if(p.endsWith('.md')||p==='.gitignore'||approvedCodexConfigs.has(p)||approvedServerConfigs.has(p)||approvedFontAssets.has(p)||approvedCaptureFixtures.has(p)||approvedCaptureEvidence.has(p)) return false;
   return !sourceExtensions.has(path.extname(p).toLowerCase());
 });
 if(discovery==='git'&&unexpected.length) errors.push(`Unsupported tracked artifacts: ${unexpected.join(', ')}`);
