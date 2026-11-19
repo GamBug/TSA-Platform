@@ -10,6 +10,7 @@ import { createLocalImageStore } from '../modules/media/local-image-store.mjs';
 import { backupLocalDatabase } from './database-backup.mjs';
 import { startPersistentPostgres } from './postgres.mjs';
 import { createTrackBRuntime, PUBLIC_DEMO_DEFAULT_GUEST_POOL, PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR } from './track-b.mjs';
+import { applyPublicDemoSpeedups } from './public-demo-speedups.mjs';
 import { DEMO_SECTIONS, seedUniDemoOfferings } from './uni-demo-seed.mjs';
 
 export const UNI_DEMO_DEFAULT_PORT = 4180;
@@ -170,7 +171,10 @@ export async function startUniDemo({
       dataDirectory: clusterDirectory, port, pgBin,
       publicDemo: publicOrigin === undefined ? null : { origin: publicOrigin, guestPool, guestsPerHour },
       prepareDatabase: async (ownerPool) => {
+        // Public mode freezes the content for the life of this copy, so test creation can use cached checks.
+        const speedups = publicOrigin === undefined ? null : await applyPublicDemoSpeedups(ownerPool);
         const report = await seedUniDemoOfferings(ownerPool, { offeringDays });
+        if (speedups) report.speedups = speedups;
         notice = buildDemoNotice({ mode, report, sourceCredit });
         return report;
       },

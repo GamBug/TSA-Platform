@@ -289,6 +289,37 @@ test('guest creation is limited per address, using the proxy-appended forwarded 
   assert.equal((await call(demo, '/local-auth/guest', { method: 'POST', body: {}, jar: one.jar, ...from('203.0.113.7') })).status, 200);
 });
 
+test('public mode proves its test-creation speedups and still builds a complete 40/20/40 test', { timeout: 240_000 }, async (t) => {
+  const source = await buildRehearsalSource();
+  t.after(() => source.close());
+  const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive: source,
+    publicOrigin: PUBLIC_ORIGIN, guestPool: 4, guestsPerHour: 100 });
+  t.after(() => demo.close());
+
+  // The start itself compared the cached source function with the original for every version, checked the
+  // fallback and the execute rights, and would have refused to start on any difference.
+  const { speedups } = demo.report;
+  assert.ok(speedups.sourceCache.versions >= 130, `cached ${speedups.sourceCache.versions} versions`);
+  assert.ok(speedups.sourceCache.rows >= 130);
+  assert.deepEqual(speedups.nestedLoopsOffFor, ['tsa.assembly_standalone_stock(uuid)',
+    'tsa.assembly_commit_simulation(text,text,jsonb)', 'tsa.assembly_commit_personal(text,text,jsonb)']);
+  assert.equal(demo.report.fullSimulation.offered, true);
+
+  const guest = (await newGuest(demo)).jar;
+  const offers = (await call(demo, '/api/v3/catalog?limit=100', { jar: guest })).json().items;
+  const started = Date.now();
+  const created = await call(demo, '/api/v3/attempts', { method: 'POST', jar: guest,
+    headers: { 'idempotency-key': randomUUID() }, body: { blueprintVersionId: offers[0].blueprintVersionId } });
+  assert.equal(created.status, 201, created.text);
+  assert.ok(Date.now() - started < 30_000, 'creation finishes in a bounded time');
+  const attempt = created.json();
+  assert.equal(attempt.questionCount, 100);
+  await call(demo, `/api/v3/attempts/${attempt.attemptId}/start`, { method: 'POST', jar: guest, headers: { 'idempotency-key': randomUUID() }, body: {} });
+  const view = (await call(demo, `/api/v3/attempts/${attempt.attemptId}`, { jar: guest })).json();
+  assert.equal(view.slots.length, 40, 'the first section delivers its 40 questions');
+  assert.ok(view.slots.every((slot) => slot.sectionId === view.slots[0].sectionId));
+});
+
 test('SIGTERM stops the public launcher and leaves no database process behind', { timeout: 180_000 }, async (t) => {
   const port = await new Promise((resolve, reject) => {
     const probe = createServer();
