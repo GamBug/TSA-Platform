@@ -2,6 +2,7 @@
 //   npm run bank:owner-publish                         dry run: counts and the confirmation phrase
 //   npm run bank:owner-publish -- --section READING    limit to one section
 //   npm run bank:owner-publish -- --taxonomy-version <uuid>   limit to versions authored in one taxonomy version
+//   npm run bank:owner-publish -- --keep-one-of-twins         also confirm each exact twin as one equivalence group (owner decision 2026-11-19)
 //   npm run bank:owner-publish -- --confirm "PUBLISH 100 READING"
 // Only the project owner runs the confirmed form; agents never approve items.
 import path from 'node:path';
@@ -10,7 +11,7 @@ import { createLocalImageStore } from '../src/modules/media/local-image-store.mj
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
 import {
-  confirmationPhrase, createPassageBundles, listOwnerCandidates, OWNER_RIGHTS, OWNER_SECTIONS, ownerApprove, ownerConfirmSingleton,
+  confirmationPhrase, createPassageBundles, listOpenTwins, listOwnerCandidates, OWNER_RIGHTS, OWNER_SECTIONS, ownerApprove, ownerConfirmSingleton, ownerConfirmTwin,
 } from '../src/local/owner-publication.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -71,7 +72,14 @@ export async function session(origin, actorKey) {
   return post;
 }
 
-export async function ownerPublish({ dataDirectory, section = null, taxonomyVersionId = null, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
+
+async function countOpenTwins(dataDirectory, versionIds) {
+  if (versionIds.length === 0) return 0;
+  const database = await startPersistentPostgres(dataDirectory);
+  try { return (await listOpenTwins(database.ownerPool, versionIds)).length; } finally { await database.stop(); }
+}
+
+export async function ownerPublish({ dataDirectory, section = null, taxonomyVersionId = null, keepOneOfTwins = false, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
   const before = await inspect(dataDirectory, section, taxonomyVersionId);
   const counts = Object.fromEntries(OWNER_SECTIONS.map((name) => [name, before.versions.filter((row) => row.section === name).length]));
   const { unsupported, targets, sources } = planOwnerPublication(before);
@@ -79,8 +87,10 @@ export async function ownerPublish({ dataDirectory, section = null, taxonomyVers
   log(`Corpus versions awaiting publication: ${OWNER_SECTIONS.map((name) => `${name} ${counts[name]}`).join(', ')}`);
   log(`Corpus sources without display rights: ${sources.filter((source) => !source.allowed).length} of ${sources.length}`);
   if (unsupported.length) log(`Skipped (other protocol or unknown author): ${unsupported.length}`);
+  const twinCount = await countOpenTwins(dataDirectory, targets.map((row) => row.id));
+  if (twinCount) log(keepOneOfTwins ? `Open exact twins to confirm as one equivalence group each: ${twinCount}` : `Open exact twins among them: ${twinCount}. Add --keep-one-of-twins to confirm each as one equivalence group; without it publication stops at the first twin.`);
   if (confirm === undefined) {
-    log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}${taxonomyVersionId ? `--taxonomy-version ${taxonomyVersionId} ` : ''}--confirm "${phrase}"`);
+    log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}${taxonomyVersionId ? `--taxonomy-version ${taxonomyVersionId} ` : ''}${keepOneOfTwins ? '--keep-one-of-twins ' : ''}--confirm "${phrase}"`);
     return { published: 0, phrase };
   }
   if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
@@ -116,6 +126,14 @@ export async function ownerPublish({ dataDirectory, section = null, taxonomyVers
   // Owner maintenance records singletons and bundles, then repeats every publication check.
   const database = await startPersistentPostgres(dataDirectory);
   try {
+    if (keepOneOfTwins) {
+      let confirmed = 0, merged = 0;
+      for (const twin of await listOpenTwins(database.ownerPool, targets.map((row) => row.id))) {
+        const result = await ownerConfirmTwin(database.ownerPool, twin.id);
+        confirmed += 1; if (result.merged) merged += 1;
+      }
+      log(`Exact twins confirmed as one equivalence group each: ${confirmed} (${merged} groups merged)`);
+    }
     for (const row of targets) await ownerConfirmSingleton(database.ownerPool, row.id);
     const bundles = await createPassageBundles(database.ownerPool, targets.filter((row) => row.stimulusVersionId).map((row) => row.stimulusVersionId));
     log(`Passage bundles created: ${bundles}`);
@@ -131,8 +149,9 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   for (let index = 0; index < args.length; index += 2) {
     if (args[index] === '--section' && OWNER_SECTIONS.includes(args[index + 1])) options.section = args[index + 1];
     else if (args[index] === '--taxonomy-version' && typeof args[index + 1] === 'string') options.taxonomyVersionId = args[index + 1];
+    else if (args[index] === '--keep-one-of-twins') { options.keepOneOfTwins = true; index -= 1; }
     else if (args[index] === '--confirm' && typeof args[index + 1] === 'string') options.confirm = args[index + 1];
-    else { process.stderr.write('Usage: npm run bank:owner-publish -- [--section MATH|READING|SCIENCE] [--taxonomy-version <uuid>] [--confirm "PUBLISH N SECTION"]\n'); process.exit(1); }
+    else { process.stderr.write('Usage: npm run bank:owner-publish -- [--section MATH|READING|SCIENCE] [--taxonomy-version <uuid>] [--keep-one-of-twins] [--confirm "PUBLISH N SECTION"]\n'); process.exit(1); }
   }
   try {
     await ownerPublish({ ...options, dataDirectory: process.env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b') });

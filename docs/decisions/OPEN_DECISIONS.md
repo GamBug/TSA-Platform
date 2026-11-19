@@ -1,5 +1,22 @@
 # Architectural decisions and open questions
 
+## Science from captures, twins keep one, all usable questions — 2026-11-19
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-19.
+Evidence: "fill all Science from the captures. if it's twin, keep only 1."; "solve Math&Reading twin also, just keep 1.
+analyze all questions, could add all to the bank, 40/20/40 test gonna work as I remember >100 questions of each field."
+
+1. **Science** is filled wholly from the owner's three HTML capture folders; the 16 PDF-derived Science pool items are dropped.
+2. **Twins keep one.** Where two questions have identical content, the pair is confirmed as one equivalence group
+   (`bank:owner-publish --keep-one-of-twins`): both immutable versions stay in the Bank, but no attempt can contain both.
+   This applies to the Math and Reading copies made for the combined taxonomy and to any capture twin.
+3. **All usable questions** are added to the combined taxonomy, not a 40/20/40 subset, so more than one test can be assembled
+   without repeats. Held back, with reasons in the private selection record: Math items excluded by an audit or correction,
+   with a key disagreement or a human-review flag, with TeX the exchange format cannot represent, or with images; Science
+   passages that need more than two distinct images, depend on a figure that the capture lacks, or have unkeyed pages.
+4. Keys of captured Science questions are the page's own revealed keys (corpus keys remain authoritative, 2026-11-09); no explanations exist,
+   so the placeholder explanation is used until the owner supplies better.
+
 ## Public demo launch and real full simulation — 2026-11-18
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-18.

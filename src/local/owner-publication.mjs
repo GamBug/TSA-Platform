@@ -4,6 +4,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { resolveOriginalImportAttribution } from '../modules/bank/import-attribution.mjs';
 import { appendWorkflowAudit, assertPublicationChecks, assertSingletonAllowed, loadWorkflowTarget } from '../modules/bank/publication-gates.mjs';
+import { recordEquivalenceIncidents } from '../modules/bank/equivalence-incidents.mjs';
 import { withTransaction } from '../modules/database/pool.mjs';
 
 export const OWNER_REVIEWER_ID = '00000000-0000-4000-8000-000000000202';
@@ -136,5 +137,87 @@ export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_RE
     const selectable = (await client.query('SELECT tsa.bank_question_selection_allowed($1) AS ok', [versionId])).rows[0].ok;
     if (selectable !== true) throw new Error(`Version ${versionId} is approved but not selectable; rolled back`);
     return reviewId;
+  });
+}
+
+const TWIN_REASON = 'Owner decision 2026-11-19: of two identical questions keep one. The pair is confirmed as one equivalence group, '
+  + 'so no test attempt can contain both; both immutable versions are retained.';
+
+/** OPEN exact-duplicate relations that involve any of the given versions. Read-only. */
+export async function listOpenTwins(client, versionIds) {
+  return (await client.query(`
+    SELECT d.id, d.left_version_id AS "leftVersionId", d.right_version_id AS "rightVersionId",
+           lw.state::text AS "leftState", rw.state::text AS "rightState"
+      FROM tsa.duplicate_relations d
+      JOIN tsa.question_workflow lw ON lw.question_version_id=d.left_version_id
+      JOIN tsa.question_workflow rw ON rw.question_version_id=d.right_version_id
+     WHERE d.resolution='OPEN' AND d.kind='EXACT'
+       AND (d.left_version_id=ANY($1::uuid[]) OR d.right_version_id=ANY($1::uuid[]))
+     ORDER BY d.id`, [versionIds])).rows;
+}
+
+async function groupOf(client, target, reviewerId) {
+  const existing = await client.query(`SELECT m.group_id, g.merged_into_id FROM tsa.duplicate_group_members m
+    JOIN tsa.duplicate_groups g ON g.id=m.group_id WHERE m.question_id=$1 FOR UPDATE OF m, g`, [target.question_id]);
+  if (existing.rowCount) {
+    if (existing.rows[0].merged_into_id !== null) throw new Error(`Question of version ${target.id} sits in a retired equivalence group`);
+    return existing.rows[0].group_id;
+  }
+  const groupId = randomUUID();
+  await client.query('INSERT INTO tsa.duplicate_groups(id,reason,confirmed_by) VALUES($1,$2,$3)', [groupId, TWIN_REASON, reviewerId]);
+  await client.query('INSERT INTO tsa.duplicate_group_members(group_id,question_id) VALUES($1,$2)', [groupId, target.question_id]);
+  return groupId;
+}
+
+/**
+ * Confirm one OPEN exact twin as a single equivalence group, as the reviewer equivalence service does, on the migration
+ * owner connection. Both versions must be IN_REVIEW or APPROVED. Nothing is deleted or edited; the relation becomes
+ * CONFIRMED, the two questions share one canonical group and every selection gate then treats them as one.
+ */
+export async function ownerConfirmTwin(ownerPool, relationId, { reviewerId = OWNER_REVIEWER_ID, reason = TWIN_REASON } = {}) {
+  return withTransaction(ownerPool, async (client) => {
+    const privileged = (await client.query(`SELECT r.rolsuper OR d.datdba=r.oid AS ok FROM pg_roles r
+      JOIN pg_database d ON d.datname=current_database() WHERE r.rolname=current_user`)).rows[0]?.ok;
+    if (privileged !== true) throw new Error('Twin confirmation requires the migration owner connection');
+    const relation = (await client.query(`SELECT id, left_version_id, right_version_id, kind::text AS kind, resolution::text AS resolution
+      FROM tsa.duplicate_relations WHERE id=$1 FOR UPDATE`, [relationId])).rows[0];
+    if (!relation || relation.resolution !== 'OPEN' || relation.kind !== 'EXACT') throw new Error(`Relation ${relationId} is not an OPEN exact twin`);
+    const targets = [];
+    for (const versionId of [relation.left_version_id, relation.right_version_id].sort()) {
+      const target = await loadWorkflowTarget(client, versionId);
+      if (!['IN_REVIEW', 'APPROVED'].includes(target.state)) throw new Error(`Version ${versionId} is ${target.state}; twins are confirmed only between IN_REVIEW or APPROVED versions`);
+      const attribution = await resolveOriginalImportAttribution(client, target);
+      if (reviewerId === attribution.created_by || reviewerId === attribution.operator_id) {
+        throw new Error('The confirming account must differ from the author and import operator');
+      }
+      targets.push(target);
+    }
+    const [first, second] = targets;
+    if (first.question_id === second.question_id) throw new Error('A relation between two versions of one question cannot be confirmed as a twin');
+    const evidence = { reason, leftVersionId: relation.left_version_id, rightVersionId: relation.right_version_id, reviewerId,
+      leftContentHash: targets.find((t) => t.id === relation.left_version_id).content_hash,
+      rightContentHash: targets.find((t) => t.id === relation.right_version_id).content_hash };
+    const updated = await client.query(`UPDATE tsa.duplicate_relations SET resolution='CONFIRMED', resolved_by=$2, resolution_evidence=$3::jsonb
+      WHERE id=$1 AND resolution='OPEN' RETURNING id`, [relationId, reviewerId, JSON.stringify(evidence)]);
+    if (updated.rowCount !== 1) throw new Error(`Relation ${relationId} changed during confirmation`);
+    const firstGroup = await groupOf(client, first, reviewerId);
+    const secondGroup = await groupOf(client, second, reviewerId);
+    let merged = false;
+    if (firstGroup !== secondGroup) {
+      const [canonicalId, retiredId] = [firstGroup, secondGroup].sort();
+      await recordEquivalenceIncidents(client, { canonicalGroupId: canonicalId, retiredGroupId: retiredId, actorId: reviewerId });
+      const alias = await client.query('UPDATE tsa.duplicate_groups SET merged_into_id=$2 WHERE id=$1 AND merged_into_id IS NULL RETURNING id', [retiredId, canonicalId]);
+      if (alias.rowCount !== 1) throw new Error('Equivalence groups could not be merged');
+      await client.query('UPDATE tsa.duplicate_group_members SET group_id=$2 WHERE group_id=$1', [retiredId, canonicalId]);
+      merged = true;
+    }
+    for (const target of targets) {
+      const bumped = await client.query(`UPDATE tsa.question_workflow SET revision=revision+1, updated_at=clock_timestamp()
+        WHERE question_version_id=$1 AND revision=$2 AND state IN ('IN_REVIEW','APPROVED') RETURNING revision`, [target.id, target.revision]);
+      if (bumped.rowCount !== 1) throw new Error(`Version ${target.id} changed during twin confirmation`);
+      await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_EQUIVALENCE_CONFIRMED', Number(bumped.rows[0].revision), reason);
+    }
+    await client.query('UPDATE tsa.bank_state SET eligibility_revision=eligibility_revision+1, updated_at=clock_timestamp() WHERE id=1');
+    return { merged };
   });
 }

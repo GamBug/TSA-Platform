@@ -1,3 +1,12 @@
+# Current handoff — all-stock pool and twins (CP2 steps 3–4 complete on a copy)
+
+- Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.
+- Owner decisions: [OPEN_DECISIONS 2026-11-19](../decisions/OPEN_DECISIONS.md): Science wholly from the captures; of any twin keep one; add all usable questions.
+- Outcome: new `bank:owner-publish --keep-one-of-twins` confirms each exact twin as one equivalence group (no attempt can contain both; nothing deleted). Replay on a fresh copy of the pre-pool backup published 465 questions in one combined taxonomy (Math 170, Reading 100, Science 195; 270 twins confirmed; no open relation); the launcher reports "Full simulation: offered, at least 4 without repeats". A latent importer bug (a later batch adding a question to an existing passage) was fixed with a regression test.
+- Verification: new `test:owner-twins`, `test:exchange-import` (8), `test:question-bank` (53), `test:demo:uni` (17), plan/taxonomy tests (7), `test:docs` pass. The retained Bank (1,410 files) and its image store are unchanged.
+- Open for the owner: run `replay-all-pool.sh` on the retained Bank (only the owner publishes; see the report); read the new questions (no explanations exist); decisions on 9 held-back Math items, 13 Math items with `\overrightarrow`, and Science passages with three or more images. Not done: Chromium 100-question journey on the combined pool.
+- Details, commands, results and owner steps are in the [report](../../plans/reports/claude-261119-all-stock-pool-twins.md); private evidence in `data/corpus-ingest/simulation-pool/` and `science-captures-2026-11-19/`, rehearsal copy `.local/all-pool-rehearsal*`.
+
 # Current handoff — Science supply from owner captures (CP2 step 4.1)
 
 - Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.

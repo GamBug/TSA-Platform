@@ -208,7 +208,10 @@ The [publication rehearsal report](../../plans/reports/codex-261116-1417-exchang
 (any taxonomy, any state) is recorded with an OPEN exact-duplicate relation when it is created. While a relation is open,
 neither question is selectable and the new one cannot be approved, so importing a copy of a served question hides the served
 one until the relation is resolved through equivalence adjudication. Import only content that is not already in the Bank,
-or plan that adjudication first.
+or resolve the twin on purpose: `npm run bank:owner-publish -- --taxonomy-version <uuid> --keep-one-of-twins` submits the drafts, confirms
+each OPEN exact twin as one equivalence group on the owner connection (both immutable versions are retained; no attempt can contain both),
+and then approves. The dry run prints how many twins it would confirm; without the option publication stops at the first twin.
+Both versions must be IN_REVIEW or APPROVED, so a twin of an unpublished DRAFT is not resolved this way.
 
 Planning is all-or-nothing: the importer rejects the whole set, before writing anything, when it has any validation error, an unresolved
 `image_request`, an unknown or retired asset (in a question or its passage), an unmapped or ambiguous topic, a missing source
