@@ -11,6 +11,7 @@ export function AboutScreen() {
           <p>TSA Practice là trang luyện tập <strong className="text-ink">không chính thức</strong> cho học sinh THPT tự ôn bài đánh giá tư duy. Trang <strong className="text-ink">không liên kết với Đại học Bách khoa Hà Nội (HUST)</strong> và không phải là bài thi thật.</p>
           <p>Điểm hiển thị chỉ là số câu đúng trong từng phần và tổng cộng. Đó <strong className="text-ink">không phải điểm chính thức</strong> và không tương đương với thang điểm của kỳ thi thật.</p>
           <p>Đây là dự án phi lợi nhuận: không quảng cáo, không thu phí, không bán dữ liệu.</p>
+          <p>Phát hiện câu hỏi sai hoặc lỗi hiển thị? Hãy báo cho người đã gửi bạn liên kết này.</p>
           <p>Mỗi trình duyệt nhận một phiên khách tạm thời. Trang không yêu cầu tên, email hay thông tin cá nhân. Bài làm chỉ phục vụ việc chấm và xem lại trong phiên, không được lưu lâu dài và sẽ bị xóa khi máy chủ khởi động lại.</p>
         </div>
         <div className="mt-8"><DemoNoticePanel /></div>
