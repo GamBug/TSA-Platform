@@ -154,3 +154,8 @@
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1, 'zero' 1;
 }
+
+/* A long inline formula cannot wrap; on a phone it scrolls inside its own box instead of widening the page. */
+@media (max-width: 640px) {
+  .content-math.inline { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; }
+}
