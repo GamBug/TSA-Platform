@@ -1,3 +1,12 @@
+# Current handoff — Science supply from owner captures (CP2 step 4.1)
+
+- Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.
+- Authorized scope: the owner added `TSA_KhoaHoc_HoaHoc`, `_SinhHoc` and `_VatLy` (400 saved HTML practice pages); convert them into the Science pool; every database write on a copy.
+- Outcome: 24 whole-passage Science questions (8 per subject; ids `SIM-SCIE-000901`–`000924`) are validated, imported on the rehearsal copy without creating any new exact-duplicate relation, and published end to end on a throwaway copy of the pre-pool backup (24 selectable, keys match the pages, bundles 3,3,3,5,5,5). The Science pool is now 16 + 24 = 40 in `selection.json`. The retained Bank (1,410 files) and its image store are unchanged.
+- Open for the owner: the exact-twin decision (the 16 PDF-derived Science items still carry 5 open relations; Science can instead be filled wholly from the captures, 243 keyed passage-based items available); the Math/Reading twin blocker; the retained-Bank replay steps in the report; reading the 24 items (no explanations exist, the Math placeholder is used).
+- Not done: owner review sheet, Chromium 100-question journey, any retained-Bank write. No tracked source file changed.
+- Details, commands, results and owner commands are in the [report](../../plans/reports/claude-261119-science-captures-pool.md); private tooling and evidence under `data/corpus-ingest/science-captures-2026-11-19/`.
+
 # Current handoff — public student UI (CP3)
 
 - Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.
