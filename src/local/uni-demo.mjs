@@ -133,6 +133,8 @@ export async function startUniDemo({
   publicOrigin,
   guestPool = PUBLIC_DEMO_DEFAULT_GUEST_POOL,
   guestsPerHour = PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR,
+  // How many days the generated offerings stay open after start (1 through 30).
+  offeringDays = 1,
   imageStoreDirectory = mode === 'PUBLISHED'
     ? process.env.TSA_IMAGE_STORE_DIRECTORY ?? fileURLToPath(new URL('../../.local/track-b-images', import.meta.url)) : null,
 } = {}) {
@@ -168,7 +170,7 @@ export async function startUniDemo({
       dataDirectory: clusterDirectory, port, pgBin,
       publicDemo: publicOrigin === undefined ? null : { origin: publicOrigin, guestPool, guestsPerHour },
       prepareDatabase: async (ownerPool) => {
-        const report = await seedUniDemoOfferings(ownerPool);
+        const report = await seedUniDemoOfferings(ownerPool, { offeringDays });
         notice = buildDemoNotice({ mode, report, sourceCredit });
         return report;
       },

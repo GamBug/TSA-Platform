@@ -104,9 +104,10 @@ export function formatDemoSummary(demo) {
 export async function startUniDemoFromEnvironment({ env = process.env, rehearsal = false } = {}) {
   const port = parsePort(env.DEMO_UNI_PORT);
   const publicDemo = parsePublicDemoEnvironment(env);
+  const offeringDays = parseBoundedInteger('DEMO_OFFERING_DAYS', env.DEMO_OFFERING_DAYS, 1, 30);
   const publicOptions = publicDemo ? { publicOrigin: publicDemo.origin, guestPool: publicDemo.guestPool, guestsPerHour: publicDemo.guestsPerHour } : {};
   if (!rehearsal) {
-    return startUniDemo({ mode: 'PUBLISHED', port, ...publicOptions, sourceCredit: env.DEMO_UNI_SOURCE_CREDIT,
+    return startUniDemo({ mode: 'PUBLISHED', port, offeringDays, ...publicOptions, sourceCredit: env.DEMO_UNI_SOURCE_CREDIT,
       sourceDataDirectory: env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b'),
       imageStoreDirectory: env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images') });
   }
@@ -114,7 +115,7 @@ export async function startUniDemoFromEnvironment({ env = process.env, rehearsal
   const { buildRehearsalSource, REHEARSAL_DEFAULT_NUMERIC } = await import('./uni-demo-rehearsal-source.mjs');
   const source = await buildRehearsalSource({ numeric: REHEARSAL_DEFAULT_NUMERIC });
   try {
-    return await startUniDemo({ mode: 'REHEARSAL', port, ...publicOptions, sourceArchive: source });
+    return await startUniDemo({ mode: 'REHEARSAL', port, offeringDays, ...publicOptions, sourceArchive: source });
   } finally {
     await source.close();
   }

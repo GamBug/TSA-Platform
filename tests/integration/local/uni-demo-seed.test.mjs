@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { planDemoOfferings, takeExactUnits } from '../../../src/local/uni-demo-seed.mjs';
+import { offeringWindow, planDemoOfferings, takeExactUnits } from '../../../src/local/uni-demo-seed.mjs';
 
 const T1 = '10000000-0000-4000-8000-0000000000a1';
 const T2 = '10000000-0000-4000-8000-0000000000a2';
@@ -134,4 +134,10 @@ test('numeric practice needs enough items in one taxonomy version and ignores pa
   assert.equal(bound.numericStock.MATH, 0);
   const science = planDemoOfferings({ versions: numeric('SCIENCE', 4) });
   assert.deepEqual(science.numericPractice.map((profile) => [profile.section, profile.offered]), [['MATH', false], ['SCIENCE', true]]);
+});
+
+test('the offering window opens an hour early and stays open for a bounded whole number of days', () => {
+  assert.match(offeringWindow(1), /interval '1 hour'.*interval '1 day'$/);
+  assert.match(offeringWindow(14), /interval '14 day'$/);
+  for (const bad of [0, 31, 1.5, '3', undefined, NaN]) assert.throws(() => offeringWindow(bad), RangeError);
 });

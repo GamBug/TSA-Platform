@@ -26,7 +26,11 @@ const SECTION_PRACTICE = Object.freeze([
   Object.freeze({ section: 'SCIENCE', count: 4, durationSeconds: 360, name: 'Luyện tập Khoa học' }),
 ]);
 const SIMULATION_NAME = 'Full simulation — published items';
-const OFFERING_WINDOW = "clock_timestamp()-interval '1 hour',clock_timestamp()+interval '1 day'";
+/** Offerings open an hour early and stay open for a whole number of days (a public demo outlives one day). */
+export function offeringWindow(offeringDays) {
+  if (!Number.isInteger(offeringDays) || offeringDays < 1 || offeringDays > 30) throw new RangeError('offeringDays must be an integer from 1 through 30');
+  return `clock_timestamp()-interval '1 hour',clock_timestamp()+interval '${offeringDays} day'`;
+}
 
 function contentHash(value) {
   return `sha256:${createHash('sha256').update(canonicalize(value)).digest('hex')}`;
@@ -208,7 +212,7 @@ async function readStock(client) {
   return { versions, bundles: new Map(bundleRows.map((row) => [row.id, row.size])), workflow };
 }
 
-async function insertOffering(client, { schemaVersion, taxonomyVersionId, config }) {
+async function insertOffering(client, { schemaVersion, taxonomyVersionId, config, offeringDays }) {
   const id = randomUUID(), versionId = randomUUID();
   await client.query('INSERT INTO tsa.blueprints(id,name) VALUES($1,$2)', [id, `uni-demo/${id}`]);
   await client.query(`INSERT INTO tsa.blueprint_versions
@@ -217,7 +221,7 @@ async function insertOffering(client, { schemaVersion, taxonomyVersionId, config
   [versionId, id, taxonomyVersionId, schemaVersion, JSON.stringify(config), contentHash(config)]);
   await client.query(`INSERT INTO tsa.blueprint_offerings
     (blueprint_version_id,enabled,available_from,available_until,start_ttl_seconds)
-    VALUES($1,true,${OFFERING_WINDOW},600)`, [versionId]);
+    VALUES($1,true,${offeringWindow(offeringDays)},600)`, [versionId]);
   return versionId;
 }
 
@@ -225,7 +229,7 @@ async function insertOffering(client, { schemaVersion, taxonomyVersionId, config
  * Replace the demo copy's offerings with profiles that published stock can fill.
  * Run only against a disposable demo database, with the migration owner pool.
  */
-export async function seedUniDemoOfferings(ownerPool) {
+export async function seedUniDemoOfferings(ownerPool, { offeringDays = 1 } = {}) {
   return withTransaction(ownerPool, async (client) => {
     const { versions, bundles, workflow } = await readStock(client);
     const plan = planDemoOfferings({ versions, bundles });
@@ -237,14 +241,14 @@ export async function seedUniDemoOfferings(ownerPool) {
     const offerings = [];
     if (plan.fullSimulation.offered) {
       const taxonomyVersionId = plan.fullSimulation.taxonomyVersionId;
-      const blueprintVersionId = await insertOffering(client, { schemaVersion: 'blueprint/3', taxonomyVersionId, config: {
+      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/3', taxonomyVersionId, config: {
         ...base, schemaVersion: 'blueprint/3', name: SIMULATION_NAME, taxonomyVersionId, profileKind: 'FULL_SIMULATION',
         sections: FULL_SIMULATION_SECTIONS.map((section) => ({ ...section })), allowedTypes: [...DELIVERABLE_TYPES] } });
       offerings.push({ kind: 'FULL_SIMULATION', blueprintVersionId, taxonomyVersionId });
     }
     for (const profile of plan.sectionPractice) {
       if (!profile.offered) continue;
-      const blueprintVersionId = await insertOffering(client, { schemaVersion: 'blueprint/1', taxonomyVersionId: profile.taxonomyVersionId, config: {
+      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/1', taxonomyVersionId: profile.taxonomyVersionId, config: {
         ...base, schemaVersion: 'blueprint/1', name: profile.name, taxonomyVersionId: profile.taxonomyVersionId,
         profileKind: 'INDEPENDENT_PRACTICE', allowedTypes: [...DELIVERABLE_TYPES],
         sections: [{ id: `${profile.section.toLowerCase()}-practice`, section: profile.section,
@@ -257,7 +261,7 @@ export async function seedUniDemoOfferings(ownerPool) {
         profileKind: 'INDEPENDENT_PRACTICE', scoringPolicy: 'practice-binary-v2', allowedTypes: [NUMERIC_TYPE],
         sections: [{ id: `${profile.section.toLowerCase()}-numeric-practice`, section: profile.section,
           count: profile.required, durationSeconds: profile.durationSeconds }] };
-      const blueprintVersionId = await insertOffering(client, { schemaVersion: 'blueprint/2', taxonomyVersionId: profile.taxonomyVersionId, config });
+      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/2', taxonomyVersionId: profile.taxonomyVersionId, config });
       // The private pin is what makes a blueprint/2 offering deliverable; it is bound to the exact config hash.
       await client.query('INSERT INTO tsa_private.numeric_practice_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
         [blueprintVersionId, contentHash(config)]);
@@ -270,7 +274,7 @@ export async function seedUniDemoOfferings(ownerPool) {
         scoringPolicy: 'practice-binary-v3', allowedTypes: ['CLOZE', 'MATCHING'],
         sections: [{ id: 'math-cloze-matching-practice', section: 'MATH', count: interactionProfile.required,
           durationSeconds: interactionProfile.durationSeconds }] };
-      const blueprintVersionId = await insertOffering(client, { schemaVersion: 'blueprint/4',
+      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/4',
         taxonomyVersionId: interactionProfile.taxonomyVersionId, config });
       await client.query('INSERT INTO tsa_private.cloze_matching_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
         [blueprintVersionId, contentHash(config)]);

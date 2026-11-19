@@ -1,0 +1,34 @@
+[Unit]
+Description=TSA Practice public demo (unofficial, non-profit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tsa
+Group=tsa
+WorkingDirectory=/opt/tsa-platform/current
+EnvironmentFile=/etc/tsa/demo.env
+Environment=HOME=/var/lib/tsa
+ExecStart=/opt/node/bin/node scripts/start-uni-demo.mjs
+# Building the demo copy of the Bank takes a few seconds; allow far more.
+TimeoutStartSec=300
+# The launcher forwards SIGTERM to its worker, which closes HTTP and its own PostgreSQL in order.
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/tsa
+
+[Install]
+WantedBy=multi-user.target
