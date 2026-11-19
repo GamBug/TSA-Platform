@@ -69,14 +69,17 @@ Origin refused), guest isolation, that the delivered test contains no key or sta
 concurrent Math section attempts and full 100-question tests, with grading. It needs `DEMO_GUESTS_PER_HOUR` above the guest count.
 Restart the service afterwards to clear the test guests and attempts.
 
-## Known performance limit (2026-11-19)
+## Test creation speed (2026-11-19)
 
-Creating a test is slow on this server: a full 40/20/40 test takes about 30 s to build (about 8 s on a fast laptop), and a
-section practice about 8 s, because each creation re-checks rights and delivery for the whole published pool inside the database
-function `tsa.assembly_commit_simulation`. Several creations at once queue on the database connections: 12 simultaneous starts
-gave 4 temporary 503 answers, and 3 simultaneous full tests took about 3.5 minutes. Answering, reading and grading are fast
-(median request about 130 ms). Planner hints on the helper functions made it worse; caching the per-question checks for the
-life of the disposable copy is the candidate fix and needs the owner's decision.
+Creating a test re-checks rights and delivery for the whole published pool inside the database. Unmodified, that took about 30 s
+for a full 40/20/40 test on this server (8-14 s on a laptop), and simultaneous starts timed out. In public mode the launcher now
+applies two exact changes to its disposable database copy (`src/local/public-demo-speedups.mjs`): nested loops are switched off
+for the three assembly functions, whose enemy-pair check was planned over intermediate results of an estimated single row, and
+the per-question source lookup is computed once per version and cached, with the original kept as a fallback. Every start proves
+the cached function equals the original for every version and keeps its owner and execute rights, or it refuses to start.
+Result on this server: a first start after restart takes about 7 s, and 50 simultaneous Math section attempts plus 10 simultaneous
+full 100-question tests all completed with no 5xx answer (`scripts/verify-public-live.mjs`, release `demo-261119-rc3`).
+The retained Bank and the migrations are unchanged; the local (non-public) demo is unchanged.
 
 ## Rollback
 
