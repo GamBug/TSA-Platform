@@ -112,8 +112,12 @@ async function together(count, task) {
 // ---- 1. Surface, isolation and leakage ----
 const probe = async (path) => (await fetch(origin + path, { redirect: 'manual' })).status;
 note((await probe('/healthz')) === 200, 'healthz is public');
-note((await probe('/')) === 404, 'root path is 404');
-for (const path of ['/api/v1/staff', '/local/workspace/template', '/mock/attempts', '/bank', '/?student=postgres']) note((await probe(path)) === 404, `staff or legacy path ${path} is 404`);
+// The retired old-UI entry ("/?student=postgres") must also end at the student app and never serve the old page.
+for (const path of ['/', '/?student=postgres']) {
+  const reply = await fetch(origin + path, { redirect: 'manual' });
+  note(reply.status === 302 && new URL(reply.headers.get('location'), origin).pathname === '/student/', `${path} redirects to the student app`);
+}
+for (const path of ['/api/v1/staff', '/local/workspace/template', '/mock/attempts', '/bank']) note((await probe(path)) === 404, `staff or legacy path ${path} is 404`);
 note((await fetch(origin + '/local-auth/guest', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{}' })).status === 403, 'guest creation with a foreign Origin is refused');
 
 const alice = new Guest(), bob = new Guest();

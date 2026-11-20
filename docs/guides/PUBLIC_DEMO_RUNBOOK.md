@@ -64,7 +64,7 @@ the server never publishes anything.
 
 ## Live checks
 
-`node scripts/verify-public-live.mjs https://<host> [--guests 50] [--full 10]` checks the public surface (staff paths 404, foreign
+`node scripts/verify-public-live.mjs https://<host> [--guests 50] [--full 10]` checks the public surface (the bare link redirects to `/student/` through nginx, staff paths 404, foreign
 Origin refused), guest isolation, that the delivered test contains no key or staff field, and then runs the given numbers of
 concurrent Math section attempts and full 100-question tests, with grading. It needs `DEMO_GUESTS_PER_HOUR` above the guest count.
 Restart the service afterwards to clear the test guests and attempts.
