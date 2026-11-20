@@ -4,6 +4,9 @@ How the unofficial TSA practice demo runs on the shared VPS at `https://tsa.smar
 from the owner's PC over SSH (host alias `vps`, user `deploy` with passwordless `sudo`). The server also hosts other
 projects, so nothing below touches their nginx sites, Docker, firewall or users.
 
+The checklist for the days around the launch (DNS message, name switch, freeze, launch morning, walk-through) is the
+[launch run of show](PUBLIC_LAUNCH_RUN_OF_SHOW.md).
+
 ## What runs where
 
 | Part | Place |

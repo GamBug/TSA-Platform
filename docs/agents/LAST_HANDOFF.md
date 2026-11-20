@@ -2,7 +2,8 @@
 
 - Implementer: Claude Code (Sonnet 5.5), single agent, with the owner's go-ahead for "speed fix, then browser journey". Branch `feat/track-b-data-auth`.
 - Done: public-mode test creation speedups (`src/local/public-demo-speedups.mjs`, self-proving at every start); `scripts/verify-real-pool-browser.mjs`; phone formula overflow fix; formulas in table cells, captions and accessible names (test `apps/candidate-web/test/table-math.test.mjs`). Release `demo-261120-rc5` is live at `https://tsa.103.72.56.139.sslip.io`.
-- Open: relative adds the `tsa.smartnovi.tech` DNS record, then Certbot and the origin setting; owner phone check; owner review of new questions (no explanations); Reading section practice still "not offered (100/2)"; real devices, Firefox and Safari not tested; restart the service at the freeze to clear test guests.
+- Later the same day: the bare public link now redirects to `/student/` (nginx rule, also in `infra/server/nginx-tsa.conf`; the live check expects it). The practice page no longer promises Reading (a 10-question passage cannot fill the 2-question Reading practice, so only Math and Science practice are offered; Reading is in the full test). Added the [launch run of show](../guides/PUBLIC_LAUNCH_RUN_OF_SHOW.md): DNS message for the relative, switch-over steps, Monday freeze checklist, launch-morning checks, QR code command, ten-minute script and a trouble table.
+- Open: relative adds the `tsa.smartnovi.tech` DNS record, then Certbot and the origin setting; owner phone check; owner review of new questions (no explanations); real devices, Firefox and Safari not tested; restart the service at the freeze to clear test guests.
 
 # Previous handoff — server packaging and first deploy (CP4, CP5 in progress)
 

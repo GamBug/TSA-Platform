@@ -5,7 +5,7 @@ import type { StudentApi } from './types'
 export type PracticeMode = 'practice' | 'numeric' | 'interactions' | 'simulation'
 
 export const MODES: Record<PracticeMode, { label: string; description: string; apiVersion: 'v1' | 'v2' | 'v4' | 'v3' }> = {
-  practice: { label: 'Luyện tập theo phần', description: 'Toán học, Đọc hiểu và Khoa học — trắc nghiệm và đúng/sai.', apiVersion: 'v1' },
+  practice: { label: 'Luyện tập theo phần', description: 'Toán học và Khoa học — trắc nghiệm và đúng/sai. Phần Đọc hiểu có trong bài thi thử đầy đủ.', apiVersion: 'v1' },
   numeric: { label: 'Điền đáp án số', description: 'Câu hỏi trả lời bằng một số thập phân.', apiVersion: 'v2' },
   interactions: { label: 'Điền khuyết & ghép nối', description: 'Điền vào chỗ trống và kéo thả ghép hai cột.', apiVersion: 'v4' },
   simulation: { label: 'Thi thử đầy đủ', description: '100 câu, ba phần thi với đồng hồ riêng.', apiVersion: 'v3' },

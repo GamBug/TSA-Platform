@@ -35,7 +35,7 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
   Certbot and one environment line switch it. Live checks (`scripts/verify-public-live.mjs`) pass for isolation, no leakage,
   grading and a full 100-question test. Starting a test took about 30 s and 12 simultaneous starts gave four 503s; public mode
   now speeds this up (planner setting plus a proven source cache, see the runbook): first start about 7 s on the server, and 50
-  simultaneous section attempts plus 10 simultaneous full tests pass with no 5xx. The About page now tells visitors to report wrong questions to whoever shared the link. Added `infra/server/` (provisioning,
+  simultaneous section attempts plus 10 simultaneous full tests pass with no 5xx. The About page now tells visitors to report wrong questions to whoever shared the link. The bare link redirects to `/student/`, and the practice page lists only Math and Science practice (Reading is in the full test). The launch checklist is the [launch run of show](../guides/PUBLIC_LAUNCH_RUN_OF_SHOW.md). Added `infra/server/` (provisioning,
   release, Bank upload, systemd unit, nginx site) and the [runbook](../guides/PUBLIC_DEMO_RUNBOOK.md); `DEMO_OFFERING_DAYS`
   keeps tests open beyond one day. On the server the real Bank reports "Full simulation: offered, at least 4 without
   repeats"; restart takes about 18 s, a hard kill recovers in about 23 s, a stop leaves no process. The launcher needs
