@@ -6,6 +6,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { canonicalize } from '../../packages/contracts/dist/internal.js';
 import { FULL_SIMULATION_SECTIONS } from '../../packages/contracts/dist/simulation.js';
 import { withTransaction } from '../modules/database/pool.mjs';
+import { findPracticePool, PRACTICE_POOL_OFFERING_SUFFIX } from './practice-pool.mjs';
 
 export const DEMO_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
 const DELIVERABLE_SCHEMA = 'question/1';
@@ -63,9 +64,19 @@ function emptySectionCounts() {
 
 /**
  * Pure planning step. `versions` lists published versions; `bundles` maps a
- * bundle ID to its total member count (published or not).
+ * bundle ID to its total member count (published or not). Versions in a practice-pool
+ * taxonomy never feed the full simulation or the standard practice; they are planned on
+ * their own and offered only as extra section, numeric and cloze/matching practice.
  */
-export function planDemoOfferings({ versions, bundles = new Map() }) {
+export function planDemoOfferings({ versions, bundles = new Map(), practicePoolTaxonomyIds = [] }) {
+  const pool = new Set(practicePoolTaxonomyIds);
+  const plan = planStock({ versions: versions.filter((version) => !pool.has(version.taxonomyVersionId)), bundles });
+  const poolPlan = planStock({ versions: versions.filter((version) => pool.has(version.taxonomyVersionId)), bundles });
+  return { ...plan, practicePool: { published: poolPlan.published, sectionPractice: poolPlan.sectionPractice,
+    numericPractice: poolPlan.numericPractice, clozeMatchingPractice: poolPlan.clozeMatchingPractice } };
+}
+
+function planStock({ versions, bundles }) {
   const published = emptySectionCounts();
   const otherProtocols = emptySectionCounts();
   const unitsByTaxonomy = new Map();
@@ -232,7 +243,8 @@ async function insertOffering(client, { schemaVersion, taxonomyVersionId, config
 export async function seedUniDemoOfferings(ownerPool, { offeringDays = 1 } = {}) {
   return withTransaction(ownerPool, async (client) => {
     const { versions, bundles, workflow } = await readStock(client);
-    const plan = planDemoOfferings({ versions, bundles });
+    const practicePoolTaxonomyId = await findPracticePool(client);
+    const plan = planDemoOfferings({ versions, bundles, practicePoolTaxonomyIds: practicePoolTaxonomyId ? [practicePoolTaxonomyId] : [] });
     // Inherited offerings were not derived from published stock; the demo shows only its own.
     const disabled = await client.query(
       'UPDATE tsa.blueprint_offerings SET enabled=false,revision=revision+1,updated_at=clock_timestamp() WHERE enabled');
@@ -246,40 +258,44 @@ export async function seedUniDemoOfferings(ownerPool, { offeringDays = 1 } = {})
         sections: FULL_SIMULATION_SECTIONS.map((section) => ({ ...section })), allowedTypes: [...DELIVERABLE_TYPES] } });
       offerings.push({ kind: 'FULL_SIMULATION', blueprintVersionId, taxonomyVersionId });
     }
-    for (const profile of plan.sectionPractice) {
-      if (!profile.offered) continue;
-      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/1', taxonomyVersionId: profile.taxonomyVersionId, config: {
-        ...base, schemaVersion: 'blueprint/1', name: profile.name, taxonomyVersionId: profile.taxonomyVersionId,
-        profileKind: 'INDEPENDENT_PRACTICE', allowedTypes: [...DELIVERABLE_TYPES],
-        sections: [{ id: `${profile.section.toLowerCase()}-practice`, section: profile.section,
-          count: profile.required, durationSeconds: profile.durationSeconds }] } });
-      offerings.push({ kind: 'SECTION_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId });
-    }
-    for (const profile of plan.numericPractice) {
-      if (!profile.offered) continue;
-      const config = { ...base, schemaVersion: 'blueprint/2', name: profile.name, taxonomyVersionId: profile.taxonomyVersionId,
-        profileKind: 'INDEPENDENT_PRACTICE', scoringPolicy: 'practice-binary-v2', allowedTypes: [NUMERIC_TYPE],
-        sections: [{ id: `${profile.section.toLowerCase()}-numeric-practice`, section: profile.section,
-          count: profile.required, durationSeconds: profile.durationSeconds }] };
-      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/2', taxonomyVersionId: profile.taxonomyVersionId, config });
-      // The private pin is what makes a blueprint/2 offering deliverable; it is bound to the exact config hash.
-      await client.query('INSERT INTO tsa_private.numeric_practice_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
-        [blueprintVersionId, contentHash(config)]);
-      offerings.push({ kind: 'NUMERIC_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId });
-    }
-    const interactionProfile = plan.clozeMatchingPractice;
-    if (interactionProfile.offered) {
-      const config = { ...base, schemaVersion: 'blueprint/4', name: interactionProfile.name,
-        taxonomyVersionId: interactionProfile.taxonomyVersionId, profileKind: 'INDEPENDENT_PRACTICE',
-        scoringPolicy: 'practice-binary-v3', allowedTypes: ['CLOZE', 'MATCHING'],
-        sections: [{ id: 'math-cloze-matching-practice', section: 'MATH', count: interactionProfile.required,
-          durationSeconds: interactionProfile.durationSeconds }] };
-      const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/4',
-        taxonomyVersionId: interactionProfile.taxonomyVersionId, config });
-      await client.query('INSERT INTO tsa_private.cloze_matching_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
-        [blueprintVersionId, contentHash(config)]);
-      offerings.push({ kind: 'CLOZE_MATCHING_PRACTICE', section: 'MATH', blueprintVersionId,
-        taxonomyVersionId: interactionProfile.taxonomyVersionId });
+    // The real-content practice first, then the separate practice pool under its own names.
+    for (const [practice, suffix, practicePool] of [[plan, '', false], [plan.practicePool, PRACTICE_POOL_OFFERING_SUFFIX, true]]) {
+      const mark = practicePool ? { practicePool: true } : {};
+      for (const profile of practice.sectionPractice) {
+        if (!profile.offered) continue;
+        const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/1', taxonomyVersionId: profile.taxonomyVersionId, config: {
+          ...base, schemaVersion: 'blueprint/1', name: `${profile.name}${suffix}`, taxonomyVersionId: profile.taxonomyVersionId,
+          profileKind: 'INDEPENDENT_PRACTICE', allowedTypes: [...DELIVERABLE_TYPES],
+          sections: [{ id: `${profile.section.toLowerCase()}-practice`, section: profile.section,
+            count: profile.required, durationSeconds: profile.durationSeconds }] } });
+        offerings.push({ kind: 'SECTION_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId, ...mark });
+      }
+      for (const profile of practice.numericPractice) {
+        if (!profile.offered) continue;
+        const config = { ...base, schemaVersion: 'blueprint/2', name: `${profile.name}${suffix}`, taxonomyVersionId: profile.taxonomyVersionId,
+          profileKind: 'INDEPENDENT_PRACTICE', scoringPolicy: 'practice-binary-v2', allowedTypes: [NUMERIC_TYPE],
+          sections: [{ id: `${profile.section.toLowerCase()}-numeric-practice`, section: profile.section,
+            count: profile.required, durationSeconds: profile.durationSeconds }] };
+        const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/2', taxonomyVersionId: profile.taxonomyVersionId, config });
+        // The private pin is what makes a blueprint/2 offering deliverable; it is bound to the exact config hash.
+        await client.query('INSERT INTO tsa_private.numeric_practice_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
+          [blueprintVersionId, contentHash(config)]);
+        offerings.push({ kind: 'NUMERIC_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId, ...mark });
+      }
+      const interactionProfile = practice.clozeMatchingPractice;
+      if (interactionProfile.offered) {
+        const config = { ...base, schemaVersion: 'blueprint/4', name: `${interactionProfile.name}${suffix}`,
+          taxonomyVersionId: interactionProfile.taxonomyVersionId, profileKind: 'INDEPENDENT_PRACTICE',
+          scoringPolicy: 'practice-binary-v3', allowedTypes: ['CLOZE', 'MATCHING'],
+          sections: [{ id: 'math-cloze-matching-practice', section: 'MATH', count: interactionProfile.required,
+            durationSeconds: interactionProfile.durationSeconds }] };
+        const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/4',
+          taxonomyVersionId: interactionProfile.taxonomyVersionId, config });
+        await client.query('INSERT INTO tsa_private.cloze_matching_profiles(blueprint_version_id,blueprint_hash) VALUES($1,$2)',
+          [blueprintVersionId, contentHash(config)]);
+        offerings.push({ kind: 'CLOZE_MATCHING_PRACTICE', section: 'MATH', blueprintVersionId,
+          taxonomyVersionId: interactionProfile.taxonomyVersionId, ...mark });
+      }
     }
     const approved = Object.fromEntries(DEMO_SECTIONS.map((section) => [section,
       workflow.find((row) => row.section === section && row.state === 'APPROVED')?.count ?? 0]));

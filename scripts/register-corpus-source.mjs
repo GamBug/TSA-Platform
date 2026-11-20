@@ -16,33 +16,47 @@ import { session } from './owner-publish.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PHRASE = 'REGISTER SOURCE';
 
-export async function registerCorpusSource({ dataDirectory, file, title, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
-  if (typeof title !== 'string' || !title.startsWith('Corpus ') || title.length > 200) throw new TypeError('The title must start with "Corpus " and be at most 200 characters');
-  const hash = `sha256:${createHash('sha256').update(await readFile(file)).digest('hex')}`;
+/** The source version already registered for this title and file content, or null. Read-only. */
+export async function findSourceVersion(dataDirectory, { title, hash }) {
   const database = await startPersistentPostgres(dataDirectory);
-  let existing;
   try {
-    existing = (await database.ownerPool.query(`SELECT sv.id FROM tsa.source_versions sv JOIN tsa.sources s ON s.id = sv.source_id WHERE s.title = $1 AND sv.content_hash = $2`, [title, hash])).rows[0];
+    return (await database.ownerPool.query(`SELECT sv.id FROM tsa.source_versions sv JOIN tsa.sources s ON s.id = sv.source_id WHERE s.title = $1 AND sv.content_hash = $2`, [title, hash])).rows[0]?.id ?? null;
   } finally { await database.stop(); }
-  log(`${path.basename(file)}  ${hash}`);
-  if (existing) { log(`Already registered: ${existing.id}`); return { sourceVersionId: existing.id, created: false }; }
-  if (confirm === undefined) { log(`Dry run. To register it under the attested corpus rights, add --confirm "${PHRASE}".`); return { sourceVersionId: null, created: false }; }
-  if (confirm !== PHRASE) throw new Error(`Confirmation does not match. Expected exactly: "${PHRASE}"`);
-  // The workspace runtime backs the database up before this change.
+}
+
+export const fileHash = async (file) => `sha256:${createHash('sha256').update(await readFile(file)).digest('hex')}`;
+
+/**
+ * Write one source with one version and its rights decision. The caller has checked that it is not registered yet.
+ * The workspace runtime takes a database backup before the write.
+ */
+export async function writeSourceVersion({ dataDirectory, file, hash, title, origin, rights, registeredBy }) {
   const runtime = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' }, dataDirectory, port: 0 });
   await runtime.close();
   const writer = await startPersistentPostgres(dataDirectory);
   const sourceId = randomUUID(), sourceVersionId = randomUUID();
   try {
-    await writer.ownerPool.query(`INSERT INTO tsa.sources (id, title, canonical_uri, owner_reference, origin, created_by) VALUES ($1, $2, NULL, NULL, 'EXTERNAL', NULL)`, [sourceId, title]);
+    await writer.ownerPool.query(`INSERT INTO tsa.sources (id, title, canonical_uri, owner_reference, origin, created_by) VALUES ($1, $2, NULL, NULL, $3, NULL)`, [sourceId, title, origin]);
     await writer.ownerPool.query(`INSERT INTO tsa.source_versions (id, source_id, version_no, content_hash, metadata, evidence_uri) VALUES ($1, $2, 1, $3, $4::jsonb, NULL)`,
-      [sourceVersionId, sourceId, hash, JSON.stringify({ file: path.basename(file), registeredBy: 'bank:register-source' })]);
+      [sourceVersionId, sourceId, hash, JSON.stringify({ file: path.basename(file), registeredBy })]);
   } finally { await writer.stop(); }
-  const rights = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' }, dataDirectory, port: 0 });
+  const rightsRuntime = await createTrackBRuntime({ env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' }, dataDirectory, port: 0 });
   try {
-    const manager = await session(rights.origin, 'bankManager');
-    await manager(`/api/v1/source-versions/${sourceVersionId}/rights`, { ...OWNER_RIGHTS, expectedRevision: 0 });
-  } finally { await rights.close(); }
+    const manager = await session(rightsRuntime.origin, 'bankManager');
+    await manager(`/api/v1/source-versions/${sourceVersionId}/rights`, { ...rights, expectedRevision: 0 });
+  } finally { await rightsRuntime.close(); }
+  return sourceVersionId;
+}
+
+export async function registerCorpusSource({ dataDirectory, file, title, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
+  if (typeof title !== 'string' || !title.startsWith('Corpus ') || title.length > 200) throw new TypeError('The title must start with "Corpus " and be at most 200 characters');
+  const hash = await fileHash(file);
+  const existing = await findSourceVersion(dataDirectory, { title, hash });
+  log(`${path.basename(file)}  ${hash}`);
+  if (existing) { log(`Already registered: ${existing}`); return { sourceVersionId: existing, created: false }; }
+  if (confirm === undefined) { log(`Dry run. To register it under the attested corpus rights, add --confirm "${PHRASE}".`); return { sourceVersionId: null, created: false }; }
+  if (confirm !== PHRASE) throw new Error(`Confirmation does not match. Expected exactly: "${PHRASE}"`);
+  const sourceVersionId = await writeSourceVersion({ dataDirectory, file, hash, title, origin: 'EXTERNAL', rights: OWNER_RIGHTS, registeredBy: 'bank:register-source' });
   log(`Registered source version ${sourceVersionId} with the OWNER_ATTESTED rights record.`);
   return { sourceVersionId, created: true };
 }

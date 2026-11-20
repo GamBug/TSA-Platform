@@ -170,6 +170,9 @@ question is good: a separate reviewer checks that, and the answer-verification w
 
 ## 8. From file to Bank
 
+For question sets written in ChatGPT, the [question inbox](../guides/CHATGPT_QUESTION_INBOX.md) runs steps 1 and 2 for every
+pasted file at once, registers each file as its own source and imports into the separate practice pool.
+
 1. **Validate**: `node tools/question-bank/validate.mjs set.json --assets assets.json`. Nothing touches a database.
    `npm run images -- catalog --out assets.json` writes the active asset ids of the library.
 2. **Import as DRAFT**: `npm run questions:import -- --file set.json --source-version <uuid> [--topic-map map.json]

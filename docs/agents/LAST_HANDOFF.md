@@ -1,4 +1,11 @@
-# Current handoff — real-pool browser check and speedups (2026-11-20)
+# Current handoff — ChatGPT question inbox and practice pool (2026-11-20)
+
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's "yes build the inbox command, separate practice pool". Branch `feat/track-b-data-auth`.
+- Done: `npm run questions:inbox` (`scripts/questions-inbox.mjs`), pool constants in `src/local/practice-pool.mjs`, deferred source check in the exchange planner, owner publication of "Practice original" sources (OWNED rights, never the corpus attestation), pool kept out of the full test and standard practice and offered as extra practice. [Guide](../guides/CHATGPT_QUESTION_INBOX.md), [decision](../decisions/OPEN_DECISIONS.md).
+- Verification: `test:question-inbox` (unit 3 + end-to-end 1), `uni-demo-seed` (16), exchange import, owner twins, demo and public demo suites, question-bank tools pass. Dry run on the retained Bank created only the empty inbox folders.
+- Open for the owner: run `--setup` once on the retained Bank; set up the three ChatGPT Projects; review keys before publishing. Not done: browser check of the extra practice cards; Reading pool practice depends on 2-question passages.
+
+# Previous handoff — real-pool browser check and speedups (2026-11-20)
 
 - Implementer: Claude Code (Sonnet 5.5), single agent, with the owner's go-ahead for "speed fix, then browser journey". Branch `feat/track-b-data-auth`.
 - Done: public-mode test creation speedups (`src/local/public-demo-speedups.mjs`, self-proving at every start); `scripts/verify-real-pool-browser.mjs`; phone formula overflow fix; formulas in table cells, captions and accessible names (test `apps/candidate-web/test/table-math.test.mjs`). Release `demo-261120-rc5` is live at `https://tsa.103.72.56.139.sslip.io`.

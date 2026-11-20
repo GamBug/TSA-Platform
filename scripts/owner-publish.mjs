@@ -1,4 +1,4 @@
-// Owner command: publish the corpus DRAFTs of the retained Bank.
+// Owner command: publish the corpus and practice-original DRAFTs of the retained Bank.
 //   npm run bank:owner-publish                         dry run: counts and the confirmation phrase
 //   npm run bank:owner-publish -- --section READING    limit to one section
 //   npm run bank:owner-publish -- --taxonomy-version <uuid>   limit to versions authored in one taxonomy version
@@ -98,6 +98,9 @@ export async function ownerPublish({ dataDirectory, section = null, taxonomyVers
     log('No supported corpus versions await publication; no rights or workflow changes were made.');
     return { published: 0, phrase };
   }
+  // The attested corpus rights describe corpus documents only; a practice original gets its own rights when it is registered.
+  const foreign = sources.filter((row) => !row.allowed && !row.corpus);
+  if (foreign.length) throw new Error(`${foreign.length} non-corpus source version(s) lack display rights (${foreign.map((row) => row.id).join(', ')}); nothing was changed`);
 
   const imageStore = targets.some(row => row.hasImages) ? await createLocalImageStore({ rootDirectory: imageStoreDirectory, enabled: true,
     env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' } }) : null;

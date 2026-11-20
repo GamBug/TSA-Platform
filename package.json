@@ -93,6 +93,8 @@
     "test:question-bank": "npm run build && node --experimental-strip-types --test packages/contracts/test/question-exchange.test.ts tests/ai/question-bank-tools.test.mjs",
     "images": "node scripts/image-library.mjs",
     "questions:import": "npm run build && node scripts/questions-import.mjs",
+    "questions:inbox": "npm run build && node scripts/questions-inbox.mjs",
+    "test:question-inbox": "npm run build && node --test tests/ai/question-inbox.test.mjs tests/integration/local/question-inbox.test.mjs",
     "test:image-library": "node --test tests/integration/bank/image-library.test.mjs tests/integration/local/image-library-migration.test.mjs",
     "test:exchange-import": "npm run build && node --test tests/integration/local/exchange-import.test.mjs",
     "test:owner-twins": "npm run build && node --test tests/integration/local/owner-twins.test.mjs",

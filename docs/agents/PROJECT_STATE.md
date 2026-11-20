@@ -19,6 +19,7 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 - Reading research/factory and manual draft transport support validated, unpublished DRAFT intake.
 - Local staff and student demo flows use the existing PostgreSQL-backed practice prototype.
 - Questions can be authored outside the Bank in one versioned format, validated offline and imported as DRAFTs; images are reusable library assets; published keys can be re-checked by blind verification; defective published questions are repaired through new versions ([corrections guide](../guides/BANK_CORRECTIONS.md)).
+- ChatGPT-written originals pasted into `question-inbox/` import with `npm run questions:inbox` into a separate practice pool, offered only as extra practice after owner publication ([inbox guide](../guides/CHATGPT_QUESTION_INBOX.md)).
 
 ## Current checkpoint
 

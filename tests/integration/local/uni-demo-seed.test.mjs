@@ -136,6 +136,27 @@ test('numeric practice needs enough items in one taxonomy version and ignores pa
   assert.deepEqual(science.numericPractice.map((profile) => [profile.section, profile.offered]), [['MATH', false], ['SCIENCE', true]]);
 });
 
+test('the practice pool never feeds the full simulation or the standard practice and gets its own practice plan', () => {
+  const pool = (section, count, overrides = {}) => versions(section, count, { taxonomyVersionId: T2, ...overrides });
+  const plan = planDemoOfferings({ practicePoolTaxonomyIds: [T2], versions: [
+    ...versions('MATH', 40), ...versions('READING', 20), ...versions('SCIENCE', 39),
+    // Enough pool stock to complete the simulation and to outnumber the real practice stock.
+    ...pool('MATH', 60), ...pool('READING', 30), ...pool('SCIENCE', 60), ...numeric('MATH', 4, { taxonomyVersionId: T2 })] });
+  assert.equal(plan.fullSimulation.offered, false);
+  assert.deepEqual(plan.fullSimulation.shortages, [{ section: 'SCIENCE', required: 40, available: 39 }]);
+  assert.equal(plan.fullSimulation.splitAcrossTaxonomies, false);
+  assert.deepEqual(plan.published, { MATH: 40, READING: 20, SCIENCE: 39 });
+  assert.deepEqual(plan.sectionPractice.map((profile) => profile.taxonomyVersionId), [T1, T1, T1]);
+  assert.equal(plan.numericPractice[0].offered, false);
+  assert.deepEqual(plan.practicePool.published, { MATH: 64, READING: 30, SCIENCE: 60 });
+  assert.deepEqual(plan.practicePool.sectionPractice.map((profile) => [profile.section, profile.offered, profile.taxonomyVersionId]),
+    [['MATH', true, T2], ['READING', true, T2], ['SCIENCE', true, T2]]);
+  assert.deepEqual(plan.practicePool.numericPractice.map((profile) => [profile.section, profile.offered]), [['MATH', true], ['SCIENCE', false]]);
+  // Without a pool every taxonomy competes as before.
+  assert.equal(planDemoOfferings({ versions: pool('MATH', 4) }).sectionPractice[0].taxonomyVersionId, T2);
+  assert.equal(planDemoOfferings({ versions: pool('MATH', 4) }).practicePool.sectionPractice[0].offered, false);
+});
+
 test('the offering window opens an hour early and stays open for a bounded whole number of days', () => {
   assert.match(offeringWindow(1), /interval '1 hour'.*interval '1 day'$/);
   assert.match(offeringWindow(14), /interval '14 day'$/);

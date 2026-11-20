@@ -40,6 +40,9 @@ temp/
 # Persistent synthetic-only local PostgreSQL data
 .local/
 
+# Pasted ChatGPT question sets hold answer keys; they stay local
+/question-inbox/
+
 # Private corpus source and derived working data
 /TSA_Example_Questions/
 /data/research/

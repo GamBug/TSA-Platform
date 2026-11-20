@@ -1,5 +1,21 @@
 # Architectural decisions and open questions
 
+## ChatGPT practice pool and question inbox — 2026-11-20
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-20.
+Evidence: the owner asked how to generate questions in three ChatGPT web Projects (Math, Reading, Science) and "just copy
+paste into true folder and this web program could auto update the question", then answered "yes build the inbox command,
+separate practice pool."
+
+1. **Separate pool.** ChatGPT-written originals go into their own taxonomy version ("TSA practice pool - ChatGPT originals
+   v1"). The demo offers them only as extra section, numeric and cloze/matching practice named "— câu hỏi luyện thêm".
+   They never feed the full simulation or the standard practice ("Synthetic items are never substituted" of 2026-11-18 stays).
+2. **Rights.** Each pasted file is registered as its own source version, origin `OWNED`, with an `OWNED` display rights
+   record stating that it is an original written for the owner with ChatGPT. The 2026-11-11 corpus attestation is never
+   applied to these sources. `bank:owner-publish` accepts "Practice original" sources alongside corpus sources.
+3. **Review stays manual.** The inbox imports DRAFTs only. Publication remains the owner's confirmed action after review
+   of every key, as required for AI-written questions on 2026-11-18. Guide: [ChatGPT question inbox](../guides/CHATGPT_QUESTION_INBOX.md).
+
 ## Source credit and one local start command — 2026-11-19
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-19.

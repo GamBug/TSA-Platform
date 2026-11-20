@@ -6,6 +6,7 @@ import { resolveOriginalImportAttribution } from '../modules/bank/import-attribu
 import { appendWorkflowAudit, assertPublicationChecks, assertSingletonAllowed, loadWorkflowTarget } from '../modules/bank/publication-gates.mjs';
 import { recordEquivalenceIncidents } from '../modules/bank/equivalence-incidents.mjs';
 import { withTransaction } from '../modules/database/pool.mjs';
+import { ORIGINAL_SOURCE_PREFIX } from './practice-pool.mjs';
 
 export const OWNER_REVIEWER_ID = '00000000-0000-4000-8000-000000000202';
 export const OWNER_SECTIONS = Object.freeze(['MATH', 'READING', 'SCIENCE']);
@@ -15,7 +16,8 @@ export const OWNER_RIGHTS = Object.freeze({
     + 'the written evidence privately and accepts responsibility. Recorded as OWNER_ATTESTED in docs/decisions/OPEN_DECISIONS.md.',
 });
 const APPROVAL_REASON = 'Owner approval through the owner publication command (the project owner operating the local reviewer '
-  + 'account). Corpus permission OWNER_ATTESTED, docs/decisions/OPEN_DECISIONS.md 2026-11-11. The owner is responsible for reviewing the stored keys, including agent-derived keys.';
+  + 'account). Corpus permission OWNER_ATTESTED, docs/decisions/OPEN_DECISIONS.md 2026-11-11; owner practice originals, 2026-11-20. '
+  + 'The owner is responsible for reviewing the stored keys, including agent-derived and AI-written keys.';
 const RUBRIC = Object.freeze(Object.fromEntries(
   ['correctness', 'unambiguous', 'relevant', 'language', 'explanation', 'rights'].map((key) => [key, true])));
 
@@ -24,9 +26,12 @@ export function confirmationPhrase(count, section) {
   return `PUBLISH ${count} ${section ?? 'ALL'}`;
 }
 
-const CORPUS_SOURCES = `SELECT sv.id FROM tsa.source_versions sv JOIN tsa.sources s ON s.id=sv.source_id WHERE s.title LIKE 'Corpus %'`;
+// Corpus documents (2026-11-11) and the owner's own ChatGPT practice originals (2026-11-20) are publishable sources.
+const CORPUS_TITLE = `s.title LIKE 'Corpus %'`;
+const PUBLISHABLE_SOURCES = `SELECT sv.id FROM tsa.source_versions sv JOIN tsa.sources s ON s.id=sv.source_id
+  WHERE ${CORPUS_TITLE} OR (s.title LIKE '${ORIGINAL_SOURCE_PREFIX}%' AND s.origin='OWNED')`;
 
-/** Latest unpublished imported or exchange versions whose every source is a corpus source. Read-only. */
+/** Latest unpublished imported or exchange versions whose every source is a corpus or practice-original source. Read-only. */
 export async function listOwnerCandidates(client, { section = null } = {}) {
   if (section !== null && !OWNER_SECTIONS.includes(section)) throw new TypeError('section must be MATH, READING or SCIENCE');
   const versions = (await client.query(`
@@ -44,12 +49,14 @@ export async function listOwnerCandidates(client, { section = null } = {}) {
        AND NOT EXISTS(SELECT 1 FROM tsa.question_versions newer
          WHERE newer.question_id=v.question_id AND newer.version_no>v.version_no)
        AND EXISTS(SELECT 1 FROM tsa.bank_question_sources(v.id) s)
-       AND NOT EXISTS(SELECT 1 FROM tsa.bank_question_sources(v.id) s WHERE s.id NOT IN (${CORPUS_SOURCES}))
+       AND NOT EXISTS(SELECT 1 FROM tsa.bank_question_sources(v.id) s WHERE s.id NOT IN (${PUBLISHABLE_SOURCES}))
      ORDER BY v.section, v.id`, [section])).rows;
   const sources = (await client.query(`
-    SELECT DISTINCT s.id, COALESCE(sr.revision,0)::integer AS revision, tsa.bank_source_display_allowed(s.id) AS allowed
-      FROM unnest($1::uuid[]) v(id) CROSS JOIN LATERAL tsa.bank_question_sources(v.id) s
-      LEFT JOIN tsa.source_rights sr ON sr.source_version_id=s.id ORDER BY s.id`, [versions.map((row) => row.id)])).rows;
+    SELECT DISTINCT qs.id, COALESCE(sr.revision,0)::integer AS revision, tsa.bank_source_display_allowed(qs.id) AS allowed,
+           (${CORPUS_TITLE}) AS corpus
+      FROM unnest($1::uuid[]) v(id) CROSS JOIN LATERAL tsa.bank_question_sources(v.id) qs
+      JOIN tsa.source_versions sv ON sv.id=qs.id JOIN tsa.sources s ON s.id=sv.source_id
+      LEFT JOIN tsa.source_rights sr ON sr.source_version_id=qs.id ORDER BY qs.id`, [versions.map((row) => row.id)])).rows;
   return { versions, sources };
 }
 

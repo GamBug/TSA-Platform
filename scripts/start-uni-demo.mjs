@@ -74,6 +74,8 @@ export function formatDemoSummary(demo) {
     `Numeric practice: ${report.numericPractice.map((profile) =>
       `${SECTION_NAMES[profile.section]} ${profile.offered ? 'offered' : 'not offered'} (${profile.available}/${profile.required})`).join(' · ')}`,
     `Cloze/matching practice: Mathematics ${report.clozeMatchingPractice.offered ? 'offered' : 'not offered'} (${report.clozeMatchingPractice.available}/${report.clozeMatchingPractice.required})`,
+    `Practice pool (ChatGPT originals, practice only): published ${DEMO_SECTIONS.map((section) => `${SECTION_NAMES[section]} ${report.practicePool.published[section]}`).join(' · ')}; `
+      + `extra offerings ${report.offerings.filter((offering) => offering.practicePool).length}`,
     `Topic practice: ${report.topicPractice.available ? 'available for published topics' : 'no published items'}`,
     `Bank workflow: ${report.workflow.map((entry) => `${SECTION_NAMES[entry.section]} ${entry.state} ${entry.count}`).join(' · ') || 'no question versions'}`,
   ];

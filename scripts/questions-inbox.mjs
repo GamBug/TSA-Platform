@@ -1,0 +1,192 @@
+// Owner command: import question sets pasted from ChatGPT into the separate practice pool, as DRAFTs.
+//   npm run questions:inbox                                         dry run: checks every pasted file, writes nothing
+//   npm run questions:inbox -- --confirm "IMPORT 20"                imports the importable files and sorts every file
+//   npm run questions:inbox -- --setup [--confirm "REGISTER TAXONOMY"]   one time: register the practice pool
+// Paste each ChatGPT answer as a file in question-inbox/math, question-inbox/reading or question-inbox/science
+// (.json, .txt or .md; a ```json code block or bare JSON). A confirmed run registers each importable file as its own
+// OWNED source, imports its questions as DRAFTs into the pool (a backup is taken first), and moves the file to
+// <subject>/imported/. A file with any problem is imported not at all and moves to <subject>/rejected/ with a
+// .errors.txt message ready to paste back into ChatGPT. Nothing is submitted, approved or published here:
+// the owner reviews and runs bank:owner-publish with the printed --taxonomy-version.
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { importConfirmation, planExchangeImport } from '../src/local/exchange-import.mjs';
+import { startPersistentPostgres } from '../src/local/postgres.mjs';
+import {
+  findPracticePool, ORIGINAL_RIGHTS, ORIGINAL_SOURCE_PREFIX, PRACTICE_POOL_DOMAINS, PRACTICE_POOL_NAME, poolSkill,
+} from '../src/local/practice-pool.mjs';
+import { validateExchange } from '../tools/question-bank/validate.mjs';
+import { importQuestions } from './questions-import.mjs';
+import { fileHash, findSourceVersion, writeSourceVersion } from './register-corpus-source.mjs';
+import { registerTaxonomy } from './register-taxonomy.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+export const INBOX_SUBJECTS = Object.freeze({ math: 'MATH', reading: 'READING', science: 'SCIENCE' });
+const PASTE_EXTENSIONS = new Set(['.json', '.txt', '.md']);
+
+/**
+ * Pull the JSON document out of a pasted ChatGPT answer: the largest ```json (or bare ```) code block, otherwise the
+ * text from the first "{" to the last "}". Returns { document } or { error }. Pure.
+ */
+export function extractJson(text) {
+  const clean = text.replace(/^﻿/, '');
+  const blocks = [...clean.matchAll(/```[a-zA-Z]*[ \t]*\r?\n([\s\S]*?)```/g)].map((match) => match[1]);
+  let candidate;
+  if (blocks.length) candidate = blocks.sort((a, b) => b.length - a.length)[0];
+  else {
+    const start = clean.indexOf('{'), end = clean.lastIndexOf('}');
+    if (start === -1 || end < start) return { error: 'No JSON object was found in the file.' };
+    candidate = clean.slice(start, end + 1);
+  }
+  try { return { document: JSON.parse(candidate) }; } catch (error) { return { error: `The JSON does not parse: ${error.message}` }; }
+}
+
+/** The message to paste back into the ChatGPT conversation for a rejected file. Pure. */
+export function chatGptFixMessage(problems) {
+  return ['The platform rejected your JSON. Fix exactly these problems, keep every other question unchanged, and send the',
+    'whole corrected document again as one ```json code block. If a question cannot be fixed with certainty, remove it.', '',
+    ...problems.map((problem) => `- ${problem.questionId ? `${problem.questionId}: ` : ''}[${problem.code}] ${problem.message}`)].join('\n');
+}
+
+/** Every pasted file, in a stable order, with its folder's subject. */
+async function pastedFiles(inbox) {
+  const files = [];
+  for (const [folder, subject] of Object.entries(INBOX_SUBJECTS)) {
+    const directory = path.join(inbox, folder);
+    await mkdir(path.join(directory, 'imported'), { recursive: true });
+    await mkdir(path.join(directory, 'rejected'), { recursive: true });
+    for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.isFile() && !entry.name.startsWith('.') && PASTE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+        files.push({ subject, folder, name: entry.name, file: path.join(directory, entry.name) });
+      }
+    }
+  }
+  return files;
+}
+
+/** Check one pasted file against the Bank without writing. Adds { document, problems, writes, topicMap }. */
+async function checkFile(client, entry, taxonomyVersionId, seenIds) {
+  const extracted = extractJson(await readFile(entry.file, 'utf8'));
+  if (extracted.error) return { ...entry, problems: [{ questionId: null, code: 'NOT_JSON', message: extracted.error }], writes: 0 };
+  const document = extracted.document;
+  const problems = [];
+  const questions = Array.isArray(document?.questions) ? document.questions : [];
+  for (const question of questions) {
+    if (question?.subject !== entry.subject) {
+      problems.push({ questionId: question?.question_id ?? null, code: 'WRONG_FOLDER', message: `Subject ${question?.subject} does not belong in the ${entry.folder} folder; every question must be ${entry.subject}` });
+    }
+    if (typeof question?.question_id === 'string') {
+      if (seenIds.has(question.question_id)) problems.push({ questionId: question.question_id, code: 'DUPLICATE_ACROSS_FILES', message: `The id is also used in ${seenIds.get(question.question_id)}; give every question in every file its own id` });
+      else seenIds.set(question.question_id, entry.name);
+    }
+  }
+  // Every topic maps to the subject's one skill in the pool; the author's topic is kept in the provenance text.
+  const topicMap = Object.fromEntries(questions.filter((question) => typeof question?.topic === 'string' && typeof question?.subject === 'string')
+    .map((question) => [question.topic, poolSkill(question.subject)]));
+  if (taxonomyVersionId === null) {
+    const report = validateExchange(document);
+    for (const issue of report.errors) problems.push({ questionId: null, code: issue.code, message: `${issue.path || '(document)'}: ${issue.message}` });
+    return { ...entry, document, topicMap, problems, writes: 0 };
+  }
+  const plan = await planExchangeImport(client, document, { deferSourceCheck: true, topicMap, taxonomyVersionId });
+  problems.push(...plan.problems);
+  return { ...entry, document, topicMap, problems, writes: plan.items.filter((item) => item.action !== 'SKIP').length };
+}
+
+const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+
+async function sortInto(entry, outcome, problems = []) {
+  const target = path.join(path.dirname(entry.file), outcome, `${stamp()}-${entry.name}`);
+  await rename(entry.file, target);
+  if (problems.length) await writeFile(`${target}.errors.txt`, `${chatGptFixMessage(problems)}\n`, 'utf8');
+  return target;
+}
+
+export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
+  const files = await pastedFiles(inbox);
+  const database = await startPersistentPostgres(dataDirectory);
+  let taxonomyVersionId, checked = [];
+  try {
+    taxonomyVersionId = await findPracticePool(database.ownerPool);
+    const seenIds = new Map();
+    for (const entry of files) checked.push(await checkFile(database.ownerPool, entry, taxonomyVersionId, seenIds));
+  } finally { await database.stop(); }
+
+  if (files.length === 0) log(`The inbox is empty. Paste ChatGPT answers into ${Object.keys(INBOX_SUBJECTS).map((folder) => path.join(inbox, folder)).join(', ')}.`);
+  for (const entry of checked) {
+    const count = Array.isArray(entry.document?.questions) ? entry.document.questions.length : 0;
+    log(entry.problems.length ? `REJECT  ${entry.folder}/${entry.name}: ${entry.problems.length} problem(s)` : `OK      ${entry.folder}/${entry.name}: ${count} question(s), ${entry.writes} new`);
+    if (entry.problems.length && confirm === undefined) log(`\n${chatGptFixMessage(entry.problems).replace(/^/gm, '        ')}\n`);
+  }
+  if (taxonomyVersionId === null) {
+    log(`The practice pool is not registered yet. Run once: npm run questions:inbox -- --setup --confirm "REGISTER TAXONOMY"`);
+    return { taxonomyVersionId, imported: 0, checked };
+  }
+  const good = checked.filter((entry) => entry.problems.length === 0);
+  const rejected = checked.filter((entry) => entry.problems.length > 0);
+  const phrase = importConfirmation(good.reduce((sum, entry) => sum + entry.writes, 0));
+  if (confirm === undefined) {
+    if (good.length) log(`Dry run only. To import ${good.length} file(s) and move the ${rejected.length} rejected one(s) aside, run:\n  npm run questions:inbox -- --confirm "${phrase}"`);
+    else if (rejected.length) log(`Nothing is importable. Paste each message above into its ChatGPT conversation, then replace the file with the corrected answer.`);
+    return { taxonomyVersionId, imported: 0, phrase, checked };
+  }
+  if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
+
+  let imported = 0;
+  const createdVersionIds = [];
+  for (const entry of rejected) log(`Rejected ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'rejected', entry.problems))}`);
+  for (const entry of good) {
+    const title = `${ORIGINAL_SOURCE_PREFIX}${entry.folder}/${entry.name}`.slice(0, 200);
+    const hash = await fileHash(entry.file);
+    const sourceVersionId = await findSourceVersion(dataDirectory, { title, hash })
+      ?? await writeSourceVersion({ dataDirectory, file: entry.file, hash, title, origin: 'OWNED', rights: ORIGINAL_RIGHTS, registeredBy: 'questions:inbox' });
+    const result = await importQuestions({ dataDirectory, document: entry.document, sourceVersionId, topicMap: entry.topicMap, taxonomyVersionId,
+      confirm: importConfirmation(entry.writes), log: () => {} });
+    if (result.plan && !result.plan.ok) {
+      log(`Rejected ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'rejected', result.plan.problems))}`);
+      continue;
+    }
+    imported += result.imported;
+    createdVersionIds.push(...(result.created ?? []).map((row) => row.versionId));
+    log(`Imported ${result.imported} DRAFT(s) from ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'imported'))}`);
+  }
+  const twins = await openTwins(dataDirectory, createdVersionIds);
+  if (twins) log(`WARNING: ${twins} imported question(s) are exact copies of a question already in the Bank. While a twin is open, neither copy is served.\n`
+    + '  Publish with --keep-one-of-twins to keep one of each pair.');
+  log(`Imported ${imported} DRAFT(s) into the practice pool. Review them, then publish:\n`
+    + `  npm run bank:owner-publish -- --taxonomy-version ${taxonomyVersionId}${twins ? ' --keep-one-of-twins' : ''}\n`
+    + 'Then restart the local demo, or upload the Bank to the live server (bash infra/server/upload-bank.sh).');
+  return { taxonomyVersionId, imported, phrase, checked, createdVersionIds, twins };
+}
+
+async function openTwins(dataDirectory, versionIds) {
+  if (versionIds.length === 0) return 0;
+  const database = await startPersistentPostgres(dataDirectory);
+  try {
+    return (await database.ownerPool.query(`SELECT count(*)::integer AS count FROM tsa.duplicate_relations
+      WHERE kind='EXACT' AND resolution='OPEN' AND (left_version_id = ANY($1::uuid[]) OR right_version_id = ANY($1::uuid[]))`, [versionIds])).rows[0].count;
+  } finally { await database.stop(); }
+}
+
+export function setupPracticePool({ dataDirectory, confirm, log }) {
+  return registerTaxonomy({ dataDirectory, name: PRACTICE_POOL_NAME, domains: PRACTICE_POOL_DOMAINS.map(({ domain, skills }) => ({ domain, skills: [...skills] })), confirm, log });
+}
+
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  const args = process.argv.slice(2), options = {};
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === '--setup') options.setup = true;
+    else if (args[index] === '--confirm' && typeof args[index + 1] === 'string') options.confirm = args[++index];
+    else { process.stderr.write('Usage: npm run questions:inbox -- [--setup] [--confirm "<phrase>"]\n'); process.exit(1); }
+  }
+  const dataDirectory = process.env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b');
+  const inbox = process.env.TSA_QUESTION_INBOX ?? path.join(ROOT, 'question-inbox');
+  try {
+    if (options.setup) await setupPracticePool({ dataDirectory, confirm: options.confirm, log: (line) => process.stdout.write(`${line}\n`) });
+    else await runInbox({ dataDirectory, inbox, confirm: options.confirm });
+  } catch (error) {
+    process.stderr.write(`Inbox stopped: ${error.message}\nBackups taken before changes are in .local/track-b-backups/.\n`);
+    process.exitCode = 1;
+  }
+}

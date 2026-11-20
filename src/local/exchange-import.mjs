@@ -39,11 +39,12 @@ async function libraryCodes(client) {
  * Read-only plan. `problems` is empty only when every question can be imported. Each item says what would happen:
  * CREATE (new Bank question), NEW_VERSION (higher content_version of an imported question) or SKIP (already imported).
  */
-export async function planExchangeImport(client, document, { sourceVersionId, topicMap = {}, taxonomyVersionId = null } = {}) {
+// `deferSourceCheck` plans a file whose source version will be registered only when the import is confirmed.
+export async function planExchangeImport(client, document, { sourceVersionId, topicMap = {}, taxonomyVersionId = null, deferSourceCheck = false } = {}) {
   const problems = [];
   const items = [];
   const problem = (questionId, code, message) => problems.push({ questionId, code, message });
-  if (typeof sourceVersionId !== 'string' || !UUID.test(sourceVersionId)) {
+  if (!deferSourceCheck && (typeof sourceVersionId !== 'string' || !UUID.test(sourceVersionId))) {
     return { ok: false, problems: [{ questionId: null, code: 'SOURCE_VERSION_REQUIRED', message: 'Name an existing source version with --source-version <uuid>' }], items, report: null };
   }
   const report = validateExchange(document, { assets: await libraryCodes(client) });
@@ -53,10 +54,12 @@ export async function planExchangeImport(client, document, { sourceVersionId, to
   }
   const set = report.value;
 
-  const source = (await client.query(`SELECT sv.id, sr.decision_id FROM tsa.source_versions sv LEFT JOIN tsa.source_rights sr ON sr.source_version_id = sv.id WHERE sv.id = $1`,
-    [sourceVersionId])).rows[0];
-  if (!source) problem(null, 'SOURCE_VERSION_NOT_FOUND', 'The named source version does not exist');
-  else if (!source.decision_id) problem(null, 'SOURCE_RIGHTS_MISSING', 'The named source version has no recorded rights decision; this importer never creates one');
+  if (!deferSourceCheck) {
+    const source = (await client.query(`SELECT sv.id, sr.decision_id FROM tsa.source_versions sv LEFT JOIN tsa.source_rights sr ON sr.source_version_id = sv.id WHERE sv.id = $1`,
+      [sourceVersionId])).rows[0];
+    if (!source) problem(null, 'SOURCE_VERSION_NOT_FOUND', 'The named source version does not exist');
+    else if (!source.decision_id) problem(null, 'SOURCE_RIGHTS_MISSING', 'The named source version has no recorded rights decision; this importer never creates one');
+  }
 
   const receipts = (await client.query(`SELECT r.exchange_question_id, r.content_version, r.document_hash, r.question_id, r.question_version_id, w.state::text AS state
       FROM tsa_private.exchange_import_receipts r JOIN tsa.question_workflow w ON w.question_version_id = r.question_version_id
