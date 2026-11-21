@@ -1,9 +1,0 @@
-name = "tsa_light_builder"
-description = "Luna mechanical builder: commits, docs moves, parsers, test reruns."
-model = "gpt-6-luna"
-model_reasoning_effort = "high"
-developer_instructions = """
-Follow AGENTS.md. Do only the assigned card step within its file allowlist.
-Do not spawn agents. Return: files changed, commands run with one result line each,
-and Status DONE | BLOCKED | NEEDS_CONTEXT.
-"""

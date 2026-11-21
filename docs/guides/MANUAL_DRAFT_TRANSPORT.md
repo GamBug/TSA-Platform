@@ -102,7 +102,7 @@ transaction with lost acknowledgment, journal/retirement failures, source reuse,
 ancestor review and student/static HTTP privacy. Disposable database setup backs
 up its empty baseline before migrations. The harness retires its servers/clusters.
 
-[Implementation evidence](../../plans/reports/implementation-261105-2205-manual-draft-transport.md)
+[Implementation evidence](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261105-2205-manual-draft-transport.md)
 records commands, actual review, failures repaired and activation limits.
 
 ## Corpus Reading DRAFTs
@@ -222,7 +222,7 @@ Focused checks: `node --test tests/ai/corpus-math-numeric.test.mjs` and
 
 ## Retained CP3a review queue
 
-The [retained import report](../../plans/reports/codex-261109-1615-cp3a-import.md) records
+The [retained import report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261109-1615-cp3a-import.md) records
 the November 9 operation, pre-import backup, private activation pins and verification.
 Operational artifacts remain owner-only under
 `data/corpus-ingest/cp3a-2026-11-09/retained-2026-11-09/`; the prior disposable packages

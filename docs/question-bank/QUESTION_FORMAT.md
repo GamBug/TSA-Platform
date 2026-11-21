@@ -205,7 +205,7 @@ pasted file at once, registers each file as its own source and imports into the 
      immutable versions under owner authorization before retrying. For example, the current Science passage shared by
      `SCIE-T26SC-000401`–`000404` uses unsupported `\rightleftharpoons`; those drafts remain blocked.
 
-The [publication rehearsal report](../../plans/reports/codex-261116-1417-exchange-draft-publication.md) records copy-only verification and remaining owner decisions.
+The [publication rehearsal report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261116-1417-exchange-draft-publication.md) records copy-only verification and remaining owner decisions.
 
 **Exact copies of published questions.** A draft whose normalised content equals any other question in the same section
 (any taxonomy, any state) is recorded with an OPEN exact-duplicate relation when it is created. While a relation is open,

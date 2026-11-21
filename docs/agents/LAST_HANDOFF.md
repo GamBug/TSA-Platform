@@ -27,7 +27,7 @@
 - Outcome: new `bank:owner-publish --keep-one-of-twins` confirms each exact twin as one equivalence group (no attempt can contain both; nothing deleted). Replay on a fresh copy of the pre-pool backup published 465 questions in one combined taxonomy (Math 170, Reading 100, Science 195; 270 twins confirmed; no open relation); the launcher reports "Full simulation: offered, at least 4 without repeats". A latent importer bug (a later batch adding a question to an existing passage) was fixed with a regression test.
 - Verification: new `test:owner-twins`, `test:exchange-import` (8), `test:question-bank` (53), `test:demo:uni` (17), plan/taxonomy tests (7), `test:docs` pass. The retained Bank (1,410 files) and its image store are unchanged.
 - Open for the owner: run `replay-all-pool.sh` on the retained Bank (only the owner publishes; see the report); read the new questions (no explanations exist); decisions on 9 held-back Math items, 13 Math items with `\overrightarrow`, and Science passages with three or more images. Not done: Chromium 100-question journey on the combined pool.
-- Details, commands, results and owner steps are in the [report](../../plans/reports/claude-261119-all-stock-pool-twins.md); private evidence in `data/corpus-ingest/simulation-pool/` and `science-captures-2026-11-19/`, rehearsal copy `.local/all-pool-rehearsal*`.
+- Details, commands, results and owner steps are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261119-all-stock-pool-twins.md); private evidence in `data/corpus-ingest/simulation-pool/` and `science-captures-2026-11-19/`, rehearsal copy `.local/all-pool-rehearsal*`.
 
 # Current handoff — Science supply from owner captures (CP2 step 4.1)
 
@@ -36,37 +36,37 @@
 - Outcome: 40 whole-passage Science questions (12 Chemistry, 15 Physics, 13 Biology; `SIM-SCIE-000901`–`000940`) replace the 16 PDF-derived Science pool items. No twin among them; importing them opens no duplicate relation; published end to end on a throwaway copy of the pre-pool backup (40 selectable, keys match the pages, 10 bundles). The retained Bank (1,410 files) and its image store are unchanged.
 - Open for the owner: the Math/Reading exact-twin decision (still the blocker for the full test); retained-Bank replay steps in the report; reading the 40 items (no explanations exist, the Math placeholder is used).
 - Not done: owner review sheet, Chromium 100-question journey, any retained-Bank write, rebuilding the stale rehearsal copy. No tracked source file changed.
-- Details, commands, results and owner commands are in the [report](../../plans/reports/claude-261119-science-captures-pool.md); private tooling and evidence under `data/corpus-ingest/science-captures-2026-11-19/`.
+- Details, commands, results and owner commands are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261119-science-captures-pool.md); private tooling and evidence under `data/corpus-ingest/science-captures-2026-11-19/`.
 
 # Current handoff — public student UI (CP3)
 
 - Date and implementer: 2026-11-19, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth`; `TSA_Figma_UIUX/` is the owner's and was left alone.
-- Authorized scope: [CP3](../../plans/261118-1305-public-demo-launch/cp3-student-ui-public.md), inside `apps/candidate-web` and the browser scripts; no API change.
+- Authorized scope: [CP3](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261118-1305-public-demo-launch/cp3-student-ui-public.md), inside `apps/candidate-web` and the browser scripts; no API change.
 - Outcome: guest start, landing text, About page, full-test headline card, meta tags, no logout in public mode; local mode unchanged.
 - Verification: `test:student-web:public` (new, 3 widths), `test:student-web`, `test:student-web:browser`, `test:demo:public` (13), `test:docs` pass. Not run: Android/iOS real devices, Firefox, Zalo/Facebook preview.
 - Open for the owner: contact line for About; domain for Open Graph URL/image. CP2 content (twins, Science) is still the critical path.
-- Details in the [report](../../plans/reports/claude-261119-public-student-ui.md).
+- Details in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261119-public-student-ui.md).
 
 # Current handoff — simulation pool selection (CP2 steps 1–3)
 
 - Date and implementer: 2026-11-18, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Branch `feat/track-b-data-auth` after the CP1 commit; `TSA_Figma_UIUX/` is the owner's and was left alone.
-- Authorized scope: [CP2 steps 1–3](../../plans/261118-1305-public-demo-launch/cp2-content-enrichment.md): backup, combined taxonomy, pool selection, dry runs; every database write on a copy.
+- Authorized scope: [CP2 steps 1–3](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261118-1305-public-demo-launch/cp2-content-enrichment.md): backup, combined taxonomy, pool selection, dry runs; every database write on a copy.
 - Outcome: backup of `.local/track-b` verified (1,410 files, identical hashes; the retained Bank is unchanged). "TSA simulation taxonomy v1" registered on the copy. Eleven exchange files select Math 40 and Reading 20 exactly and 16 Science choice items; the Science gap is **24** items (suggested new passage sizes: 6+6+6+6, 5+5+5+5+4 or 4+4+4+6+6).
 - **Blocker:** pool questions copied from served Math/Reading are exact twins. Creating them opens exact-duplicate relations that hide the served originals (Math 196 → 156 deliverable, Reading 100 → 80 served on the copy) and stop the copies being approved (`CONSTRAINT_CONFLICT`). Do **not** import the pool into the retained Bank until the owner chooses how to resolve the twins (recommended: adjudicate them as equivalent through the existing equivalence service, an owner step that still has to be built and rehearsed).
 - Tooling added: `bank:register-taxonomy --domains`, `bank:owner-publish --taxonomy-version`, tests and a format-guide note. No migration, contract, key, application route or retained Bank change.
 - Verification: new and related suites pass (7, 8, 53, 13 tests; none skipped). No browser journey, second reviewer, AI Science writing or owner approval exists yet.
 - Private evidence: `data/corpus-ingest/simulation-pool/` (selection, exchange files, topic maps, `run-import.sh`), `.local/sim-pool-rehearsal/` (copy with the imported drafts), `.local/track-b-backups/pre-simulation-pool-261118/` and its `.sha256` manifest.
-- Details, commands, results, limits and the owner's next action are in the [report](../../plans/reports/claude-261119-simulation-pool-selection.md).
+- Details, commands, results, limits and the owner's next action are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261119-simulation-pool-selection.md).
 
 # Current handoff — public demo mode (CP1)
 
 - Date and implementer: 2026-11-18, Asia/Bangkok; Claude Code (Sonnet 5.5), single agent. Starting branch `feat/track-b-data-auth` at `c5606a6`; `TSA_Figma_UIUX/` is the owner's untracked folder and was left alone.
-- Authorized scope: CP1 of the [public demo launch plan](../../plans/261118-1305-public-demo-launch/cp1-public-mode.md).
+- Authorized scope: CP1 of the [public demo launch plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261118-1305-public-demo-launch/cp1-public-mode.md).
 - Outcome: `DEMO_PUBLIC=true DEMO_PUBLIC_ORIGIN=https://<domain> npm run demo:uni` serves only `/student/` and the candidate APIs, one synthetic guest per browser (`POST /local-auth/guest`), 404 for every staff path, Host/Origin pinned to the public origin, security headers, `GET /healthz`. The local demo is unchanged. No migration, contract, retained Bank, `apps/candidate-web` or `data/` change.
 - Verification: build, `test:demo:public` (13, new), `test:demo:uni` (17), `test:critical:privacy` (2), `test:student` (85), `test:student-web` (2), `test:b0` (112) and `test:docs` (13) all pass. Browser suites and a real-browser CSP check over https were not run.
 - For CP3: the app reads `publicDemo` from `/local/demo-notice` and must sign in through `/local-auth/guest`; the current A/B login is 404 in public mode. For CP4: the proxy must forward Host and Origin and append `X-Forwarded-For`; health probe is `http://127.0.0.1:4180/healthz`. Offerings built at start expire after one day (restart daily or widen the window).
 - Review: `/code-review` run on the diff; outcome in the report. No independent human or second-agent review is claimed.
-- Details, guest flow, env vars, commands and limits are in the [report](../../plans/reports/claude-261119-public-mode.md).
+- Details, guest flow, env vars, commands and limits are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261119-public-mode.md).
 
 # Previous handoff — student image delivery
 
@@ -84,7 +84,7 @@
 - Review: inline code review found no remaining issue; no independent reviewer was used. The owner retains authority
   over importing the reviewed package and publishing real questions. The held duplicate remains withheld.
 - Current Git reference: implementation commit `4b77835`; the companion documentation commit records this handoff.
-- Commands, results, reproduction and limits are in the [report](../../plans/reports/codex-261117-student-image-delivery.md).
+- Commands, results, reproduction and limits are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261117-student-image-delivery.md).
 
 # Previous handoff — delegated question content review
 
@@ -104,7 +104,7 @@
 - Content decisions are resolved; the remaining boundary is authorization for a backed-up retained import and owner
   publication. The held duplicate remains withheld. No further per-question decision sheet is required for this set.
 - Current Git reference: safeguard commit `78e3ec9`; the companion documentation commit contains this handoff and report.
-- Commands, observed failures, evidence limits and commit references are in the [report](../../plans/reports/codex-261116-2332-question-content-review.md).
+- Commands, observed failures, evidence limits and commit references are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261116-2332-question-content-review.md).
 
 # Previous handoff — exchange draft publication repair
 
@@ -120,15 +120,15 @@
   authorized content revisions or a separately approved contract proposal. No content gate or answer was changed.
 - Other owner decisions remain: the five Math key disagreements, nine uncertain keys, held duplicate `22b00db1`, and
   approval of any real publication. Do not confirm a blanket batch while those decisions remain unresolved.
-- Evidence, commands, observed failures, retained-copy paths and follow-up are in the [report](../../plans/reports/codex-261116-1417-exchange-draft-publication.md).
+- Evidence, commands, observed failures, retained-copy paths and follow-up are in the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261116-1417-exchange-draft-publication.md).
 - Current Git reference: implementation commit `f529b55`; the companion documentation commit contains this handoff and report.
 - Ownership: the implementation is complete; the owner retains publication authority. No push or merge is authorized.
 
 # Previous handoff — program audit in progress
 
-**2026-11-16 (Reading and Science).** 35 more drafts are in the retained Bank (9 Reading, 26 Science), none selectable. New: passage import in the exchange importer, `bank:register-taxonomy`, a Science taxonomy and 10 Science figures. Those two engineering questions are resolved by the publication repair above; real publication still awaits the owner. See the [report](../../plans/reports/claude-261116-1307-tsa-2026-dot1-reading-science-import.md).
+**2026-11-16 (Reading and Science).** 35 more drafts are in the retained Bank (9 Reading, 26 Science), none selectable. New: passage import in the exchange importer, `bank:register-taxonomy`, a Science taxonomy and 10 Science figures. Those two engineering questions are resolved by the publication repair above; real publication still awaits the owner. See the [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261116-1307-tsa-2026-dot1-reading-science-import.md).
 
-**2026-11-16 (later).** The owner's 7 verification corrections are applied, and the TSA 2026 đợt 1 PDF was added: 106 Math drafts (agent-derived keys, not selectable) are in the retained Bank; Reading and Science are the next task and need passage import plus a Science taxonomy. See the [PDF import report](../../plans/reports/claude-261116-1014-tsa-2026-dot1-math-import.md).
+**2026-11-16 (later).** The owner's 7 verification corrections are applied, and the TSA 2026 đợt 1 PDF was added: 106 Math drafts (agent-derived keys, not selectable) are in the retained Bank; Reading and Science are the next task and need passage import plus a Science taxonomy. See the [PDF import report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261116-1014-tsa-2026-dot1-math-import.md).
 
 **2026-11-16 update (Claude Code session, single agent).** Added `tsa-question/1` (portable question format, offline
 validator, standalone AI prompt, exportable package), an image asset library (migration 032), a draft importer
@@ -139,7 +139,7 @@ the 197 Math items that had none found 182 agreeing and 7 further defects; their
 must run `npm run bank:correct -- --spec <that file> --confirm "CORRECT 7"` (the agent's attempt was blocked, correctly,
 because the brief forbids changing answers from model output without the owner). Passage-based questions cannot be
 imported by the exchange importer, the empty legacy topic group remains, and nothing is pushed unless the report says so.
-Full results: [report](../../plans/reports/claude-261116-0242-question-bank-architecture.md).
+Full results: [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261116-0242-question-bank-architecture.md).
 
 **2026-11-15 update (Claude Code session, single agent).** CI was failing because three Reading
 interaction suites read the gitignored corpus; they now use a synthetic corpus, with
@@ -147,12 +147,12 @@ interaction suites read the gitignored corpus; they now use a synthetic corpus, 
 demo passes every student journey. The retained Bank was not changed. Open owner decisions: five
 published Math items with inconsistent source keys, one published duplicate, and the source-credit
 text for `demo:uni`. Details and the recommended next task are in the
-[stabilization audit](../../plans/reports/claude-261115-2242-demo-stabilization-audit.md).
+[stabilization audit](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261115-2242-demo-stabilization-audit.md).
 
 The owner requested a full-program audit and repair loop, single agent, and resumed
 with full execution permissions on 2026-11-11. The current Codex session owns the
-work. [Plan](../../plans/2026-11-11-program-audit/plan.md);
-[audit evidence and live verification handles](../../plans/reports/codex-261111-2256-program-audit.md).
+work. [Plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/2026-11-11-program-audit/plan.md);
+[audit evidence and live verification handles](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261111-2256-program-audit.md).
 Confirmed fixes cover numeric/cloze image routing, missing-route responses,
 registered local route forwarding, stale simulation polling and publication source
 selection. Startup role/capability drift and unsupported rights timestamps are now
@@ -182,7 +182,7 @@ is claimed. The prior Math handoff below remains valid for that preserved work.
 ## Previous handoff — Math cloze and matching
 
 - Date and implementer: 2026-11-11, Asia/Bangkok; current Codex session, single agent. No subagents or independent reviewer.
-- Task/status: [Math cloze/matching follow-up](../tasks/TASK_BACKLOG.md#math-clozematching-follow-up), DONE_WITH_CONCERNS, uncommitted. [Plan](../../plans/261111-2045-math-cloze-matching/plan.md); [report](../../plans/reports/codex-261111-2045-math-cloze-matching.md).
+- Task/status: [Math cloze/matching follow-up](../tasks/TASK_BACKLOG.md#math-clozematching-follow-up), DONE_WITH_CONCERNS, uncommitted. [Plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261111-2045-math-cloze-matching/plan.md); [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261111-2045-math-cloze-matching.md).
 - Starting state: `feat/track-b-data-auth` at `61a35ab`, with only the preceding untracked Math diagnosis report. It was preserved; no concurrent implementers were used.
 - Scope: private standalone Math intake, question/3 owner publication, separate published-only demo practice and retained DRAFT import. Excluded unrelated image/fraction work and retained publication.
 - Changed surfaces: private factory/4 schemas/builder and admission mapping/namespace; Math package/intake tools; owner publication and university demo; regression/browser checks; owning guides, decision/task/state/plan/report records and journal.
@@ -212,4 +212,4 @@ Independent review: NOT PERFORMED, per the owner's single-agent experiment. Inli
 - Owner next action: review six derived pools, symbolic exact-text answers and source wording/key concerns in the report; then run `npm run bank:owner-publish -- --section MATH --confirm "PUBLISH 22 MATH"`. Restart `demo:uni` with the existing source credit and open `?student=postgres-v4`.
 - Remaining sources: GiaiTich/000007 needs its graph; HinhHoc/000007 lacks complete question/key data; XacxuatThongke/000034 has no visible keys. Across Math, 119 captures remain without retained imports.
 - Recovery: artifacts under `data/corpus-ingest/cp3b-interactions-2026-11-11/`. Dumps: `retained/backup/before-start-ovUMeA/database.dump` and `retained-text-only/backup/before-start-svvjST/database.dump`. Inspect original package/admission/receipt records before recovery; do not regenerate identities for committed batches.
-- Ownership: implementation complete; no delegate ownership or background process remains. Backlog, project state and handoff were updated by the same implementer. Earlier CP6 evidence remains in its [report](../../plans/reports/claude-261110-2301-cp6.md) and Git history.
+- Ownership: implementation complete; no delegate ownership or background process remains. Backlog, project state and handoff were updated by the same implementer. Earlier CP6 evidence remains in its [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261110-2301-cp6.md) and Git history.

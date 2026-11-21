@@ -53,7 +53,7 @@ Approval identity: human project owner in a Claude Code conversation, Asia/Bangk
 Evidence: "Wanna completed demo and ready to public on live url in 24th November 26"; "we gonna need
 enrich our ques bank. an complete 40/20/40 test is esential."; selected answers "Guests, staff off",
 "Both" (Science source), "New combined taxonomy", "1 complete test"; "my cousin has VPS … He tell this
-evening he gonna give me access." Plan: [public demo launch](../../plans/261118-1305-public-demo-launch/plan.md).
+evening he gonna give me access." Plan: [public demo launch](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261118-1305-public-demo-launch/plan.md).
 
 1. **Public visitors** sign in as one-click synthetic guests (one guest per browser, no personal data).
    The staff workspace is not reachable on the public URL; staff work stays on the owner's machine.
@@ -92,7 +92,7 @@ portable AI-generation package and a blind answer-verification workflow, and to 
    DRAFTs only; they never submit, review, approve or publish, and never create or change sources or rights.
 4. **Image library.** Additive registry over the existing asset versions; assets are never deleted.
 
-Details and evidence: [report](../../plans/reports/claude-261116-0242-question-bank-architecture.md).
+Details and evidence: [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261116-0242-question-bank-architecture.md).
 
 ## Math cloze and matching intake — 2026-11-11
 
@@ -109,7 +109,7 @@ choices are missing, apply the [captured-correct-text adaptation policy](#cp4-de
 bounded reuse and owner review. Symbolic cloze keys are transcribed into declared keyboard notation;
 the existing exact-text comparison remains unchanged and makes no algebraic-equivalence claim.
 No retained question approval, publication, commit, delegation or paid provider call is authorized.
-Implementation and actual verification are tracked in the [Math plan](../../plans/261111-2045-math-cloze-matching/plan.md).
+Implementation and actual verification are tracked in the [Math plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261111-2045-math-cloze-matching/plan.md).
 
 ## University demo scope: no full simulation — 2026-11-11
 
@@ -148,7 +148,7 @@ have no rights record.
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
 Evidence: “ok approve. resume cp4”, followed by the explicit policy selection:
 “Derive targets from explicitly captured correct texts; retain as DRAFTs for owner review”.
-Scope: resume the [CP4 card](../../plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md),
+Scope: resume the [CP4 card](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261108-1553-codex-autonomous-demo/cp4-cloze-matching.md),
 using only explicitly captured correct texts to derive missing matching target choices.
 Mark the derived pool as an adaptation requiring owner review; do not claim fidelity to the
 uncaptured original pool or invent distractors, answers or accepted variants. Use an explicit
@@ -159,7 +159,7 @@ authorizes partially keyed passage groups: preserve the ten shared passages, imp
 explicitly keyed captures, and report the 22 true/false captures without inferred keys.
 The owner also approved the previously proposed four-file documentation commit; subsequent
 implementation commits still require a concrete grouping plan and the owner's `ok`.
-Initial blocker evidence: [report](../../plans/reports/codex-261109-1958-cp4.md).
+Initial blocker evidence: [report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261109-1958-cp4.md).
 
 ## CP3b revised Math ingestion authority — 2026-11-09
 
@@ -168,7 +168,7 @@ Evidence: “I approve the 2026-11-09 revision in cp3-corpus-ingestion.md, inclu
 The owner also requires 20-item resumable batches, a clean quota stop/report, and reuse of
 CP3a corpus profile/verifier patterns. Scope is the revised CP3 card under the leader prompt;
 source keys, private DRAFT state and existing approval/publication gates remain unchanged.
-The initial [blocker report](../../plans/reports/codex-261109-1636-cp3b.md) identified the shared
+The initial [blocker report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261109-1636-cp3b.md) identified the shared
 v3 parser/builder outside the earlier allowlist. The owner subsequently replied “Yes, approved”,
 expanded the card to the existing import pipeline and added the leader prompt's unlisted-files rule.
 The owner expressly directed committing those two edits with the implementation and continuing
@@ -193,12 +193,12 @@ answers, disagreements, ambiguity and evidence flags from the retained import re
 Keep source captures and the prior verification evidence unchanged. All 100 items stay DRAFT;
 no approval, publication or rights grant is authorized. The requested dev server remains
 running for owner review at session end. No network, paid API or remote Git operation.
-Execution, backup path and retained activation evidence: [import report](../../plans/reports/codex-261109-1615-cp3a-import.md).
+Execution, backup path and retained activation evidence: [import report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261109-1615-cp3a-import.md).
 
 ## CP3a corpus transport compatibility — 2026-11-09
 
 Approval identity: human project owner in this Codex conversation, Asia/Bangkok.
-Evidence: after the [provenance blocker](../../plans/reports/codex-261109-1342-cp3a.md),
+Evidence: after the [provenance blocker](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261109-1342-cp3a.md),
 the owner directed: “BRO! I gave u full permission. finish CP3a at any cost!”
 This authorizes the additive corpus Reading transport, parser/builder/coordinator compatibility,
 focused tests and disposable local verification needed for the approved 100-DRAFT target.
@@ -218,7 +218,7 @@ allow a later separately authorized import. Owner approval/publication remains a
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-07.
 The owner directed AI agents to record these decisions. Planning context:
-[readiness review](../../plans/reports/review-261107-2114-tsa-product-readiness-gap.md).
+[readiness review](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/review-261107-2114-tsa-product-readiness-gap.md).
 These decisions set direction only. They do not implement anything, and the frozen contracts stay
 as they are until versioned additions are reviewed.
 
@@ -258,7 +258,7 @@ as they are until versioned additions are reviewed.
 
 ## Track B modernization local execution authority — 2026-11-06
 
-Approval identity: human project owner in this Codex conversation, Asia/Bangkok. Durable evidence: the owner supplied the full Track B Development & UX/UI Modernization mission and then replied “full permission. work non-stop.” Scope covers local compatible backend/frontend implementation, dependency use, disposable database verification and bounded supported delegation. It excludes force-push, merge, publication/deployment, production databases, unrelated deletion, history rewrites, paid external services and silent breaking contracts. [Execution contract](../../plans/261106-1019-track-b-modernization/plan.md).
+Approval identity: human project owner in this Codex conversation, Asia/Bangkok. Durable evidence: the owner supplied the full Track B Development & UX/UI Modernization mission and then replied “full permission. work non-stop.” Scope covers local compatible backend/frontend implementation, dependency use, disposable database verification and bounded supported delegation. It excludes force-push, merge, publication/deployment, production databases, unrelated deletion, history rewrites, paid external services and silent breaking contracts. [Execution contract](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261106-1019-track-b-modernization/plan.md).
 
 This authorizes additive topic-practice interfaces alongside existing APIs; existing attempt ownership, eligibility, grading, disclosure and immutable taxonomy/history remain stable. It does not grant content rights, qualified human approval or official HUST affiliation. Existing independent-section architecture remains authoritative; entry cards must describe actual configured offerings rather than imply a combined official examination.
 
@@ -297,7 +297,7 @@ not a supplied activation file or a human content decision.
 Human scientific/content/rights/accessibility review, lawful publication,
 production deployment, paid LLM API use, and original-repository commit/push/merge
 are outside this local engineering authorization. Their actual evidence and gates
-remain required. [Execution plan](../../plans/261105-2120-recovery028-manual-draft-transport/plan.md).
+remain required. [Execution plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2120-recovery028-manual-draft-transport/plan.md).
 
 ## RECOVERY-028 private activation proposal — 2026-11-05
 

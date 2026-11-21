@@ -95,4 +95,4 @@ The general runtime still requires an explicitly supplied image store; productio
 Only published, selectable questions enter the demo. Connecting the library does not publish imported drafts.
 Question, option and passage figures use the same attempt-bound routes; explanation figures remain unavailable until
 results are released. Stored bytes, inspection, rights and ownership are checked as before. See the
-[copy-only browser verification](../../plans/reports/codex-261117-student-image-delivery.md).
+[copy-only browser verification](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/codex-261117-student-image-delivery.md).

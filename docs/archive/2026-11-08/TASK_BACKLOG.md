@@ -2,9 +2,9 @@
 
 ## TRACK-B-MODERNIZATION — Topic practice and student experience
 
-- Status: IN_PROGRESS; core implementation integrated and scoped verification/review complete, 2026-11-06. Media/keyboard continuation updated2026-11-07; [current evidence](../../plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). Current Codex controller accountable; explicit owner mission authorizes local implementation, compatible migrations, testing and bounded delegation. No commit/deploy/production/paid API authority.
-- [Implementation, executed checks and remaining scope](../../plans/reports/implementation-261106-1827-track-b-modernization.md). New owner-supplied corpus inspected read-only:600files,20shared Reading passages, numeric/text/matching and answer-bearing/cropped capture gaps; no import. [Inspection](../../plans/reports/research-261106-1827-tsa-example-questions.md).
-- [Outcome, ownership and acceptance](../../plans/261106-1019-track-b-modernization/plan.md); [reconnaissance and baseline](../../plans/reports/reconnaissance-261106-1019-track-b-modernization.md).
+- Status: IN_PROGRESS; core implementation integrated and scoped verification/review complete, 2026-11-06. Media/keyboard continuation updated2026-11-07; [current evidence](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). Current Codex controller accountable; explicit owner mission authorizes local implementation, compatible migrations, testing and bounded delegation. No commit/deploy/production/paid API authority.
+- [Implementation, executed checks and remaining scope](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261106-1827-track-b-modernization.md). New owner-supplied corpus inspected read-only:600files,20shared Reading passages, numeric/text/matching and answer-bearing/cropped capture gaps; no import. [Inspection](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/research-261106-1827-tsa-example-questions.md).
+- [Outcome, ownership and acceptance](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261106-1019-track-b-modernization/plan.md); [reconnaissance and baseline](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/reconnaissance-261106-1019-track-b-modernization.md).
 - Controller owns entry/topic frontend, staff taxonomy selectors, integration and shared records. Native backend/exam workers own assigned slices. Independent read-only review follows integration.
 - Recommendation: current Codex/current available model with high reasoning where available; independent supported reviewer through existing subscriptions. No assumed quotas. Preserve unrelated recovery work and frozen lifecycle/disclosure contracts.
 
@@ -13,7 +13,7 @@
 - Status: IN_PROGRESS, 2026-11-05; root accountable integrator. Current owner
   authority explicitly covers the reviewed media design. This proceeds while the
   separate exact manual registration/snapshot question is pending.
-- [Outcome, constraints, phases, deadlines and acceptance](../../plans/261105-2242-recovery029-media-delivery/plan.md).
+- [Outcome, constraints, phases, deadlines and acceptance](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2242-recovery029-media-delivery/plan.md).
   Frozen attemptAsset route/DTO, additive separate profile, private content-addressed
   store and current owner/section/release/rights checks; feature off by default.
   No production/content-rights/human review, capture, paid API or commits.
@@ -36,7 +36,7 @@
   The owner's latest explicit full-permission reply to the concrete blocked
   proposals authorizes local zero-cost engineering; see the current
   [authority record](../decisions/OPEN_DECISIONS.md).
-- Outcome/constraints/acceptance/deadlines: [execution plan](../../plans/261105-2120-recovery028-manual-draft-transport/plan.md).
+- Outcome/constraints/acceptance/deadlines: [execution plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2120-recovery028-manual-draft-transport/plan.md).
   Preserve reviewed design bytes, v1/v2, question/1, historical drafts and human/
   rights/publication/production gates. New v3 intake stays private DRAFT, disabled
   by default, no SQL/grants/provider/paid API changes or original commits.
@@ -53,7 +53,7 @@
   Actual independent review closed all findings and reran contract7/config5 PASS.
   Root final command28/combined v2-v3-review74/contracts168/AI78/emitted2+12 PASS;
   build/type/drift/boundaries/docs/whitespace PASS. See
-  [execution evidence](../../plans/reports/implementation-261105-2205-manual-draft-transport.md).
+  [execution evidence](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261105-2205-manual-draft-transport.md).
 - Retained Bank inspected read-only after a stopped64,051,200-byte physical backup:
   existing synthetic author present, Reading taxonomy0. Exact separate
   [registration/activation proposal](../decisions/OPEN_DECISIONS.md#recovery-028-private-activation-proposal--2026-11-05)
@@ -96,7 +96,7 @@ tests, dependency or production action is assigned by this gate record.
   cwd/timezone/English context. No quota/model availability assumption.
 - Report: plans/reports/tooling-261105-1508-agentkit-hooks.md. No new product plan,
   global installation/repair, config migration or hook execution experiment.
-- Outcome: [operating report](../../plans/reports/tooling-261105-1508-agentkit-hooks.md).
+- Outcome: [operating report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/tooling-261105-1508-agentkit-hooks.md).
   AK3.0.0/Engineer0.2.0 local native destinations inspected; actual Codex global
   hooks25bindings/18scripts/8events, all18syntax checks PASS. Selected doctor
   reports3ok/0fail/2skip; skips are not full integrity/execution proof. CLI agent

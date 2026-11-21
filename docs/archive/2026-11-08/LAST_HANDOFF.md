@@ -1,7 +1,7 @@
 # Current continuation — inspected images and shortcut accessibility
 
 - November7,2026, Asia/Bangkok; Codex controller, feat/track-b-data-auth at a70861a. Existing dirty work and original corpus preserved. No publication, commit, production/retained database migration or paid API. No background preview left by prior checks.
-- [Implementation, actual reviews and tests](../../plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). SQL028 and private Bank/attempt/HTTP image path implemented/default-off; text-only history preserved. Large1200×800 synthetic diagrams verified in Chromium156 and Firefox156, including mobile enlargement, focus and released explanations.
+- [Implementation, actual reviews and tests](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). SQL028 and private Bank/attempt/HTTP image path implemented/default-off; text-only history preserved. Large1200×800 synthetic diagrams verified in Chromium156 and Firefox156, including mobile enlargement, focus and released explanations.
 - Independent stimulus-edge finding fixed with a regression. Rights/hold/submit/quarantine/deadline/state/timeout, release commit ordering and natural rights expiry/revocation passed. Populated027→028 data/security/rollback/replay passed. Final combined media56/56 passed. Final independent review closed the stimulus finding, passed16helper tests and found no new concrete defect; DB/browser checks were controller-executed. Do not infer unrun future-section/full-exam acceptance.
 - Shortcut help now has per-open-page character-key opt-out; both browser keyboard journeys passed after explicit modal opener restoration fixed a reproduced Chromium focus issue. Primary W3C/QTI research is linked in the continuation report. One test delegate hit a subscription limit; controller completed tests locally.
 - Pending: final gate reconciliation and exact synthetic-demo activation boundary; versioned text/numeric/cloze/matching and combined-examination compatibility remain outside current question/1 and independent-section H3 behavior. No corpus ingestion or rights approval. Older handoffs below are historical checkpoints.
@@ -9,15 +9,15 @@
 # Active handoff — Track B modernization and new example corpus
 
 - 2026-11-06, Asia/Bangkok; current Codex controller accountable. Branch feat/track-b-data-auth, HEADa70861a; uncommitted extensive inherited work preserved. Origin fetched and matched HEAD. No commit/deploy/production database/paid API action.
-- [Implemented behavior, actual reviews/tests, commands and remaining gaps](../../plans/reports/implementation-261106-1827-track-b-modernization.md). Core topic/staff/exam integration is working; full mission remains IN_PROGRESS. SQL027 is tested only in disposable backed-up clusters; no retained database migrated. Backups now precede retained startup and disposable fixture migrations.
+- [Implemented behavior, actual reviews/tests, commands and remaining gaps](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261106-1827-track-b-modernization.md). Core topic/staff/exam integration is working; full mission remains IN_PROGRESS. SQL027 is tested only in disposable backed-up clusters; no retained database migrated. Backups now precede retained startup and disposable fixture migrations.
 - Initial broad regression325/328passed;3exact migration-list failures repaired and targeted27/27passed. Actual topic HTTP/persistence/grade/ownership, bundle/replay/equivalence and populated upgrade checks passed. Chrome/Firefox topic and shortcut journeys passed. Final reviewer source finding closed; reviewers did not independently execute DB/browser suites. Read report limitations rather than infer full acceptance.
-- Owner's latest steering: inspect new `TSA_Example_Questions`. [Read-only findings](../../plans/reports/research-261106-1827-tsa-example-questions.md):600files,200Reading text captures/20shared passages,400fixed-viewport PNGs, exposed keys, cropped media, numeric/text/matching interactions and classification mismatches. All originals unchanged/unpublished. Scientific Reading must not be mapped to the Science section.
+- Owner's latest steering: inspect new `TSA_Example_Questions`. [Read-only findings](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/research-261106-1827-tsa-example-questions.md):600files,200Reading text captures/20shared passages,400fixed-viewport PNGs, exposed keys, cropped media, numeric/text/matching interactions and classification mismatches. All originals unchanged/unpublished. Scientific Reading must not be mapped to the Science section.
 - Next: resolve versioned entry/matching compatibility from concrete examples; finish inherited authorized private image delivery; retain independent-section H3 semantics until a separately versioned combined examination is designed/approved. Do not claim new interaction/media support or import reference screenshots as public question assets.
 - Writer/reviewer reservations released after integration. All started verification processes ended or were harness-cleaned; no preview left running. Existing media/manual recovery records below are preserved.
 
 # Active handoff — RECOVERY-029 media implementation; manual activation pending
 
-- Root starts [RECOVERY029](../../plans/261105-2242-recovery029-media-delivery/plan.md)
+- Root starts [RECOVERY029](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2242-recovery029-media-delivery/plan.md)
   under the owner's recorded local media authority. Actual read-only scout mapped
   the frozen asset GET gap, text-only Bank writer and SQL008 guard order; migration
   sequence ends026. Source/ACL/inspection interfaces are next.
@@ -40,9 +40,9 @@
   independent review closed all findings and independently reran7contract/
   5configuration tests. Root final command28, combinedPG74, contracts168, AI78,
   emitted2+12, build/type/drift/boundaries/docs/whitespace PASS.
-  [Evidence and repaired failures](../../plans/reports/implementation-261105-2205-manual-draft-transport.md),
+  [Evidence and repaired failures](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261105-2205-manual-draft-transport.md),
   [operator guide](../guides/MANUAL_DRAFT_TRANSPORT.md),
-  [plan/deadlines](../../plans/261105-2120-recovery028-manual-draft-transport/plan.md).
+  [plan/deadlines](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2120-recovery028-manual-draft-transport/plan.md).
 - Retained local cluster received a stopped physical backup before read-only
   registry inspection, then was stopped. Author exists; Reading taxonomy0.
   [Exact separate proposal](../decisions/OPEN_DECISIONS.md#recovery-028-private-activation-proposal--2026-11-05)
@@ -66,7 +66,7 @@
   after the concrete blocked-proposal report. Root records scoped approval of
   reviewed local zero-cost manual/media/planner engineering in
   [decisions](../decisions/OPEN_DECISIONS.md); root starts manual transport first.
-- [Active plan and deadlines](../../plans/261105-2120-recovery028-manual-draft-transport/plan.md).
+- [Active plan and deadlines](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2120-recovery028-manual-draft-transport/plan.md).
   Root owns integration/shared records; read-only contract scout assigned.
   Strict manual v3, existing registered mapping, EXTERNAL import classification,
   private evidence/null usage and DRAFT-only intake; no SQL/grants/provider change.
@@ -124,7 +124,7 @@
   and remain unchanged; raw output/receipt retained under the successful private
   RECOVERY024 artifact root. [Dated receipt](../reviews/RECOVERY_CURRENT_SOURCE_REPRODUCTION_2026_11_05.md).
   No dependency update/fix or general security/release acceptance inferred.
-- RECOVERY027 [AgentKit operating report](../../plans/reports/tooling-261105-1508-agentkit-hooks.md):
+- RECOVERY027 [AgentKit operating report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/tooling-261105-1508-agentkit-hooks.md):
   AK3.0.0, Engineer0.2.0 global native Codex/Claude installation metadata;
   actual `~/.codex/hooks.json` has25bindings/18distinct scripts/8events. All18
   CJS syntax checks PASS. Offline selected doctor3ok/0fail/2skip; direct global

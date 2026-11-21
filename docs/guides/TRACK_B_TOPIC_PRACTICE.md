@@ -2,7 +2,7 @@
 
 Optional decimal entry uses a separate versioned capability. See [numeric practice and its disposable demonstration](TRACK_B_NUMERIC_PRACTICE.md); the topic catalog retains its existing eligibility rules.
 
-Local implementation and scoped verification are recorded in the [execution plan](../../plans/261106-1019-track-b-modernization/plan.md). This is an independent, unofficial local preparation platform. Synthetic examples establish engineering behavior, not content rights, qualified publication review, official scoring or HUST affiliation.
+Local implementation and scoped verification are recorded in the [execution plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261106-1019-track-b-modernization/plan.md). This is an independent, unofficial local preparation platform. Synthetic examples establish engineering behavior, not content rights, qualified publication review, official scoring or HUST affiliation.
 
 ## Classification and counts
 
@@ -41,7 +41,7 @@ Global shortcuts ignore input, textarea, select, editable regions, composing/rep
 
 Shortcut help includes a native checkbox to disable character-only shortcuts, including the question-mark shortcut. The visible Help button remains available. The preference applies to the current open page and survives question redraws; a page reload starts with the default enabled setting. Ctrl+Enter and native keyboard operation remain available. This follows [W3C's character-shortcut guidance](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html); it is not a claim of complete accessibility conformance.
 
-Authorized images use only the frozen owned-attempt asset route with an explicit question/explanation purpose, alternative text and native enlargement. SQL028 and an explicitly injected private local image store support inspected PNG/JPEG/WebP content through a separate profile. The feature remains disabled by default. Student byte requests recheck ownership, sealed membership, purpose/security class, current rights/holds, section timing and released-result permission. Unsupported, corrupt or unavailable bytes fail closed. See the [media implementation plan](../../plans/261105-2242-recovery029-media-delivery/plan.md) and [verification checkpoint](../../plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). No source screenshot import or general media activation follows from the test fixture.
+Authorized images use only the frozen owned-attempt asset route with an explicit question/explanation purpose, alternative text and native enlargement. SQL028 and an explicitly injected private local image store support inspected PNG/JPEG/WebP content through a separate profile. The feature remains disabled by default. Student byte requests recheck ownership, sealed membership, purpose/security class, current rights/holds, section timing and released-result permission. Unsupported, corrupt or unavailable bytes fail closed. See the [media implementation plan](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261105-2242-recovery029-media-delivery/plan.md) and [verification checkpoint](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/implementation-261107-0756-inspected-images-and-keyboard.md). No source screenshot import or general media activation follows from the test fixture.
 
 ## Demonstrate and test
 

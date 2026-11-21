@@ -3,7 +3,7 @@
 This optional local Track B capability adds text-entry (cloze) and matching items through the existing
 Bank, allocation, attempt, grading and released-review services. It is unofficial practice and is off by
 default in the retained development runtime. The university demo enables it for published Math
-offerings. Design: [CP4 interaction design](../../plans/261108-1553-codex-autonomous-demo/cp4-design.md).
+offerings. Design: [CP4 interaction design](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/261108-1553-codex-autonomous-demo/cp4-design.md).
 
 ## Run a disposable demonstration
 
@@ -109,4 +109,4 @@ MATH_INTERACTIONS_BROWSER=true node --test tests/integration/bank/math-interacti
 
 Browser scripts need the existing local Chromium and geckodriver setup. Chromium checks a 375px
 layout and Firefox a 500px one. Executed evidence:
-[CP4 completion report](../../plans/reports/claude-261110-1215-cp4.md).
+[CP4 completion report](https://github.com/GamBug/TSA-Platform/blob/3e24c92/plans/reports/claude-261110-1215-cp4.md).

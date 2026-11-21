@@ -224,13 +224,10 @@ test('archive symlink ancestors are rejected without reading archive targets', (
   }
 });
 
-test('only the exact demo agent config and capture PNG names are approved artifacts', () => {
-  const approved = ['.codex/agents/tsa_light_builder.toml', ...[
-    'image-enlarged-mobile','image-exam-desktop','image-exam-mobile','image-firefox-released-review',
-    'topic-catalog-desktop','topic-catalog-firefox-narrow','topic-exam-desktop','topic-exam-mobile',
-  ].map((name) => `plans/reports/track-b-modernization-evidence/${name}.png`)];
+test('only the exact server config and font names are approved artifacts', () => {
+  const approved = ['infra/server/nginx-tsa.conf', 'apps/practice-prototype/public/fonts/be-vietnam-pro-400-latin.woff2'];
   assert.equal(run({ trackedExtra: approved }).exitCode, 0);
-  for (const filename of ['.codex/agents/unapproved.toml','plans/reports/track-b-modernization-evidence/neighbor.png']) {
+  for (const filename of ['infra/server/unapproved.conf', 'apps/practice-prototype/public/fonts/neighbor.woff2']) {
     const denied = run({ entries: { [filename]: 'Synthetic unsupported artifact\n' }, trackedExtra: [filename] });
     assert.equal(denied.exitCode, 1);
     assert.ok(denied.output.errors.some((error) => error.startsWith('Unsupported tracked artifacts:') && error.includes(filename)));
