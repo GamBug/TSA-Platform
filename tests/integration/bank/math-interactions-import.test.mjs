@@ -119,7 +119,7 @@ test('Math cloze/matching imports preserve private source keys, strict projectio
   const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive: archive }); t.after(() => demo.close());
   assert.deepEqual(demo.report.published, { MATH: 4, READING: 0, SCIENCE: 0 });
   assert.deepEqual(demo.report.offerings.map((o) => o.kind), ['CLOZE_MATCHING_PRACTICE']);
-  assert.match(demo.urls.clozeMatching, /postgres-v4$/);
+  assert.match(demo.urls.clozeMatching, /\/student\/\?mode=interactions$/);
   const student = await loginActor(demo, 'studentA');
   const body = async (response, status = 200) => { const value = await response.json(); assert.equal(response.status, status, JSON.stringify(value)); return value; };
   const catalog = await body(await bankRequest(demo, student, '/api/v4/catalog', { query: 'limit=100' }));
