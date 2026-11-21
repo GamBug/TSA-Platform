@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { loadDemoNotice, type DemoNotice } from '@legacy/demo-notice.js'
 import { MODES, modeHref, type PracticeMode } from '@/api/mode'
+import { IconGrid } from '@/components/Icons'
 
 export function Masthead({ mode, actorLabel, onLogout, sticky = true }: { mode: PracticeMode; actorLabel?: string; onLogout?: () => void; sticky?: boolean }) {
   return (
@@ -90,4 +91,25 @@ export const buttonClass = {
   primary: 'inline-flex items-center justify-center gap-2 px-5 min-h-[44px] text-sm font-semibold bg-pen-red text-paper-sheet border border-pen-red hover:bg-pen-red-hover rounded-[3px] cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
   ink: 'inline-flex items-center justify-center gap-2 px-5 min-h-[44px] text-sm font-semibold bg-ink text-paper-sheet border border-ink hover:bg-ink-secondary rounded-[3px] cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
   secondary: 'inline-flex items-center justify-center gap-2 px-4 min-h-[44px] text-sm font-semibold bg-paper-sheet text-ink border border-rule-strong hover:border-ink rounded-[3px] cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+}
+
+/** Shows or hides the question grid on wide screens; on phones the grid sits below the question and stays. */
+export function PanelToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" aria-pressed={!open} onClick={onToggle} data-testid="panel-toggle"
+      className="hidden lg:inline-flex items-center gap-2 px-3 min-h-[40px] text-xs font-semibold border border-rule-strong bg-paper-sheet text-ink hover:border-ink rounded-[3px] cursor-pointer">
+      <IconGrid size={14} /> {open ? 'Ẩn bảng câu hỏi' : 'Hiện bảng câu hỏi'}
+    </button>
+  )
+}
+
+/** Layout classes for a test screen: the question area, the optional passage split and the grid column. */
+export function testLayout(open: boolean, passage: boolean) {
+  return {
+    body: open ? 'flex-1 grid grid-cols-1 lg:grid-cols-[1fr_260px] min-h-0' : 'flex-1 grid grid-cols-1 min-h-0',
+    width: passage ? 'max-w-[1440px]' : 'max-w-[960px]',
+    // With the grid hidden there is room for passage and question side by side from 1024 px; otherwise from 1280 px.
+    split: open ? 'grid gap-6 xl:grid-cols-2 items-start' : 'grid gap-6 lg:grid-cols-2 items-start',
+    aside: open ? '' : 'lg:hidden',
+  }
 }

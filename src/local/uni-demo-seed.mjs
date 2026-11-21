@@ -5,6 +5,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { canonicalize } from '../../packages/contracts/dist/internal.js';
 import { FULL_SIMULATION_SECTIONS } from '../../packages/contracts/dist/simulation.js';
+import { sectionTestId } from '../modules/assembly/practice-profiles.mjs';
 import { withTransaction } from '../modules/database/pool.mjs';
 import { findPracticePool, PRACTICE_POOL_OFFERING_SUFFIX } from './practice-pool.mjs';
 
@@ -20,12 +21,10 @@ const NUMERIC_PRACTICE = Object.freeze([
 ]);
 const SIMULATION_REQUIRED = Object.freeze(Object.fromEntries(
   FULL_SIMULATION_SECTIONS.map((section) => [section.section, section.count])));
-// Counts are fixed by the existing single-section catalog; durations follow the project demo profile.
-const SECTION_PRACTICE = Object.freeze([
-  Object.freeze({ section: 'MATH', count: 4, durationSeconds: 360, name: 'Luyện tập Toán học' }),
-  Object.freeze({ section: 'READING', count: 2, durationSeconds: 180, name: 'Luyện tập Đọc hiểu' }),
-  Object.freeze({ section: 'SCIENCE', count: 4, durationSeconds: 360, name: 'Luyện tập Khoa học' }),
-]);
+// Each single-section test has the real exam length of that section: the same count and time as in the full test.
+const SECTION_TEST_NAMES = Object.freeze({ MATH: 'Phần thi Toán học', READING: 'Phần thi Đọc hiểu', SCIENCE: 'Phần thi Khoa học' });
+const SECTION_PRACTICE = Object.freeze(FULL_SIMULATION_SECTIONS.map(({ section, count, durationSeconds }) =>
+  Object.freeze({ section, count, durationSeconds, name: SECTION_TEST_NAMES[section] })));
 const SIMULATION_NAME = 'Full simulation — published items';
 /** Offerings open an hour early and stay open for a whole number of days (a public demo outlives one day). */
 export function offeringWindow(offeringDays) {
@@ -266,7 +265,7 @@ export async function seedUniDemoOfferings(ownerPool, { offeringDays = 1 } = {})
         const blueprintVersionId = await insertOffering(client, { offeringDays, schemaVersion: 'blueprint/1', taxonomyVersionId: profile.taxonomyVersionId, config: {
           ...base, schemaVersion: 'blueprint/1', name: `${profile.name}${suffix}`, taxonomyVersionId: profile.taxonomyVersionId,
           profileKind: 'INDEPENDENT_PRACTICE', allowedTypes: [...DELIVERABLE_TYPES],
-          sections: [{ id: `${profile.section.toLowerCase()}-practice`, section: profile.section,
+          sections: [{ id: sectionTestId(profile.section), section: profile.section,
             count: profile.required, durationSeconds: profile.durationSeconds }] } });
         offerings.push({ kind: 'SECTION_PRACTICE', section: profile.section, blueprintVersionId, taxonomyVersionId: profile.taxonomyVersionId, ...mark });
       }

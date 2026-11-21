@@ -1,35 +1,27 @@
 import { createPersistentApi } from '@legacy/persistent-api.js'
 import type { StudentApi } from './types'
 
-// Each practice mode maps to one existing API version; nothing here changes server behavior.
-export type PracticeMode = 'practice' | 'numeric' | 'interactions' | 'simulation'
+// Students choose a single-section test (v1) or the full 40/20/40 test (v3); nothing here changes server behavior.
+export type PracticeMode = 'practice' | 'simulation'
 
-export const MODES: Record<PracticeMode, { label: string; description: string; apiVersion: 'v1' | 'v2' | 'v4' | 'v3' }> = {
-  practice: { label: 'Luyện tập theo phần', description: 'Toán học và Khoa học — trắc nghiệm và đúng/sai. Phần Đọc hiểu có trong bài thi thử đầy đủ.', apiVersion: 'v1' },
-  numeric: { label: 'Điền đáp án số', description: 'Câu hỏi trả lời bằng một số thập phân.', apiVersion: 'v2' },
-  interactions: { label: 'Điền khuyết & ghép nối', description: 'Điền vào chỗ trống và kéo thả ghép hai cột.', apiVersion: 'v4' },
+export const MODES: Record<PracticeMode, { label: string; description: string; apiVersion: 'v1' | 'v3' }> = {
+  practice: { label: 'Thi từng phần', description: 'Ba phần thi riêng, đúng số câu và thời gian như bài thi thật.', apiVersion: 'v1' },
   simulation: { label: 'Thi thử đầy đủ', description: '100 câu, ba phần thi với đồng hồ riêng.', apiVersion: 'v3' },
 }
 
+/** Retired mode links (numeric, cloze/matching) open the section tests. */
 export function readMode(search = window.location.search): PracticeMode {
-  const value = new URLSearchParams(search).get('mode')
-  return value === 'numeric' || value === 'interactions' || value === 'simulation' ? value : 'practice'
+  return new URLSearchParams(search).get('mode') === 'simulation' ? 'simulation' : 'practice'
 }
 
 export function modeHref(mode: PracticeMode): string {
   return mode === 'practice' ? '/student/' : `/student/?mode=${mode}`
 }
 
-const apis = new Map<string, StudentApi>()
+let api: StudentApi | null = null
 
-/** One client per API version, so its identity and revision caches stay consistent for the page. */
-export function apiFor(mode: PracticeMode): StudentApi {
-  const version = MODES[mode].apiVersion
-  const clientVersion = version === 'v3' ? 'v1' : version
-  let api = apis.get(clientVersion)
-  if (!api) {
-    api = createPersistentApi({ apiVersion: clientVersion })
-    apis.set(clientVersion, api)
-  }
+/** One v1 client for the page: sign-in, the session and section tests. The full test uses its own client. */
+export function apiFor(_mode: PracticeMode): StudentApi {
+  api ??= createPersistentApi({ apiVersion: 'v1' })
   return api
 }

@@ -118,9 +118,9 @@ export default function App() {
           const resumed = attempt.state === 'CREATED' ? (await api.startReservedAttempt(existing)).attempt : attempt
           setView({ name: 'attempt', attempt: resumed })
         } catch (inner) {
-          // The open attempt belongs to another practice mode (for example numeric answers), which this mode cannot show.
+          // The open attempt belongs to another mode (for example the full test), which this screen cannot show.
           setView({ name: 'catalog', message: isAuthError(inner) ? messageOf(inner)
-            : 'Bạn đang có một bài luyện tập khác chưa nộp ở chế độ khác. Hãy mở lại chế độ đó (ví dụ “Điền đáp án số”) để làm tiếp hoặc nộp bài, rồi quay lại đây.' })
+            : 'Bạn đang có một bài thi khác chưa nộp (ví dụ bài thi thử đầy đủ). Hãy mở lại bài đó để làm tiếp hoặc nộp bài, rồi quay lại đây.' })
         }
       } else if (isAuthError(error)) setView({ name: 'login', message: messageOf(error) })
       else setView({ name: 'catalog', message: messageOf(error) })
@@ -143,7 +143,7 @@ export default function App() {
       {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn && !isPublic ? logout : undefined} sticky={view.name !== 'simulation'} />}
       {view.name === 'loading' && <main className="flex-1 px-8 py-16 text-sm text-ink-secondary" role="status">Đang mở phiên luyện tập…</main>}
       {view.name === 'login' && <LoginScreen busy={busy} message={view.message} publicDemo={isPublic} onLogin={login} onGuest={guest} />}
-      {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} publicDemo={isPublic} onStart={start} />}
+      {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} onStart={start} />}
       {view.name === 'attempt' && (
         <AttemptScreen
           api={api}

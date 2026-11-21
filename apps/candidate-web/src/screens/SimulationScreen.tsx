@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { simulationApi, SimulationError, toAnswerValue, toRawValue, type SectionId, type SimulationOffer, type SimulationResult, type SimulationView, type SimulationHistoryItem } from '@/api/simulation'
 import { ContentBlocks } from '@/content/ContentBlocks'
 import { AnswerControl, KIND_LABELS } from '@/attempt/Interactions'
-import { isAnswered, useFlags } from '@/attempt/progress'
+import { isAnswered, useFlags, useQuestionPanel } from '@/attempt/progress'
 import { formatClockMMSS } from '@/components/TimerChip'
 import { IconArrowLeft, IconArrowRight, IconFlag, IconLock } from '@/components/Icons'
-import { buttonClass, DemoNoticePanel, Notice } from '@/ui/Shell'
+import { buttonClass, DemoNoticePanel, Notice, PanelToggle, testLayout } from '@/ui/Shell'
 
 const SECTION_NAMES: Record<SectionId, string> = { math: 'Tư duy Toán học', reading: 'Tư duy Đọc hiểu', science: 'Tư duy Khoa học' }
 const SECTION_PLAN: [SectionId, number, number][] = [['math', 40, 60], ['reading', 20, 30], ['science', 40, 60]]
@@ -21,6 +21,7 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
   const [history, setHistory] = useState<SimulationHistoryItem[]>([])
   const [result, setResult] = useState<SimulationResult | null>(null)
   const [section, setSection] = useState<SectionId>('math')
+  const panel = useQuestionPanel()
   const [index, setIndex] = useState(0)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ tone: 'info' | 'error' | 'success'; text: string } | null>(null)
@@ -184,6 +185,7 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
   const position = Math.min(index, Math.max(0, slots.length - 1))
   const slot = slots[position]
   const answeredTotal = view.slots.filter((item) => isAnswered(item, answers.get(item.slotId))).length
+  const layout = testLayout(panel.open, Boolean(slot?.stimulus?.content?.length))
 
   const switchTo = (target: SectionId) => run(async () => {
     const targetClock = view.sections.find((item) => item.sectionId === target)!
@@ -212,8 +214,11 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
           <p className="font-display text-base sm:text-lg font-semibold">Thi thử đầy đủ</p>
           <p className="text-xs text-ink-secondary tabular-figures">Đã làm {answeredTotal}/100 · Luyện tập không chính thức</p>
         </div>
-        <button type="button" className={`${buttonClass.primary} min-h-[40px]`} disabled={busy} data-testid="submit-open"
-          onClick={() => submitDialog.current?.showModal()}>Nộp cả bài</button>
+        <div className="flex items-center gap-2">
+          <PanelToggle open={panel.open} onToggle={panel.toggle} />
+          <button type="button" className={`${buttonClass.primary} min-h-[40px]`} disabled={busy} data-testid="submit-open"
+            onClick={() => submitDialog.current?.showModal()}>Nộp cả bài</button>
+        </div>
       </header>
 
       <nav role="tablist" aria-label="Các phần thi" className="grid grid-cols-3 gap-2 px-4 sm:px-6 py-2 sm:py-3 border-b border-rule bg-paper">
@@ -235,15 +240,17 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
       </nav>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_300px] min-h-0">
+      <div className={layout.body}>
         <main className="question-oly-surface min-w-0" role="tabpanel" aria-label={SECTION_NAMES[section]}>
-          <div className={`mx-auto px-4 sm:px-8 py-6 ${slot?.stimulus?.content?.length ? 'max-w-[1200px]' : 'max-w-[860px]'}`}>
+          <div className={`mx-auto px-4 sm:px-8 py-5 ${layout.width}`}>
             {message && <div className="mb-4"><Notice tone={message.tone} testId="simulation-notice">{message.text}</Notice></div>}
             {locked && <div className="mb-4"><Notice tone="info">Phần thi này đã hết giờ. Bạn chỉ xem lại được, không sửa câu trả lời.</Notice></div>}
             {slot && (
-              <div className={slot.stimulus?.content?.length ? 'grid gap-6 xl:grid-cols-2 items-start' : ''}>
+              <div className={slot.stimulus?.content?.length ? layout.split : ''}>
                 {slot.stimulus?.content?.length ? (
-                  <section aria-label="Đoạn văn" className="bg-paper-sheet border border-rule-strong rounded-[3px] p-5 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-220px)] xl:overflow-y-auto">
+                  <section aria-label="Đoạn văn" className={`bg-paper-sheet border border-rule-strong rounded-[3px] p-5 ${panel.open
+                    ? 'xl:sticky xl:top-4 xl:max-h-[calc(100dvh-220px)] xl:overflow-y-auto'
+                    : 'lg:sticky lg:top-4 lg:max-h-[calc(100dvh-220px)] lg:overflow-y-auto'}`}>
                     <ContentBlocks blocks={slot.stimulus.content} attemptId={view.attemptId} apiVersion="v3" className="text-[15px] leading-[1.75]" />
                   </section>
                 ) : null}
@@ -274,7 +281,7 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
             )}
           </div>
         </main>
-        <aside className="border-t lg:border-t-0 lg:border-l border-ink bg-paper px-4 py-5" aria-label="Bảng câu hỏi của phần">
+        <aside className={`border-t lg:border-t-0 lg:border-l border-ink bg-paper px-4 py-5 ${layout.aside}`} aria-label="Bảng câu hỏi của phần">
           <p className="text-sm font-semibold">{SECTION_NAMES[section]}</p>
           <ol className="mt-3 grid grid-cols-8 lg:grid-cols-5 gap-1.5">
             {slots.map((item, itemIndex) => {

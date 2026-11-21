@@ -1,4 +1,5 @@
 import {BlueprintConfigSchema, MvpBlueprintConfigSchema} from '../../../packages/contracts/dist/internal.js';
+import {FULL_SIMULATION_SECTIONS} from '../../../packages/contracts/dist/simulation.js';
 
 const READING_COGNITIVE_COUNTS = Object.freeze({ M1: 8, M2: 6, M3: 6 });
 
@@ -22,11 +23,31 @@ export function parseReadingExperimentConfig(value) {
   return config;
 }
 
-/** Detect a 20-question reading request even when its quotas are malformed. */
+/** Detect a 20-question reading request even when its quotas are malformed. A Reading section test is not one. */
 export function isReadingExperimentCandidate(value) {
   const section=value&&typeof value==='object'&&!Array.isArray(value)
     &&Array.isArray(value.sections)&&value.sections.length===1?value.sections[0]:null;
-  return section?.section==='READING'&&section.count===20;
+  return section?.section==='READING'&&section.count===20&&!parseSectionTestConfig(value);
+}
+
+/** Section id that marks a single-section test; the database catalog checks the same id. */
+export function sectionTestId(section) {
+  return `${section.toLowerCase()}-section-test`;
+}
+
+/**
+ * A single-section test at the real exam length: exactly one section with the count and time it has in the full
+ * simulation, the matching section id and no quotas.
+ */
+export function parseSectionTestConfig(value) {
+  const parsed=BlueprintConfigSchema.safeParse(value);
+  if(!parsed.success)return null;
+  const config=parsed.data;
+  if(config.profileKind!=='INDEPENDENT_PRACTICE'||config.sections.length!==1||config.quotas.length!==0)return null;
+  const section=config.sections[0];
+  const real=FULL_SIMULATION_SECTIONS.find(item=>item.section===section.section);
+  return real&&section.id===sectionTestId(section.section)&&section.count===real.count
+    &&section.durationSeconds===real.durationSeconds?config:null;
 }
 
 /** Additive local personal-only profile guard; the frozen MVP guard is unchanged. */
@@ -41,6 +62,8 @@ export function parseShortPracticeConfig(value) {
 export function parsePersonalPracticeConfig(value,{allowShort=false,allowReadingExperiment=false}={}) {
   const original=MvpBlueprintConfigSchema.safeParse(value);
   if(original.success)return original.data;
+  const sectionTest=parseSectionTestConfig(value);
+  if(sectionTest)return sectionTest;
   if(allowReadingExperiment){
     const experimental=parseReadingExperimentConfig(value);
     if(experimental)return experimental;

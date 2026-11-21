@@ -1,5 +1,29 @@
 # Architectural decisions and open questions
 
+## Real-length section tests; three tests plus the full test — 2026-11-21
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-21.
+Evidence: "just 3 test seperate test gate Math, Reading and Science and can choose Full test 40/20/40; students have more
+space to reading questions"; answers "Real exams length" and "remove, just only 3 gate"; after being told this changes the
+approved 4/2/4 catalog rule in the database, chose "Do the migration now".
+
+1. **Section tests at the real length.** The single-section practice of the demo becomes Math 40 questions in 60 minutes,
+   Reading 20 in 30 and Science 40 in 60, the same counts and times as the sections of the full test
+   (`FULL_SIMULATION_SECTIONS`). The short 4/2/4 sets are no longer offered by the demo launcher.
+2. **Contract change.** The frozen MVP rule (catalog and personal allocation accept only 4/2/4) stays as it is. Migration
+   `034_section_tests.sql` adds a separate profile, recognised by `tsa.section_test_config`: one section with the real
+   count and time, section id `<section>-section-test`, no quotas. The student catalog pages and
+   `tsa.assembly_commit_personal` accept it in addition to the frozen rule. The server mirror is `parseSectionTestConfig`
+   (`src/modules/assembly/practice-profiles.mjs`); a Reading section test is not treated as a Reading experiment request.
+3. **Migration impact.** The demo applies the migration to its disposable copy at every start, so the public server needs
+   only a code release. The private Bank (`.local/track-b`) receives it at the next owner command that migrates, after
+   that command's backup. The migration only replaces three function bodies and adds one function; no table or row changes.
+4. **Student app.** The page offers only the three section tests and the full test. Numeric and cloze/matching practice are
+   not linked any more (the server still creates them; their old links open the section tests). The ChatGPT practice pool
+   of 2026-11-20 is unchanged: a pool section with 40 (Reading 20) published questions would add its own "luyện thêm" test.
+5. **Reading space.** During a test the question grid can be hidden on wide screens, the question area is wider, and a
+   passage sits beside its question from 1024 px when the grid is hidden.
+
 ## ChatGPT practice pool and question inbox — 2026-11-20
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-20.

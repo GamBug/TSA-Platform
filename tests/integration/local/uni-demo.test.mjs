@@ -22,27 +22,28 @@ const json = async (response, status = 200) => {
 };
 
 test('the demo serves only published versions of its source Bank and removes its copy on close', { timeout: 120_000 }, async (t) => {
-  const source = await buildRehearsalSource({ counts: { MATH: 6, READING: 3, SCIENCE: 5 }, queue: { inReview: 2, draft: 1 } });
+  const source = await buildRehearsalSource({ counts: { MATH: 40, READING: 20, SCIENCE: 39 }, queue: { inReview: 2, draft: 1 } });
   t.after(() => source.close());
   const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive: source });
   let closed = false;
   t.after(async () => { if (!closed) await demo.close(); });
   const { report } = demo;
 
-  assert.deepEqual(report.published, { MATH: 6, READING: 3, SCIENCE: 5 });
-  assert.deepEqual(report.approved, { MATH: 6, READING: 3, SCIENCE: 5 });
+  assert.deepEqual(report.published, { MATH: 40, READING: 20, SCIENCE: 39 });
+  assert.deepEqual(report.approved, { MATH: 40, READING: 20, SCIENCE: 39 });
   assert.deepEqual(report.workflow.filter((row) => row.state !== 'APPROVED'),
     [{ section: 'MATH', state: 'DRAFT', count: 1 }, { section: 'MATH', state: 'IN_REVIEW', count: 2 }]);
   assert.equal(report.fullSimulation.offered, false);
   assert.equal(report.fullSimulation.withoutRepeats, 0);
-  assert.deepEqual(report.fullSimulation.shortages.map((shortage) => shortage.required - shortage.available), [34, 17, 35]);
+  assert.deepEqual(report.fullSimulation.shortages.map((shortage) => [shortage.section, shortage.required - shortage.available]), [['SCIENCE', 1]]);
+  // Each section test needs the real section length, so 39 Science items offer no Science test.
   assert.deepEqual(report.offerings.map((offering) => [offering.kind, offering.section]),
-    [['SECTION_PRACTICE', 'MATH'], ['SECTION_PRACTICE', 'READING'], ['SECTION_PRACTICE', 'SCIENCE']]);
+    [['SECTION_PRACTICE', 'MATH'], ['SECTION_PRACTICE', 'READING']]);
   // The source carried its own offering; the demo replaces it with stock-derived ones.
   assert.equal(report.inheritedOfferingsDisabled >= 1, true);
   const summary = formatDemoSummary(demo);
   assert.match(summary, /Content mode: REHEARSAL/);
-  assert.match(summary, /Full simulation: NOT offered — short by Mathematics 34, Reading 17, Science 35\./);
+  assert.match(summary, /Full simulation: NOT offered — short by Science 1\./);
 
   const notice = await json(await fetch(`${demo.origin}/local/demo-notice`));
   assert.equal(notice.contentMode, 'REHEARSAL');
@@ -51,23 +52,34 @@ test('the demo serves only published versions of its source Bank and removes its
   const student = await loginActor(demo, 'studentA');
   const catalog = await json(await bankRequest(demo, student, '/api/v1/catalog', { query: 'limit=100' }));
   assert.deepEqual(catalog.items.map((item) => [item.domain, item.questionCount, item.blueprintVersionId]).sort(),
-    report.offerings.map((offering) => [offering.section, offering.section === 'READING' ? 2 : 4, offering.blueprintVersionId]).sort());
+    report.offerings.map((offering) => [offering.section, offering.section === 'READING' ? 20 : 40, offering.blueprintVersionId]).sort());
   assert.deepEqual((await json(await bankRequest(demo, student, '/api/v3/catalog', { query: 'limit=100' }))).items, []);
   const topics = await json(await bankRequest(demo, student, '/api/v1/topics'));
   // The empty local authoring taxonomy is also listed; only published topics carry stock.
   assert.deepEqual(topics.groups.filter((group) => group.eligibleCount > 0).map((group) => [group.code, group.eligibleCount]),
-    [['MATH', 6], ['READING', 3], ['SCIENCE', 5]]);
+    [['MATH', 40], ['READING', 20], ['SCIENCE', 39]]);
 
   const math = report.offerings.find((offering) => offering.section === 'MATH');
   const receipt = await json(await bankRequest(demo, student, '/api/v1/attempts', {
     method: 'POST', key: randomUUID(), body: { blueprintVersionId: math.blueprintVersionId } }), 201);
   await json(await bankRequest(demo, student, `/api/v1/attempts/${receipt.attemptId}/start`, { method: 'POST', key: randomUUID(), body: {} }));
   const view = await json(await bankRequest(demo, student, `/api/v1/attempts/${receipt.attemptId}`));
-  assert.equal(view.slots.length, 4);
+  // A section test has the real section length and time.
+  assert.equal(view.slots.length, 40);
+  assert.equal(Date.parse(view.deadlineAt) - Date.parse(view.startedAt), 3_600_000);
   for (const slot of view.slots) {
     const text = slot.content.map((block) => block.text ?? '').join(' ');
     assert.match(text, /^Câu diễn tập Toán học số \d+ /, 'only published rehearsal items are delivered');
   }
+  // A twenty-question Reading section test is not mistaken for the Reading experiment profile.
+  const reading = report.offerings.find((offering) => offering.section === 'READING');
+  const otherStudent = await loginActor(demo, 'studentB');
+  const readingReceipt = await json(await bankRequest(demo, otherStudent, '/api/v1/attempts', {
+    method: 'POST', key: randomUUID(), body: { blueprintVersionId: reading.blueprintVersionId } }), 201);
+  await json(await bankRequest(demo, otherStudent, `/api/v1/attempts/${readingReceipt.attemptId}/start`, { method: 'POST', key: randomUUID(), body: {} }));
+  const readingView = await json(await bankRequest(demo, otherStudent, `/api/v1/attempts/${readingReceipt.attemptId}`));
+  assert.equal(readingView.slots.length, 20);
+  assert.equal(Date.parse(readingView.deadlineAt) - Date.parse(readingView.startedAt), 1_800_000);
 
   await demo.close();
   closed = true;
@@ -154,12 +166,12 @@ test('published items require the owner source credit before the demo may start'
 });
 
 test('published numeric-answer items get their own practice, delivered and graded through the numeric routes', { timeout: 120_000 }, async (t) => {
-  const source = await buildRehearsalSource({ counts: { MATH: 4, READING: 0, SCIENCE: 0 }, queue: { inReview: 0, draft: 0 }, numeric: 5 });
+  const source = await buildRehearsalSource({ counts: { MATH: 40, READING: 0, SCIENCE: 0 }, queue: { inReview: 0, draft: 0 }, numeric: 5 });
   t.after(() => source.close());
   const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive: source });
   t.after(() => demo.close());
   const { report } = demo;
-  assert.deepEqual(report.published, { MATH: 9, READING: 0, SCIENCE: 0 });
+  assert.deepEqual(report.published, { MATH: 45, READING: 0, SCIENCE: 0 });
   assert.deepEqual(report.numericStock, { MATH: 5, READING: 0, SCIENCE: 0 });
   assert.deepEqual(report.otherProtocols, { MATH: 0, READING: 0, SCIENCE: 0 });
   assert.deepEqual(report.offerings.map((offering) => [offering.kind, offering.section]),
@@ -211,7 +223,7 @@ test('published numeric-answer items get their own practice, delivered and grade
 
 test('the demo delivers private library images to the owning student and guards explanation release', { timeout: 120_000 }, async (t) => {
   const fixture = await createImageFixture(t);
-  await fixture.approveImage();
+  await fixture.approveImage({ total: 40 });
   const sourceArchive = await backupLocalDatabase({ connectionConfig: fixture.harness.database.connectionConfig,
     directory: path.join(fixture.directory, 'archive') });
   const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive,

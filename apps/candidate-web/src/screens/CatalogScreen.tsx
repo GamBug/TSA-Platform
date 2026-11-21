@@ -23,7 +23,7 @@ function FullTestCard() {
   if (offered === null) return null
   if (!offered) {
     return <p className="mt-6 border border-rule border-l-[3px] border-l-ochre bg-ochre-wash px-4 py-3 text-sm text-ink rounded-[3px]" data-testid="full-test-pending">
-      Bài thi thử đầy đủ (100 câu) sẽ mở khi phần Khoa học hoàn tất. Bạn vẫn có thể luyện từng phần bên dưới.</p>
+      Bài thi thử đầy đủ (100 câu) sẽ mở khi phần Khoa học hoàn tất. Bạn vẫn có thể thi riêng từng phần bên dưới.</p>
   }
   return (
     <div className="mt-6 border border-ink bg-paper-sheet px-5 py-5 rounded-[3px]" data-testid="full-test-card">
@@ -37,49 +37,49 @@ function FullTestCard() {
   )
 }
 
-export function CatalogScreen({ mode, profiles, busy, message, publicDemo, onStart }: {
+const SECTION_ORDER = ['MATH', 'READING', 'SCIENCE']
+
+export function CatalogScreen({ mode, profiles, busy, message, onStart }: {
   mode: PracticeMode
   profiles: CatalogProfile[] | null
   busy: boolean
   message: string | null
-  publicDemo: boolean
   onStart: (profile: CatalogProfile) => void
 }) {
+  const gates = profiles && [...profiles].sort((a, b) =>
+    SECTION_ORDER.indexOf(a.domain) - SECTION_ORDER.indexOf(b.domain) || a.name.localeCompare(b.name))
   return (
     <main className="flex-1 grid grid-cols-1 lg:grid-cols-[176px_1fr]">
       <div className="hidden lg:block notebook-margin-lg px-5 py-10 text-xs font-semibold text-ink-secondary">Trang 02 · Mục lục</div>
       <section className="px-5 py-8 sm:px-10 sm:py-12 max-w-[1040px]" data-testid="catalog">
         <p className="text-xs font-semibold text-pen-red tracking-wide uppercase mb-2">{MODES[mode].label}</p>
         <h1 tabIndex={-1} className="font-display text-[30px] sm:text-[42px] leading-[1.1] font-semibold text-ink tracking-[-0.02em]">
-          Mục lục bài luyện tập
+          Chọn bài thi
         </h1>
-        <p className="mt-3 text-[15px] leading-[1.68] text-ink-secondary max-w-[62ch]">{MODES[mode].description} Đồng hồ chạy liên tục sau khi bắt đầu; tải lại trang không dừng đồng hồ.</p>
-        {publicDemo && mode === 'practice' && <FullTestCard />}
+        <p className="mt-3 text-[15px] leading-[1.68] text-ink-secondary max-w-[62ch]">Làm cả bài thi thử 100 câu, hoặc thi riêng một phần với đúng số câu và thời gian như bài thi thật. Đồng hồ chạy liên tục sau khi bắt đầu; tải lại trang không dừng đồng hồ.</p>
+        <FullTestCard />
         <div className="mt-6"><DemoNoticePanel /></div>
         {message && <div className="mt-4"><Notice tone="error" testId="catalog-message">{message}</Notice></div>}
 
-        <div className="mt-8 border-t border-ink">
-          {profiles === null && <p className="py-6 text-sm text-ink-secondary" role="status">Đang tải mục lục…</p>}
-          {profiles?.length === 0 && (
-            <p className="py-6 text-sm text-ink-secondary" data-testid="catalog-empty">Chưa có bài luyện tập nào được phát hành cho chế độ này.</p>
+        <h2 className="mt-10 font-display text-[22px] sm:text-[26px] font-semibold text-ink leading-tight">Thi riêng từng phần</h2>
+        <div className="mt-4">
+          {gates === null && <p className="py-6 text-sm text-ink-secondary" role="status">Đang tải danh sách bài thi…</p>}
+          {gates?.length === 0 && (
+            <p className="py-6 text-sm text-ink-secondary" data-testid="catalog-empty">Chưa có phần thi nào đủ câu hỏi để mở.</p>
           )}
-          <ol className="divide-y divide-rule">
-            {profiles?.map((profile, index) => (
-              <li key={profile.blueprintVersionId} className="grid grid-cols-[40px_1fr] sm:grid-cols-[48px_1fr_auto] gap-x-4 gap-y-3 py-5 items-center" data-testid="catalog-item">
-                <span className="tabular-figures text-sm font-bold text-pen-red self-start pt-1">{String(index + 1).padStart(2, '0')}</span>
-                <div className="min-w-0">
-                  <h2 className="font-display text-[22px] font-semibold text-ink leading-tight">{profile.name || DOMAIN_NAMES[profile.domain]}</h2>
-                  <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-secondary">
-                    <span>{DOMAIN_NAMES[profile.domain]}</span>
-                    <span aria-hidden="true" className="flex-1 min-w-8 border-b border-dotted border-rule-strong translate-y-[-3px]" />
-                    <span className="tabular-figures text-ink">{profile.questionCount} câu · {formatDuration(profile.durationSeconds)}</span>
-                  </p>
-                  {!profile.available && <p className="mt-1 text-xs text-ochre">Chưa mở hoặc đã đóng</p>}
+          <ol className="grid gap-4 sm:grid-cols-3">
+            {gates?.map((profile) => (
+              <li key={profile.blueprintVersionId} className="flex flex-col border border-ink bg-paper-sheet px-5 py-5 rounded-[3px] min-w-0" data-testid="catalog-item">
+                <p className="text-xs font-semibold text-pen-red tracking-wide uppercase">{DOMAIN_NAMES[profile.domain]}</p>
+                <h3 className="mt-1 font-display text-[22px] font-semibold text-ink leading-tight">{profile.name || DOMAIN_NAMES[profile.domain]}</h3>
+                <p className="mt-2 tabular-figures text-sm text-ink">{profile.questionCount} câu · {formatDuration(profile.durationSeconds)}</p>
+                {!profile.available && <p className="mt-1 text-xs text-ochre">Chưa mở hoặc đã đóng</p>}
+                <div className="mt-5 flex-1 flex items-end">
+                  <button type="button" disabled={busy || !profile.available} onClick={() => onStart(profile)}
+                    data-testid={`start-${profile.domain}`} className={buttonClass.primary}>
+                    Bắt đầu <IconArrowRight size={14} />
+                  </button>
                 </div>
-                <button type="button" disabled={busy || !profile.available} onClick={() => onStart(profile)}
-                  data-testid={`start-${profile.domain}`} className={`${buttonClass.primary} col-start-2 sm:col-start-3 justify-self-start`}>
-                  Bắt đầu <IconArrowRight size={14} />
-                </button>
               </li>
             ))}
           </ol>

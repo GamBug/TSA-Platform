@@ -40,11 +40,21 @@ test('two complete non-overlapping simulations are counted from standalone stock
     [['MATH', true, 85], ['READING', true, 40], ['SCIENCE', true, 80]]);
 });
 
-test('a partial section keeps the simulation closed while section and topic practice stay open', () => {
+test('every section test has the real length and time of that section in the full test', () => {
+  const plan = planDemoOfferings({ versions: [...versions('MATH', 40), ...versions('READING', 20), ...versions('SCIENCE', 40)] });
+  assert.deepEqual(plan.sectionPractice.map((profile) => [profile.section, profile.required, profile.durationSeconds, profile.name]),
+    [['MATH', 40, 3600, 'Phần thi Toán học'], ['READING', 20, 1800, 'Phần thi Đọc hiểu'], ['SCIENCE', 40, 3600, 'Phần thi Khoa học']]);
+  const short = planDemoOfferings({ versions: [...versions('MATH', 39), ...versions('READING', 20), ...versions('SCIENCE', 40)] });
+  assert.deepEqual(short.sectionPractice.find((profile) => profile.section === 'MATH'),
+    { section: 'MATH', required: 40, durationSeconds: 3600, name: 'Phần thi Toán học', available: 39, offered: false, taxonomyVersionId: null });
+});
+
+test('a partial section keeps the simulation and that section test closed while the other section tests stay open', () => {
   const plan = planDemoOfferings({ versions: [...versions('MATH', 40), ...versions('READING', 19), ...versions('SCIENCE', 40)] });
   assert.equal(plan.fullSimulation.offered, false);
   assert.deepEqual(plan.fullSimulation.shortages, [{ section: 'READING', required: 20, available: 19 }]);
-  assert.equal(plan.sectionPractice.every((profile) => profile.offered), true);
+  assert.deepEqual(plan.sectionPractice.map((profile) => [profile.section, profile.offered]),
+    [['MATH', true], ['READING', false], ['SCIENCE', true]]);
   assert.equal(plan.topicPractice.available, true);
 });
 
@@ -60,8 +70,8 @@ test('reading bundles are used whole and an incompletely published bundle is exc
   assert.equal(plan.deliverable.READING, 20);
   assert.equal(plan.incompleteBundles.READING, 9);
   assert.equal(plan.fullSimulation.withoutRepeats, 1);
-  // A ten-question passage cannot fill the two-question reading profile.
-  assert.equal(plan.sectionPractice.find((profile) => profile.section === 'READING').offered, false);
+  // Two whole ten-question passages fill the twenty-question Reading test; the incomplete one is left out.
+  assert.equal(plan.sectionPractice.find((profile) => profile.section === 'READING').offered, true);
 });
 
 test('a bundle whose members span taxonomy versions is not delivered', () => {
@@ -119,7 +129,7 @@ test('published numeric-answer stock offers its own practice and is not reported
   assert.deepEqual(plan.numericPractice.map((profile) => [profile.section, profile.offered, profile.available, profile.required]),
     [['MATH', true, 4, 4], ['SCIENCE', false, 0, 4]]);
   assert.equal(plan.numericPractice[0].taxonomyVersionId, T1);
-  // Choice items stay in their own offering: three are not enough for a four-question section practice.
+  // Choice items stay in their own offering: three are not enough for the forty-question Math test.
   assert.equal(plan.sectionPractice.find((profile) => profile.section === 'MATH').offered, false);
 });
 
@@ -146,15 +156,16 @@ test('the practice pool never feeds the full simulation or the standard practice
   assert.deepEqual(plan.fullSimulation.shortages, [{ section: 'SCIENCE', required: 40, available: 39 }]);
   assert.equal(plan.fullSimulation.splitAcrossTaxonomies, false);
   assert.deepEqual(plan.published, { MATH: 40, READING: 20, SCIENCE: 39 });
-  assert.deepEqual(plan.sectionPractice.map((profile) => profile.taxonomyVersionId), [T1, T1, T1]);
+  // The pool's Science stock never completes the real Science test.
+  assert.deepEqual(plan.sectionPractice.map((profile) => profile.taxonomyVersionId), [T1, T1, null]);
   assert.equal(plan.numericPractice[0].offered, false);
   assert.deepEqual(plan.practicePool.published, { MATH: 64, READING: 30, SCIENCE: 60 });
   assert.deepEqual(plan.practicePool.sectionPractice.map((profile) => [profile.section, profile.offered, profile.taxonomyVersionId]),
     [['MATH', true, T2], ['READING', true, T2], ['SCIENCE', true, T2]]);
   assert.deepEqual(plan.practicePool.numericPractice.map((profile) => [profile.section, profile.offered]), [['MATH', true], ['SCIENCE', false]]);
   // Without a pool every taxonomy competes as before.
-  assert.equal(planDemoOfferings({ versions: pool('MATH', 4) }).sectionPractice[0].taxonomyVersionId, T2);
-  assert.equal(planDemoOfferings({ versions: pool('MATH', 4) }).practicePool.sectionPractice[0].offered, false);
+  assert.equal(planDemoOfferings({ versions: pool('MATH', 40) }).sectionPractice[0].taxonomyVersionId, T2);
+  assert.equal(planDemoOfferings({ versions: pool('MATH', 40) }).practicePool.sectionPractice[0].offered, false);
 });
 
 test('the offering window opens an hour early and stays open for a bounded whole number of days', () => {

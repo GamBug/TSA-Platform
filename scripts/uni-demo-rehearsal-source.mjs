@@ -14,8 +14,8 @@ import { createPublicationService } from '../src/modules/bank/publication.mjs';
 import { jsonDigest } from '../src/modules/bank/common.mjs';
 import { withTransaction } from '../src/modules/database/pool.mjs';
 
-// One full simulation (40/20/40) plus spare items for topic and section practice.
-export const REHEARSAL_DEFAULT_COUNTS = Object.freeze({ MATH: 50, READING: 30, SCIENCE: 50 });
+// Enough for one section test and one full test per synthetic student without repeating a question.
+export const REHEARSAL_DEFAULT_COUNTS = Object.freeze({ MATH: 100, READING: 50, SCIENCE: 100 });
 export const REHEARSAL_DEFAULT_QUEUE = Object.freeze({ inReview: 3, draft: 2 });
 // Published numeric-answer Math items (question/2) for the numeric practice; the tests opt in explicitly.
 export const REHEARSAL_DEFAULT_NUMERIC = 5;

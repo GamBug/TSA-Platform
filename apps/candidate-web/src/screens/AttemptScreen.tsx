@@ -4,9 +4,9 @@ import { ContentBlocks } from '@/content/ContentBlocks'
 import { AnswerControl, KIND_LABELS } from '@/attempt/Interactions'
 import { TimerChip, formatClockMMSS } from '@/components/TimerChip'
 import { IconFlag, IconArrowLeft, IconArrowRight } from '@/components/Icons'
-import { buttonClass, Notice } from '@/ui/Shell'
+import { buttonClass, Notice, PanelToggle, testLayout } from '@/ui/Shell'
 import { ResultView } from '@/screens/ResultView'
-import { isAnswered, useFlags } from '@/attempt/progress'
+import { isAnswered, useFlags, useQuestionPanel } from '@/attempt/progress'
 
 const DOMAIN_NAMES: Record<string, string> = { MATH: 'Tư duy Toán học', READING: 'Tư duy Đọc hiểu', SCIENCE: 'Tư duy Khoa học' }
 
@@ -29,6 +29,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
   const [offset, setOffset] = useState(() => Date.parse(initial.serverNow) - Date.now())
   const [now, setNow] = useState(() => Date.now())
   const { flags, toggle } = useFlags(attempt.attemptId)
+  const panel = useQuestionPanel()
   const submitDialog = useRef<HTMLDialogElement>(null)
 
   const adopt = useCallback((next: Attempt) => {
@@ -168,6 +169,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
   const position = slots.indexOf(slot)
   const passage = slot.stimulus?.content?.length ? slot.stimulus.content : null
   const lowTime = remaining <= 5 * 60
+  const layout = testLayout(panel.open, Boolean(passage))
 
   return (
     <div className="flex-1 flex flex-col min-h-0" data-testid="attempt-workspace">
@@ -178,6 +180,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
             <p className="text-xs text-ink-secondary tabular-figures">{attempt.questionCount} câu · Luyện tập không chính thức</p>
           </div>
           <div className="flex items-center gap-2">
+            <PanelToggle open={panel.open} onToggle={panel.toggle} />
             <span data-testid="timer"><TimerChip remainingSeconds={remaining} compact /></span>
             <button type="button" className={`${buttonClass.primary} min-h-[40px] px-4`} disabled={saving}
               onClick={() => { setConfirming(true); submitDialog.current?.showModal() }} data-testid="submit-open">Nộp bài</button>
@@ -185,13 +188,15 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_300px] min-h-0">
+      <div className={layout.body}>
         <main className="question-oly-surface min-w-0">
-          <div className={`mx-auto px-4 sm:px-8 py-6 sm:py-8 ${passage ? 'max-w-[1200px]' : 'max-w-[860px]'}`}>
+          <div className={`mx-auto px-4 sm:px-8 py-5 sm:py-6 ${layout.width}`}>
             {message && <div className="mb-4"><Notice tone={message.tone} testId="screen-message">{message.text}</Notice></div>}
-            <div className={passage ? 'grid gap-6 xl:grid-cols-2 items-start' : ''}>
+            <div className={passage ? layout.split : ''}>
               {passage && (
-                <section aria-label="Đoạn văn" className="bg-paper-sheet border border-rule-strong rounded-[3px] p-5 xl:sticky xl:top-20 xl:max-h-[calc(100dvh-120px)] xl:overflow-y-auto">
+                <section aria-label="Đoạn văn" className={`bg-paper-sheet border border-rule-strong rounded-[3px] p-5 ${panel.open
+                  ? 'xl:sticky xl:top-20 xl:max-h-[calc(100dvh-140px)] xl:overflow-y-auto'
+                  : 'lg:sticky lg:top-20 lg:max-h-[calc(100dvh-140px)] lg:overflow-y-auto'}`}>
                   <p className="text-xs font-bold text-ink-secondary uppercase tracking-wide mb-3">Đoạn văn</p>
                   <ContentBlocks blocks={passage} attemptId={attempt.attemptId} apiVersion={apiVersion} className="text-[15px] leading-[1.75]" />
                 </section>
@@ -225,7 +230,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
           </div>
         </main>
 
-        <aside className="border-t lg:border-t-0 lg:border-l border-ink bg-paper px-4 py-5 lg:overflow-y-auto" aria-label="Bảng câu hỏi">
+        <aside className={`border-t lg:border-t-0 lg:border-l border-ink bg-paper px-4 py-5 lg:overflow-y-auto ${layout.aside}`} aria-label="Bảng câu hỏi">
           <div className="hidden lg:block mb-5">
             <p className="text-xs font-bold uppercase tracking-wide text-ink-secondary">Đồng hồ</p>
             <p className={`mt-1 tabular-figures text-3xl font-bold ${lowTime ? 'text-pen-red' : 'text-ink'}`} aria-live="off">{formatClockMMSS(remaining)}</p>

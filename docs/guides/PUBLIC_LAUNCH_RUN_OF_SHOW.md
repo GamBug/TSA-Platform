@@ -77,7 +77,7 @@ Open the SVG in a browser to show or print it, and scan it with a phone before u
 | 2-3 | The full-test card "Thi thử đầy đủ" | 100 questions: Math 40 (60 min), Reading 20 (30 min), Science 40 (60 min). Each section has its own clock. |
 | 3-6 | Start the test, answer a few questions, open one with a formula and one with an image | Formulas and images are real TSA-style items. Free navigation inside a section; you can return to a section whose time remains. |
 | 6-8 | Submit and read the result | The score is the number of correct answers, shown per section and in total. |
-| 8-9 | Section practice (Math, Science) | Short sets of 4 questions for quick practice. Reading practice is inside the full test. |
+| 8-9 | The three section tests (Math, Reading, Science) | Each section alone at its real length and time: Math 40 in 60 minutes, Reading 20 in 30, Science 40 in 60. |
 | 9-10 | The About page | The source credit, and how to report a wrong question or a display problem (tell the person who sent the link). |
 
 ## 6. If something goes wrong

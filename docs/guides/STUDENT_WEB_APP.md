@@ -23,10 +23,15 @@ allowlist (index plus `assets/` files with known types); without a build it answ
 
 | Link | Mode | API |
 |------|------|-----|
-| `/student/` | Section practice (Math, Reading, Science) | v1 |
-| `/student/?mode=numeric` | Numeric answers | v2 |
-| `/student/?mode=interactions` | Cloze and matching | v4 |
+| `/student/` | Section tests at the real length: Math 40 (60 min), Reading 20 (30 min), Science 40 (60 min) | v1 |
 | `/student/?mode=simulation` | Full simulation, 100 questions, three section clocks | v3 |
+
+Owner decision 2026-11-21: students see only the three section tests and the full test. Numeric and cloze/matching
+practice are no longer linked; their old `?mode=numeric` and `?mode=interactions` links open the section tests. The
+server still creates those offerings, so the v2 and v4 APIs keep working for the existing tests. During a test,
+"Ẩn bảng câu hỏi" hides the question grid on screens 1024 px and wider and gives the question its width; with the grid
+hidden a Reading passage and its question sit side by side from 1024 px instead of 1280 px. The choice is remembered
+in the browser.
 
 ## Public mode
 
@@ -68,10 +73,10 @@ npm run test:student-web:browser   # disposable rehearsal demo; desktop and mobi
 ```
 
 The browser check starts its own rehearsal demo on port 4182 (`STUDENT_WEB_VERIFY_PORT`), uses
-`/snap/bin/chromium` unless `STUDENT_BROWSER` is set, and stops the demo afterwards. It covers section
-practice with review, numeric practice and the full simulation (6/100 with 3/40, 2/20, 1/40) at
-desktop width, and section practice and the simulation again at phone width. It then starts the synthetic cloze/matching fixture and answers all six questions correctly, matching one row
-by drag, one by tap and one from the list, and checks the unsaved-change warning.
+`/snap/bin/chromium` unless `STUDENT_BROWSER` is set, and stops the demo afterwards. It checks that the
+catalog offers exactly the three section tests, answers the whole 40-question Math test with review, hides and
+restores the question grid, and runs the full simulation (6/100 with 3/40, 2/20, 1/40) at desktop width, then the
+Math test and the simulation again at phone width.
 
 ## Design reference
 

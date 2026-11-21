@@ -50,9 +50,10 @@ export async function createImageFixture(t, { largeImages = false } = {}) {
   const created = await response.json();
   if (response.status !== 201) throw new Error(`Image draft rejected: ${created.error?.code}`);
   Object.assign(f, { directory, imageStore, assets, imageWorkflow: workflow, imageQuestion: created });
-  f.approveImage = async () => {
+  // Four questions fill the frozen Math profile; a Math section test needs forty.
+  f.approveImage = async ({ total = 4 } = {}) => {
     await approve(created);
-    for (let index = 2; index <= 4; index++) {
+    for (let index = 2; index <= total; index++) {
       const input = structuredClone(draft); input.content[0].text += ` ${index}`;
       const response = await bankRequest(f.harness, f.browsers.author, "/api/v1/questions", { method: "POST", key: randomUUID(), body: input });
       const question = await response.json();

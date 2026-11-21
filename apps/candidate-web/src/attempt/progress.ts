@@ -27,3 +27,16 @@ export function useFlags(attemptId: string) {
   })
   return { flags, toggle }
 }
+
+/** Whether the question grid beside a test is shown. Hiding it gives the question the whole width; remembered per browser. */
+export function useQuestionPanel() {
+  const key = 'tsa-student-web:question-panel'
+  const [open, setOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem(key) !== 'hidden' } catch { return true }
+  })
+  const toggle = () => setOpen((current) => {
+    try { localStorage.setItem(key, current ? 'hidden' : 'shown') } catch { /* the choice stays in memory */ }
+    return !current
+  })
+  return { open, toggle }
+}
