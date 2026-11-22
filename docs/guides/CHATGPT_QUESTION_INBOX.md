@@ -16,33 +16,22 @@ DRAFTs ──owner review──▶ npm run bank:owner-publish -- --taxonomy-vers
 
 1. Register the pool (a new taxonomy version; a backup is taken first):
    `npm run questions:inbox -- --setup --confirm "REGISTER TAXONOMY"`. Without `--confirm` it is a dry run.
-2. Create three ChatGPT Projects, for example "TSA Math", "TSA Reading", "TSA Science". In each one, upload these files
-   from `docs/question-bank/`: `AI_QUESTION_GENERATION_PROMPT.md`, `question-set.schema.json`, and two or three files from
-   `examples/valid/` (Reading and Science: include `reading-passage.json`).
-3. Paste the Project instructions below into each Project, changing the subject line.
+2. Create three ChatGPT Projects ("TSA Math", "TSA Reading", "TSA Science") and set each one up as described in
+   [ChatGPT Projects for TSA questions](chatgpt-projects/README.md): paste `INSTRUCTIONS_<SUBJECT>.txt` into the Project
+   instructions and upload `AGENT.md`, `SUBJECT_<SUBJECT>.md`, `AI_QUESTION_GENERATION_PROMPT.md`,
+   `question-set.schema.json` and the listed examples.
 
-### Project instructions (paste into each Project)
-
-```text
-You write TSA practice questions. Follow the attached AI_QUESTION_GENERATION_PROMPT.md exactly; it overrides your
-defaults. Your JSON must validate against question-set.schema.json; the attached examples show valid files.
-Subject is always MATH.                  <- READING or SCIENCE in the other Projects
-Write student-facing text in Vietnamese.
-Use web search only to check facts and the current curriculum scope. Never copy or paraphrase text from exams,
-textbooks or websites; write original problems.
-Solve every problem twice by different routes. Drop any question whose answer you are not sure of.
-No images: never use an image or image_request block.
-Reading and Science: every passage has exactly 2 questions.
-Output: ONE ```json code block containing the whole question set, and nothing else. At most 10 questions per reply.
-If I paste an error report, fix only what it lists and send the whole corrected document again.
-```
+Only **CREATE** output (original questions) goes through this inbox. **TRANSCRIBE** output (questions copied from
+your pictures or PDFs) is not original work and follows the corpus route in that README.
 
 ### Each chat: send only the request
 
 ```text
-Topic: PROBABILITY · 10 questions · MEDIUM · types: SINGLE_CHOICE, TRUE_FALSE_GROUP
-batch_id: GPT-MATH-261120-A · question ids: MATH-G261120A-000001 upward
+CREATE · topic PROBABILITY · 10 questions · default 4/3/3 mix · batch letter A
 ```
+
+ChatGPT builds the ids from the date and the letter, for example batch `GPT-MATH-261122-A` and questions
+`MATH-G261122A-000001` upward.
 
 Give every batch new ids. ChatGPT cannot see which ids the Bank already holds; a reused id with different content
 rejects the whole file. Putting the date and a letter in the id (`G261120A`, `G261120B`, …) avoids this.
