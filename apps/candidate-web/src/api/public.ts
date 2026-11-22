@@ -1,6 +1,6 @@
-// Public demo support: the server announces public mode in the demo notice, and visitors sign in as a
-// synthetic guest through POST /local-auth/guest. Local mode never sees either.
-export interface PublicDemo { enabled: boolean; guestPath: string }
+// Guest start: the demo notice says where a visitor's synthetic guest starts. The public demo sends
+// publicDemo.guestPath; the local demo sends localGuests.guestPath and the admin page path.
+export interface PublicDemo { enabled: boolean; guestPath: string; localGuestPath?: string; adminPath?: string }
 
 const LOCAL: PublicDemo = { enabled: false, guestPath: '' }
 let cached: Promise<PublicDemo> | null = null
@@ -10,9 +10,15 @@ export function loadPublicDemo(): Promise<PublicDemo> {
     try {
       const response = await fetch('/local/demo-notice', { headers: { accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' })
       if (!response.ok) return LOCAL
-      const flag = (await response.json())?.publicDemo
+      const notice = await response.json()
+      const flag = notice?.publicDemo
       if (flag?.enabled === true && typeof flag.guestPath === 'string' && flag.guestPath.startsWith('/local-auth/')) {
         return { enabled: true, guestPath: flag.guestPath }
+      }
+      const local = notice?.localGuests
+      if (typeof local?.guestPath === 'string' && local.guestPath.startsWith('/local-auth/')) {
+        return { ...LOCAL, localGuestPath: local.guestPath,
+          ...(typeof local.adminPath === 'string' && local.adminPath.startsWith('/student/') ? { adminPath: local.adminPath } : {}) }
       }
     } catch { /* an unreachable notice means local mode */ }
     return LOCAL

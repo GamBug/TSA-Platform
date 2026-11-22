@@ -23,6 +23,17 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-22 (admin account): The local demo has one sign-in account, `AdminBao`, on a new admin page
+  (`/student/?page=admin`, loopback only; the public site answers 404 for it). The admin sees every Bank version with keys
+  and explanations, adds ChatGPT answer files to the inbox, imports and publishes them through the owner commands, and
+  generates questions with OpenAI when `OPENAI_API_KEY` is set (otherwise the page shows the ChatGPT Project steps).
+  Local students now start as one-click guests; the A/B buttons and the old staff workspace are no longer shown. See the
+  [admin guide](../guides/ADMIN_PAGE.md). `test:admin` (4), `test:demo:uni` (20), `test:auth`, `test:critical:privacy`,
+  `test:b0` (112), `test:question-inbox`, `test:student-web:browser` and `test:demo:uni:browser` pass; a rehearsal on a
+  copy of the retained Bank imported and published one file from the page. Pre-existing failures, not from this work:
+  `test:demo:public` (1 subtest, Math offering lookup since `9f21e78`) and `test:docs` (the tracked
+  `INSTRUCTIONS_*.txt` files of `af75967`). OpenAI was not called for real.
+
 - 2026-11-20 (real-pool browser check): New `npm run test:real-pool:browser` takes the whole 40/20/40 test in Chromium on the
   published Bank, at 1280 px and 360 px, and inspects all 100 question screens (formulas, images, sideways scroll, saving,
   console and network errors, result totals). It found and fixed two defects: long inline formulas pushed the page sideways on

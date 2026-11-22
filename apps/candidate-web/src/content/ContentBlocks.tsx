@@ -50,16 +50,18 @@ export function TextWithMath({ text }: { text: string }) {
   return <>{parts}</>
 }
 
-export function QuestionImage({ block, attemptId, apiVersion, purpose = 'question' }: {
+export function QuestionImage({ block, attemptId, apiVersion, purpose = 'question', imageSource }: {
   block: Extract<ContentBlock, { type: 'image' }>; attemptId: string; apiVersion: string; purpose?: 'question' | 'explanation'
+  imageSource?: (assetVersionId: string) => string
 }) {
   const [loaded, setLoaded] = useState(false)
   const [broken, setBroken] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
   // Images use only the owned-attempt asset route, never source URLs or paths.
-  const url = uuid.test(attemptId) && uuid.test(block.assetVersionId)
-    ? `/api/${apiVersion}/attempts/${attemptId}/assets/${block.assetVersionId}?purpose=${purpose}` : null
+  // The admin page passes its own same-origin image route instead.
+  const url = !uuid.test(block.assetVersionId) ? null : imageSource ? imageSource(block.assetVersionId)
+    : uuid.test(attemptId) ? `/api/${apiVersion}/attempts/${attemptId}/assets/${block.assetVersionId}?purpose=${purpose}` : null
   return (
     <figure className="my-5 border border-rule-strong bg-paper-sheet rounded-[3px]" data-testid="question-image">
       {url && !broken && (
@@ -87,8 +89,9 @@ export function QuestionImage({ block, attemptId, apiVersion, purpose = 'questio
   )
 }
 
-export function ContentBlocks({ blocks, attemptId, apiVersion, purpose = 'question', className = '' }: {
+export function ContentBlocks({ blocks, attemptId, apiVersion, purpose = 'question', className = '', imageSource }: {
   blocks: ContentBlock[] | undefined | null; attemptId: string; apiVersion: string; purpose?: 'question' | 'explanation'; className?: string
+  imageSource?: (assetVersionId: string) => string
 }) {
   return (
     <div className={`min-w-0 [overflow-wrap:anywhere] ${className}`}>
@@ -109,7 +112,7 @@ export function ContentBlocks({ blocks, attemptId, apiVersion, purpose = 'questi
             </div>
           )
         }
-        if (block.type === 'image') return <QuestionImage key={index} block={block} attemptId={attemptId} apiVersion={apiVersion} purpose={purpose} />
+        if (block.type === 'image') return <QuestionImage key={index} block={block} attemptId={attemptId} apiVersion={apiVersion} purpose={purpose} imageSource={imageSource} />
         return null
       })}
     </div>

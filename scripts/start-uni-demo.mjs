@@ -91,12 +91,12 @@ export function formatDemoSummary(demo) {
     `Cloze/matching:    ${demo.urls.clozeMatching}`,
     `Full simulation:   ${demo.urls.simulation}`,
     demo.publicOrigin ? `Reverse proxy target: ${demo.urls.listen} (forward the original Host header; health check: ${demo.urls.listen}/healthz)`
-      : `Staff workspace:   ${demo.urls.staff}`,
+      : `Admin (AdminBao):  ${demo.urls.admin}   (this computer only: full Bank, inbox import, publication, AI questions)`,
     '',
     'Student links open the React student app (npm run build:student). Topic practice is paused until it is rebuilt.',
     '',
     ...(demo.publicOrigin ? ['PUBLIC MODE: student app and candidate APIs only. Every visitor browser gets its own synthetic guest; staff paths answer 404.']
-      : ['Use a fresh private browser window. Local demo accounts need no password.']),
+      : ['Students press "Bắt đầu luyện tập" and get their own guest; only the admin page asks for a password.']),
     `Keep this terminal running. Ctrl+C stops the server and database and deletes the demo copy${mode === 'PUBLISHED' ? '; the private Bank gets no schema or data change' : ''}.`,
     'Guide: docs/guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md',
     '');

@@ -6,6 +6,7 @@ import { CatalogScreen } from '@/screens/CatalogScreen'
 import { AttemptScreen } from '@/screens/AttemptScreen'
 import { SimulationScreen } from '@/screens/SimulationScreen'
 import { AboutScreen } from '@/screens/AboutScreen'
+import { AdminScreen } from '@/screens/AdminScreen'
 import { loadPublicDemo, startGuest, type PublicDemo } from '@/api/public'
 import { Masthead, PageFooter } from '@/ui/Shell'
 
@@ -17,7 +18,9 @@ type View =
   | { name: 'simulation' }
 
 const mode = readMode()
-const aboutPage = new URLSearchParams(window.location.search).get('page') === 'about'
+const page = new URLSearchParams(window.location.search).get('page')
+const aboutPage = page === 'about'
+const adminPage = page === 'admin'
 const api = apiFor(mode)
 
 function messageOf(error: unknown): string {
@@ -69,6 +72,7 @@ export default function App() {
 
   // Learn whether this server is the public demo before deciding which sign-in to offer.
   useEffect(() => {
+    if (adminPage) return
     if (aboutPage) { void loadPublicDemo().then(setPublicDemo); return }
     let alive = true
     void loadPublicDemo().then((value) => { if (alive) { setPublicDemo(value); void restore() } })
@@ -86,11 +90,12 @@ export default function App() {
     } finally { setBusy(false) }
   }
 
+  const guestPath = publicDemo?.enabled ? publicDemo.guestPath : publicDemo?.localGuestPath
   const guest = async () => {
-    if (!publicDemo?.enabled) return
+    if (!guestPath) return
     setBusy(true)
     try {
-      await startGuest(publicDemo.guestPath)
+      await startGuest(guestPath)
       await restore()
     } catch (error) {
       setView({ name: 'login', message: messageOf(error) })
@@ -129,6 +134,14 @@ export default function App() {
 
   const isPublic = publicDemo?.enabled === true
   const signedIn = view.name === 'catalog' || view.name === 'attempt' || view.name === 'simulation'
+  if (adminPage) {
+    return (
+      <div className="min-h-dvh flex flex-col bg-paper text-ink">
+        <Masthead mode={mode} sticky={false} />
+        <AdminScreen />
+      </div>
+    )
+  }
   if (aboutPage) {
     return (
       <div className="min-h-dvh flex flex-col bg-paper text-ink">
@@ -142,7 +155,8 @@ export default function App() {
     <div className="min-h-dvh flex flex-col bg-paper text-ink">
       {view.name !== 'attempt' && <Masthead mode={mode} actorLabel={actor} onLogout={signedIn && !isPublic ? logout : undefined} sticky={view.name !== 'simulation'} />}
       {view.name === 'loading' && <main className="flex-1 px-8 py-16 text-sm text-ink-secondary" role="status">Đang mở phiên luyện tập…</main>}
-      {view.name === 'login' && <LoginScreen busy={busy} message={view.message} publicDemo={isPublic} onLogin={login} onGuest={guest} />}
+      {view.name === 'login' && <LoginScreen busy={busy} message={view.message} publicDemo={isPublic} guestStart={Boolean(guestPath)}
+        adminPath={publicDemo?.adminPath} onLogin={login} onGuest={guest} />}
       {view.name === 'catalog' && <CatalogScreen mode={mode} profiles={profiles} busy={busy} message={view.message} onStart={start} />}
       {view.name === 'attempt' && (
         <AttemptScreen

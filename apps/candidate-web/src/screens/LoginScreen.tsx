@@ -7,10 +7,13 @@ const ACCOUNTS = [
   { key: 'studentB' as const, label: 'Hồ sơ tổng hợp B' },
 ]
 
-export function LoginScreen({ busy, message, publicDemo, onLogin, onGuest }: {
+export function LoginScreen({ busy, message, publicDemo, guestStart = publicDemo, adminPath, onLogin, onGuest }: {
   busy: boolean
   message: string | null
   publicDemo: boolean
+  // The local demo also starts one-click guests; the synthetic A/B accounts are shown only when it does not.
+  guestStart?: boolean
+  adminPath?: string
   onLogin: (actor: 'studentA' | 'studentB') => void
   onGuest: () => void
 }) {
@@ -20,7 +23,7 @@ export function LoginScreen({ busy, message, publicDemo, onLogin, onGuest }: {
       <section className="px-5 py-10 sm:px-10 sm:py-14 max-w-[760px]" data-testid="login">
         <p className="text-xs font-semibold text-ink-secondary mb-3">Vở luyện tập đánh giá tư duy bậc THPT</p>
         <h1 tabIndex={-1} className="font-display text-[32px] sm:text-[48px] leading-[1.1] font-semibold text-ink tracking-[-0.02em]">
-          {publicDemo ? 'Luyện tập TSA, không cần đăng ký' : 'Chọn hồ sơ để bắt đầu luyện tập'}
+          {guestStart ? 'Luyện tập TSA, không cần đăng ký' : 'Chọn hồ sơ để bắt đầu luyện tập'}
         </h1>
         {publicDemo ? (
           <ul className="mt-4 text-[16px] leading-[1.68] text-ink-secondary max-w-[60ch] list-disc pl-5 space-y-1" data-testid="landing-intro">
@@ -28,6 +31,10 @@ export function LoginScreen({ busy, message, publicDemo, onLogin, onGuest }: {
             <li>Bạn có thể làm một bài thi thử đầy đủ 100 câu (Toán, Đọc hiểu, Khoa học) hoặc luyện riêng từng phần; mỗi phần có đồng hồ do máy chủ tính.</li>
             <li>Không cần tài khoản hay thông tin cá nhân. Phiên luyện tập là tạm thời: bài làm không được lưu lâu dài và có thể mất khi máy chủ khởi động lại.</li>
           </ul>
+        ) : guestStart ? (
+          <p className="mt-4 text-[16px] leading-[1.68] text-ink-secondary max-w-[60ch]" data-testid="landing-intro">
+            Bản demo cục bộ: mỗi trình duyệt nhận một phiên khách riêng, không cần tài khoản. Đồng hồ và câu trả lời do máy chủ ghi nhận.
+          </p>
         ) : (
           <p className="mt-4 text-[16px] leading-[1.68] text-ink-secondary max-w-[60ch]">
             Bản demo cục bộ dùng tài khoản kiểm thử tổng hợp. Đồng hồ và câu trả lời do máy chủ ghi nhận; không có tài khoản thật nào được tạo.
@@ -35,7 +42,7 @@ export function LoginScreen({ busy, message, publicDemo, onLogin, onGuest }: {
         )}
         {message && <div className="mt-6"><Notice tone="info" testId="login-message">{message}</Notice></div>}
         <div className="mt-8 flex flex-wrap gap-3">
-          {publicDemo ? (
+          {guestStart ? (
             <button type="button" disabled={busy} data-testid="guest-start" onClick={onGuest} className={buttonClass.primary}>
               Bắt đầu luyện tập <IconArrowRight size={14} />
             </button>
@@ -46,6 +53,9 @@ export function LoginScreen({ busy, message, publicDemo, onLogin, onGuest }: {
             </button>
           ))}
         </div>
+        {adminPath && (
+          <p className="mt-6 text-sm"><a href={adminPath} data-testid="admin-link" className="underline underline-offset-2 text-ink-secondary hover:text-ink inline-flex items-center min-h-[44px]">Quản trị (Admin)</a></p>
+        )}
         <div className="mt-10"><DemoNoticePanel /></div>
       </section>
     </main>

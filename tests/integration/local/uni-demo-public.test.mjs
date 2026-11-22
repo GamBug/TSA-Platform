@@ -172,6 +172,8 @@ test('public mode serves the student app only, to one guest per browser', { time
       ['GET', '/app/staff.js'], ['GET', '/vendor/katex.mjs'], ['GET', '/fonts.css'], ['GET', '/mock/api'], ['POST', '/mock/api'],
       ['POST', '/'], ['GET', '/local/workspace/template'], ['GET', '/local/anything'],
       ['POST', '/local-auth/bootstrap'], ['POST', '/local-auth/login'], ['POST', '/local-auth/logout'],
+      // The admin page exists only on the loopback demo.
+      ['GET', '/local/admin/session'], ['POST', '/local/admin/login'], ['GET', '/local/admin/questions'], ['GET', '/local/admin/overview'],
       ['GET', '/api/v1/questions'], ['GET', '/api/v1/sources'], ['GET', '/api/v1/bank'], ['POST', '/api/v1/questions'],
       ['GET', '/api/v2/questions'], ['GET', '/api/v4/questions'], ['GET', '/api/v1'], ['GET', '/api/v5/anything'],
     ]) {

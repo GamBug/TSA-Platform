@@ -51,15 +51,16 @@ async function answerByNote(page, byId) {
   await page.waitForFunction(() => /^Đã lưu/.test(document.querySelector('[data-testid="save-status"]')?.textContent ?? ''), null, { timeout: 10_000 });
 }
 
-async function login(byId, actor) {
-  await byId(`login-${actor}`).click();
+// The local demo starts one-click guests like the public one; each journey page is its own browser context.
+async function login(byId) {
+  await byId('guest-start').click();
 }
 
 async function sectionPractice(browser, viewport, actor, label) {
   const { page, problems, byId, snap } = await journeyPage(browser, viewport);
   await page.goto(`${origin}/student/`);
-  await byId(`login-${actor}`).waitFor();
-  await login(byId, actor);
+  await byId('guest-start').waitFor();
+  await login(byId);
   await page.locator('[data-testid="catalog-item"]').first().waitFor();
   assert.match(await byId('demo-notice').innerText(), /không liên kết với Đại học Bách khoa Hà Nội \(HUST\)/);
   assert.match(await byId('demo-notice').innerText(), /DIỄN TẬP · NỘI DUNG TỔNG HỢP/);
@@ -102,7 +103,7 @@ async function sectionPractice(browser, viewport, actor, label) {
 async function fullSimulation(browser, viewport, actor, label) {
   const { page, problems, byId, snap } = await journeyPage(browser, viewport);
   await page.goto(`${origin}/student/?mode=simulation`);
-  await login(byId, actor);
+  await login(byId);
   await byId('simulation-home').waitFor();
   await byId('simulation-create').click();
   await byId('demo-start').click();

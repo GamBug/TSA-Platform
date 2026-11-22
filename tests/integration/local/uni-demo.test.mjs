@@ -182,7 +182,10 @@ test('published numeric-answer items get their own practice, delivered and grade
   const legacy = await fetch(`${demo.origin}/?student=postgres-v2`, { redirect: 'manual' });
   assert.equal(legacy.status, 303);
   assert.equal(legacy.headers.get('location'), '/student/?mode=numeric');
-  assert.equal((await fetch(`${demo.origin}/`, { redirect: 'manual' })).status, 200, 'staff landing stays available');
+  // The old staff workspace is not offered: the bare origin opens the student app (owner decision 2026-11-22).
+  const home = await fetch(`${demo.origin}/`, { redirect: 'manual' });
+  assert.equal(home.status, 303);
+  assert.equal(home.headers.get('location'), '/student/');
 
   const student = await loginActor(demo, 'studentA');
   const numericOffering = report.offerings.find((offering) => offering.kind === 'NUMERIC_PRACTICE');

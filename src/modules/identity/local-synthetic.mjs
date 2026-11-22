@@ -393,11 +393,14 @@ async function sessionByToken(pool, token, { guestPool = 0, guestsOnly = false }
     let roles = [];
     if (row.user_id) {
       // A guest-only service (public demo) never authenticates staff or student actors.
-      actor = guestsOnly ? guestActorForRow({ userId: row.user_id, issuer: row.issuer, subject: row.subject }, guestPool)
+      // The staff profile also authenticates pool guests when the database carries them (local guest start).
+      const guestActor = () => guestPool > 0
+        ? guestActorForRow({ userId: row.user_id, issuer: row.issuer, subject: row.subject }, guestPool) : null;
+      actor = guestsOnly ? guestActor()
         : Object.entries(LOCAL_SYNTHETIC_ACTORS)
           .map(([key, value]) => ({ ...value, key }))
           .find((value) => value.id === row.user_id && value.subject === row.subject
-            && row.issuer === LOCAL_SYNTHETIC_ISSUER);
+            && row.issuer === LOCAL_SYNTHETIC_ISSUER) ?? guestActor();
       if (!actor) return null;
       const roleRows = await client.query('SELECT role FROM tsa.user_roles WHERE user_id = $1 ORDER BY role', [row.user_id]);
       roles = roleRows.rows.map((item) => item.role);
@@ -574,10 +577,10 @@ async function revokeLocalSession(pool, principal) {
 
 /**
  * Validate the process, connection and database before exposing local auth operations.
- * `guestPool` says the database carries that many pre-created guests (public demo). With
- * `guestsOnly` (the default whenever a pool is given) the service is the public profile: only
- * guests authenticate and the fixed actor login is unavailable. `guestsOnly: false` keeps the
- * staff profile for startup work that must run before any request is served.
+ * `guestPool` says the database carries that many pre-created guests. With `guestsOnly` (the
+ * default whenever a pool is given) the service is the public profile: only guests authenticate
+ * and the fixed actor login is unavailable. `guestsOnly: false` is the staff profile: fixed actors
+ * and pool guests both authenticate (the local demo offers one-click guests beside the API login).
  */
 export async function createLocalSyntheticIdentityService(pool, { env = process.env, guestPool = 0, guestsOnly = guestPool > 0 } = {}) {
   validateLocalSyntheticConfig(env);
@@ -590,7 +593,7 @@ export async function createLocalSyntheticIdentityService(pool, { env = process.
     guestMode: guestsOnly,
     createGuestSession: () => createGuestSession(pool),
     startGuestSession: async () => {
-      if (!guestsOnly) throw new Error('Guest sessions are available only in the public demo profile');
+      if (guestPool === 0) throw new Error('Guest sessions need a database that carries a guest pool');
       return startGuestSession(pool, guestPool);
     },
     authenticate: (request) => authenticateLocalRequest(pool, request, guests),

@@ -1,5 +1,27 @@
 # Architectural decisions and open questions
 
+## Admin account and local admin page — 2026-11-22
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-22.
+Evidence: the owner asked "Add Admin account (for now, this is only account need to log in): user: AdminBao ... admin
+could see ALL questions - full bank; admin can also add/approve .json answer files if they are in localhost; Ai Gen
+questions function (need API key, if not tell admin how to use ChatGPT Web Project)", then chose "Localhost only",
+"OpenAI" and "Remove them from the UI" for the A/B and staff accounts.
+
+1. **One account, local only.** `AdminBao` signs in to `/student/?page=admin` on the loopback demo. The public demo keeps
+   the 2026-11-18 rule: no staff or admin path exists there. The password is the owner's choice, stored as a hash.
+2. **Students start as guests locally too.** The local student app shows only **Bắt đầu luyện tập**; the synthetic
+   Student A/B buttons and the old staff workspace are no longer shown, and `/` redirects to `/student/`. The synthetic
+   actors and their API login stay for the automated suites and the owner commands, which sign in through the API.
+3. **Full Bank view.** The admin sees every version in every state with keys and explanations.
+4. **Import and approval through the owner commands.** The page runs `questions:inbox` and
+   `bank:owner-publish --taxonomy-version <practice pool>` on the retained Bank with their confirmation phrases. Pressing
+   **Publish** is the owner's approval, as running the confirmed command in a terminal was.
+5. **AI questions with the owner's OpenAI key.** With `OPENAI_API_KEY` set, the page asks OpenAI for one CREATE batch and
+   saves it into the inbox. This is the owner's explicit choice of a paid API for this feature; it does not lift the
+   no-paid-API rule for agents. AI output is validated and imported only as DRAFTs; publication stays the owner's
+   action. Without a key the page explains the ChatGPT Project route. Guide: [admin page](../guides/ADMIN_PAGE.md).
+
 ## Transcribed questions in the practice pool — 2026-11-22
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-22.

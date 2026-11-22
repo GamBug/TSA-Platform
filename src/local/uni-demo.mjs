@@ -12,10 +12,16 @@ import { startPersistentPostgres } from './postgres.mjs';
 import { createTrackBRuntime, PUBLIC_DEMO_DEFAULT_GUEST_POOL, PUBLIC_DEMO_DEFAULT_GUESTS_PER_HOUR } from './track-b.mjs';
 import { applyPublicDemoSpeedups } from './public-demo-speedups.mjs';
 import { DEMO_SECTIONS, seedUniDemoOfferings } from './uni-demo-seed.mjs';
+import { createAdminAuth } from './admin/admin-auth.mjs';
+import { readBankSnapshot } from './admin/admin-bank.mjs';
+import { createAdminJobs } from './admin/admin-jobs.mjs';
+import { ADMIN_ROUTE_PREFIX, createAdminRoutes } from './admin/admin-routes.mjs';
 
 export const UNI_DEMO_DEFAULT_PORT = 4180;
 export const UNI_DEMO_MODES = Object.freeze(['PUBLISHED', 'REHEARSAL']);
 export const PUBLIC_DEMO_GUEST_PATH = '/local-auth/guest';
+export const ADMIN_PAGE_PATH = '/student/?page=admin';
+const ADMIN_UNAVAILABLE = () => Response.json({ error: 'ADMIN_UNAVAILABLE' }, { status: 503, headers: { 'cache-control': 'no-store' } });
 const DEMO_OWNER_ROLE = 'tsa_local_owner';
 const TOOL_TIMEOUT_MS = 60_000;
 const MAX_CREDIT_LENGTH = 500;
@@ -138,6 +144,12 @@ export async function startUniDemo({
   offeringDays = 1,
   imageStoreDirectory = mode === 'PUBLISHED'
     ? process.env.TSA_IMAGE_STORE_DIRECTORY ?? fileURLToPath(new URL('../../.local/track-b-images', import.meta.url)) : null,
+  // Local admin page (loopback only): the question inbox it imports from, and the environment that may hold
+  // DEMO_ADMIN_PASSWORD, OPENAI_API_KEY and OPENAI_MODEL.
+  inboxDirectory = fileURLToPath(new URL('../../question-inbox', import.meta.url)),
+  adminEnv = process.env,
+  // Injectable for tests: runs one admin job command.
+  adminRunCommand,
 } = {}) {
   if (!UNI_DEMO_MODES.includes(mode)) throw new TypeError('mode must be PUBLISHED or REHEARSAL');
   if (mode === 'PUBLISHED' && (sourceArchive !== undefined || typeof sourceDataDirectory !== 'string')) {
@@ -153,6 +165,8 @@ export async function startUniDemo({
   const exported = mode === 'PUBLISHED' ? await exportBankArchive({ dataDirectory: sourceDataDirectory, pgBin }) : sourceArchive;
   const root = await mkdtemp(path.join(os.tmpdir(), 'tsa-uni-demo-'));
   let runtime, notice, closing;
+  const local = publicOrigin === undefined;
+  let snapshot = null, adminHandler = null;
   try {
     const clusterDirectory = path.join(root, 'cluster');
     await restoreArchive({ archive: exported.archive, roles: exported.roles, clusterDirectory, workDirectory: root, pgBin });
@@ -170,7 +184,12 @@ export async function startUniDemo({
         LOCAL_NUMERIC_PRACTICE_ENABLED: 'true', LOCAL_CLOZE_MATCHING_ENABLED: 'true' },
       dataDirectory: clusterDirectory, port, pgBin,
       publicDemo: publicOrigin === undefined ? null : { origin: publicOrigin, guestPool, guestsPerHour },
+      localGuests: local ? {} : null,
+      homeRedirect: local ? '/student/' : null,
+      localRoutePrefix: local ? ADMIN_ROUTE_PREFIX : null,
       prepareDatabase: async (ownerPool) => {
+        // The admin page reads the whole Bank once here, while the migration-owner connection is still open.
+        if (local) snapshot = await readBankSnapshot(ownerPool);
         // Public mode freezes the content for the life of this copy, so test creation can use cached checks.
         const speedups = publicOrigin === undefined ? null : await applyPublicDemoSpeedups(ownerPool);
         const report = await seedUniDemoOfferings(ownerPool, { offeringDays });
@@ -179,10 +198,24 @@ export async function startUniDemo({
         return report;
       },
       localRoutes: { '/local/demo-notice': (request) => request.method === 'GET'
-        // Public mode adds one flag the student app reads: guests start at publicDemo.guestPath.
-        ? Response.json(publicOrigin === undefined ? notice : { ...notice, publicDemo: { enabled: true, guestPath: PUBLIC_DEMO_GUEST_PATH } }, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
-        : Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405 }) },
+        // The student app reads where guests start: publicDemo.guestPath (public) or localGuests.guestPath (loopback).
+        ? Response.json(local ? { ...notice, localGuests: { guestPath: PUBLIC_DEMO_GUEST_PATH, adminPath: ADMIN_PAGE_PATH } }
+          : { ...notice, publicDemo: { enabled: true, guestPath: PUBLIC_DEMO_GUEST_PATH } }, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+        : Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405 }),
+      ...(local ? { [ADMIN_ROUTE_PREFIX]: (request) => (adminHandler ? adminHandler(request) : ADMIN_UNAVAILABLE()) } : {}) },
     });
+    if (local) {
+      // Admin jobs write the owner's retained Bank (PUBLISHED mode only); this demo keeps serving its start-time copy.
+      const retained = mode === 'PUBLISHED' ? path.resolve(sourceDataDirectory) : null;
+      const refreshSnapshot = retained ? async () => {
+        const database = await startPersistentPostgres(retained, { pgBin });
+        try { snapshot = await readBankSnapshot(database.ownerPool); } finally { await database.stop(); }
+      } : null;
+      const jobs = createAdminJobs({ dataDirectory: retained, inboxDirectory, imageStoreDirectory: imageStoreDirectory ?? undefined,
+        ...(adminRunCommand ? { runCommand: adminRunCommand } : {}), onBankChanged: refreshSnapshot ?? undefined });
+      adminHandler = createAdminRoutes({ auth: createAdminAuth({ trustedOrigin: runtime.origin, env: adminEnv }), jobs,
+        getSnapshot: () => snapshot, refreshSnapshot, imageStore, contentMode: mode, inboxDirectory, env: adminEnv });
+    }
   } catch (error) {
     // A failed database stop may leave a live postmaster; keep its directory for inspection then.
     if (!error.cleanupError) await rm(root, { recursive: true, force: true }).catch(() => {});
@@ -198,7 +231,9 @@ export async function startUniDemo({
     sourceBackup: mode === 'PUBLISHED' ? exported.archive : null,
     demoDirectory: root,
     urls: publicOrigin === undefined ? Object.freeze({
-      staff: `${runtime.origin}/`,
+      // The old staff workspace is not offered; the bare origin redirects to the student app.
+      staff: null,
+      admin: `${runtime.origin}${ADMIN_PAGE_PATH}`,
       student: `${runtime.origin}/student/`,
       simulation: `${runtime.origin}/student/?mode=simulation`,
       numeric: `${runtime.origin}/student/?mode=numeric`,
@@ -206,6 +241,7 @@ export async function startUniDemo({
     }) : Object.freeze({
       // No staff workspace exists in public mode; the proxy reaches the loopback listener at `listen`.
       staff: null,
+      admin: null,
       student: `${publicOrigin}/student/`,
       simulation: `${publicOrigin}/student/?mode=simulation`,
       numeric: `${publicOrigin}/student/?mode=numeric`,

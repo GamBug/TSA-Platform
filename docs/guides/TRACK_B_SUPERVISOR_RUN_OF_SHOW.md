@@ -68,7 +68,7 @@ When ready, the terminal prints:
   taxonomy version, published `question/2` items only);
 - whether Math cloze/matching practice is offered (four standalone published
   `question/3` items from one taxonomy version, six minutes);
-- the student, numeric practice, cloze/matching, full-simulation and staff URLs
+- the student, numeric practice, cloze/matching, full-simulation and admin URLs
   (student links open `/student/` with `?mode=numeric`, `?mode=interactions` or
   `?mode=simulation`).
 
@@ -78,11 +78,11 @@ offered.
 
 ## Present (about 10 minutes)
 
-Use a fresh private browser window. No password is needed.
+Use a fresh private browser window. Students need no account; only the [admin page](ADMIN_PAGE.md) asks for a password.
 
 | Step | Browser action | Point to make |
 |---|---|---|
-| 1 | Open the student URL and choose **Đăng nhập · Hồ sơ tổng hợp A**. | The notice block: unofficial practice, not affiliated with HUST, non-profit, content source. |
+| 1 | Open the student URL and choose **Bắt đầu luyện tập** (each browser gets its own guest). | The notice block: unofficial practice, not affiliated with HUST, non-profit, content source. |
 | 2 | In **Mục lục bài luyện tập**, choose **Bắt đầu** on a section. | Practice draws only published, unseen questions; the clock is the server's. |
 | 3 | Answer (options save at once and show **Đã lưu**), flag one with **Đánh dấu**, then **Nộp bài** and confirm. | Server-graded correct count; **Xem lại đáp án và lời giải** opens the released review; notices repeat on the result page. |
 | 4 | Choose **Thi thử đầy đủ** in the top bar, then **Giữ chỗ bài thi thử** and **Bắt đầu bài thi thử**. | 100 questions, Mathematics 40/60 min, Reading 20/30, Science 40/60. Only the open section's clock runs. |
@@ -90,7 +90,7 @@ Use a fresh private browser window. No password is needed.
 | 6 | **Nộp cả bài** and confirm. | Correct answers per section and out of 100, labelled unofficial practice. |
 | 6a | Optional: **Điền đáp án số** in the top bar. | Short answers typed as decimals, saved with **Lưu câu trả lời**. |
 | 6b | Optional: **Điền khuyết & ghép nối** in the top bar. | Cloze answers are typed; matching cards can be dragged, tapped or chosen from a list. Each question scores only when every field or row is correct. |
-| 7 | Choose **Đăng xuất**, open the staff URL, choose the staff workspace, select **REVIEWER**, then **Hàng chờ rà soát**. | Unpublished items wait for the owner here; students never see them. |
+| 7 | Choose **Đăng xuất**, then **Quản trị (Admin)**, and sign in as `AdminBao`. Filter **All states** to `DRAFT`. | The admin sees the whole Bank with answer keys, including unpublished questions students never see. |
 
 If the simulation is not offered, say so and show section practice instead. The
 terminal summary states the exact shortage.

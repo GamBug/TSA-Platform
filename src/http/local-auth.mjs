@@ -128,19 +128,26 @@ export const GUEST_POOL_EXHAUSTED_MESSAGE = 'Bản demo đã đủ lượt truy 
  * Validate the local-only boundary before returning an HTTP handler.
  * `publicGuests` ({ guestPool, limiter }) selects the public demo profile: only
  * GET /local-auth/session and POST /local-auth/guest exist; every other path is a 404.
+ * `localGuests` ({ guestPool, limiter }) keeps the staff profile on loopback and adds
+ * POST /local-auth/guest, so the local student app starts one-click guests too.
  */
-export async function createLocalAuthHandler({ pool, env = process.env, publicGuests = null, guestPool = 0 } = {}) {
+export async function createLocalAuthHandler({ pool, env = process.env, publicGuests = null, localGuests = null, guestPool = 0 } = {}) {
   if (!pool || typeof pool.query !== 'function' || typeof pool.connect !== 'function') {
     throw new TypeError('A configured PostgreSQL pool is required');
   }
   if (publicGuests !== null && (typeof publicGuests?.limiter?.take !== 'function' || !Number.isSafeInteger(publicGuests.guestPool))) {
     throw new TypeError('publicGuests requires a guestPool size and a limiter');
   }
+  if (localGuests !== null && (publicGuests !== null || typeof localGuests?.limiter?.take !== 'function'
+      || !Number.isSafeInteger(localGuests.guestPool))) {
+    throw new TypeError('localGuests requires a guestPool size and a limiter, and excludes publicGuests');
+  }
+  const guests = publicGuests ?? localGuests;
   const trustedOrigin = validateLocalSyntheticConfig(env);
   // `guestPool` without `publicGuests` is the staff profile on a database that carries guests;
   // it exists only for startup work and is never routed to visitors.
   const identity = await createLocalSyntheticIdentityService(pool, publicGuests
-    ? { env, guestPool: publicGuests.guestPool } : { env, guestPool, guestsOnly: false });
+    ? { env, guestPool: publicGuests.guestPool } : { env, guestPool: localGuests?.guestPool ?? guestPool, guestsOnly: false });
 
   async function handleGuest(request, context) {
     const principal = await identity.authenticate(request);
@@ -153,7 +160,7 @@ export async function createLocalAuthHandler({ pool, env = process.env, publicGu
       if (!checked) return jsonResponse(403, { error: 'CSRF_REJECTED' });
       return jsonResponse(200, { authenticated: true, principal: publicPrincipal(checked) });
     }
-    const verdict = publicGuests.limiter.take(context.clientIp ?? 'unknown');
+    const verdict = guests.limiter.take(context.clientIp ?? 'unknown');
     if (!verdict.allowed) {
       return new Response(JSON.stringify({ error: 'GUEST_RATE_LIMITED' }), { status: 429, headers: {
         'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store',
@@ -162,7 +169,7 @@ export async function createLocalAuthHandler({ pool, env = process.env, publicGu
     const session = await identity.startGuestSession();
     if (!session) return jsonResponse(503, { error: 'GUEST_POOL_EXHAUSTED', message: GUEST_POOL_EXHAUSTED_MESSAGE });
     return jsonResponse(201, { authenticated: true, principal: publicPrincipal(session.principal), csrfToken: session.csrf },
-      sessionCookies(session.token, session.csrf, undefined, { publicOrigin: true }));
+      sessionCookies(session.token, session.csrf, undefined, { publicOrigin: publicGuests !== null }));
   }
 
   return async function handleLocalAuth(request, context = {}) {
@@ -178,7 +185,8 @@ export async function createLocalAuthHandler({ pool, env = process.env, publicGu
     if (parsedRequestUrl.search) return jsonResponse(400, { error: 'INVALID_REQUEST' });
     const path = parsedRequestUrl.pathname;
     const knownPaths = publicGuests ? ['/local-auth/session', '/local-auth/guest']
-      : ['/local-auth/bootstrap', '/local-auth/session', '/local-auth/login', '/local-auth/logout'];
+      : ['/local-auth/bootstrap', '/local-auth/session', '/local-auth/login', '/local-auth/logout',
+        ...(localGuests ? ['/local-auth/guest'] : [])];
     if (!knownPaths.includes(path)) return jsonResponse(404, { error: 'NOT_FOUND' });
 
     try {

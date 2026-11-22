@@ -127,6 +127,18 @@ function normalizePublicDemo(publicDemo) {
   return Object.freeze({ origin, guestPool, guestsPerHour });
 }
 
+export const LOCAL_DEMO_DEFAULT_GUEST_POOL = 500;
+
+function normalizeLocalGuests(localGuests, publicMode) {
+  if (localGuests === null) return null;
+  if (publicMode) throw new TypeError('localGuests is for the loopback demo; public mode has its own guests');
+  const { guestPool = LOCAL_DEMO_DEFAULT_GUEST_POOL } = localGuests ?? {};
+  if (!Number.isSafeInteger(guestPool) || guestPool < 1 || guestPool > LOCAL_GUEST_MAX_POOL) {
+    throw new RangeError(`The guest pool must be an integer from 1 through ${LOCAL_GUEST_MAX_POOL}`);
+  }
+  return Object.freeze({ guestPool });
+}
+
 function notFoundResponse(pathname) {
   if (/^\/api\/v[1234](?:\/|$)/.test(pathname)) {
     const requestId = randomUUID();
@@ -157,9 +169,20 @@ export async function createTrackBRuntime({
   // Public demo: { origin: 'https://…', guestPool, guestsPerHour } serves only the student app and
   // candidate APIs to guest identities; staff routes and handlers do not exist. Off by default.
   publicDemo = null,
+  // Local demo: { guestPool } lets the loopback student app start one-click guests; the API login stays.
+  localGuests = null,
+  // Paths under / (not only /local/) that the loopback demo routes to localRoutes, e.g. the admin API.
+  localRoutePrefix = null,
+  // Loopback demo: where the bare home page redirects (the old staff workspace is not offered).
+  homeRedirect = null,
 } = {}) {
   assertLocalEnvironment(env);
   const publicMode = normalizePublicDemo(publicDemo);
+  const localGuestMode = normalizeLocalGuests(localGuests, publicMode);
+  const guestPool = publicMode?.guestPool ?? localGuestMode?.guestPool ?? 0;
+  if (localRoutePrefix !== null && (typeof localRoutePrefix !== 'string' || !/^\/local\/[a-z-]+\/$/.test(localRoutePrefix))) {
+    throw new TypeError('localRoutePrefix must look like /local/<name>/');
+  }
   if (publicMode && env.LOCAL_STUDENT_ENABLED !== 'true') throw new Error('The public demo requires the local student runtime');
   if (prepareDatabase !== undefined && typeof prepareDatabase !== 'function') throw new TypeError('prepareDatabase must be a function');
   if (localRoutes === null || typeof localRoutes !== 'object' || Object.entries(localRoutes).some(([route, handler]) =>
@@ -227,7 +250,7 @@ export async function createTrackBRuntime({
       directory: `${absoluteDataDirectory}-backups`, pgBin });
     await migrate(ownerPool);
     await bootstrapLocalSyntheticIdentity(ownerPool, { env: bootstrapEnv });
-    if (publicMode) await preparePublicGuestIdentity(ownerPool, { env: bootstrapEnv, guestPool: publicMode.guestPool });
+    if (guestPool > 0) await preparePublicGuestIdentity(ownerPool, { env: bootstrapEnv, guestPool });
     await ensureLocalTaxonomy(ownerPool);
     const sourceSeedState = await inspectLocalSourceSeed(ownerPool);
     await ensureRuntimeRoles(ownerPool, { student: studentEnabled });
@@ -282,9 +305,12 @@ export async function createTrackBRuntime({
         if (isStudentApiPath(pathname)) return routeHandlers.attemptHandler(request);
         return notFoundResponse(pathname);
       }
-      if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request);
+      if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request, context);
       if (pathname === TEMPLATE_PATH) return routeHandlers.templateHandler(request);
       if (Object.hasOwn(localRoutes, pathname)) return localRoutes[pathname](request);
+      if (localRoutePrefix && pathname.startsWith(localRoutePrefix) && Object.hasOwn(localRoutes, localRoutePrefix)) {
+        return localRoutes[localRoutePrefix](request);
+      }
       if (isStudentApiPath(pathname)) return routeHandlers.attemptHandler(request);
       if (clozeMatchingEnabled && pathname.startsWith('/api/v4/')) return routeHandlers.clozeMatchingBankHandler(request);
       if (numericEnabled && pathname.startsWith('/api/v2/')) return routeHandlers.numericBankHandler(request);
@@ -296,6 +322,7 @@ export async function createTrackBRuntime({
       maxRequestBytes: MAX_INTEGRATED_REQUEST_BYTES,
       integratedRequestHandler,
       redirectLegacyStudentUi,
+      homeRedirect,
       publicOrigin: publicMode?.origin ?? null,
     });
     const address = await listen(server, port);
@@ -306,10 +333,13 @@ export async function createTrackBRuntime({
     }
     validateLocalSyntheticConfig(handlerEnv);
     const identityService = await createLocalSyntheticIdentityService(identityPool,
-      { env: handlerEnv, guestPool: publicMode?.guestPool ?? 0 });
+      { env: handlerEnv, guestPool, guestsOnly: Boolean(publicMode) });
     const authHandler = await createLocalAuthHandler({ pool: identityPool, env: handlerEnv,
       publicGuests: publicMode ? { guestPool: publicMode.guestPool,
-        limiter: createSlidingWindowLimiter({ limit: publicMode.guestsPerHour, windowMilliseconds: 3_600_000 }) } : null });
+        limiter: createSlidingWindowLimiter({ limit: publicMode.guestsPerHour, windowMilliseconds: 3_600_000 }) } : null,
+      // Loopback only: every request shares one address, so the limit only stops a runaway client.
+      localGuests: localGuestMode ? { guestPool: localGuestMode.guestPool,
+        limiter: createSlidingWindowLimiter({ limit: 10_000, windowMilliseconds: 3_600_000 }) } : null });
     let bankHandler = null, numericBankHandler = null, clozeMatchingBankHandler = null, templateHandler = null;
     // Public mode creates its staff handlers only for the startup seed, and never routes them.
     const staffIdentity = publicMode
@@ -360,6 +390,7 @@ export async function createTrackBRuntime({
       studentEnabled,
       fullSimulationEnabled,
       publicDemo: publicMode,
+      localGuests: localGuestMode,
       prepared,
       identityPool,
       bankPool,

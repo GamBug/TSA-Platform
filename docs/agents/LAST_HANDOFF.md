@@ -1,4 +1,24 @@
-# Current handoff — ChatGPT Projects and transcriptions in the inbox (2026-11-22)
+# Current handoff — admin account and local admin page (2026-11-22)
+
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's request for an `AdminBao` account that sees the whole
+  Bank, adds and approves .json answer files on localhost, and generates questions with an API key (or explains the
+  ChatGPT Project route). Owner choices: localhost only, OpenAI, remove the A/B and staff accounts from the UI.
+  Branch `feat/track-b-data-auth`. [Decision](../decisions/OPEN_DECISIONS.md#admin-account-and-local-admin-page--2026-11-22),
+  [guide](../guides/ADMIN_PAGE.md).
+- Done: `src/local/admin/` (auth, Bank snapshot, inbox/publish jobs, OpenAI generation, routes); admin screen in
+  `apps/candidate-web`; local guest start (`localGuests` in the runtime, guest route beside the API login); `/` redirects
+  to `/student/` on the local demo; launcher prints the admin URL.
+- Verification: `test:admin` 4 pass; `test:demo:uni` 20; `test:auth` 5; `test:critical:privacy` 2; `test:b0` 112;
+  `test:question-inbox` 4; `test:student-web` and `test:student-web:browser` pass; `test:demo:uni:browser` PASS
+  including the admin steps (its stale full-test count expectation from `9f21e78` was updated from 1 to 2). A rehearsal
+  on a scratch copy of the retained Bank listed 995 versions, served a Science image, and imported then published one
+  Math file through the page; the retained Bank and `question-inbox/` were not touched.
+- Pre-existing failures (not from this work): `test:demo:public` subtest "each browser gets its own guest" fails the same
+  way without these changes; `test:docs` rejects the tracked `docs/guides/chatgpt-projects/INSTRUCTIONS_*.txt`.
+- Open: a real OpenAI call (no key was used; the default model name `gpt-5-mini` is REQUIRES_VERIFICATION); the owner
+  tries the page on the real Bank with `npm start`.
+
+# Previous handoff — ChatGPT Projects and transcriptions in the inbox (2026-11-22)
 
 - Implementer: Claude Code (Opus 5.5), single agent, on the owner's request for ChatGPT Project instructions with a transcribe mode and a create mode, then "keep them separate, change the inbox". Branch `feat/track-b-data-auth`.
 - Done: [ChatGPT Projects setup](../guides/chatgpt-projects/README.md) (instructions per subject, `AGENT.md`, subject files). `questions:inbox` records `SRC-` batches as "Corpus transcription" sources (EXTERNAL, LICENSED under the 2026-11-11 attestation) and prints an owner note for `ASSET_REQUIRED`. The end-to-end inbox test now fills a real-length 40-question pool test, as decided on 2026-11-21 (it had failed since `9f21e78` expected the old 4-question practice). [Decision](../decisions/OPEN_DECISIONS.md).

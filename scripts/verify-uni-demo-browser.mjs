@@ -96,10 +96,16 @@ const answerLabel = (slot) => {
 const activeAttempt = (version) => evaluate(`fetch('/api/${version}/attempts?limit=100').then(r=>r.json())
   .then(p=>fetch('/api/${version}/attempts/'+p.items.find(x=>x.state==='IN_PROGRESS').attemptId)).then(r=>r.json())`);
 
+// A per-run password replaces the owner's for this check; the account name is the real one.
+const ADMIN_CHECK_PASSWORD = `rehearsal-${process.pid}-${Date.now()}`;
+// React-controlled inputs need the native value setter plus an input event.
+const typeInto = (testId, value) => evaluate(`(()=>{const el=${query(testId)};const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));return el.value.length})()`);
+const chooseOption = (testId, value) => evaluate(`(()=>{const el=${query(testId)};const set=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('change',{bubbles:true}));return el.value})()`);
+
 try {
   // 1. One command starts the database, the server and the staff and student URLs.
   launcher = spawn(process.execPath, ['scripts/start-uni-demo.mjs', '--rehearsal'], {
-    cwd: ROOT, env: { ...process.env, DEMO_UNI_PORT: port }, stdio: ['ignore', 'pipe', 'pipe'] });
+    cwd: ROOT, env: { ...process.env, DEMO_UNI_PORT: port, DEMO_ADMIN_PASSWORD: ADMIN_CHECK_PASSWORD }, stdio: ['ignore', 'pipe', 'pipe'] });
   for (const stream of [launcher.stdout, launcher.stderr]) {
     stream.setEncoding('utf8');
     stream.on('data', (chunk) => { launcherLog += chunk; });
@@ -112,10 +118,10 @@ try {
   }
   assert.ok(ready, `Launcher did not become ready:\n${launcherLog}`);
   assert.equal(ready.mode, 'REHEARSAL');
-  assert.equal(ready.fullSimulationsWithoutRepeats, 1);
+  assert.equal(ready.fullSimulationsWithoutRepeats, 2, "the rehearsal stock holds two full tests without repeats since 9f21e78");
   Object.assign(report, { urls: ready.urls, published: ready.published, fullSimulationsWithoutRepeats: ready.fullSimulationsWithoutRepeats });
   assert.match(launcherLog, /Content mode: REHEARSAL/);
-  report.checks.push('One command printed the stock report and the student, full-simulation and staff URLs');
+  report.checks.push('One command printed the stock report and the student, full-simulation and admin URLs');
 
   profile = await mkdtemp(path.join(tmpdir(), 'tsa-uni-demo-chromium-'));
   browser = spawn(process.env.STUDENT_BROWSER ?? '/snap/bin/chromium', ['--headless', '--disable-gpu', '--disable-background-networking',
@@ -152,8 +158,9 @@ try {
     await click(`option-${option}`);
     await waitFor(`/^Đã lưu/.test(${query('save-status')}?.textContent??'')`, `${label} saved`);
   };
-  await navigate(ready.urls.student, `Boolean(${query('login-studentA')})`, 'student login screen');
-  await click('login-studentA');
+  await navigate(ready.urls.student, `Boolean(${query('guest-start')})`, 'student start screen');
+  assert.equal(await evaluate(`Boolean(${query('login-studentA')})`), false, 'the synthetic A/B accounts are not offered');
+  await click('guest-start');
   await waitFor(`document.querySelectorAll('[data-testid="catalog-item"]').length===3`, 'student catalog');
   const catalogNotice = await readNotice('catalog');
   assert.match(catalogNotice, /Luyện tập không chính thức — không liên kết với Đại học Bách khoa Hà Nội \(HUST\)\./);
@@ -218,19 +225,30 @@ try {
   report.simulationAttemptId = simulationId;
   report.checks.push('Full simulation: 100 questions, three section clocks, return to Mathematics, result 6/100 with Mathematics 3/40, Reading 2/20, Science 1/40; notices visible');
 
-  // 5. Staff review queue: unpublished items stay with staff.
+  // 5. Admin page: the whole Bank, including the unpublished versions students never see.
   await click('logout');
-  await waitFor(`Boolean(${query('login-studentA')})`, 'student signed out');
-  await navigate(ready.urls.staff, `Boolean(${query('staff-open')})`, 'landing with staff entry');
-  await click('staff-open');
-  await waitFor(`Boolean(${query('staff-login')})`, 'staff login');
-  await evaluate(`(()=>{const s=${query('actor-select')};s.value='reviewer';s.dispatchEvent(new Event('change',{bubbles:true}));return s.value})()`);
-  await click('staff-login');
-  await click('staff-review-queue');
-  await waitFor(`${query('staff-state-filter')}?.value==='IN_REVIEW'&&${query('staff-question-list')}?.querySelectorAll('li.staff-question-item').length===3`, 'three queued versions');
-  await capture('07-staff-review-queue');
-  report.checks.push('Staff reviewer queue lists the 3 unpublished IN_REVIEW versions; every delivered student item was a published rehearsal item');
-  await click('staff-logout');
+  await waitFor(`Boolean(${query('guest-start')})`, 'student signed out');
+  assert.equal(await evaluate(`Boolean(${query('admin-link')})`), true, 'the local start screen links to the admin page');
+  await navigate(ready.urls.admin, `Boolean(${query('admin-login')})`, 'admin sign-in');
+  await typeInto('admin-username', 'AdminBao');
+  await typeInto('admin-password', 'not-the-password');
+  await click('admin-submit');
+  await waitFor(`/Wrong username or password/.test(${query('admin-login-message')}?.innerText??'')`, 'wrong password refused');
+  await typeInto('admin-password', ADMIN_CHECK_PASSWORD);
+  await click('admin-submit');
+  await waitFor(`Boolean(${query('admin-question-list')})&&${query('admin-question-list')}.querySelectorAll('[data-testid="admin-question-item"]').length>0`, 'admin question list');
+  await chooseOption('admin-filter-state', 'IN_REVIEW');
+  await waitFor(`${query('admin-question-list')}.querySelectorAll('[data-testid="admin-question-item"]').length===3`, 'three unpublished versions');
+  await click('admin-question-item');
+  await waitFor(`Boolean(${query('admin-answer')}?.querySelector('[data-correct="true"]'))`, 'question with its marked answer key');
+  await capture('07-admin-unpublished-question');
+  await click('admin-tab-inbox');
+  await waitFor(`Boolean(${query('admin-no-bank')})`, 'rehearsal has no real Bank to import into');
+  await click('admin-tab-ai');
+  await waitFor(`Boolean(${query('admin-ai-steps')})||Boolean(${query('admin-ai')})`, 'AI questions tab');
+  report.checks.push('Admin page: AdminBao signs in (a wrong password is refused), sees all versions including the 3 IN_REVIEW ones with the marked answer key; rehearsal blocks imports');
+  await click('admin-logout');
+  await waitFor(`Boolean(${query('admin-login')})`, 'admin signed out');
 } catch (error) {
   process.stderr.write(`${error.stack}\n--- launcher\n${launcherLog.slice(-3000)}\n--- browser\n${browserLog.slice(-1500)}\n`);
   process.exitCode = 1;

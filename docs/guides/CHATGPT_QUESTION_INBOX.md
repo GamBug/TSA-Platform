@@ -4,6 +4,7 @@ Write original practice questions in ChatGPT (web, no API cost), paste each answ
 one command. They go into a **separate practice pool**: students see them as extra practice cards whose names end in
 "— câu hỏi luyện thêm". The real 40/20/40 full test and the standard practice never use them.
 Decision: [OPEN_DECISIONS 2026-11-20](../decisions/OPEN_DECISIONS.md#chatgpt-practice-pool-and-question-inbox--2026-11-20).
+The same steps (add files, check, import, publish) are also buttons on the local [admin page](ADMIN_PAGE.md).
 
 ```text
 ChatGPT Project ──paste──▶ question-inbox/<subject>/ ──npm run questions:inbox──▶ DRAFTs in the pool

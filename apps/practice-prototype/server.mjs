@@ -262,6 +262,8 @@ export function createPrototypeServer({
   maxRequestBytes = MAX_REQUEST_BYTES,
   integratedRequestHandler,
   redirectLegacyStudentUi = false,
+  // Loopback demo only: the bare home page (the old staff workspace) redirects here instead.
+  homeRedirect = null,
   // Public demo: an https origin served by a reverse proxy; see mapPublicRequest.
   publicOrigin = null,
 } = {}) {
@@ -307,7 +309,8 @@ export function createPrototypeServer({
         body = requestBody.body;
       }
       const url = incoming.url ?? "/";
-      const legacyTarget = redirectLegacyStudentUi && publicOrigin === null && method === "GET" ? legacyStudentRedirect(url) : null;
+      const legacyTarget = redirectLegacyStudentUi && publicOrigin === null && method === "GET" ? legacyStudentRedirect(url)
+        ?? (homeRedirect && /^\/(?:index\.html)?$/.test(new URL(url, "http://127.0.0.1").pathname) ? homeRedirect : null) : null;
       if (legacyTarget) {
         await sendResponse(outgoing, method, result(303, { Location: legacyTarget, "Cache-Control": "no-store" }, ""));
         return;
