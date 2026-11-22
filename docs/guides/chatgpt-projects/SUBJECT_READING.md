@@ -31,9 +31,8 @@
 - **Write the passage yourself.** Use web search only to check facts for the topic (for example how a technology
   works or a real statistic with its source year); never copy or closely paraphrase an article. Invented figures are
   fine if the passage is clearly hypothetical; real-world figures must be correct.
-- Passage length: 350-600 words for a two-question passage (the practice attempts are short). The owner may ask for
-  the full 800-1,000 words. Use 4-6 paragraphs, a neutral academic register, correct Vietnamese spelling and
-  punctuation, and paragraph breaks as separate `text` blocks.
+- Passage length: 350-600 words for a two-question passage, unless the owner asks for the full 800-1,000 words.
+  Use 4-6 paragraphs, a neutral academic register, correct Vietnamese spelling and punctuation, and paragraph breaks as separate `text` blocks.
 - **Exactly 2 questions per passage**, testing different skills (for example one `DETAIL` or `MAIN_IDEA`, one
   `INFERENCE`, `AUTHOR_VIEW` or `EVALUATION`).
 - The correct option is supported by a specific sentence; name that sentence or paragraph in the explanation

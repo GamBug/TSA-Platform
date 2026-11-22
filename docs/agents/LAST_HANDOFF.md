@@ -1,4 +1,11 @@
-# Current handoff — ChatGPT question inbox and practice pool (2026-11-20)
+# Current handoff — ChatGPT Projects and transcriptions in the inbox (2026-11-22)
+
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's request for ChatGPT Project instructions with a transcribe mode and a create mode, then "keep them separate, change the inbox". Branch `feat/track-b-data-auth`.
+- Done: [ChatGPT Projects setup](../guides/chatgpt-projects/README.md) (instructions per subject, `AGENT.md`, subject files). `questions:inbox` records `SRC-` batches as "Corpus transcription" sources (EXTERNAL, LICENSED under the 2026-11-11 attestation) and prints an owner note for `ASSET_REQUIRED`. The end-to-end inbox test now fills a real-length 40-question pool test, as decided on 2026-11-21 (it had failed since `9f21e78` expected the old 4-question practice). [Decision](../decisions/OPEN_DECISIONS.md).
+- Verification: `npm run test:question-inbox` 4 pass; `uni-demo-seed`, `owner-publication-plan`, `owner-twins` 23 pass. The ChatGPT instructions are not yet tried in a real ChatGPT chat.
+- Open for the owner: set up the three Projects; try one CREATE and one TRANSCRIBE batch; the pool shows a test only once it holds 40 Math, 20 Reading or 40 Science published questions.
+
+# Previous handoff — ChatGPT question inbox and practice pool (2026-11-20)
 
 - Implementer: Claude Code (Opus 5.5), single agent, on the owner's "yes build the inbox command, separate practice pool". Branch `feat/track-b-data-auth`.
 - Done: `npm run questions:inbox` (`scripts/questions-inbox.mjs`), pool constants in `src/local/practice-pool.mjs`, deferred source check in the exchange planner, owner publication of "Practice original" sources (OWNED rights, never the corpus attestation), pool kept out of the full test and standard practice and offered as extra practice. [Guide](../guides/CHATGPT_QUESTION_INBOX.md), [decision](../decisions/OPEN_DECISIONS.md).

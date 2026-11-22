@@ -1,5 +1,21 @@
 # Architectural decisions and open questions
 
+## Transcribed questions in the practice pool — 2026-11-22
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-22.
+Evidence: the owner asked for ChatGPT Projects with a mode that turns their pictures and PDFs into question files; when
+asked whether transcribed questions should join the real 40/20/40 test or stay separate, answered "keep them separate,
+change the inbox."
+
+1. **Same separate pool.** Transcriptions go through `npm run questions:inbox` into the practice pool of 2026-11-20 and
+   never feed the full simulation or the standard section tests.
+2. **Truthful provenance.** The inbox treats a file whose `batch_id` starts with `SRC-` as a transcription: its source is
+   titled "Corpus transcription <folder>/<file>", origin `EXTERNAL`, with a `LICENSED` display rights record citing the
+   owner's 2026-11-11 corpus attestation. The "original work" `OWNED` record of 2026-11-20 is never applied to it. Other
+   files keep the 2026-11-20 behaviour. The owner attests that transcribed material is covered by the corpus permission.
+3. **Keys.** Source keys are authoritative (2026-11-09). Keys ChatGPT solved are tagged and reviewed by the owner before
+   publication, as for every AI-written key. Guide: [ChatGPT Projects](../guides/chatgpt-projects/README.md).
+
 ## Real-length section tests; three tests plus the full test — 2026-11-21
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-21.

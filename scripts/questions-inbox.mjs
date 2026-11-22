@@ -6,7 +6,9 @@
 // (.json, .txt or .md; a ```json code block or bare JSON). A confirmed run registers each importable file as its own
 // OWNED source, imports its questions as DRAFTs into the pool (a backup is taken first), and moves the file to
 // <subject>/imported/. A file with any problem is imported not at all and moves to <subject>/rejected/ with a
-// .errors.txt message ready to paste back into ChatGPT. Nothing is submitted, approved or published here:
+// .errors.txt message ready to paste back into ChatGPT. A file whose batch_id starts with SRC- is a transcription of the
+// owner's pictures or PDFs: it joins the same pool but its source is recorded as corpus material under the owner's
+// attested permission instead of as an original work. Nothing is submitted, approved or published here:
 // the owner reviews and runs bank:owner-publish with the printed --taxonomy-version.
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -14,7 +16,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { importConfirmation, planExchangeImport } from '../src/local/exchange-import.mjs';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import {
-  findPracticePool, ORIGINAL_RIGHTS, ORIGINAL_SOURCE_PREFIX, PRACTICE_POOL_DOMAINS, PRACTICE_POOL_NAME, poolSkill,
+  findPracticePool, isTranscription, ORIGINAL_RIGHTS, ORIGINAL_SOURCE_PREFIX, PRACTICE_POOL_DOMAINS, PRACTICE_POOL_NAME, poolSkill,
+  TRANSCRIBED_RIGHTS, TRANSCRIBED_SOURCE_PREFIX,
 } from '../src/local/practice-pool.mjs';
 import { validateExchange } from '../tools/question-bank/validate.mjs';
 import { importQuestions } from './questions-import.mjs';
@@ -116,8 +119,13 @@ export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => 
   if (files.length === 0) log(`The inbox is empty. Paste ChatGPT answers into ${Object.keys(INBOX_SUBJECTS).map((folder) => path.join(inbox, folder)).join(', ')}.`);
   for (const entry of checked) {
     const count = Array.isArray(entry.document?.questions) ? entry.document.questions.length : 0;
-    log(entry.problems.length ? `REJECT  ${entry.folder}/${entry.name}: ${entry.problems.length} problem(s)` : `OK      ${entry.folder}/${entry.name}: ${count} question(s), ${entry.writes} new`);
+    const kind = isTranscription(entry.document) ? 'transcription' : 'original';
+    log(entry.problems.length ? `REJECT  ${entry.folder}/${entry.name}: ${entry.problems.length} problem(s)` : `OK      ${entry.folder}/${entry.name}: ${count} question(s), ${entry.writes} new, ${kind}`);
     if (entry.problems.length && confirm === undefined) log(`\n${chatGptFixMessage(entry.problems).replace(/^/gm, '        ')}\n`);
+    if (entry.problems.some((problem) => problem.code === 'ASSET_REQUIRED')) {
+      log('        For you, not ChatGPT: crop each requested figure, register it (npm run images -- register ...), replace the\n'
+        + '        image_request block with an image block and its id in asset_refs, then run the inbox again.\n');
+    }
   }
   if (taxonomyVersionId === null) {
     log(`The practice pool is not registered yet. Run once: npm run questions:inbox -- --setup --confirm "REGISTER TAXONOMY"`);
@@ -137,10 +145,13 @@ export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => 
   const createdVersionIds = [];
   for (const entry of rejected) log(`Rejected ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'rejected', entry.problems))}`);
   for (const entry of good) {
-    const title = `${ORIGINAL_SOURCE_PREFIX}${entry.folder}/${entry.name}`.slice(0, 200);
+    const source = isTranscription(entry.document)
+      ? { prefix: TRANSCRIBED_SOURCE_PREFIX, origin: 'EXTERNAL', rights: TRANSCRIBED_RIGHTS }
+      : { prefix: ORIGINAL_SOURCE_PREFIX, origin: 'OWNED', rights: ORIGINAL_RIGHTS };
+    const title = `${source.prefix}${entry.folder}/${entry.name}`.slice(0, 200);
     const hash = await fileHash(entry.file);
     const sourceVersionId = await findSourceVersion(dataDirectory, { title, hash })
-      ?? await writeSourceVersion({ dataDirectory, file: entry.file, hash, title, origin: 'OWNED', rights: ORIGINAL_RIGHTS, registeredBy: 'questions:inbox' });
+      ?? await writeSourceVersion({ dataDirectory, file: entry.file, hash, title, origin: source.origin, rights: source.rights, registeredBy: 'questions:inbox' });
     const result = await importQuestions({ dataDirectory, document: entry.document, sourceVersionId, topicMap: entry.topicMap, taxonomyVersionId,
       confirm: importConfirmation(entry.writes), log: () => {} });
     if (result.plan && !result.plan.ok) {

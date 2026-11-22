@@ -52,46 +52,39 @@ TRANSCRIBE · batch letter B · (attach the pictures in page order, or the PDF) 
 CONTINUE
 ```
 
-Batch letters must be new for every batch on the same day (A, B, C, ...), because ids are built from the date and the
-letter. A reused id with different content rejects the whole file.
+Batch letters must be new for every batch on the same day (A, B, C, ...), across both modes, because ids are built
+from the date and the letter. A reused id with different content rejects the whole file.
 
 Read the report above the code block before saving anything: in TRANSCRIBE mode check the inventory count against the
 source and look at every question tagged `key-uncertain`, `key-disagreement` or `unclear-text`.
 
-## Where the output goes: two different routes
+## Where the output goes: the inbox, for both modes
 
-The two modes carry different provenance, so they are imported differently. Do not mix them.
+Save each reply (one part per file) in `question-inbox/<subject>/` and run `npm run questions:inbox`, as in the
+[question inbox guide](../CHATGPT_QUESTION_INBOX.md). Both modes land in the same separate practice pool, never in the
+real full test. The inbox reads the batch id to record where the questions came from:
 
-### CREATE output → the ChatGPT practice pool
+| Batch id | Recorded as | Rights record |
+|---|---|---|
+| `GPT-…` (CREATE) | Source "Practice original …", origin `OWNED` | `OWNED`: an original written for you with ChatGPT |
+| `SRC-…` (TRANSCRIBE) | Source "Corpus transcription …", origin `EXTERNAL` | `LICENSED`: copied from material you supplied, under your attested non-profit corpus permission of 2026-11-11 |
 
-Save each reply in `question-inbox/<subject>/` and run `npm run questions:inbox`, exactly as in the
-[question inbox guide](../CHATGPT_QUESTION_INBOX.md). The inbox records each file as an original work (`OWNED`,
-"not copied from an exam, textbook or website") and imports it into the separate practice pool.
+Only transcribe material that permission covers. The decision is recorded in
+[OPEN_DECISIONS 2026-11-22](../../decisions/OPEN_DECISIONS.md#transcribed-questions-in-the-practice-pool--2026-11-22).
 
-### TRANSCRIBE output → the corpus route, never the inbox
+**Figures.** A transcription with an `image_request` block is rejected with `ASSET_REQUIRED`, and the inbox prints a note
+for you, because ChatGPT cannot fix it. For each figure:
 
-A transcription is copied material, so the inbox's "original work" rights record would be false for it. Import it
-the way corpus content is imported, under the owner-attested corpus rights
-([QUESTION_FORMAT section 8](../../question-bank/QUESTION_FORMAT.md#8-from-file-to-bank)):
-
-1. Save each part's reply as JSON outside `question-inbox/`, for example in `.local/transcribed/`.
-2. Register the original PDF or picture as a source (dry run first):
-   `npm run bank:register-source -- --file <original.pdf> --title "Corpus <name>"`, then add
-   `--confirm "REGISTER SOURCE"`. Note the printed source version id.
-3. For every `image_request`: crop the figure from the original, register it with
+1. Crop it from the original and register it under a source of the original document:
+   `npm run bank:register-source -- --file <original.pdf> --title "Corpus <name>" --confirm "REGISTER SOURCE"` (once per
+   document; note the printed source version id), then
    `npm run images -- register --file fig.png --area <AREA> --alt "..." --source-version <id> --apply`
-   ([image library](../IMAGE_LIBRARY.md)), then replace the block with an `image` block using the new `IMG-...` id
-   and add that id to the question's `asset_refs`. A file with any `image_request` left cannot be imported.
-4. Validate: `node tools/question-bank/validate.mjs part1.json --assets assets.json`
-   (`npm run images -- catalog --out assets.json` writes the catalog).
-5. Import: `npm run questions:import -- --file part1.json --source-version <id> --topic-map map.json
-   --taxonomy-version <uuid>` (dry run; it prints the confirm phrase). `map.json` maps the topic codes used to
-   registered skills, for example `{"CALCULUS":"MATH_REASONING","PROBABILITY":"MATH_REASONING"}`; the dry run lists
-   unmapped topics and the registered skills.
-6. Review every key, then publish with `npm run bank:owner-publish` as usual.
+   ([image library](../IMAGE_LIBRARY.md)).
+2. In the rejected file, replace the `image_request` block with an `image` block using the new `IMG-...` id, add that id
+   to the question's `asset_refs`, move the file back into `question-inbox/<subject>/` and run the inbox again.
 
-**Do not transcribe material that is already in the Bank.** An exact copy of a served question opens an
-exact-duplicate relation that hides the served original until it is adjudicated.
+**Do not transcribe questions that are already in the Bank.** An exact copy of a served question opens an
+exact-duplicate relation that hides the served original until it is resolved (`--keep-one-of-twins`).
 
 ## Limits to keep in mind
 

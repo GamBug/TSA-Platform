@@ -14,7 +14,7 @@ const env = { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' };
 const silent = () => {};
 const EXAMPLE = new URL('../../../docs/question-bank/examples/valid/single-choice.json', import.meta.url);
 
-async function mathSet(batch, count) {
+async function mathSet(batch, count, batchPrefix = 'GPT-') {
   const base = JSON.parse(await readFile(EXAMPLE, 'utf8')).questions[0];
   const questions = Array.from({ length: count }, (_, index) => {
     const question = structuredClone(base);
@@ -22,9 +22,10 @@ async function mathSet(batch, count) {
     question.content_blocks[0].content += ` (lần gieo thứ ${index + 1})`;
     return question;
   });
-  return { format: 'tsa-question-set/1', batch_id: `GPT-${batch}`, passages: [], questions };
+  return { format: 'tsa-question-set/1', batch_id: `${batchPrefix}${batch}`, passages: [], questions };
 }
 
+// The pool offers a real-length section test (40 Math questions, OPEN_DECISIONS 2026-11-21) once it holds enough.
 test('pasted ChatGPT files are checked, imported into the separate pool, sorted, published and offered as extra practice only', { timeout: 600_000 }, async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'question-inbox-'));
   try {
@@ -40,28 +41,39 @@ test('pasted ChatGPT files are checked, imported into the separate pool, sorted,
     const { taxonomyVersionId } = await setupPracticePool({ dataDirectory, confirm: 'REGISTER TAXONOMY', log: silent });
     assert.match(taxonomyVersionId, /^[0-9a-f-]{36}$/);
 
-    const good = JSON.stringify(await mathSet('G1', 4), null, 2);
+    const good = JSON.stringify(await mathSet('G1', 39), null, 2);
     await writeFile(path.join(inbox, 'math', 'batch-1.md'), `Đây là bộ câu hỏi:\n\`\`\`json\n${good}\n\`\`\`\nChúc bạn học tốt!`);
     const wrongAnswer = await mathSet('G2', 1);
     wrongAnswer.questions[0].answer.option_id = 'E';
     await writeFile(path.join(inbox, 'math', 'batch-2.json'), JSON.stringify(wrongAnswer));
     await writeFile(path.join(inbox, 'science', 'batch-3.json'), JSON.stringify(await mathSet('G3', 1)));
     await writeFile(path.join(inbox, 'reading', 'notes.txt'), 'forgot to paste');
+    // A transcription of the owner's own material joins the same pool under corpus rights, not as an original work.
+    const transcribed = await mathSet('S4', 1, 'SRC-');
+    transcribed.questions[0].content_blocks[0].content += ' (chép từ đề của chủ dự án)';
+    await writeFile(path.join(inbox, 'math', 'batch-4.json'), JSON.stringify(transcribed));
+    const figure = await mathSet('S5', 1, 'SRC-');
+    figure.questions[0].content_blocks.push({ type: 'image_request', request_id: 'NEW-IMG-001', description: 'Source: page 1, figure above question 1.', alt: 'Hình 1' });
+    await writeFile(path.join(inbox, 'math', 'batch-5.json'), JSON.stringify(figure));
 
-    const dry = await runInbox({ dataDirectory, inbox, log: silent });
-    assert.equal(dry.phrase, 'IMPORT 4');
+    const dryLines = [];
+    const dry = await runInbox({ dataDirectory, inbox, log: (line) => dryLines.push(line) });
+    assert.equal(dry.phrase, 'IMPORT 40');
     assert.deepEqual(dry.checked.map((entry) => [entry.name, entry.problems.map((problem) => problem.code)]), [
-      ['batch-1.md', []], ['batch-2.json', ['ANSWER_NOT_AN_OPTION']], ['notes.txt', ['NOT_JSON']], ['batch-3.json', ['WRONG_FOLDER']]]);
-    await assert.rejects(runInbox({ dataDirectory, inbox, confirm: 'IMPORT 5', log: silent }), /Expected exactly: "IMPORT 4"/);
+      ['batch-1.md', []], ['batch-2.json', ['ANSWER_NOT_AN_OPTION']], ['batch-4.json', []], ['batch-5.json', ['ASSET_REQUIRED']],
+      ['notes.txt', ['NOT_JSON']], ['batch-3.json', ['WRONG_FOLDER']]]);
+    assert.ok(dryLines.some((line) => /batch-4\.json: 1 question\(s\), 1 new, transcription/.test(line)));
+    assert.ok(dryLines.some((line) => /For you, not ChatGPT: crop each requested figure/.test(line)));
+    await assert.rejects(runInbox({ dataDirectory, inbox, confirm: 'IMPORT 4', log: silent }), /Expected exactly: "IMPORT 40"/);
 
-    const applied = await runInbox({ dataDirectory, inbox, confirm: 'IMPORT 4', log: silent });
-    assert.equal(applied.imported, 4);
+    const applied = await runInbox({ dataDirectory, inbox, confirm: 'IMPORT 40', log: silent });
+    assert.equal(applied.imported, 40);
     assert.equal(applied.twins, 0);
     assert.deepEqual((await readdir(path.join(inbox, 'math'))).sort(), ['imported', 'rejected']);
-    assert.match((await readdir(path.join(inbox, 'math', 'imported')))[0], /-batch-1\.md$/);
+    assert.deepEqual((await readdir(path.join(inbox, 'math', 'imported'))).map((name) => name.replace(/^[0-9-]+-/, '')).sort(), ['batch-1.md', 'batch-4.json']);
     const rejected = (await readdir(path.join(inbox, 'math', 'rejected'))).sort();
-    assert.equal(rejected.length, 2);
-    assert.match(await readFile(path.join(inbox, 'math', 'rejected', rejected.find((name) => name.endsWith('.errors.txt'))), 'utf8'), /ANSWER_NOT_AN_OPTION/);
+    assert.equal(rejected.length, 4);
+    assert.match(await readFile(path.join(inbox, 'math', 'rejected', rejected.find((name) => name.endsWith('batch-2.json.errors.txt'))), 'utf8'), /ANSWER_NOT_AN_OPTION/);
     assert.equal((await readdir(path.join(inbox, 'science', 'rejected'))).length, 2);
 
     // A second run finds an empty inbox; re-pasting the imported file is a no-op.
@@ -71,27 +83,30 @@ test('pasted ChatGPT files are checked, imported into the separate pool, sorted,
 
     const database = await startPersistentPostgres(dataDirectory);
     try {
-      const rows = (await database.ownerPool.query(`SELECT v.taxonomy_version_id, w.state::text AS state, rd.status::text AS rights, s.origin
+      const rows = (await database.ownerPool.query(`SELECT v.taxonomy_version_id, w.state::text AS state, rd.status::text AS rights, s.origin, s.title
           FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id=v.id
           CROSS JOIN LATERAL tsa.bank_question_sources(v.id) qs JOIN tsa.source_versions sv ON sv.id=qs.id JOIN tsa.sources s ON s.id=sv.source_id
           JOIN tsa.source_rights sr ON sr.source_version_id=sv.id JOIN tsa.rights_decisions rd ON rd.id=sr.decision_id`)).rows;
-      assert.equal(rows.length, 4);
-      assert.ok(rows.every((row) => row.taxonomy_version_id === taxonomyVersionId && row.state === 'DRAFT' && row.rights === 'OWNED' && row.origin === 'OWNED'));
+      assert.equal(rows.length, 40);
+      assert.ok(rows.every((row) => row.taxonomy_version_id === taxonomyVersionId && row.state === 'DRAFT'));
+      const provenance = rows.map((row) => [row.title.replace(/\/.*$/, ''), row.origin, row.rights]);
+      assert.deepEqual(provenance.filter(([title]) => title === 'Practice original math'), Array(39).fill(['Practice original math', 'OWNED', 'OWNED']));
+      assert.deepEqual(provenance.filter(([title]) => title === 'Corpus transcription math'), [['Corpus transcription math', 'EXTERNAL', 'LICENSED']]);
     } finally { await database.stop(); }
 
     const preview = await ownerPublish({ dataDirectory, taxonomyVersionId, log: silent });
-    assert.equal(preview.phrase, 'PUBLISH 4 ALL');
-    assert.equal((await ownerPublish({ dataDirectory, taxonomyVersionId, confirm: preview.phrase, log: silent })).published, 4);
+    assert.equal(preview.phrase, 'PUBLISH 40 ALL');
+    assert.equal((await ownerPublish({ dataDirectory, taxonomyVersionId, confirm: preview.phrase, log: silent })).published, 40);
 
     const seeded = await startPersistentPostgres(dataDirectory);
     try {
       const report = await seedUniDemoOfferings(seeded.ownerPool);
       assert.equal(report.fullSimulation.offered, false);
       assert.deepEqual(report.published, { MATH: 0, READING: 0, SCIENCE: 0 });
-      assert.deepEqual(report.practicePool.published, { MATH: 4, READING: 0, SCIENCE: 0 });
+      assert.deepEqual(report.practicePool.published, { MATH: 40, READING: 0, SCIENCE: 0 });
       assert.deepEqual(report.offerings.map((offering) => [offering.kind, offering.section, offering.practicePool === true]), [['SECTION_PRACTICE', 'MATH', true]]);
       const name = (await seeded.ownerPool.query(`SELECT b.config->>'name' AS name FROM tsa.blueprint_versions b WHERE b.id=$1`, [report.offerings[0].blueprintVersionId])).rows[0].name;
-      assert.equal(name, `Luyện tập Toán học${PRACTICE_POOL_OFFERING_SUFFIX}`);
+      assert.equal(name, `Phần thi Toán học${PRACTICE_POOL_OFFERING_SUFFIX}`);
     } finally { await seeded.stop(); }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

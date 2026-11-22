@@ -21,6 +21,25 @@ export const ORIGINAL_RIGHTS = Object.freeze({
     + 'Recorded in docs/decisions/OPEN_DECISIONS.md, 2026-11-20.',
 });
 
+/**
+ * Files whose batch id starts with SRC- are transcriptions: ChatGPT copied the questions from pictures or PDFs the owner
+ * supplied (owner decision 2026-11-22). They stay in the same separate pool, but their source is recorded as external
+ * corpus material under the owner's attested permission, never as an original work. The "Corpus " title prefix is what
+ * owner publication accepts for corpus sources.
+ */
+export const TRANSCRIPTION_BATCH_PREFIX = 'SRC-';
+export const TRANSCRIBED_SOURCE_PREFIX = 'Corpus transcription ';
+export const TRANSCRIBED_RIGHTS = Object.freeze({
+  status: 'LICENSED', allowedUses: ['DISPLAY'], territory: ['VN'], validFrom: '2026-11-10T17:00:00Z', validTo: null,
+  evidence: 'Questions transcribed with ChatGPT from pictures or PDFs the project owner supplied, imported from the owner\'s '
+    + 'question inbox. The owner attests that the material is covered by the non-profit corpus permission recorded as '
+    + 'OWNER_ATTESTED in docs/decisions/OPEN_DECISIONS.md (2026-11-11) and accepts responsibility. Keys solved by AI are '
+    + 'reviewed by the owner before publication. Recorded in docs/decisions/OPEN_DECISIONS.md, 2026-11-22.',
+});
+
+/** True when a pasted question set is a transcription of supplied material rather than original work. Pure. */
+export const isTranscription = (document) => typeof document?.batch_id === 'string' && document.batch_id.startsWith(TRANSCRIPTION_BATCH_PREFIX);
+
 /** Offerings drawn from the pool carry this suffix so students can tell them from the real-content practice. */
 export const PRACTICE_POOL_OFFERING_SUFFIX = ' — câu hỏi luyện thêm';
 

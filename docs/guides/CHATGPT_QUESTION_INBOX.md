@@ -21,8 +21,10 @@ DRAFTs ──owner review──▶ npm run bank:owner-publish -- --taxonomy-vers
    instructions and upload `AGENT.md`, `SUBJECT_<SUBJECT>.md`, `AI_QUESTION_GENERATION_PROMPT.md`,
    `question-set.schema.json` and the listed examples.
 
-Only **CREATE** output (original questions) goes through this inbox. **TRANSCRIBE** output (questions copied from
-your pictures or PDFs) is not original work and follows the corpus route in that README.
+Both modes go through this inbox and into the same separate pool. The inbox tells them apart by the batch id:
+**CREATE** files (`GPT-…`) are registered as original work (`OWNED`); **TRANSCRIBE** files (`SRC-…`, questions copied
+from your pictures or PDFs) are registered as corpus material under your attested permission (`LICENSED`, title
+"Corpus transcription …"). The dry run prints `original` or `transcription` for every good file.
 
 ### Each chat: send only the request
 
@@ -57,12 +59,14 @@ rejects the whole file. Putting the date and a letter in the id (`G261120A`, `G2
 
 | Pool content | Offered as |
 |---|---|
-| Single choice, multiple choice, true/false | Section practice: 4 Math, 2 Reading or 4 Science questions per attempt |
-| Numeric answers (Math, Science, no passage) | Numeric practice, 4 per attempt |
-| Cloze and matching (Math, no passage) | Cloze/matching practice, 4 per attempt |
+| Single choice, multiple choice, true/false | A real-length section test: 40 Math, 20 Reading or 40 Science questions |
+| Numeric answers (Math, Science, no passage) | Numeric practice, 4 per attempt (created, not linked in the student app) |
+| Cloze and matching (Math, no passage) | Cloze/matching practice, 4 per attempt (created, not linked in the student app) |
 
-An offering appears once the pool has enough published questions to fill one attempt. A passage and its questions are
-delivered together, so a Reading passage must have exactly 2 questions to fit the 2-question Reading practice.
+An offering appears once the pool has enough published questions to fill one attempt
+([OPEN_DECISIONS 2026-11-21](../decisions/OPEN_DECISIONS.md#real-length-section-tests-three-tests-plus-the-full-test--2026-11-21)).
+A passage and its questions are delivered together and a test takes passages whole, so 2-question passages always add up
+exactly to 20 or 40.
 
 ## When something goes wrong
 

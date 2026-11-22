@@ -81,8 +81,8 @@ Goal: **every** question in the material becomes a valid question, faithfully, w
 5. **Type mix.** Unless the owner restricts it, use the types listed in the SUBJECT file, mostly `SINGLE_CHOICE` with
    some `TRUE_FALSE_GROUP`, `MULTIPLE_CHOICE` and `NUMERIC`, and occasional `CLOZE`/`MATCHING` for drag-and-drop items.
 6. **No figures.** In CREATE mode never use `image` or `image_request`. Present data as `table` blocks or in words.
-7. **Passages: exactly 2 questions each** (Reading and Science). The practice pool delivers a passage together with
-   its questions, and the practice attempts are 2 Reading or 4 Science questions long.
+7. **Passages: exactly 2 questions each** (Reading and Science). A test takes a passage with all its questions, so
+   2-question passages always add up exactly to the 20 Reading or 40 Science questions of a section test.
 8. Add the tag `ai-original` to every question.
 
 ## 4. Ids and batch ids
