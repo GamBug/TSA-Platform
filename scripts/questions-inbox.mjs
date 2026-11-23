@@ -10,16 +10,21 @@
 // owner's pictures or PDFs: it joins the same pool but its source is recorded as corpus material under the owner's
 // attested permission instead of as an original work. Nothing is submitted, approved or published here:
 // the owner reviews and runs bank:owner-publish with the printed --taxonomy-version.
+// Figures: an image file next to the pasted answer named <question or passage id>_<request id>.png (for example
+// MATH-S261122A-000031_NEW-IMG-001.png) answers that image_request block. A confirmed run registers it in the image
+// library under the pasted file's own source and imports the question with its figure (src/local/inbox-figures.mjs).
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { importConfirmation, planExchangeImport } from '../src/local/exchange-import.mjs';
+import { attachFigures, isFigureFile, matchFigures, questionsWithAllFigures } from '../src/local/inbox-figures.mjs';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import {
   findPracticePool, isTranscription, ORIGINAL_RIGHTS, ORIGINAL_SOURCE_PREFIX, PRACTICE_POOL_DOMAINS, PRACTICE_POOL_NAME, poolSkill,
   TRANSCRIBED_RIGHTS, TRANSCRIBED_SOURCE_PREFIX,
 } from '../src/local/practice-pool.mjs';
 import { validateExchange } from '../tools/question-bank/validate.mjs';
+import { openImageStore } from './image-library.mjs';
 import { importQuestions } from './questions-import.mjs';
 import { fileHash, findSourceVersion, writeSourceVersion } from './register-corpus-source.mjs';
 import { registerTaxonomy } from './register-taxonomy.mjs';
@@ -27,6 +32,9 @@ import { registerTaxonomy } from './register-taxonomy.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const INBOX_SUBJECTS = Object.freeze({ math: 'MATH', reading: 'READING', science: 'SCIENCE' });
 const PASTE_EXTENSIONS = new Set(['.json', '.txt', '.md']);
+/** Problems answered with figure files, not by ChatGPT changing the JSON. */
+const FIGURE_CODES = new Set(['ASSET_REQUIRED', 'FIGURE_INVALID']);
+const DEFAULT_IMAGE_STORE =() => process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images');
 
 /**
  * Pull the JSON document out of a pasted ChatGPT answer: the largest ```json (or bare ```) code block, otherwise the
@@ -45,33 +53,52 @@ export function extractJson(text) {
   try { return { document: JSON.parse(candidate) }; } catch (error) { return { error: `The JSON does not parse: ${error.message}` }; }
 }
 
-/** The message to paste back into the ChatGPT conversation for a rejected file. Pure. */
-export function chatGptFixMessage(problems) {
-  return ['The platform rejected your JSON. Fix exactly these problems, keep every other question unchanged, and send the',
-    'whole corrected document again as one ```json code block. If a question cannot be fixed with certainty, remove it.', '',
-    ...problems.map((problem) => `- ${problem.questionId ? `${problem.questionId}: ` : ''}[${problem.code}] ${problem.message}`)].join('\n');
+/**
+ * The message to paste back into the ChatGPT conversation for a rejected file. Problems ChatGPT fixes in the JSON come
+ * first; figures that are still missing become a FIGURES request: ChatGPT crops (or draws) each one with its Python
+ * tool and offers it as a PNG named the way the inbox expects. Pure.
+ */
+export function chatGptFixMessage(problems, missingFigures = []) {
+  const json = problems.filter((problem) => !FIGURE_CODES.has(problem.code));
+  const parts = [];
+  if (json.length || missingFigures.length === 0) {
+    parts.push(['The platform rejected your JSON. Fix exactly these problems, keep every other question unchanged, and send the',
+      'whole corrected document again as one ```json code block. If a question cannot be fixed with certainty, remove it.', '',
+      ...(json.length ? json : problems).map((problem) => `- ${problem.questionId ? `${problem.questionId}: ` : ''}[${problem.code}] ${problem.message}`)].join('\n'));
+  }
+  if (missingFigures.length) {
+    parts.push(['FIGURES · The platform needs these figures as image files. With Python, crop each one from the pages I sent',
+      '(or draw it, for a question you created), show it to me, and give every PNG as a download named exactly:', '',
+      ...missingFigures.map((figure) => `- ${figure.fileName}  (${figure.unreadable ? 'the file I saved could not be read; make it again. ' : ''}`
+        + `${figure.description.replace(/\s+/g, ' ').slice(0, 160)})`),
+      '', 'Do not change the JSON for this.'].join('\n'));
+  }
+  return parts.join('\n\n');
 }
 
-/** Every pasted file, in a stable order, with its folder's subject. */
+/** Every pasted file, in a stable order, with its folder's subject and the figure files of that folder. */
 async function pastedFiles(inbox) {
   const files = [];
   for (const [folder, subject] of Object.entries(INBOX_SUBJECTS)) {
     const directory = path.join(inbox, folder);
     await mkdir(path.join(directory, 'imported'), { recursive: true });
     await mkdir(path.join(directory, 'rejected'), { recursive: true });
-    for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (entry.isFile() && !entry.name.startsWith('.') && PASTE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
-        files.push({ subject, folder, name: entry.name, file: path.join(directory, entry.name) });
+    const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && !entry.name.startsWith('.'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const figures = entries.filter((entry) => isFigureFile(entry.name)).map((entry) => path.join(directory, entry.name));
+    for (const entry of entries) {
+      if (PASTE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+        files.push({ subject, folder, name: entry.name, file: path.join(directory, entry.name), figures });
       }
     }
   }
   return files;
 }
 
-/** Check one pasted file against the Bank without writing. Adds { document, problems, writes, topicMap }. */
+/** Check one pasted file against the Bank without writing. Adds { document, problems, writes, topicMap, figures }. */
 async function checkFile(client, entry, taxonomyVersionId, seenIds) {
   const extracted = extractJson(await readFile(entry.file, 'utf8'));
-  if (extracted.error) return { ...entry, problems: [{ questionId: null, code: 'NOT_JSON', message: extracted.error }], writes: 0 };
+  if (extracted.error) return { ...entry, problems: [{ questionId: null, code: 'NOT_JSON', message: extracted.error }], writes: 0, missing: [] };
   const document = extracted.document;
   const problems = [];
   const questions = Array.isArray(document?.questions) ? document.questions : [];
@@ -84,29 +111,42 @@ async function checkFile(client, entry, taxonomyVersionId, seenIds) {
       else seenIds.set(question.question_id, entry.name);
     }
   }
+  const figures = await matchFigures(document, entry.figures);
+  problems.push(...figures.problems);
   // Every topic maps to the subject's one skill in the pool; the author's topic is kept in the provenance text.
   const topicMap = Object.fromEntries(questions.filter((question) => typeof question?.topic === 'string' && typeof question?.subject === 'string')
     .map((question) => [question.topic, poolSkill(question.subject)]));
   if (taxonomyVersionId === null) {
     const report = validateExchange(document);
     for (const issue of report.errors) problems.push({ questionId: null, code: issue.code, message: `${issue.path || '(document)'}: ${issue.message}` });
-    return { ...entry, document, topicMap, problems, writes: 0 };
+    return { ...entry, document, topicMap, problems, writes: 0, figures, missing: figures.missing };
   }
   const plan = await planExchangeImport(client, document, { deferSourceCheck: true, topicMap, taxonomyVersionId });
-  problems.push(...plan.problems);
-  return { ...entry, document, topicMap, problems, writes: plan.items.filter((item) => item.action !== 'SKIP').length };
+  // A figure supplied as a file answers the plan's ASSET_REQUIRED problem; the confirmed run registers it first.
+  const ready = questionsWithAllFigures(document, figures);
+  problems.push(...plan.problems.filter((problem) => !(problem.code === 'ASSET_REQUIRED' && ready.has(problem.questionId))));
+  return { ...entry, document, topicMap, problems, writes: plan.items.filter((item) => item.action !== 'SKIP').length, figures, missing: figures.missing };
 }
 
 const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
 
 async function sortInto(entry, outcome, problems = []) {
-  const target = path.join(path.dirname(entry.file), outcome, `${stamp()}-${entry.name}`);
+  const prefix = stamp();
+  const target = path.join(path.dirname(entry.file), outcome, `${prefix}-${entry.name}`);
   await rename(entry.file, target);
-  if (problems.length) await writeFile(`${target}.errors.txt`, `${chatGptFixMessage(problems)}\n`, 'utf8');
+  if (problems.length) await writeFile(`${target}.errors.txt`, `${chatGptFixMessage(problems, entry.missing ?? [])}\n`, 'utf8');
+  // Figures used by an imported file go with it; a rejected file keeps its figures in the inbox for the next run.
+  if (outcome === 'imported') {
+    for (const figure of entry.figures?.supplied?.values() ?? []) {
+      await rename(figure, path.join(path.dirname(entry.file), outcome, `${prefix}-${path.basename(figure)}`)).catch((error) => {
+        if (error.code !== 'ENOENT') throw error;
+      });
+    }
+  }
   return target;
 }
 
-export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => process.stdout.write(`${line}\n`) }) {
+export async function runInbox({ dataDirectory, inbox, confirm, imageStoreDirectory = DEFAULT_IMAGE_STORE(), log = (line) => process.stdout.write(`${line}\n`) }) {
   const files = await pastedFiles(inbox);
   const database = await startPersistentPostgres(dataDirectory);
   let taxonomyVersionId, checked = [];
@@ -120,11 +160,13 @@ export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => 
   for (const entry of checked) {
     const count = Array.isArray(entry.document?.questions) ? entry.document.questions.length : 0;
     const kind = isTranscription(entry.document) ? 'transcription' : 'original';
-    log(entry.problems.length ? `REJECT  ${entry.folder}/${entry.name}: ${entry.problems.length} problem(s)` : `OK      ${entry.folder}/${entry.name}: ${count} question(s), ${entry.writes} new, ${kind}`);
-    if (entry.problems.length && confirm === undefined) log(`\n${chatGptFixMessage(entry.problems).replace(/^/gm, '        ')}\n`);
-    if (entry.problems.some((problem) => problem.code === 'ASSET_REQUIRED')) {
-      log('        For you, not ChatGPT: crop each requested figure, register it (npm run images -- register ...), replace the\n'
-        + '        image_request block with an image block and its id in asset_refs, then run the inbox again.\n');
+    const attached = entry.figures?.supplied?.size ?? 0;
+    log(entry.problems.length ? `REJECT  ${entry.folder}/${entry.name}: ${entry.problems.length} problem(s)`
+      : `OK      ${entry.folder}/${entry.name}: ${count} question(s), ${entry.writes} new, ${kind}${attached ? `, ${attached} figure(s) attached` : ''}`);
+    if (entry.problems.length && confirm === undefined) log(`\n${chatGptFixMessage(entry.problems, entry.missing).replace(/^/gm, '        ')}\n`);
+    if (entry.missing?.length) {
+      log(`        Missing figure files: save each one in ${path.join(inbox, entry.folder)} with exactly the name shown above\n`
+        + '        (paste the FIGURES request into the same ChatGPT chat, or crop it yourself), then run the inbox again.\n');
     }
   }
   if (taxonomyVersionId === null) {
@@ -141,7 +183,7 @@ export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => 
   }
   if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
 
-  let imported = 0;
+  let imported = 0, figuresRegistered = 0;
   const createdVersionIds = [];
   for (const entry of rejected) log(`Rejected ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'rejected', entry.problems))}`);
   for (const entry of good) {
@@ -152,7 +194,18 @@ export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => 
     const hash = await fileHash(entry.file);
     const sourceVersionId = await findSourceVersion(dataDirectory, { title, hash })
       ?? await writeSourceVersion({ dataDirectory, file: entry.file, hash, title, origin: source.origin, rights: source.rights, registeredBy: 'questions:inbox' });
-    const result = await importQuestions({ dataDirectory, document: entry.document, sourceVersionId, topicMap: entry.topicMap, taxonomyVersionId,
+    let document = entry.document;
+    if (entry.figures.supplied.size) {
+      const figureDatabase = await startPersistentPostgres(dataDirectory);
+      try {
+        const attached = await attachFigures(figureDatabase.ownerPool, await openImageStore(imageStoreDirectory),
+          { document, supplied: entry.figures.supplied, subject: entry.subject, sourceVersionId });
+        document = attached.document;
+        figuresRegistered += attached.registered.length;
+        for (const figure of attached.registered) log(`Figure ${figure.key} -> ${figure.assetCode}${figure.created ? '' : ' (already in the library)'}`);
+      } finally { await figureDatabase.stop(); }
+    }
+    const result = await importQuestions({ dataDirectory, document, sourceVersionId, topicMap: entry.topicMap, taxonomyVersionId,
       confirm: importConfirmation(entry.writes), log: () => {} });
     if (result.plan && !result.plan.ok) {
       log(`Rejected ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'rejected', result.plan.problems))}`);
@@ -165,10 +218,10 @@ export async function runInbox({ dataDirectory, inbox, confirm, log = (line) => 
   const twins = await openTwins(dataDirectory, createdVersionIds);
   if (twins) log(`WARNING: ${twins} imported question(s) are exact copies of a question already in the Bank. While a twin is open, neither copy is served.\n`
     + '  Publish with --keep-one-of-twins to keep one of each pair.');
-  log(`Imported ${imported} DRAFT(s) into the practice pool. Review them, then publish:\n`
+  log(`Imported ${imported} DRAFT(s) into the practice pool${figuresRegistered ? ` with ${figuresRegistered} figure(s)` : ''}. Review them, then publish:\n`
     + `  npm run bank:owner-publish -- --taxonomy-version ${taxonomyVersionId}${twins ? ' --keep-one-of-twins' : ''}\n`
     + 'Then restart the local demo, or upload the Bank to the live server (bash infra/server/upload-bank.sh).');
-  return { taxonomyVersionId, imported, phrase, checked, createdVersionIds, twins };
+  return { taxonomyVersionId, imported, phrase, checked, createdVersionIds, twins, figuresRegistered };
 }
 
 async function openTwins(dataDirectory, versionIds) {

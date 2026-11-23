@@ -54,10 +54,12 @@ async function requireLibrary(pool) {
   }
 }
 
-async function store() {
-  await mkdir(storeDirectory(), { recursive: true, mode: 0o700 });
-  return createLocalImageStore({ rootDirectory: storeDirectory(), enabled: true, env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' } });
+/** The owner's private image store (created on first use), as the register and fetch commands use it. */
+export async function openImageStore(directory = storeDirectory()) {
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  return createLocalImageStore({ rootDirectory: directory, enabled: true, env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true' } });
 }
+const store = () => openImageStore();
 
 const line = (asset) => `${asset.assetCode}  ${asset.status.padEnd(7)} ${String(asset.width ?? '?')}x${String(asset.height ?? '?')}  ${asset.mediaType}  ${asset.contentHash.slice(0, 19)}…  ${asset.title ?? asset.alt ?? ''}`;
 

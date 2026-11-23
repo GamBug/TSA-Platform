@@ -58,7 +58,9 @@ In the exchange format an image block is `{"type":"image","asset_id":"IMG-GEO-00
 the question lists the id in `asset_refs`. `npm run questions:import` resolves each code to the stored asset version for
 the right purpose and writes the usual `image` block with `assetVersionId`. Retired and unknown codes are rejected for
 the whole set. Authors who need a figure that does not exist yet use an `image_request` block; the question cannot be
-imported until the image is registered.
+imported until the image is registered. The ChatGPT [question inbox](CHATGPT_QUESTION_INBOX.md) does this step itself:
+a file named `<question id>_<request id>.png` beside the pasted answer is registered (area `MATH`, `READ` or `SCIE`,
+under the answer's own source) and swapped in for the block when the import is confirmed.
 
 ## Deleting and retiring
 

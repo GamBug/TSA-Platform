@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -63,7 +64,9 @@ test('pasted ChatGPT files are checked, imported into the separate pool, sorted,
       ['batch-1.md', []], ['batch-2.json', ['ANSWER_NOT_AN_OPTION']], ['batch-4.json', []], ['batch-5.json', ['ASSET_REQUIRED']],
       ['notes.txt', ['NOT_JSON']], ['batch-3.json', ['WRONG_FOLDER']]]);
     assert.ok(dryLines.some((line) => /batch-4\.json: 1 question\(s\), 1 new, transcription/.test(line)));
-    assert.ok(dryLines.some((line) => /For you, not ChatGPT: crop each requested figure/.test(line)));
+    // A missing figure becomes a FIGURES request for ChatGPT naming the exact file the inbox expects.
+    assert.ok(dryLines.some((line) => /FIGURES · The platform needs these figures/.test(line)));
+    assert.ok(dryLines.some((line) => /- MATH-S5-000001_NEW-IMG-001\.png  \(Source: page 1, figure above question 1\.\)/.test(line)));
     await assert.rejects(runInbox({ dataDirectory, inbox, confirm: 'IMPORT 4', log: silent }), /Expected exactly: "IMPORT 40"/);
 
     const applied = await runInbox({ dataDirectory, inbox, confirm: 'IMPORT 40', log: silent });
@@ -108,5 +111,64 @@ test('pasted ChatGPT files are checked, imported into the separate pool, sorted,
       const name = (await seeded.ownerPool.query(`SELECT b.config->>'name' AS name FROM tsa.blueprint_versions b WHERE b.id=$1`, [report.offerings[0].blueprintVersionId])).rows[0].name;
       assert.equal(name, `Phần thi Toán học${PRACTICE_POOL_OFFERING_SUFFIX}`);
     } finally { await seeded.stop(); }
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+// Figures supplied as files next to the pasted answer are registered under the file's source and imported with the
+// question; a figure that is still missing rejects only its file, with a FIGURES request to paste back into ChatGPT.
+test('figure files named after their image requests are registered and imported with the questions', { timeout: 600_000 }, async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'question-inbox-figures-'));
+  try {
+    const dataDirectory = path.join(directory, 'bank');
+    const inbox = path.join(directory, 'inbox');
+    const imageStoreDirectory = path.join(directory, 'images');
+    await (await createTrackBRuntime({ env, dataDirectory, port: 0 })).close();
+    await setupPracticePool({ dataDirectory, confirm: 'REGISTER TAXONOMY', log: silent });
+    await mkdir(path.join(inbox, 'math'), { recursive: true });
+
+    const withFigures = await mathSet('S6', 2, 'SRC-');
+    withFigures.questions[0].content_blocks.push({ type: 'image_request', request_id: 'NEW-IMG-001', description: 'Source: page 2, graph of f.', alt: 'Đồ thị hàm số f' });
+    withFigures.questions[0].explanation.push({ type: 'image_request', request_id: 'NEW-IMG-002', description: 'Source: page 9, solution figure.', alt: 'Hình lời giải' });
+    await writeFile(path.join(inbox, 'math', 'part-1.json'), JSON.stringify(withFigures));
+    const stillMissing = await mathSet('S7', 1, 'SRC-');
+    stillMissing.questions[0].content_blocks.push({ type: 'image_request', request_id: 'NEW-IMG-001', description: 'Source: page 3, cube.', alt: 'Hình lập phương' });
+    await writeFile(path.join(inbox, 'math', 'part-2.json'), JSON.stringify(stillMissing));
+    const png = (color) => sharp({ create: { width: 80, height: 60, channels: 3, background: color } }).png().toBuffer();
+    await writeFile(path.join(inbox, 'math', 'MATH-S6-000001_NEW-IMG-001.png'), await png('#204080'));
+    await writeFile(path.join(inbox, 'math', 'MATH-S6-000001_NEW-IMG-002.png'), await png('#802040'));
+    await writeFile(path.join(inbox, 'math', 'MATH-S7-000001_NEW-IMG-001.png'), Buffer.from('not an image'));
+
+    const dryLines = [];
+    const dry = await runInbox({ dataDirectory, inbox, imageStoreDirectory, log: (line) => dryLines.push(line) });
+    assert.deepEqual(dry.checked.map((entry) => [entry.name, entry.problems.map((problem) => problem.code)]),
+      [['part-1.json', []], ['part-2.json', ['FIGURE_INVALID', 'ASSET_REQUIRED']]]);
+    assert.ok(dryLines.some((line) => /part-1\.json: 2 question\(s\), 2 new, transcription, 2 figure\(s\) attached/.test(line)));
+    assert.equal(dry.phrase, 'IMPORT 2');
+
+    const applied = await runInbox({ dataDirectory, inbox, imageStoreDirectory, confirm: 'IMPORT 2', log: silent });
+    assert.equal(applied.imported, 2);
+    assert.equal(applied.figuresRegistered, 2);
+    // The used figures move with their file; the rejected file's figure stays in the inbox for the next run.
+    assert.deepEqual((await readdir(path.join(inbox, 'math'))).sort(), ['MATH-S7-000001_NEW-IMG-001.png', 'imported', 'rejected']);
+    assert.deepEqual((await readdir(path.join(inbox, 'math', 'imported'))).map((name) => name.replace(/^[0-9-]+-/, '')).sort(),
+      ['MATH-S6-000001_NEW-IMG-001.png', 'MATH-S6-000001_NEW-IMG-002.png', 'part-1.json']);
+    const errors = (await readdir(path.join(inbox, 'math', 'rejected'))).find((name) => name.endsWith('.errors.txt'));
+    assert.match(await readFile(path.join(inbox, 'math', 'rejected', errors), 'utf8'), /^FIGURES · [\s\S]*- MATH-S7-000001_NEW-IMG-001\.png  \(the file I saved could not be read; make it again\. Source: page 3, cube\.\)/);
+
+    const database = await startPersistentPostgres(dataDirectory);
+    try {
+      const row = (await database.ownerPool.query(`SELECT v.content, s.explanation,
+          (SELECT count(*)::integer FROM tsa.question_assets qa WHERE qa.question_version_id=v.id) AS assets
+        FROM tsa_private.exchange_import_receipts r JOIN tsa.question_versions v ON v.id=r.question_version_id
+        JOIN tsa_private.question_secrets s ON s.question_version_id=v.id WHERE r.exchange_question_id='MATH-S6-000001'`)).rows[0];
+      const image = row.content.find((block) => block.type === 'image');
+      assert.equal(image.alt, 'Đồ thị hàm số f');
+      assert.ok(row.explanation.some((block) => block.type === 'image'), 'the explanation figure is imported too');
+      assert.ok(!JSON.stringify(row.content).includes('image_request'));
+      assert.ok(row.assets >= 1);
+      const codes = (await database.ownerPool.query(`SELECT asset_code, title FROM tsa.image_assets ORDER BY asset_code`)).rows;
+      assert.deepEqual(codes.map((asset) => [asset.asset_code, asset.title]),
+        [['IMG-MATH-000001', 'MATH-S6-000001_NEW-IMG-001'], ['IMG-MATH-000002', 'MATH-S6-000001_NEW-IMG-002']]);
+    } finally { await database.stop(); }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
