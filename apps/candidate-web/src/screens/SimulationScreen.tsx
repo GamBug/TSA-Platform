@@ -216,7 +216,7 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
         </div>
         <div className="flex items-center gap-2">
           <PanelToggle open={panel.open} onToggle={panel.toggle} />
-          <button type="button" className={`${buttonClass.primary} min-h-[40px]`} disabled={busy} data-testid="submit-open"
+          <button type="button" className={`${buttonClass.primary} shrink-0 whitespace-nowrap`} disabled={busy} data-testid="submit-open"
             onClick={() => submitDialog.current?.showModal()}>Nộp cả bài</button>
         </div>
       </header>

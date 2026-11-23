@@ -59,6 +59,15 @@ async function login(byId) {
   await byId('guest-start').click();
 }
 
+async function assertSubmitFits(button) {
+  const lines = await button.evaluate((element) => {
+    const label = document.createRange();
+    label.selectNodeContents(element);
+    return label.getClientRects().length;
+  });
+  assert.equal(lines, 1, 'the submit label fits on one line');
+}
+
 async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   const { page, problems, byId, snap } = await journeyPage(browser, viewport);
   await page.goto(`${origin}/student/`);
@@ -77,6 +86,7 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   }
   await byId('start-MATH').click();
   await byId('attempt-workspace').waitFor();
+  await assertSubmitFits(byId('submit-open'));
   if (viewport.width < 640) {
     assert.equal(await page.evaluate(() => window.scrollY), 0, 'practice opens at the top of the question');
     const title = await page.locator('#question-title').boundingBox();
@@ -126,6 +136,7 @@ async function fullSimulation(browser, viewport, label, layoutOnly = false) {
   await byId('simulation-create').click();
   await byId('demo-start').click();
   await page.locator('#question-title').waitFor();
+  await assertSubmitFits(byId('submit-open'));
   for (const [section, name, status] of [
     ['math', 'Tư duy Toán học', 'Đang tính giờ'],
     ['reading', 'Tư duy Đọc hiểu', 'Chưa mở'],

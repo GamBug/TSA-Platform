@@ -187,7 +187,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
           <div className="flex items-center gap-2">
             <PanelToggle open={panel.open} onToggle={panel.toggle} />
             <span data-testid="timer"><TimerChip remainingSeconds={remaining} compact /></span>
-            <button type="button" className={`${buttonClass.primary} min-h-[40px] px-4`} disabled={saving}
+            <button type="button" className={`${buttonClass.primary} shrink-0 whitespace-nowrap`} disabled={saving}
               onClick={() => { setConfirming(true); submitDialog.current?.showModal() }} data-testid="submit-open">Nộp bài</button>
           </div>
         </div>
