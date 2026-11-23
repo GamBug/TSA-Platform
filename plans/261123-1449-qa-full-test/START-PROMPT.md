@@ -1,5 +1,28 @@
 # Starting a tester session
 
+## Unattended (recommended): run every phase in a loop
+
+```bash
+nohup bash /home/wolfleo/Documents/Projects/TSA-Platform-qa/.claude/qa-run.sh >/dev/null 2>&1 &
+```
+
+The runner starts one fresh headless Haiku session per phase (`claude -p --model haiku --permission-mode dontAsk`)
+until phase 7 is DONE, then sends a desktop notification. It also stops with a notification when a phase is BLOCKED,
+when two sessions in a row make no progress, after 12 sessions, or when any file outside the plan folder changed
+(listed in `reports/run-logs/outside-changes.txt`). While port 4180 is used by someone else (your own demo), it waits;
+a demo the tester left running is stopped. Nothing waits for an answer: commands that are not pre-approved are refused
+and recorded as NOT RUN.
+
+- Progress: `tail -f /home/wolfleo/Documents/Projects/TSA-Platform-qa/plans/261123-1449-qa-full-test/reports/run-logs/runner.log`
+  and `STATUS.md`; each session's output is in `reports/run-logs/session-N.log`.
+- Stop early: `kill <runner pid>` (the pid is on the "Runner started" line of `runner.log`).
+- Safety in the worktree's `.claude/`: `settings.local.json` (edits only in the plan folder, the real repository
+  unreadable, git/install/ssh commands denied) and `qa-guard.mjs`, a hook that refuses shell commands reaching the real
+  repository, the live server, API keys, git changes, installs, in-place edits or writes into source, tests and docs.
+- Uses your Claude plan's Haiku usage; a full run is many hours of test suites.
+
+## Interactive, one phase at a time
+
 In a terminal:
 
 ```bash
