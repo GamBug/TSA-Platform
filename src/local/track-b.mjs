@@ -164,6 +164,7 @@ export async function createTrackBRuntime({
   prepareDatabase,
   imageStore = null,
   localRoutes = {},
+  localPostBodyLimits = {},
   // When true, the retired student UI links (/?student=...) redirect to the React student app.
   redirectLegacyStudentUi = false,
   studentSecurityHeaders = false,
@@ -321,6 +322,7 @@ export async function createTrackBRuntime({
     server = createPrototypeServer({
       port,
       maxRequestBytes: MAX_INTEGRATED_REQUEST_BYTES,
+      localPostBodyLimits,
       integratedRequestHandler,
       redirectLegacyStudentUi,
       studentSecurityHeaders,

@@ -20,6 +20,8 @@ the answer keys never leave the machine.
 | **Import & publish** | 1. Add ChatGPT answer files (`.json`, `.txt`, `.md`) by upload or paste; they are saved to `question-inbox/<subject>/`. Add figure PNGs with **Upload figures**, or with **add image** next to each figure a waiting or rejected answer needs; **Back to the inbox** returns a rejected answer for the next check. 2. **Check the inbox** (writes nothing), then **Import** with the phrase the check printed: good files become DRAFTs in the practice pool, rejected files move aside with a message to paste back into ChatGPT. 3. **Check what would be published**, then **Publish** with the printed phrase: approves and publishes the practice pool's eligible drafts. |
 | **AI questions** | With `OPENAI_API_KEY` set: one CREATE batch of up to 10 original questions per run, written by OpenAI with the same instructions as the ChatGPT Projects, saved into the inbox for the normal check, import and publication. Without a key: the steps for a free ChatGPT Project in the browser ([guide](chatgpt-projects/README.md)). |
 
+Figure uploads accept PNG, JPEG and WebP files up to 2 MiB each.
+
 ### Changing one question
 
 **Change status or section** works on the latest version of the open question, as a check first (writes nothing) and

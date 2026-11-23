@@ -6,6 +6,8 @@ export const ADMIN_ROUTE_PREFIX = '/local/admin/';
 const MAX_BODY_BYTES = 1024 * 1024;
 // A figure arrives base64-encoded (4 bytes for every 3), up to the image library's 2 MiB.
 const MAX_FIGURE_BODY_BYTES = 3 * 1024 * 1024;
+const FIGURE_ROUTE = 'inbox/figure';
+export const ADMIN_POST_BODY_LIMITS = Object.freeze({ [`${ADMIN_ROUTE_PREFIX}${FIGURE_ROUTE}`]: MAX_FIGURE_BODY_BYTES });
 const HEADERS = Object.freeze({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
 
 const json = (status, payload, extra = {}) => new Response(JSON.stringify(payload), { status, headers: { ...HEADERS, ...extra } });
@@ -86,7 +88,7 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       auth.logout(session);
       return json(200, { authenticated: false }, { 'set-cookie': auth.clearedCookie() });
     }
-    const body = await readBody(request, route === 'inbox/figure' ? MAX_FIGURE_BODY_BYTES : MAX_BODY_BYTES);
+    const body = await readBody(request, route === FIGURE_ROUTE ? MAX_FIGURE_BODY_BYTES : MAX_BODY_BYTES);
     if (body.tooLarge) return error(413, 'PAYLOAD_TOO_LARGE');
     if (!body.ok) return error(400, 'INVALID_REQUEST');
     const input = body.value;
@@ -97,9 +99,9 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       const result = await jobs.saveInboxFile({ section: section(input.section), fileName: input.fileName, text: input.text });
       return result.ok ? json(201, result) : error(400, result.code);
     }
-    if (route === 'inbox/figure' || route === 'inbox/retry') {
+    if (route === FIGURE_ROUTE || route === 'inbox/retry') {
       if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');
-      const result = route === 'inbox/figure'
+      const result = route === FIGURE_ROUTE
         ? await jobs.saveFigure({ section: section(input.section), fileName: input.fileName, base64: input.base64 })
         : await jobs.retryRejected({ section: section(input.section), name: input.name });
       return result.ok ? json(201, result) : error(400, result.code);

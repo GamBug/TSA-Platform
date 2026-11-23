@@ -15,7 +15,7 @@ import { DEMO_SECTIONS, seedUniDemoOfferings } from './uni-demo-seed.mjs';
 import { createAdminAuth } from './admin/admin-auth.mjs';
 import { readBankSnapshot } from './admin/admin-bank.mjs';
 import { createAdminJobs } from './admin/admin-jobs.mjs';
-import { ADMIN_ROUTE_PREFIX, createAdminRoutes } from './admin/admin-routes.mjs';
+import { ADMIN_POST_BODY_LIMITS, ADMIN_ROUTE_PREFIX, createAdminRoutes } from './admin/admin-routes.mjs';
 
 export const UNI_DEMO_DEFAULT_PORT = 4180;
 export const UNI_DEMO_MODES = Object.freeze(['PUBLISHED', 'REHEARSAL']);
@@ -188,6 +188,7 @@ export async function startUniDemo({
       localGuests: local ? {} : null,
       homeRedirect: local ? '/student/' : null,
       localRoutePrefix: local ? ADMIN_ROUTE_PREFIX : null,
+      localPostBodyLimits: local ? ADMIN_POST_BODY_LIMITS : {},
       prepareDatabase: async (ownerPool) => {
         // The admin page reads the whole Bank once here, while the migration-owner connection is still open.
         if (local) snapshot = await readBankSnapshot(ownerPool);

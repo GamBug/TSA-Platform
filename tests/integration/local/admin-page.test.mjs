@@ -5,12 +5,15 @@ import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import { crc32 } from 'node:zlib';
 import sharp from 'sharp';
 import { ADMIN_USERNAME, createAdminAuth, hashPassword, verifyPassword } from '../../../src/local/admin/admin-auth.mjs';
 import { blocksText } from '../../../src/local/admin/admin-bank.mjs';
 import { confirmationFromOutput, createAdminJobs, inboxFileName } from '../../../src/local/admin/admin-jobs.mjs';
 import { batchDate, createMessage, generateQuestions, nextBatchLetter } from '../../../src/local/admin/admin-generate.mjs';
 import { startUniDemo } from '../../../src/local/uni-demo.mjs';
+import { startPersistentPostgres } from '../../../src/local/postgres.mjs';
+import { migrate } from '../../../src/modules/database/migrate.mjs';
 import { buildRehearsalSource } from '../../../scripts/uni-demo-rehearsal-source.mjs';
 
 const ORIGIN = 'http://127.0.0.1:4180';
@@ -242,4 +245,57 @@ test('the local demo starts guests, hides the old staff home and serves the whol
   const logout = await mutate('logout', {}, { 'x-admin-csrf': csrf });
   assert.equal(logout.status, 200);
   assert.equal((await fetch(`${origin}/local/admin/overview`, { headers: admin })).status, 401, 'the session ends at sign-out');
+});
+
+test('the local admin can upload an exact 2 MiB figure through HTTP', { timeout: 90_000 }, async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tsa-admin-upload-'));
+  let demo;
+  try {
+    const sourceDataDirectory = path.join(root, 'bank');
+    const inboxDirectory = path.join(root, 'inbox');
+    const database = await startPersistentPostgres(sourceDataDirectory);
+    try { await migrate(database.ownerPool); } finally { await database.stop(); }
+    demo = await startUniDemo({ sourceDataDirectory, inboxDirectory, port: 0, imageStoreDirectory: null,
+      adminEnv: { DEMO_ADMIN_PASSWORD: 'figure-upload-fixture' } });
+    const origin = demo.origin;
+    const jsonHeaders = { origin, 'content-type': 'application/json', connection: 'close' };
+    const login = await fetch(`${origin}/local/admin/login`, { method: 'POST', headers: jsonHeaders,
+      body: JSON.stringify({ username: ADMIN_USERNAME, password: 'figure-upload-fixture' }) });
+    assert.equal(login.status, 200);
+    const { csrf } = await login.json();
+    const cookie = login.headers.getSetCookie()[0].split(';')[0];
+
+    // Add standard PNG text metadata before IEND to hit the byte boundary exactly.
+    const small = await sharp({ create: { width: 4, height: 4, channels: 3, background: '#000' } }).png().toBuffer();
+    const figureOfSize = (size) => {
+      const text = Buffer.alloc(size - small.length - 12, 'x');
+      text.write('Comment\0');
+      const chunk = Buffer.concat([Buffer.from('tEXt'), text]);
+      const length = Buffer.alloc(4), checksum = Buffer.alloc(4);
+      length.writeUInt32BE(text.length);
+      checksum.writeUInt32BE(crc32(chunk));
+      return Buffer.concat([small.subarray(0, -12), length, chunk, checksum, small.subarray(-12)]);
+    };
+    const maxFigureBytes = 2 * 1024 * 1024;
+    const image = figureOfSize(maxFigureBytes);
+    assert.equal(image.length, maxFigureBytes);
+    assert.equal((await sharp(image).metadata()).format, 'png');
+    const fileName = 'MATH-S1-000001_NEW-IMG-001.png';
+    const upload = (bytes, route = 'inbox/figure', csrfHeader = csrf) => fetch(`${origin}/local/admin/${route}`, {
+      method: 'POST', headers: { ...jsonHeaders, cookie, 'x-admin-csrf': csrfHeader },
+      body: JSON.stringify({ section: 'MATH', fileName, base64: bytes.toString('base64') }),
+    });
+    const accepted = await upload(image);
+    assert.equal(accepted.status, 201, await accepted.text());
+
+    const oversized = await upload(figureOfSize(maxFigureBytes + 1));
+    assert.equal(oversized.status, 400);
+    assert.equal((await oversized.json()).error, 'FILE_TOO_LARGE');
+    assert.equal((await upload(image, 'inbox/figure', '')).status, 403);
+    assert.equal((await upload(image, 'inbox/file')).status, 413, 'other routes retain the 1 MiB request limit');
+    assert.equal((await upload(figureOfSize(3 * 1024 * 1024))).status, 413, 'figure request envelopes are capped too');
+    assert.deepEqual(await readFile(path.join(inboxDirectory, 'math', fileName)), image);
+  } finally {
+    try { await demo?.close(); } finally { await rm(root, { recursive: true, force: true }); }
+  }
 });

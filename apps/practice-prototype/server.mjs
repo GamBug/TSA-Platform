@@ -10,6 +10,7 @@ import { createMockApiService } from "./src/mock-api.mjs";
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 4173;
 const MAX_REQUEST_BYTES = 32 * 1024;
+const MAX_LOCAL_POST_BYTES = 3 * 1024 * 1024;
 
 const PUBLIC_FILES = new Map([
   ["/", "public/index.html"],
@@ -259,6 +260,7 @@ export function createPrototypeServer({
   port = DEFAULT_PORT,
   mockService = createMockApiService(),
   maxRequestBytes = MAX_REQUEST_BYTES,
+  localPostBodyLimits = {},
   integratedRequestHandler,
   redirectLegacyStudentUi = false,
   // Loopback demo only: the bare home page (the old staff workspace) redirects here instead.
@@ -277,13 +279,21 @@ export function createPrototypeServer({
   if (!Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1 || maxRequestBytes > 1024 * 1024) {
     throw new TypeError("maxRequestBytes must be an integer from 1 through 1048576");
   }
+  const postLimits = new Map(Object.entries(localPostBodyLimits));
+  for (const [pathname, limit] of postLimits) {
+    if (!pathname.startsWith("/local/") || !Number.isSafeInteger(limit) || limit < 1 || limit > MAX_LOCAL_POST_BYTES) {
+      throw new TypeError("localPostBodyLimits must map local paths to positive byte limits of at most 3 MiB");
+    }
+  }
   const handle = createPrototypeHandler({ mockService, studentOnly: publicOrigin !== null });
   const extraHeaders = publicOrigin !== null || studentSecurityHeaders ? PUBLIC_SECURITY_HEADERS : {};
   return createServer(async (incoming, outgoing) => {
     try {
       const method = incoming.method ?? "GET";
+      const url = incoming.url ?? "/";
+      const pathname = new URL(url, "http://127.0.0.1").pathname;
       if (publicOrigin !== null && (method === "GET" || method === "HEAD")
-          && new URL(incoming.url ?? "/", "http://127.0.0.1").pathname === "/healthz") {
+          && pathname === "/healthz") {
         // Uptime probe: no attempt, session or database access.
         await sendResponse(outgoing, method, result(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff" }, JSON.stringify({ ok: true })), extraHeaders);
@@ -301,21 +311,21 @@ export function createPrototypeServer({
       }
       let body = Buffer.alloc(0);
       if (method !== "GET" && method !== "HEAD") {
-        const requestBody = await readRequestBody(incoming, maxRequestBytes);
+        const limit = method === "POST" && publicOrigin === null ? postLimits.get(pathname) ?? maxRequestBytes : maxRequestBytes;
+        const requestBody = await readRequestBody(incoming, limit);
         if (requestBody.tooLarge) {
-          await sendResponse(outgoing, method, tooLargeResponse(incoming.url ?? "/"), extraHeaders);
+          await sendResponse(outgoing, method, tooLargeResponse(url), extraHeaders);
           return;
         }
         body = requestBody.body;
       }
-      const url = incoming.url ?? "/";
       const legacyTarget = redirectLegacyStudentUi && publicOrigin === null && method === "GET" ? legacyStudentRedirect(url)
-        ?? (homeRedirect && /^\/(?:index\.html)?$/.test(new URL(url, "http://127.0.0.1").pathname) ? homeRedirect : null) : null;
+        ?? (homeRedirect && /^\/(?:index\.html)?$/.test(pathname) ? homeRedirect : null) : null;
       if (legacyTarget) {
         await sendResponse(outgoing, method, result(303, { Location: legacyTarget, "Cache-Control": "no-store" }, ""), extraHeaders);
         return;
       }
-      if (typeof integratedRequestHandler === "function" && requestLike(method, new URL(url, "http://127.0.0.1").pathname)) {
+      if (typeof integratedRequestHandler === "function" && requestLike(method, pathname)) {
         const host = incoming.headers.host ?? "127.0.0.1";
         const fetchRequest = new Request(edge ? `${edge.internalOrigin}${url}` : `http://${host}${url}`, {
           method,
