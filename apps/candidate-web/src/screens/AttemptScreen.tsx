@@ -215,7 +215,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-rule">
                     <p className="text-sm text-ink-secondary"><span className="tabular-figures font-semibold text-ink">{position + 1}/{slots.length}</span> · {KIND_LABELS[slot.interaction.type] ?? ''}</p>
                     <button type="button" aria-pressed={flags.has(slot.slotId)} onClick={() => toggle(slot.slotId)} data-testid="flag-toggle"
-                      className={`inline-flex items-center gap-2 px-3 min-h-[40px] text-xs font-semibold border rounded-[3px] cursor-pointer ${
+                      className={`inline-flex items-center gap-2 px-3 min-h-[44px] text-xs font-semibold border rounded-[3px] cursor-pointer ${
                         flags.has(slot.slotId) ? 'border-ochre bg-ochre-wash text-ink' : 'border-rule-strong bg-paper-sheet text-ink-secondary hover:border-ink'}`}>
                       <IconFlag size={13} /> {flags.has(slot.slotId) ? 'Đã đánh dấu' : 'Đánh dấu'} (F)
                     </button>
@@ -253,7 +253,7 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
                   <button type="button" onClick={() => go(itemIndex)} aria-current={current ? 'step' : undefined}
                     aria-label={`Câu ${itemIndex + 1}${done ? ', đã làm' : ', chưa làm'}${flags.has(item.slotId) ? ', đã đánh dấu' : ''}`}
                     data-testid={`question-jump-${itemIndex + 1}`}
-                    className={`relative w-full aspect-square min-h-[40px] tabular-figures text-xs font-bold border rounded-[2px] cursor-pointer ${
+                    className={`relative w-full aspect-square min-h-[44px] tabular-figures text-xs font-bold border rounded-[2px] cursor-pointer ${
                       done ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet text-ink border-rule-strong hover:border-ink'} ${current ? 'outline-2 outline-pen-red outline-offset-1' : ''}`}>
                     {String(itemIndex + 1).padStart(2, '0')}
                     {flags.has(item.slotId) && <span aria-hidden="true" className="absolute top-1 right-1 w-1.5 h-1.5 bg-ochre" />}

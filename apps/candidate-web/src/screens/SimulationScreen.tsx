@@ -260,7 +260,7 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
                     <div className="flex items-center justify-between gap-3 pb-3 border-b border-rule">
                       <p className="text-sm text-ink-secondary"><span className="tabular-figures font-semibold text-ink">{position + 1}/{slots.length}</span> · {KIND_LABELS[slot.interaction.type]}</p>
                       <FlagMark attemptId={view.attemptId} slotId={slot.slotId} render={(flagged, toggle) => (
-                        <button type="button" aria-pressed={flagged} onClick={toggle} className={`inline-flex items-center gap-2 px-3 min-h-[40px] text-xs font-semibold border rounded-[3px] cursor-pointer ${flagged ? 'border-ochre bg-ochre-wash' : 'border-rule-strong bg-paper-sheet text-ink-secondary'}`}>
+                        <button type="button" aria-pressed={flagged} onClick={toggle} className={`inline-flex items-center gap-2 px-3 min-h-[44px] text-xs font-semibold border rounded-[3px] cursor-pointer ${flagged ? 'border-ochre bg-ochre-wash' : 'border-rule-strong bg-paper-sheet text-ink-secondary'}`}>
                           <IconFlag size={13} /> {flagged ? 'Đã đánh dấu' : 'Đánh dấu'}
                         </button>
                       )} />
@@ -283,14 +283,14 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
         </main>
         <aside className={`border-t lg:border-t-0 lg:border-l border-ink bg-paper px-4 py-5 ${layout.aside}`} aria-label="Bảng câu hỏi của phần">
           <p className="text-sm font-semibold">{SECTION_NAMES[section]}</p>
-          <ol className="mt-3 grid grid-cols-8 lg:grid-cols-5 gap-1.5">
+          <ol className="mt-3 grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-5 gap-1.5">
             {slots.map((item, itemIndex) => {
               const done = isAnswered(item, answers.get(item.slotId))
               return (
                 <li key={item.slotId}>
                   <button type="button" onClick={() => setIndex(itemIndex)} aria-current={itemIndex === position ? 'step' : undefined}
                     aria-label={`Câu ${itemIndex + 1}${done ? ', đã làm' : ''}`}
-                    className={`w-full aspect-square min-h-[34px] tabular-figures text-[11px] font-bold border rounded-[2px] cursor-pointer ${done ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet border-rule-strong'} ${itemIndex === position ? 'outline-2 outline-pen-red outline-offset-1' : ''}`}>
+                    className={`w-full aspect-square min-h-[44px] tabular-figures text-[11px] font-bold border rounded-[2px] cursor-pointer ${done ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet border-rule-strong'} ${itemIndex === position ? 'outline-2 outline-pen-red outline-offset-1' : ''}`}>
                     {String(itemIndex + 1).padStart(2, '0')}
                   </button>
                 </li>

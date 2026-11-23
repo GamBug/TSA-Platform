@@ -8,7 +8,7 @@ export function Masthead({ mode, actorLabel, onLogout, sticky = true }: { mode: 
     <header className={`${sticky ? 'sticky top-0' : 'relative'} z-30 bg-paper border-b border-ink`}>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-3">
         <div className="flex items-baseline gap-3 min-w-0">
-          <a href={modeHref('practice')} className="font-display text-lg sm:text-xl font-bold text-ink tracking-tight">TSA Practice</a>
+          <a href={modeHref('practice')} className="inline-flex items-center min-h-[44px] font-display text-lg sm:text-xl font-bold text-ink tracking-tight">TSA Practice</a>
           <span className="hidden sm:inline text-xs text-ink-secondary border-l border-rule-strong pl-3">Bản luyện tập không chính thức</span>
         </div>
         <nav aria-label="Chế độ luyện tập" className="flex flex-wrap items-center gap-1.5">
@@ -18,7 +18,7 @@ export function Masthead({ mode, actorLabel, onLogout, sticky = true }: { mode: 
               href={modeHref(key)}
               aria-current={key === mode ? 'page' : undefined}
               data-testid={`mode-${key}`}
-              className={`px-3 min-h-[40px] inline-flex items-center text-xs font-semibold border rounded-[3px] transition-colors ${
+              className={`px-3 min-h-[44px] inline-flex items-center text-xs font-semibold border rounded-[3px] transition-colors ${
                 key === mode ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet text-ink border-rule-strong hover:border-ink'
               }`}
             >
@@ -30,7 +30,7 @@ export function Masthead({ mode, actorLabel, onLogout, sticky = true }: { mode: 
               type="button"
               onClick={onLogout}
               data-testid="logout"
-              className="ml-1 px-3 min-h-[40px] text-xs font-semibold text-pen-red border border-pen-red bg-paper-sheet hover:bg-pen-red-wash rounded-[3px] cursor-pointer"
+              className="ml-1 px-3 min-h-[44px] text-xs font-semibold text-pen-red border border-pen-red bg-paper-sheet hover:bg-pen-red-wash rounded-[3px] cursor-pointer"
             >
               Đăng xuất{actorLabel ? ` · ${actorLabel}` : ''}
             </button>
@@ -97,7 +97,7 @@ export const buttonClass = {
 export function PanelToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
     <button type="button" aria-pressed={!open} onClick={onToggle} data-testid="panel-toggle"
-      className="hidden lg:inline-flex items-center gap-2 px-3 min-h-[40px] text-xs font-semibold border border-rule-strong bg-paper-sheet text-ink hover:border-ink rounded-[3px] cursor-pointer">
+      className="hidden lg:inline-flex items-center gap-2 px-3 min-h-[44px] text-xs font-semibold border border-rule-strong bg-paper-sheet text-ink hover:border-ink rounded-[3px] cursor-pointer">
       <IconGrid size={14} /> {open ? 'Ẩn bảng câu hỏi' : 'Hiện bảng câu hỏi'}
     </button>
   )
@@ -106,7 +106,7 @@ export function PanelToggle({ open, onToggle }: { open: boolean; onToggle: () =>
 /** Layout classes for a test screen: the question area, the optional passage split and the grid column. */
 export function testLayout(open: boolean, passage: boolean) {
   return {
-    body: open ? 'flex-1 grid grid-cols-1 lg:grid-cols-[1fr_260px] min-h-0' : 'flex-1 grid grid-cols-1 min-h-0',
+    body: open ? 'flex-1 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] min-h-0' : 'flex-1 grid grid-cols-1 min-h-0',
     width: passage ? 'max-w-[1440px]' : 'max-w-[960px]',
     // With the grid hidden there is room for passage and question side by side from 1024 px; otherwise from 1280 px.
     split: open ? 'grid grid-cols-1 gap-6 xl:grid-cols-2 items-start' : 'grid grid-cols-1 gap-6 lg:grid-cols-2 items-start',

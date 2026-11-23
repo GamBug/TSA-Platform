@@ -86,7 +86,7 @@ export function ResultView({ attempt, apiVersion, review, onOpenReview, onExit, 
               <div className="flex gap-1.5" role="group" aria-label="Lọc câu hỏi">
                 {([['wrong', `Chưa đúng (${wrong.length})`], ['all', `Tất cả (${review.length})`]] as const).map(([key, label]) => (
                   <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}
-                    className={`px-3 min-h-[40px] text-xs font-semibold border rounded-[3px] cursor-pointer ${filter === key ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet border-rule-strong'}`}>{label}</button>
+                    className={`px-3 min-h-[44px] text-xs font-semibold border rounded-[3px] cursor-pointer ${filter === key ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet border-rule-strong'}`}>{label}</button>
                 ))}
               </div>
             </div>

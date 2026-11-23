@@ -68,6 +68,15 @@ async function assertSubmitFits(button) {
   assert.equal(lines, 1, 'the submit label fits on one line');
 }
 
+async function assertTapTargets(page) {
+  const undersized = await page.locator('button:visible, header a:visible').evaluateAll((elements) =>
+    elements.flatMap((element) => {
+      const { width, height } = element.getBoundingClientRect();
+      return width < 44 || height < 44 ? [{ label: element.textContent.trim(), width, height }] : [];
+    }));
+  assert.deepEqual(undersized, [], 'visible buttons and header links have 44 × 44 px targets');
+}
+
 async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   const { page, problems, byId, snap } = await journeyPage(browser, viewport);
   await page.goto(`${origin}/student/`);
@@ -76,6 +85,7 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   await page.locator('[data-testid="catalog-item"]').first().waitFor();
   assert.match(await byId('demo-notice').innerText(), /không liên kết với Đại học Bách khoa Hà Nội \(HUST\)/);
   assert.match(await byId('demo-notice').innerText(), /DIỄN TẬP · NỘI DUNG TỔNG HỢP/);
+  await assertTapTargets(page);
   await snap(`${label}-catalog`);
   assert.deepEqual(await page.locator('[data-testid^="start-"]').evaluateAll((items) => items.map((item) => item.dataset.testid)),
     ['start-MATH', 'start-READING', 'start-SCIENCE'], 'the catalog offers exactly the three section tests');
@@ -87,6 +97,7 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   await byId('start-MATH').click();
   await byId('attempt-workspace').waitFor();
   await assertSubmitFits(byId('submit-open'));
+  await assertTapTargets(page);
   if (viewport.width < 640) {
     assert.equal(await page.evaluate(() => window.scrollY), 0, 'practice opens at the top of the question');
     const title = await page.locator('#question-title').boundingBox();
@@ -122,6 +133,7 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   assert.match(await byId('demo-notice').innerText(), /Dự án phi lợi nhuận/);
   await byId('review-open').click();
   await byId('review').waitFor();
+  await assertTapTargets(page);
   await snap(`${label}-review`);
   assert.deepEqual(problems, []);
   report.checks.push(`${label}: section practice answered ${count}/${count} correct, released review shown`);
@@ -137,6 +149,7 @@ async function fullSimulation(browser, viewport, label, layoutOnly = false) {
   await byId('demo-start').click();
   await page.locator('#question-title').waitFor();
   await assertSubmitFits(byId('submit-open'));
+  await assertTapTargets(page);
   for (const [section, name, status] of [
     ['math', 'Tư duy Toán học', 'Đang tính giờ'],
     ['reading', 'Tư duy Đọc hiểu', 'Chưa mở'],

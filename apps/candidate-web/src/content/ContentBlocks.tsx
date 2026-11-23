@@ -103,7 +103,7 @@ export function QuestionImage({ block, attemptId, apiVersion, purpose = 'questio
       {url && !broken && (
         <button type="button" disabled={!loaded} onClick={() => dialog.current?.showModal()}
           aria-label={`Phóng to hình: ${block.alt}`} aria-haspopup="dialog"
-          className="block w-full p-3 cursor-zoom-in disabled:cursor-default text-left">
+          className="block w-full min-h-[44px] p-3 cursor-zoom-in disabled:cursor-default text-left">
           <img src={url} alt={block.alt} loading="lazy" decoding="async" className="max-w-full h-auto mx-auto"
             onLoad={() => setLoaded(true)} onError={() => setBroken(true)} />
           {loaded && <span className="mt-2 flex items-center justify-end gap-1.5 text-xs font-semibold text-ink-secondary"><IconExpand size={13} /> Phóng to</span>}
