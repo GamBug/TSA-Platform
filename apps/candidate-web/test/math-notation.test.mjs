@@ -46,4 +46,10 @@ describe('math notation', () => {
     assert.match(cube, / có cạnh /)
     for (const text of ["I'm here", 'ABCD là hình vuông', "Đáp án: C"]) assert.doesNotMatch(render(text), /content-math/, text)
   })
+
+  it('renders a multiline legacy Reading credit as emphasis with escaped text', () => {
+    const text = 'Đoạn văn. \\italic{\n\n(Nguồn: <Tạp chí>).}';
+    assert.equal(renderToStaticMarkup(React.createElement(TextWithMath, { text })),
+      'Đoạn văn. <em>\n\n(Nguồn: &lt;Tạp chí&gt;).</em>')
+  })
 })

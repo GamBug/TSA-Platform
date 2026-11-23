@@ -50,7 +50,8 @@ function MathSpan({ tex, display = false, inline = false, accessibleText }: { te
 /** A caption as plain words for an accessible name: no dollar signs, and \text{...} reduced to its text. */
 const plainCaption = (text: string) => text.replace(/\\text\{([^}]*)\}/g, '$1').replace(/[$\\{}]/g, '')
 
-const INLINE_MATH = /\$(?=\S)([^$]+?)(?<=\S)\$/gu
+// Some stored Reading credits use a balanced legacy italic marker in an otherwise plain text block.
+const INLINE_MARKUP = /\$(?=\S)([^$]+?)(?<=\S)\$|\\italic\{([^{}]+)\}/gu
 
 // A point name written outside $...$, such as "ABCD.A'B'C'D'", uses a typewriter apostrophe that is almost invisible
 // next to a capital letter. A word of capital letters (and digits, joined by dots) that carries a prime is typeset as a
@@ -77,9 +78,10 @@ export function TextWithMath({ text }: { text: string }) {
   const parts: React.ReactNode[] = []
   let cursor = 0
   let key = 0
-  for (const match of source.matchAll(INLINE_MATH)) {
+  for (const match of source.matchAll(INLINE_MARKUP)) {
     if (match.index! > cursor) parts.push(<TextWithPointNames key={key++} text={source.slice(cursor, match.index)} start={cursor} />)
-    parts.push(<MathSpan key={key++} tex={match[1]} inline />)
+    if (match[1] !== undefined) parts.push(<MathSpan key={key++} tex={match[1]} inline />)
+    else parts.push(<em key={key++}><TextWithMath text={match[2]} /></em>)
     cursor = match.index! + match[0].length
   }
   if (cursor < source.length) parts.push(<TextWithPointNames key={key++} text={source.slice(cursor)} start={cursor} />)

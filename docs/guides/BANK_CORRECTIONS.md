@@ -40,6 +40,8 @@ create a second version.
 - A quarantined version blocks every later version derived from it, so a withheld question cannot be repaired by
   revising it. Repair it by importing a corrected question under a new id, or do not quarantine until the repair exists.
 - Passage questions (shared stimulus) cannot be revised this way.
+- The student renderer displays balanced legacy `\italic{…}` markers in passage text as emphasis. The stored
+  passage and its content hash stay intact.
 - If a corrected version becomes an exact duplicate of another published question, the Bank holds an open duplicate
   relation and neither is served until it is resolved. Check for siblings before correcting.
 - To undo a batch, restore the physical copy while the cluster is stopped.
