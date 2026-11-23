@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { changeQuestion, questionChangePhrase } from '../../../scripts/question-change.mjs';
 import { runInbox, setupPracticePool } from '../../../scripts/questions-inbox.mjs';
 import { importQuestions } from '../../../scripts/questions-import.mjs';
+import { ownerPublish } from '../../../scripts/owner-publish.mjs';
 import { fileHash, writeSourceVersion } from '../../../scripts/register-corpus-source.mjs';
 import { registerTaxonomy } from '../../../scripts/register-taxonomy.mjs';
 import { importConfirmation } from '../../../src/local/exchange-import.mjs';
@@ -100,10 +101,11 @@ test('a corpus question moves to the taxonomy that serves the section, and dupli
     await writeFile(file, 'corpus document');
     const sourceVersionId = await writeSourceVersion({ dataDirectory, file, hash: await fileHash(file), title: 'Corpus test document',
       origin: 'EXTERNAL', rights: OWNER_RIGHTS, registeredBy: 'test' });
-    const load = async (questions, taxonomyVersionId, subject) => {
-      const document = { format: 'tsa-question-set/1', batch_id: `SRC-${subject}`, passages: [], questions };
-      await importQuestions({ dataDirectory, document, sourceVersionId, taxonomyVersionId, topicMap: { [base.topic]: `${subject}_REASONING` },
+    const load = async (questions, taxonomyVersionId, subject, batchId = `SRC-${subject}`) => {
+      const document = { format: 'tsa-question-set/1', batch_id: batchId, passages: [], questions };
+      const result = await importQuestions({ dataDirectory, document, sourceVersionId, taxonomyVersionId, topicMap: { [base.topic]: `${subject}_REASONING` },
         confirm: importConfirmation(questions.length), log: silent });
+      assert.equal(result.imported, questions.length, JSON.stringify(result.plan?.problems));
     };
     await load([question('MATH-K1-000001', 'MATH', 'Câu hỏi chuyển sang Khoa học (1)'), question('MATH-K1-000002', 'MATH', 'Câu hỏi trùng (2)')], math.taxonomyVersionId, 'MATH');
     await load([question('SCIE-K1-000001', 'SCIENCE', 'Câu hỏi trùng (2)')], science.taxonomyVersionId, 'SCIENCE');
@@ -129,5 +131,26 @@ test('a corpus question moves to the taxonomy that serves the section, and dupli
     await changeQuestion({ dataDirectory, imageStoreDirectory, versionId: moved.newVersionId, action: 'PUBLISH', log: silent,
       confirm: (await changeQuestion({ dataDirectory, imageStoreDirectory, versionId: moved.newVersionId, action: 'PUBLISH', log: silent })).phrase });
     assert.deepEqual((await state(dataDirectory, 'MATH-K1-000001')).map((entry) => [entry.section, entry.served]), [['MATH', false], ['SCIENCE', true]]);
+
+    // A confirmed twin in the source section blocks singleton approval of the move.
+    const original = question('MATH-K1-000003', 'MATH', 'Câu hỏi tương đương (3)');
+    const copy = question('MATH-K1-000004', 'MATH', 'Câu hỏi tương đương (3)');
+    await load([original], math.taxonomyVersionId, 'MATH', 'SRC-MATH-TWIN-ORIGINAL');
+    await load([copy], math.taxonomyVersionId, 'MATH', 'SRC-MATH-TWIN-COPY');
+    const [originalVersion] = await state(dataDirectory, original.question_id);
+    const [copyVersion] = await state(dataDirectory, copy.question_id);
+    const publication = { dataDirectory, imageStoreDirectory, versionIds: [originalVersion.id, copyVersion.id],
+      keepOneOfTwins: true, log: silent };
+    const preview = await ownerPublish(publication);
+    await ownerPublish({ ...publication, confirm: preview.phrase });
+    const before = await state(dataDirectory, original.question_id);
+    const backups = (await readdir(`${dataDirectory}-backups`)).sort();
+    assert.deepEqual(before.map(({ state, served }) => [state, served]), [['APPROVED', true]]);
+    const blocked = await run(originalVersion.id);
+    assert.match(blocked.problem, /CONSTRAINT_CONFLICT/);
+    assert.equal(blocked.phrase, null);
+    assert.deepEqual(await run(originalVersion.id, { confirm: questionChangePhrase('MOVE', originalVersion.id, 'SCIENCE') }), blocked);
+    assert.deepEqual(await state(dataDirectory, original.question_id), before);
+    assert.deepEqual((await readdir(`${dataDirectory}-backups`)).sort(), backups);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

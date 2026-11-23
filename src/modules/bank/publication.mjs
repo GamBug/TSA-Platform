@@ -113,6 +113,31 @@ async function appendImmutableValidation(client, principal, target) {
       JSON.stringify({ syntheticWorkflow: true }), principal.userId]);
 }
 
+export async function submitDraftForReview(client, principal, versionId, expectedRevision, imageStore,
+  { enableNumericQuestions, enableClozeMatching }) {
+  const target = await loadWorkflowTarget(client, versionId);
+  if (!target) reject(404, 'NOT_FOUND');
+  assertQuestionSchemaEnabled(target, enableNumericQuestions, enableClozeMatching);
+  if (target.created_by !== principal.userId) reject(403, 'FORBIDDEN');
+  assertCurrentRevision(target, expectedRevision);
+  if (!['DRAFT', 'QUARANTINED'].includes(target.state)) reject(409, 'INVALID_WORKFLOW_TRANSITION');
+
+  await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions, enableClozeMatching });
+  await appendImmutableValidation(client, principal, target);
+  const changed = await client.query(
+    `UPDATE tsa.question_workflow
+        SET state = 'IN_REVIEW', revision = revision + 1,
+            approved_review_id = NULL, quarantine_reason = NULL,
+            updated_at = clock_timestamp()
+      WHERE question_version_id = $1 AND revision = $2
+        AND state IN ('DRAFT', 'QUARANTINED')
+      RETURNING revision`, [versionId, expectedRevision]);
+  if (changed.rowCount !== 1) reject(409, 'REVISION_CONFLICT');
+  const revision = Number(changed.rows[0].revision);
+  await appendWorkflowAudit(client, principal, target, 'BANK_SUBMIT_REVIEW', revision, null);
+  return { versionId, state: 'IN_REVIEW', revision };
+}
+
 async function submitReview(bankPool, identityService, principal, versionId, key, input, imageStore, enableNumericQuestions, enableClozeMatching) {
   requireActor(identityService, principal, 'bank.question.author');
   validateVersionId(versionId);
@@ -122,27 +147,8 @@ async function submitReview(bankPool, identityService, principal, versionId, key
   return withIdempotency(bankPool, principal, key,
     `POST /api/${enableClozeMatching ? 'v4' : enableNumericQuestions ? 'v2' : 'v1'}/question-versions/${versionId}/submit-review`, input,
     async (client) => {
-      const target = await loadWorkflowTarget(client, versionId);
-      if (!target) reject(404, 'NOT_FOUND');
-      assertQuestionSchemaEnabled(target, enableNumericQuestions, enableClozeMatching);
-      if (target.created_by !== principal.userId) reject(403, 'FORBIDDEN');
-      assertCurrentRevision(target, input.expectedRevision);
-      if (!['DRAFT', 'QUARANTINED'].includes(target.state)) reject(409, 'INVALID_WORKFLOW_TRANSITION');
-
-      await validateWorkflowTarget(client, target, imageStore, { enableNumericQuestions, enableClozeMatching });
-      await appendImmutableValidation(client, principal, target);
-      const changed = await client.query(
-        `UPDATE tsa.question_workflow
-            SET state = 'IN_REVIEW', revision = revision + 1,
-                approved_review_id = NULL, quarantine_reason = NULL,
-                updated_at = clock_timestamp()
-          WHERE question_version_id = $1 AND revision = $2
-            AND state IN ('DRAFT', 'QUARANTINED')
-          RETURNING revision`, [versionId, input.expectedRevision]);
-      if (changed.rowCount !== 1) reject(409, 'REVISION_CONFLICT');
-      const revision = Number(changed.rows[0].revision);
-      await appendWorkflowAudit(client, principal, target, 'BANK_SUBMIT_REVIEW', revision, null);
-      const body = { versionId, state: 'IN_REVIEW', revision };
+      const body = await submitDraftForReview(client, principal, versionId, input.expectedRevision, imageStore,
+        { enableNumericQuestions, enableClozeMatching });
       return idempotentResult(200, body, versionId);
     });
 }

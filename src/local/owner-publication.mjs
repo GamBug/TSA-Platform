@@ -93,63 +93,67 @@ export async function createPassageBundles(ownerPool, stimulusVersionIds) {
 
 /** Record that an IN_REVIEW version has no equivalent, as the reviewer service does. */
 export async function ownerConfirmSingleton(ownerPool, versionId, { reviewerId = OWNER_REVIEWER_ID, recordExisting = false } = {}) {
-  return withTransaction(ownerPool, async (client) => {
-    const target = await loadWorkflowTarget(client, versionId);
-    if (target.state !== 'IN_REVIEW') throw new Error(`Version ${versionId} is ${target.state}, not IN_REVIEW`);
-    const attribution = await resolveOriginalImportAttribution(client, target);
-    if (reviewerId === attribution.created_by || reviewerId === attribution.operator_id) {
-      throw new Error('The confirming account must differ from the author and import operator');
-    }
-    const existing = await client.query('SELECT group_id FROM tsa.duplicate_group_members WHERE question_id=$1', [target.question_id]);
-    const reason = 'Owner publication: one corpus item, no other version or equivalent exists.';
-    if (existing.rowCount) {
-      // A new version of an already confirmed question needs its own confirmation event, as the reviewer route records.
-      if (!recordExisting) return false;
-      await assertSingletonAllowed(client, target);
-      await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_CONFIRM_SINGLETON', target.revision, reason);
-      return true;
-    }
+  return withTransaction(ownerPool, (client) => confirmSingletonInTransaction(client, versionId, { reviewerId, recordExisting }));
+}
+
+export async function confirmSingletonInTransaction(client, versionId, { reviewerId = OWNER_REVIEWER_ID, recordExisting = false } = {}) {
+  const target = await loadWorkflowTarget(client, versionId);
+  if (target.state !== 'IN_REVIEW') throw new Error(`Version ${versionId} is ${target.state}, not IN_REVIEW`);
+  const attribution = await resolveOriginalImportAttribution(client, target);
+  if (reviewerId === attribution.created_by || reviewerId === attribution.operator_id) {
+    throw new Error('The confirming account must differ from the author and import operator');
+  }
+  const existing = await client.query('SELECT group_id FROM tsa.duplicate_group_members WHERE question_id=$1', [target.question_id]);
+  const reason = 'Owner publication: one corpus item, no other version or equivalent exists.';
+  if (existing.rowCount) {
+    // A new version of an already confirmed question needs its own confirmation event, as the reviewer route records.
+    if (!recordExisting) return false;
     await assertSingletonAllowed(client, target);
-    const groupId = randomUUID();
-    await client.query('INSERT INTO tsa.duplicate_groups(id,reason,confirmed_by) VALUES($1,$2,$3)', [groupId, reason, reviewerId]);
-    await client.query('INSERT INTO tsa.duplicate_group_members(group_id,question_id) VALUES($1,$2)', [groupId, target.question_id]);
-    await client.query('UPDATE tsa.bank_state SET eligibility_revision=eligibility_revision+1, updated_at=clock_timestamp() WHERE id=1');
     await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_CONFIRM_SINGLETON', target.revision, reason);
     return true;
-  });
+  }
+  await assertSingletonAllowed(client, target);
+  const groupId = randomUUID();
+  await client.query('INSERT INTO tsa.duplicate_groups(id,reason,confirmed_by) VALUES($1,$2,$3)', [groupId, reason, reviewerId]);
+  await client.query('INSERT INTO tsa.duplicate_group_members(group_id,question_id) VALUES($1,$2)', [groupId, target.question_id]);
+  await client.query('UPDATE tsa.bank_state SET eligibility_revision=eligibility_revision+1, updated_at=clock_timestamp() WHERE id=1');
+  await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_CONFIRM_SINGLETON', target.revision, reason);
+  return true;
 }
 
 /** Approve one IN_REVIEW version as the owner; every application publication check must pass. */
 export async function ownerApprove(ownerPool, versionId, { reviewerId = OWNER_REVIEWER_ID, reason = APPROVAL_REASON, imageStore = null } = {}) {
-  return withTransaction(ownerPool, async (client) => {
-    const privileged = (await client.query(`SELECT r.rolsuper OR d.datdba=r.oid AS ok FROM pg_roles r
-      JOIN pg_database d ON d.datname=current_database() WHERE r.rolname=current_user`)).rows[0]?.ok;
-    if (privileged !== true) throw new Error('Owner approval requires the migration owner connection');
-    const target = await loadWorkflowTarget(client, versionId);
-    if (target.state !== 'IN_REVIEW') throw new Error(`Version ${versionId} is ${target.state}, not IN_REVIEW`);
-    const attribution = await resolveOriginalImportAttribution(client, target);
-    if (reviewerId === attribution.created_by || reviewerId === attribution.operator_id) {
-      throw new Error('The approving account must differ from the author and import operator');
-    }
-    // question/2 (numeric answers) needs the numeric opt-in; every other check is identical.
-    await assertPublicationChecks(client, target, imageStore, { enableNumericQuestions: target.schema_version === 'question/2', enableClozeMatching: target.schema_version === 'question/3' });
-    const reviewId = randomUUID();
-    await client.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
-      VALUES($1,$2,$3,$4,'APPROVE',$5::jsonb,$6)`, [reviewId, versionId, target.content_hash, reviewerId, JSON.stringify(RUBRIC), reason]);
-    const changed = await client.query(`UPDATE tsa.question_workflow SET state='APPROVED', revision=revision+1,
-        approved_review_id=$3, quarantine_reason=NULL, updated_at=clock_timestamp()
-      WHERE question_version_id=$1 AND revision=$2 AND state='IN_REVIEW' RETURNING revision`, [versionId, target.revision, reviewId]);
-    if (changed.rowCount !== 1) throw new Error(`Version ${versionId} changed during approval`);
-    await client.query('UPDATE tsa.questions SET eligible_version_id=$2 WHERE id=$1', [target.question_id, versionId]);
-    await client.query('UPDATE tsa.bank_state SET eligibility_revision=eligibility_revision+1, updated_at=clock_timestamp() WHERE id=1');
-    await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_REVIEW_APPROVE', Number(changed.rows[0].revision), reason);
-    // The selection gate admits question/2 only while the numeric-practice setting is on, as it is when students are served.
-    if (target.schema_version === 'question/2') await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true)");
-    if (target.schema_version === 'question/3') await client.query("SELECT set_config('tsa.enable_cloze_matching','true',true)");
-    const selectable = (await client.query('SELECT tsa.bank_question_selection_allowed($1) AS ok', [versionId])).rows[0].ok;
-    if (selectable !== true) throw new Error(`Version ${versionId} is approved but not selectable; rolled back`);
-    return reviewId;
-  });
+  return withTransaction(ownerPool, (client) => approveInTransaction(client, versionId, { reviewerId, reason, imageStore }));
+}
+
+export async function approveInTransaction(client, versionId, { reviewerId = OWNER_REVIEWER_ID, reason = APPROVAL_REASON, imageStore = null } = {}) {
+  const privileged = (await client.query(`SELECT r.rolsuper OR d.datdba=r.oid AS ok FROM pg_roles r
+    JOIN pg_database d ON d.datname=current_database() WHERE r.rolname=current_user`)).rows[0]?.ok;
+  if (privileged !== true) throw new Error('Owner approval requires the migration owner connection');
+  const target = await loadWorkflowTarget(client, versionId);
+  if (target.state !== 'IN_REVIEW') throw new Error(`Version ${versionId} is ${target.state}, not IN_REVIEW`);
+  const attribution = await resolveOriginalImportAttribution(client, target);
+  if (reviewerId === attribution.created_by || reviewerId === attribution.operator_id) {
+    throw new Error('The approving account must differ from the author and import operator');
+  }
+  // question/2 (numeric answers) needs the numeric opt-in; every other check is identical.
+  await assertPublicationChecks(client, target, imageStore, { enableNumericQuestions: target.schema_version === 'question/2', enableClozeMatching: target.schema_version === 'question/3' });
+  const reviewId = randomUUID();
+  await client.query(`INSERT INTO tsa.reviews(id,question_version_id,content_hash,reviewer_id,decision,rubric,reason)
+    VALUES($1,$2,$3,$4,'APPROVE',$5::jsonb,$6)`, [reviewId, versionId, target.content_hash, reviewerId, JSON.stringify(RUBRIC), reason]);
+  const changed = await client.query(`UPDATE tsa.question_workflow SET state='APPROVED', revision=revision+1,
+      approved_review_id=$3, quarantine_reason=NULL, updated_at=clock_timestamp()
+    WHERE question_version_id=$1 AND revision=$2 AND state='IN_REVIEW' RETURNING revision`, [versionId, target.revision, reviewId]);
+  if (changed.rowCount !== 1) throw new Error(`Version ${versionId} changed during approval`);
+  await client.query('UPDATE tsa.questions SET eligible_version_id=$2 WHERE id=$1', [target.question_id, versionId]);
+  await client.query('UPDATE tsa.bank_state SET eligibility_revision=eligibility_revision+1, updated_at=clock_timestamp() WHERE id=1');
+  await appendWorkflowAudit(client, { userId: reviewerId }, target, 'BANK_REVIEW_APPROVE', Number(changed.rows[0].revision), reason);
+  // The selection gate admits question/2 only while the numeric-practice setting is on, as it is when students are served.
+  if (target.schema_version === 'question/2') await client.query("SELECT set_config('tsa.enable_numeric_practice','true',true)");
+  if (target.schema_version === 'question/3') await client.query("SELECT set_config('tsa.enable_cloze_matching','true',true)");
+  const selectable = (await client.query('SELECT tsa.bank_question_selection_allowed($1) AS ok', [versionId])).rows[0].ok;
+  if (selectable !== true) throw new Error(`Version ${versionId} is approved but not selectable; rolled back`);
+  return reviewId;
 }
 
 const TWIN_REASON = 'Owner decision 2026-11-19: of two identical questions keep one. The pair is confirmed as one equivalence group, '

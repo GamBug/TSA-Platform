@@ -602,6 +602,19 @@ export async function createQuestionDraft(bankPool, identityService, principal, 
   });
 }
 
+export async function createDraftRevision(client, principal, questionId, input, { enableNumericQuestions, enableClozeMatching }) {
+  const lockedQuestion = await client.query('SELECT id FROM tsa.questions WHERE id = $1 FOR UPDATE', [questionId]);
+  if (lockedQuestion.rowCount !== 1) reject(404, 'NOT_FOUND');
+  const parent = await loadParentGraph(client, input.parentVersionId, questionId, { enableNumericQuestions, enableClozeMatching });
+  return createDraftVersion(client, principal, input.draft, {
+    questionId,
+    parentVersionId: input.parentVersionId,
+    parent,
+    enableNumericQuestions,
+    enableClozeMatching,
+  });
+}
+
 export async function createQuestionDraftVersion(bankPool, identityService, principal, questionId, key, input,
   { enableNumericQuestions = false, enableClozeMatching = false } = {}) {
   assertQuestionOptions(enableNumericQuestions, enableClozeMatching);
@@ -610,16 +623,7 @@ export async function createQuestionDraftVersion(bankPool, identityService, prin
   if (!UUID_PATTERN.test(questionId) || !UUID_PATTERN.test(input.parentVersionId)) reject(404, 'NOT_FOUND');
   const apiVersion = enableClozeMatching ? 'v4' : enableNumericQuestions ? 'v2' : 'v1';
   return withIdempotency(bankPool, principal, key, `POST /api/${apiVersion}/questions/${questionId}/versions`, input, async (client) => {
-    const lockedQuestion = await client.query('SELECT id FROM tsa.questions WHERE id = $1 FOR UPDATE', [questionId]);
-    if (lockedQuestion.rowCount !== 1) reject(404, 'NOT_FOUND');
-    const parent = await loadParentGraph(client, input.parentVersionId, questionId, { enableNumericQuestions, enableClozeMatching });
-    const body = await createDraftVersion(client, principal, input.draft, {
-      questionId,
-      parentVersionId: input.parentVersionId,
-      parent,
-      enableNumericQuestions,
-      enableClozeMatching,
-    });
+    const body = await createDraftRevision(client, principal, questionId, input, { enableNumericQuestions, enableClozeMatching });
     return { status: 201, body, resourceId: body.versionId };
   });
 }

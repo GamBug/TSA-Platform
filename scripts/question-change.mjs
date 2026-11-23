@@ -7,14 +7,19 @@
 // immutable: a section move adds a version (it replaces a published one at once; a draft stays a draft for the normal
 // Publish step), and the older version stays as history. Every approval repeats the owner publication checks.
 import path from 'node:path';
+import { access } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildRevisionDraft, loadCorrectionTarget, ownerApprove, ownerConfirmSingleton, ROUTE_PREFIX } from '../src/local/bank-correction.mjs';
 import { backupLocalDatabase } from '../src/local/database-backup.mjs';
-import { OWNER_SECTIONS } from '../src/local/owner-publication.mjs';
+import { approveInTransaction, confirmSingletonInTransaction, OWNER_SECTIONS } from '../src/local/owner-publication.mjs';
 import { findPracticePool } from '../src/local/practice-pool.mjs';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
 import { withTransaction } from '../src/modules/database/pool.mjs';
+import { assertSingletonAllowed } from '../src/modules/bank/publication-gates.mjs';
+import { createDraftRevision } from '../src/modules/bank/questions.mjs';
+import { submitDraftForReview } from '../src/modules/bank/publication.mjs';
+import { LOCAL_SYNTHETIC_ACTORS, LOCAL_SYNTHETIC_ISSUER } from '../src/modules/identity/local-synthetic.mjs';
 import { openImageStore } from './image-library.mjs';
 import { ownerPublish, session } from './owner-publish.mjs';
 
@@ -75,24 +80,23 @@ async function identicalInSection(client, versionId, section) {
     WHERE v.id=$1 AND w.state::text IN ('DRAFT','IN_REVIEW','APPROVED') ORDER BY o.id LIMIT 1`, [versionId, section])).rows[0]?.id ?? null;
 }
 
-async function loadTarget(dataDirectory, versionId, section) {
+async function loadTarget(dataDirectory, versionId) {
   const database = await startPersistentPostgres(dataDirectory);
   try {
-    return await withTransaction(database.ownerPool, async (client) => {
-      const target = await loadCorrectionTarget(client, versionId);
-      if (!section || section === target.version.section || !OWNER_SECTIONS.includes(section)) return target;
-      return { ...target, move: await moveTaxonomy(client, target.version, target.nodes, section),
-        duplicate: await identicalInSection(client, versionId, section) };
-    });
+    return await withTransaction(database.ownerPool, (client) => loadCorrectionTarget(client, versionId));
   } finally { await database.stop(); }
+}
+
+async function versionHasImages(client, versionId) {
+  return (await client.query(`SELECT EXISTS(SELECT 1 FROM tsa.question_assets WHERE question_version_id=$1)
+    OR EXISTS(SELECT 1 FROM tsa.question_versions v JOIN tsa.stimulus_assets sa ON sa.stimulus_version_id=v.stimulus_version_id WHERE v.id=$1) AS images`,
+  [versionId])).rows[0].images;
 }
 
 async function hasImages(dataDirectory, versionId) {
   const database = await startPersistentPostgres(dataDirectory);
   try {
-    return (await database.ownerPool.query(`SELECT EXISTS(SELECT 1 FROM tsa.question_assets WHERE question_version_id=$1)
-      OR EXISTS(SELECT 1 FROM tsa.question_versions v JOIN tsa.stimulus_assets sa ON sa.stimulus_version_id=v.stimulus_version_id WHERE v.id=$1) AS images`,
-    [versionId])).rows[0].images;
+    return await versionHasImages(database.ownerPool, versionId);
   } finally { await database.stop(); }
 }
 
@@ -115,32 +119,102 @@ async function approve(dataDirectory, versionId, reason, imageStoreDirectory) {
   } finally { await database.stop(); }
 }
 
+class MovePreview extends Error {
+  constructor(plan) {
+    super('Roll back move preview');
+    this.plan = plan;
+  }
+}
+
+async function moveQuestion({ dataDirectory, versionId, section, imageStoreDirectory, confirm, log }) {
+  const phrase = questionChangePhrase('MOVE', versionId, section);
+  const refused = (problem) => {
+    log(`Cannot move: ${problem}.`);
+    return { ok: false, problem, phrase: null };
+  };
+  const database = await startPersistentPostgres(dataDirectory);
+  try {
+    const move = (preview) => withTransaction(database.ownerPool, async (client) => {
+      // Use the same guard as Bank authoring so the checks and the new version see one Bank state.
+      await client.query('SELECT pg_advisory_xact_lock(1414742321, 1)');
+      await client.query('SELECT id FROM tsa.bank_state WHERE id=1 FOR UPDATE');
+      const target = await loadCorrectionTarget(client, versionId);
+      const { version } = target;
+      if (preview) log(`Question version ${versionId}: ${version.section}, ${version.state}${version.eligible_version_id === versionId ? ', served' : ''}`);
+      const problem = questionChangeProblem('MOVE', version, section);
+      if (problem) throw new Error(problem);
+      const duplicate = await identicalInSection(client, versionId, section);
+      if (duplicate) throw new Error(`An identical question is already in ${section} (version ${duplicate}); withhold this one instead of moving it`);
+      if (version.state === 'APPROVED') await assertSingletonAllowed(client, { question_id: version.question_id });
+      const taxonomy = await moveTaxonomy(client, version, target.nodes, section);
+      const note = MOVE_NOTE(version.section, section);
+      const draft = buildRevisionDraft(target, { changes: { section, taxonomy }, transformation: note });
+      const { id: userId, subject } = LOCAL_SYNTHETIC_ACTORS.author;
+      const author = await client.query(`SELECT 1 FROM tsa.users u JOIN tsa.user_roles r ON r.user_id=u.id
+        WHERE u.id=$1 AND u.issuer=$2 AND u.subject=$3 AND u.disabled_at IS NULL AND r.role='AUTHOR'`, [userId, LOCAL_SYNTHETIC_ISSUER, subject]);
+      if (author.rowCount !== 1) throw new Error('The local author account must be active');
+      let imageStore = null;
+      if (version.state !== 'DRAFT' && await versionHasImages(client, versionId)) {
+        // Opening the library can initialize a missing directory; a move only reads existing images.
+        await access(imageStoreDirectory);
+        imageStore = await openImageStore(imageStoreDirectory);
+      }
+      const options = { enableNumericQuestions: version.schema_version === 'question/2', enableClozeMatching: version.schema_version === 'question/3' };
+      const principal = { userId };
+      await client.query('SET LOCAL ROLE tsa_bank');
+      await client.query("SELECT set_config('tsa.bank_actor_id', $1, true)", [userId]);
+      const { versionId: newVersionId } = await createDraftRevision(client, principal, version.question_id, { parentVersionId: versionId, draft }, options);
+      if (version.state !== 'DRAFT') await submitDraftForReview(client, principal, newVersionId, 1, imageStore, options);
+      await client.query('RESET ROLE');
+      if (version.state === 'APPROVED') {
+        await confirmSingletonInTransaction(client, newVersionId, { recordExisting: true });
+        await approveInTransaction(client, newVersionId, { reason: `${note} Approved by the project owner on the local admin page.`, imageStore });
+      }
+      const state = version.state === 'APPROVED' ? 'It is approved and served instead of this one.'
+        : `It stays ${version.state === 'IN_REVIEW' ? 'IN_REVIEW' : 'a DRAFT'} for Publish.`;
+      const plan = `Add a new version in ${section}${taxonomy.name ? ` (taxonomy "${taxonomy.name}")` : ''}. ${state}`;
+      // The publication checks depend on the proposed version's stored graph and workflow rows.
+      // Roll back the whole rehearsal, including those rows, eligibility and audit events.
+      if (preview) throw new MovePreview(plan);
+      return { newVersionId, published: version.state === 'APPROVED' };
+    });
+
+    try {
+      await move(true);
+    } catch (error) {
+      if (!(error instanceof MovePreview)) return refused(error.message);
+      log(error.plan);
+    }
+    if (confirm === undefined) {
+      log(`Dry run only. To apply, run again with --confirm "${phrase}".`);
+      return { ok: true, phrase, applied: false };
+    }
+    if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
+    await backupLocalDatabase({ connectionConfig: database.connectionConfig, directory: `${dataDirectory}-backups` });
+    let result;
+    try { result = await move(false); } catch (error) { return refused(error.message); }
+    log(`Moved to ${section} as version ${result.newVersionId}${result.published ? ', approved and served' : ''}.`);
+    return { ok: true, phrase, applied: true, newVersionId: result.newVersionId };
+  } finally { await database.stop(); }
+}
+
 export async function changeQuestion({ dataDirectory, versionId, action, section = null, reason = null, confirm,
   imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'),
   log = (line) => process.stdout.write(`${line}\n`) }) {
   if (!UUID.test(versionId ?? '')) throw new TypeError('--version must be a question version UUID');
   if (!QUESTION_ACTIONS.includes(action)) throw new TypeError(`The action must be one of ${QUESTION_ACTIONS.join(', ')}`);
   if (action === 'WITHHOLD' && (typeof reason !== 'string' || reason.trim().length < 5)) throw new TypeError('Withholding needs a --reason of at least 5 characters');
-  const target = await loadTarget(dataDirectory, versionId, action === 'MOVE' ? section : null);
+  if (action === 'MOVE') return moveQuestion({ dataDirectory, versionId, section, imageStoreDirectory, confirm, log });
+  const target = await loadTarget(dataDirectory, versionId);
   const { version } = target;
   const phrase = questionChangePhrase(action, versionId, section);
-  let problem = questionChangeProblem(action, version, section);
-  // No duplicates: an identical question already in the target section would be a second copy (and an exact twin,
-  // which hides both until resolved). The owner withholds this one instead.
-  if (!problem && action === 'MOVE' && target.duplicate) {
-    problem = `An identical question is already in ${section} (version ${target.duplicate}); withhold this one instead of moving it`;
-  }
-  if (!problem && action === 'MOVE') {
-    try { buildRevisionDraft(target, { classification: 'MOVE', note: MOVE_NOTE(version.section, section), changes: { section, taxonomy: target.move } }); }
-    catch (error) { problem = error.message; }
-  }
+  const problem = questionChangeProblem(action, version, section);
   log(`Question version ${versionId}: ${version.section}, ${version.state}${version.eligible_version_id === versionId ? ', served' : ''}`);
   if (problem) { log(`Cannot ${action.toLowerCase()}: ${problem}.`); return { ok: false, problem, phrase: null }; }
   const plan = {
     PUBLISH: 'Approve and publish this question as the owner (rights, checks and approval as in Publish).',
     WITHHOLD: 'Withhold this question: it is no longer served, and tests already built with it are held.',
     RESTORE: 'Publish this withheld question again (submitted, confirmed and approved by the owner).',
-    MOVE: `Add a new version in ${section}${target.move?.name ? ` (taxonomy "${target.move.name}")` : ''}. ${version.state === 'APPROVED' ? 'It is approved and served instead of this one.' : `It stays ${version.state === 'IN_REVIEW' ? 'IN_REVIEW' : 'a DRAFT'} for Publish.`}`,
   }[action];
   log(plan);
   if (confirm === undefined) {
@@ -170,35 +244,14 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
     log(`Withheld ${versionId}.`);
     return { ok: true, phrase, applied: true };
   }
-  if (action === 'RESTORE') {
-    await withRuntime(dataDirectory, version.schema_version, async (origin) => {
-      const author = await session(origin, 'author');
-      await author(`/api/${prefix}/question-versions/${versionId}/submit-review`, { expectedRevision: version.revision }, key('submit'));
-    });
-    await approve(dataDirectory, versionId, 'Restored by the project owner on the local admin page after it had been withheld. '
-      + 'The owner is responsible for the stored key.', imageStoreDirectory);
-    log(`Restored ${versionId}; it is published again.`);
-    return { ok: true, phrase, applied: true };
-  }
-
-  // MOVE: a new version of the same question in the other section, then the same workflow position as before.
-  const draft = buildRevisionDraft(target, { classification: 'MOVE', note: MOVE_NOTE(version.section, section), changes: { section, taxonomy: target.move },
-    transformation: MOVE_NOTE(version.section, section) });
-  const created = await withRuntime(dataDirectory, version.schema_version, async (origin) => {
+  await withRuntime(dataDirectory, version.schema_version, async (origin) => {
     const author = await session(origin, 'author');
-    const result = await author(`/api/${prefix}/questions/${version.question_id}/versions`, { parentVersionId: versionId, draft }, key('version'));
-    if (version.state !== 'DRAFT') await author(`/api/${prefix}/question-versions/${result.versionId}/submit-review`, { expectedRevision: 1 }, key('submit'));
-    return result;
+    await author(`/api/${prefix}/question-versions/${versionId}/submit-review`, { expectedRevision: version.revision }, key('submit'));
   });
-  if (version.state === 'APPROVED') {
-    try {
-      await approve(dataDirectory, created.versionId, `${MOVE_NOTE(version.section, section)} Approved by the project owner on the local admin page.`, imageStoreDirectory);
-    } catch (error) {
-      throw new Error(`${error.message}. The new version ${created.versionId} is IN_REVIEW and not approved; version ${versionId} is still served.`);
-    }
-  }
-  log(`Moved to ${section} as version ${created.versionId}${version.state === 'APPROVED' ? ', approved and served' : ''}.`);
-  return { ok: true, phrase, applied: true, newVersionId: created.versionId };
+  await approve(dataDirectory, versionId, 'Restored by the project owner on the local admin page after it had been withheld. '
+    + 'The owner is responsible for the stored key.', imageStoreDirectory);
+  log(`Restored ${versionId}; it is published again.`);
+  return { ok: true, phrase, applied: true };
 }
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {

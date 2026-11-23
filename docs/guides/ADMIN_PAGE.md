@@ -40,6 +40,9 @@ real-content taxonomy version that already serves the most questions in that sec
 questions stay in the pool and real content stays out of it. A question with a shared passage cannot be moved on its
 own. **No duplicates:** a move is refused when an identical question is already in the target section; withhold this
 one instead.
+A move preview runs the workflow and approval checks in a transaction that is rolled back. A published question with
+a confirmed equivalent fails the singleton check. A confirmed move commits the new version only if every required
+check succeeds.
 
 Import and publication run the same owner commands as the terminal (`npm run questions:inbox` and
 `npm run bank:owner-publish -- --taxonomy-version <practice pool>`), one at a time, on the owner's retained Bank
