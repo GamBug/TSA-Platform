@@ -4,15 +4,17 @@ import { INBOX_FOLDERS } from './admin-jobs.mjs';
 
 export const ADMIN_ROUTE_PREFIX = '/local/admin/';
 const MAX_BODY_BYTES = 1024 * 1024;
+// A figure arrives base64-encoded (4 bytes for every 3), up to the image library's 2 MiB.
+const MAX_FIGURE_BODY_BYTES = 3 * 1024 * 1024;
 const HEADERS = Object.freeze({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
 
 const json = (status, payload, extra = {}) => new Response(JSON.stringify(payload), { status, headers: { ...HEADERS, ...extra } });
 const error = (status, code, message) => json(status, { error: code, ...(message ? { message } : {}) });
 
-async function readBody(request) {
+async function readBody(request, limit = MAX_BODY_BYTES) {
   if (request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase() !== 'application/json') return { ok: false };
   const bytes = new Uint8Array(await request.arrayBuffer());
-  if (bytes.byteLength > MAX_BODY_BYTES) return { tooLarge: true };
+  if (bytes.byteLength > limit) return { tooLarge: true };
   try {
     const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     return value && typeof value === 'object' && !Array.isArray(value) ? { ok: true, value } : { ok: false };
@@ -84,7 +86,7 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       auth.logout(session);
       return json(200, { authenticated: false }, { 'set-cookie': auth.clearedCookie() });
     }
-    const body = await readBody(request);
+    const body = await readBody(request, route === 'inbox/figure' ? MAX_FIGURE_BODY_BYTES : MAX_BODY_BYTES);
     if (body.tooLarge) return error(413, 'PAYLOAD_TOO_LARGE');
     if (!body.ok) return error(400, 'INVALID_REQUEST');
     const input = body.value;
@@ -94,6 +96,17 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');
       const result = await jobs.saveInboxFile({ section: section(input.section), fileName: input.fileName, text: input.text });
       return result.ok ? json(201, result) : error(400, result.code);
+    }
+    if (route === 'inbox/figure' || route === 'inbox/retry') {
+      if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');
+      const result = route === 'inbox/figure'
+        ? await jobs.saveFigure({ section: section(input.section), fileName: input.fileName, base64: input.base64 })
+        : await jobs.retryRejected({ section: section(input.section), name: input.name });
+      return result.ok ? json(201, result) : error(400, result.code);
+    }
+    if (route === 'question/change') {
+      return json(200, await jobs.change({ versionId: input.versionId, action: input.action, section: input.section ?? null,
+        reason: typeof input.reason === 'string' ? input.reason : null, confirm }));
     }
     if (route === 'inbox/run') return json(200, await jobs.inbox({ confirm }));
     if (route === 'pool/setup') return json(200, await jobs.setupPool({ confirm }));

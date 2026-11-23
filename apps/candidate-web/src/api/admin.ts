@@ -27,8 +27,10 @@ export interface Overview {
 
 export interface JobResult { ok: boolean; code?: string; exitCode?: number; output: string; confirmation: string | null }
 
-export interface InboxFile { name: string; bytes: number; modifiedAt: string; errors?: string | null }
-export type InboxListing = Record<Section, Record<'pending' | 'imported' | 'rejected', { count: number; items: InboxFile[] }>>
+/** `figures`: the figure file names the answer's image requests need, for pending and rejected answers. */
+export interface InboxFile { name: string; bytes: number; modifiedAt: string; errors?: string | null; figures?: string[] }
+export type InboxListing = Record<Section, Record<'pending' | 'figures' | 'imported' | 'rejected', { count: number; items: InboxFile[] }>>
+export type QuestionAction = 'PUBLISH' | 'WITHHOLD' | 'RESTORE' | 'MOVE'
 
 export interface GenerateResult {
   ok: boolean; code?: string; message?: string; status?: number; file?: string; batchId?: string; model?: string
@@ -85,6 +87,13 @@ export const adminImageUrl = (assetVersionId: string) => `/local/admin/image?id=
 export const loadInbox = () => call<InboxListing>('inbox')
 export const saveInboxFile = (section: Section, fileName: string, text: string) =>
   call<{ ok: true; name: string }>('inbox/file', { method: 'POST', body: { section, fileName, text } })
+/** A figure file for an image_request block, named <question or passage id>_<request id>.png (or .jpg, .webp). */
+export const saveFigure = (section: Section, fileName: string, base64: string) =>
+  call<{ ok: true; name: string }>('inbox/figure', { method: 'POST', body: { section, fileName, base64 } })
+export const retryRejected = (section: Section, name: string) =>
+  call<{ ok: true; name: string }>('inbox/retry', { method: 'POST', body: { section, name } })
+export const changeQuestion = (options: { versionId: string; action: QuestionAction; section?: Section; reason?: string; confirm?: string }) =>
+  call<JobResult>('question/change', { method: 'POST', body: options })
 export const runInbox = (confirm?: string) => call<JobResult>('inbox/run', { method: 'POST', body: confirm ? { confirm } : {} })
 export const setupPool = (confirm?: string) => call<JobResult>('pool/setup', { method: 'POST', body: confirm ? { confirm } : {} })
 export const runPublish = (options: { section: Section | null; keepOneOfTwins: boolean; confirm?: string }) =>

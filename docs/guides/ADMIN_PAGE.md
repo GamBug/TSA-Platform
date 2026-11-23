@@ -16,9 +16,28 @@ the answer keys never leave the machine.
 
 | Tab | What it does |
 |---|---|
-| **All questions** | Every question version in the Bank, in every state (DRAFT, IN_REVIEW, APPROVED, superseded, QUARANTINED, RETIRED), with passage, images, options, the answer key marked, and the explanation. Filter by section, state and type; search text, exchange id or taxonomy. |
-| **Import & publish** | 1. Add ChatGPT answer files (`.json`, `.txt`, `.md`) by upload or paste; they are saved to `question-inbox/<subject>/`. 2. **Check the inbox** (writes nothing), then **Import** with the phrase the check printed: good files become DRAFTs in the practice pool, rejected files move aside with a message to paste back into ChatGPT. 3. **Check what would be published**, then **Publish** with the printed phrase: approves and publishes the practice pool's eligible drafts. |
+| **All questions** | Every question version in the Bank, in every state (DRAFT, IN_REVIEW, APPROVED, superseded, QUARANTINED, RETIRED), with passage, images, options, the answer key marked, and the explanation. Filter by section, state and type; search text, exchange id or taxonomy. On the real Bank, **Change status or section** changes the open question (below). |
+| **Import & publish** | 1. Add ChatGPT answer files (`.json`, `.txt`, `.md`) by upload or paste; they are saved to `question-inbox/<subject>/`. Add figure PNGs with **Upload figures**, or with **add image** next to each figure a waiting or rejected answer needs; **Back to the inbox** returns a rejected answer for the next check. 2. **Check the inbox** (writes nothing), then **Import** with the phrase the check printed: good files become DRAFTs in the practice pool, rejected files move aside with a message to paste back into ChatGPT. 3. **Check what would be published**, then **Publish** with the printed phrase: approves and publishes the practice pool's eligible drafts. |
 | **AI questions** | With `OPENAI_API_KEY` set: one CREATE batch of up to 10 original questions per run, written by OpenAI with the same instructions as the ChatGPT Projects, saved into the inbox for the normal check, import and publication. Without a key: the steps for a free ChatGPT Project in the browser ([guide](chatgpt-projects/README.md)). |
+
+### Changing one question
+
+**Change status or section** works on the latest version of the open question, as a check first (writes nothing) and
+then **Confirm** with the printed phrase. Each confirmed change backs up the Bank and runs
+`npm run bank:question` ([`scripts/question-change.mjs`](../../scripts/question-change.mjs)), the same owner workflow
+as publication:
+
+| Action | From | Result |
+|---|---|---|
+| **Publish** | DRAFT, IN_REVIEW | Approved and served, with the same rights, checks and approval as **Publish** (a question with a shared passage is published with its passage, on the Import & publish tab). |
+| **Withhold** (with a reason) | DRAFT, IN_REVIEW, APPROVED | QUARANTINED: no longer served; tests already built with it are held. |
+| **Restore** | QUARANTINED | Submitted, confirmed and approved again by the owner. |
+| **Move** to another section | DRAFT, IN_REVIEW, APPROVED | A new version in that section; the old version stays as history. A published question is replaced at once; a draft stays a draft for **Publish**. |
+
+Question versions are immutable, so nothing is edited in place. A move keeps the taxonomy version and takes the new
+section's domain and skill in it: practice-pool questions (everything imported through the inbox) can move between all
+three sections, while a question of a single-subject corpus taxonomy cannot, and a question with a shared passage
+cannot be moved on its own.
 
 Import and publication run the same owner commands as the terminal (`npm run questions:inbox` and
 `npm run bank:owner-publish -- --taxonomy-version <practice pool>`), one at a time, on the owner's retained Bank
@@ -58,5 +77,7 @@ OPENAI_API_KEY=sk-... OPENAI_MODEL=<model> npm start
 
 ```bash
 npm run test:admin                      # account, jobs, AI generation (fake OpenAI), rehearsal demo end to end
+npm run test:question-change            # publish, withhold, restore and move single questions on a disposable Bank
+npm run test:question-inbox             # inbox import, including figure files registered and attached
 npm run test:demo:uni:browser           # Chromium: guest start, practice, full test, admin sign-in and question view
 ```

@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import sharp from 'sharp';
 import { ADMIN_USERNAME, createAdminAuth, hashPassword, verifyPassword } from '../../../src/local/admin/admin-auth.mjs';
 import { blocksText } from '../../../src/local/admin/admin-bank.mjs';
 import { confirmationFromOutput, createAdminJobs, inboxFileName } from '../../../src/local/admin/admin-jobs.mjs';
@@ -90,6 +91,55 @@ test('job helpers read the printed confirmation and keep inbox file names safe',
 
     const rehearsal = createAdminJobs({ dataDirectory: null, runCommand: async () => assert.fail('no job may run without a retained Bank') });
     assert.equal((await rehearsal.inbox()).code, 'NO_RETAINED_BANK');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+// Figures for image requests are saved under the inbox naming rule, a rejected file can go back to the inbox, and one
+// question's status or section is changed through the owner command with a dry run first.
+test('admin jobs save figures, return rejected files to the inbox and change one question', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tsa-admin-figures-'));
+  try {
+    const calls = [];
+    let changed = 0;
+    const jobs = createAdminJobs({ dataDirectory: path.join(root, 'bank'), inboxDirectory: path.join(root, 'inbox'),
+      runCommand: async (args) => { calls.push(args); return { exitCode: 0, output: 'Dry run only. To apply, run again with --confirm "MOVE 11111111 TO SCIENCE".' }; },
+      onBankChanged: async () => { changed += 1; } });
+    const png = (await sharp({ create: { width: 4, height: 4, channels: 3, background: '#000' } }).png().toBuffer()).toString('base64');
+    const saved = await jobs.saveFigure({ section: 'MATH', fileName: 'MATH-S261122A-000031_NEW-IMG-001.png', base64: png });
+    assert.deepEqual(saved, { ok: true, section: 'MATH', name: 'MATH-S261122A-000031_NEW-IMG-001.png' });
+    assert.equal((await jobs.saveFigure({ section: 'MATH', fileName: 'figure.png', base64: png })).code, 'FIGURE_NAME_INVALID');
+    assert.equal((await jobs.saveFigure({ section: 'MATH', fileName: '../MATH-S1-000001_NEW-IMG-001.png', base64: png })).ok, true, 'only the base name is used');
+    assert.equal((await jobs.saveFigure({ section: 'MATH', fileName: 'MATH-S1-000002_NEW-IMG-001.png', base64: Buffer.from('<svg/>').toString('base64') })).code, 'FIGURE_NOT_IMAGE');
+    assert.equal((await jobs.saveFigure({ section: 'MATH', fileName: 'MATH-S1-000002_NEW-IMG-001.png', base64: 'not base64!' })).code, 'EMPTY_FILE');
+
+    // A rejected answer lists the figures its image requests need, read from its JSON, and goes back without its message.
+    const rejected = path.join(root, 'inbox', 'math', 'rejected');
+    await mkdir(rejected, { recursive: true });
+    const answer = { format: 'tsa-question-set/1', batch_id: 'SRC-MATH-261122-A-P4', passages: [], questions: [{ question_id: 'MATH-S261122A-000031',
+      content_blocks: [{ type: 'image_request', request_id: 'NEW-IMG-001', description: 'graph', alt: 'graph' }] }] };
+    await writeFile(path.join(rejected, '20261122-152008-20261122-151944-P4.json'), JSON.stringify(answer));
+    await writeFile(path.join(rejected, '20261122-152008-20261122-151944-P4.json.errors.txt'), '- MATH-S261122A-000031: [ASSET_REQUIRED] ...');
+    const listing = (await jobs.listInbox()).MATH;
+    assert.equal(listing.rejected.count, 1, 'the .errors.txt message is not listed as a file of its own');
+    assert.deepEqual(listing.rejected.items[0].figures, ['MATH-S261122A-000031_NEW-IMG-001.png']);
+    assert.equal(listing.figures.count, 2);
+    assert.deepEqual(await jobs.retryRejected({ section: 'MATH', name: '20261122-152008-20261122-151944-P4.json' }),
+      { ok: true, section: 'MATH', name: '20261122-151944-P4.json' });
+    assert.deepEqual(await readdir(rejected), []);
+    assert.deepEqual((await jobs.listInbox()).MATH.pending.items.map((item) => [item.name, item.figures]), [['20261122-151944-P4.json', ['MATH-S261122A-000031_NEW-IMG-001.png']]]);
+    assert.equal((await jobs.retryRejected({ section: 'MATH', name: '../../secret.json' })).code, 'NOT_FOUND');
+
+    const version = '11111111-1111-4111-8111-111111111111';
+    assert.equal((await jobs.change({ versionId: 'x', action: 'PUBLISH' })).code, 'INVALID_VERSION');
+    assert.equal((await jobs.change({ versionId: version, action: 'WITHHOLD', reason: 'no' })).code, 'REASON_REQUIRED');
+    assert.equal((await jobs.change({ versionId: version, action: 'MOVE', section: 'ART' })).code, 'INVALID_SECTION');
+    const dry = await jobs.change({ versionId: version, action: 'MOVE', section: 'SCIENCE' });
+    assert.equal(dry.confirmation, 'MOVE 11111111 TO SCIENCE');
+    assert.equal(changed, 0);
+    await jobs.change({ versionId: version, action: 'WITHHOLD', reason: 'key to check', confirm: 'WITHHOLD 11111111' });
+    assert.match(calls.at(-1)[0], /question-change\.mjs$/);
+    assert.deepEqual(calls.at(-1).slice(1), ['--version', version, '--withhold', '--reason', 'key to check', '--confirm', 'WITHHOLD 11111111']);
+    assert.equal(changed, 1, 'a confirmed change re-reads the Bank');
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 

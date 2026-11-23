@@ -69,8 +69,20 @@ export async function loadCorrectionTarget(client, versionId) {
       sr.decision_id AS "decisionId"
     FROM tsa.question_provenance p LEFT JOIN tsa.source_rights sr ON sr.source_version_id=p.source_version_id
     WHERE p.question_version_id=$1 ORDER BY p.ordinal`, [versionId])).rows;
-  const nodes = (await client.query(`SELECT id, code, kind FROM tsa.taxonomy_nodes WHERE taxonomy_version_id=$1`, [version.taxonomy_version_id])).rows;
+  const nodes = (await client.query(`SELECT id, code, kind, parent_id FROM tsa.taxonomy_nodes WHERE taxonomy_version_id=$1`, [version.taxonomy_version_id])).rows;
   return { version, provenance, nodes };
+}
+
+/**
+ * The domain and skill a question takes in another section of the same taxonomy version: the domain whose code is the
+ * section and its only skill. Throws when the taxonomy has no such domain or the choice of skill is not unique.
+ */
+export function sectionTaxonomy(nodes, section) {
+  const domain = nodes.find((node) => node.kind === 'DOMAIN' && node.code === section);
+  if (!domain) throw new Error(`This question's taxonomy has no ${section} domain, so it cannot move to ${section}; import it again in the ${section} inbox`);
+  const skills = nodes.filter((node) => node.kind === 'SKILL' && node.parent_id === domain.id);
+  if (skills.length !== 1) throw new Error(`The ${section} domain of this taxonomy has ${skills.length} skills; a move needs exactly one`);
+  return { domainId: domain.id, skillIds: [skills[0].id] };
 }
 
 /** Build the author draft for a revision from the stored parent and the requested changes. */
@@ -88,14 +100,17 @@ export function buildRevisionDraft(target, item) {
   const list = (value) => (typeof value === 'string' ? JSON.parse(value) : value);
   const set = item.changes;
   const evidenceRefs = [...new Set(provenance.map((entry) => entry.decisionId))];
+  // A section change keeps the taxonomy version and takes that section's domain and skill in it.
+  const section = set.section ?? version.section;
+  const moved = section !== version.section ? sectionTaxonomy(nodes, section) : null;
   return {
     schemaVersion: version.schema_version,
     language: version.language,
-    section: version.section,
+    section,
     taxonomyVersionId: version.taxonomy_version_id,
-    domainId: idOf(version.domain_id),
-    skillIds: list(version.skill_ids).map(idOf),
-    subskillIds: list(version.subskill_ids).map(idOf),
+    domainId: moved ? moved.domainId : idOf(version.domain_id),
+    skillIds: moved ? moved.skillIds : list(version.skill_ids).map(idOf),
+    subskillIds: moved ? [] : list(version.subskill_ids).map(idOf),
     cognitiveLevel: version.cognitive_level,
     targetDifficulty: list(version.difficulty)?.target ?? null,
     content: set.content ?? list(version.content),
@@ -108,7 +123,7 @@ export function buildRevisionDraft(target, item) {
     provenance: provenance.map((entry) => ({
       sourceVersionId: entry.sourceVersionId,
       span: entry.span ?? null,
-      transformation: `Corrected after independent verification (${item.classification}): ${item.note}`.slice(0, 4_000),
+      transformation: (item.transformation ?? `Corrected after independent verification (${item.classification}): ${item.note}`).slice(0, 4_000),
     })),
   };
 }

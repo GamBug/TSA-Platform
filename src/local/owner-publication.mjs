@@ -31,7 +31,11 @@ const CORPUS_TITLE = `s.title LIKE 'Corpus %'`;
 const PUBLISHABLE_SOURCES = `SELECT sv.id FROM tsa.source_versions sv JOIN tsa.sources s ON s.id=sv.source_id
   WHERE ${CORPUS_TITLE} OR (s.title LIKE '${ORIGINAL_SOURCE_PREFIX}%' AND s.origin='OWNED')`;
 
-/** Latest unpublished imported or exchange versions whose every source is a corpus or practice-original source. Read-only. */
+/**
+ * Latest unpublished imported or exchange versions whose every source is a corpus or practice-original source. A later
+ * version the owner made of an exchange-imported question (for example after moving it to another section) counts as
+ * an exchange version. Read-only.
+ */
 export async function listOwnerCandidates(client, { section = null } = {}) {
   if (section !== null && !OWNER_SECTIONS.includes(section)) throw new TypeError('section must be MATH, READING or SCIENCE');
   const versions = (await client.query(`
@@ -45,7 +49,8 @@ export async function listOwnerCandidates(client, { section = null } = {}) {
            EXISTS(SELECT 1 FROM tsa.bundle_members bm WHERE bm.question_version_id=v.id) AS bundled
       FROM tsa.question_versions v JOIN tsa.question_workflow w ON w.question_version_id=v.id
      WHERE (v.origin='IMPORTED' OR (v.origin='MANUAL' AND EXISTS
-       (SELECT 1 FROM tsa_private.exchange_import_receipts er WHERE er.question_version_id=v.id))) AND w.state IN ('DRAFT','IN_REVIEW') AND ($1::text IS NULL OR v.section::text=$1)
+       (SELECT 1 FROM tsa_private.exchange_import_receipts er JOIN tsa.question_versions ev ON ev.id=er.question_version_id
+         WHERE ev.question_id=v.question_id))) AND w.state IN ('DRAFT','IN_REVIEW') AND ($1::text IS NULL OR v.section::text=$1)
        AND NOT EXISTS(SELECT 1 FROM tsa.question_versions newer
          WHERE newer.question_id=v.question_id AND newer.version_no>v.version_no)
        AND EXISTS(SELECT 1 FROM tsa.bank_question_sources(v.id) s)

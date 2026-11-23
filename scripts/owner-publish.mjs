@@ -34,11 +34,13 @@ export function restrictToTaxonomy(before, allowedVersionIds) {
   return { ...before, versions: before.versions.filter((row) => allowed.has(row.id)) };
 }
 
-async function inspect(dataDirectory, section, taxonomyVersionId) {
+async function inspect(dataDirectory, section, taxonomyVersionId, versionIds = null) {
   if (taxonomyVersionId !== null && !UUID_PATTERN.test(taxonomyVersionId)) throw new TypeError('--taxonomy-version must be a UUID');
+  if (versionIds !== null && !versionIds.every((id) => UUID_PATTERN.test(id))) throw new TypeError('version ids must be UUIDs');
   const database = await startPersistentPostgres(dataDirectory);
   try {
-    const before = await listOwnerCandidates(database.ownerPool, { section });
+    let before = await listOwnerCandidates(database.ownerPool, { section });
+    if (versionIds !== null) before = restrictToTaxonomy(before, versionIds);
     if (taxonomyVersionId === null) return before;
     const ids = (await database.ownerPool.query('SELECT id FROM tsa.question_versions WHERE taxonomy_version_id = $1', [taxonomyVersionId])).rows.map((row) => row.id);
     return restrictToTaxonomy(before, ids);
@@ -79,8 +81,9 @@ async function countOpenTwins(dataDirectory, versionIds) {
   try { return (await listOpenTwins(database.ownerPool, versionIds)).length; } finally { await database.stop(); }
 }
 
-export async function ownerPublish({ dataDirectory, section = null, taxonomyVersionId = null, keepOneOfTwins = false, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
-  const before = await inspect(dataDirectory, section, taxonomyVersionId);
+/** `versionIds` limits publication to those versions (the admin page publishes one question this way). */
+export async function ownerPublish({ dataDirectory, section = null, taxonomyVersionId = null, versionIds = null, keepOneOfTwins = false, confirm, imageStoreDirectory = process.env.TSA_IMAGE_STORE_DIRECTORY ?? path.join(ROOT, '.local', 'track-b-images'), log = (line) => process.stdout.write(`${line}\n`) }) {
+  const before = await inspect(dataDirectory, section, taxonomyVersionId, versionIds);
   const counts = Object.fromEntries(OWNER_SECTIONS.map((name) => [name, before.versions.filter((row) => row.section === name).length]));
   const { unsupported, targets, sources } = planOwnerPublication(before);
   const phrase = confirmationPhrase(targets.length, section);

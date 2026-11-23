@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  AdminError, adminImageUrl, adminLogin, adminLogout, adminSession, generate, loadInbox, loadOverview, loadQuestion, loadQuestions,
-  refreshBank, runInbox, runPublish, saveInboxFile, SECTION_NAMES, SECTIONS, setupPool,
-  type GenerateResult, type InboxListing, type JobResult, type Overview, type QuestionDetail, type QuestionSummary, type Section,
+  AdminError, adminImageUrl, adminLogin, adminLogout, adminSession, changeQuestion, generate, loadInbox, loadOverview, loadQuestion, loadQuestions,
+  refreshBank, retryRejected, runInbox, runPublish, saveFigure, saveInboxFile, SECTION_NAMES, SECTIONS, setupPool,
+  type GenerateResult, type InboxFile, type InboxListing, type JobResult, type Overview, type QuestionAction, type QuestionDetail,
+  type QuestionSummary, type Section,
 } from '@/api/admin'
 import { ContentBlocks } from '@/content/ContentBlocks'
 import { buttonClass, Notice } from '@/ui/Shell'
@@ -101,7 +102,7 @@ function AdminWorkspace({ onSessionLost, onSignedOut }: { onSessionLost: (text?:
       {overview && <CountsTable overview={overview} />}
       {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
       <div className="mt-6">
-        {tab === 'questions' && <QuestionsTab key={bankVersion} onError={fail} />}
+        {tab === 'questions' && <QuestionsTab bankVersion={bankVersion} canChange={overview?.jobs.available === true} onError={fail} onBankChanged={bankChanged} />}
         {tab === 'inbox' && overview && <InboxTab overview={overview} onError={fail} onBankChanged={bankChanged} />}
         {tab === 'ai' && overview && <AiTab overview={overview} onError={fail} onGoToInbox={() => setTab('inbox')} />}
       </div>
@@ -129,7 +130,9 @@ function CountsTable({ overview }: { overview: Overview }) {
 
 // ---------------------------------------------------------------- All questions
 
-function QuestionsTab({ onError }: { onError: (error: unknown) => void }) {
+function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
+  bankVersion: number; canChange: boolean; onError: (error: unknown) => void; onBankChanged: () => Promise<void>
+}) {
   const [items, setItems] = useState<QuestionSummary[] | null>(null)
   const [section, setSection] = useState<'' | Section>('')
   const [stateName, setStateName] = useState('')
@@ -137,7 +140,8 @@ function QuestionsTab({ onError }: { onError: (error: unknown) => void }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
-  useEffect(() => { loadQuestions().then((data) => setItems(data.items), onError) }, [onError])
+  // Re-read after every Bank change; the open question stays open (an older version shows as superseded).
+  useEffect(() => { loadQuestions().then((data) => setItems(data.items), onError) }, [onError, bankVersion])
   const types = useMemo(() => [...new Set((items ?? []).map((item) => item.interactionType))].sort(), [items])
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -194,7 +198,7 @@ function QuestionsTab({ onError }: { onError: (error: unknown) => void }) {
         )}
       </section>
       <section aria-label="Question" className="min-w-0">
-        {selected ? <QuestionPanel versionId={selected} onError={onError} />
+        {selected ? <QuestionPanel key={selected} versionId={selected} bankVersion={bankVersion} canChange={canChange} onError={onError} onBankChanged={onBankChanged} />
           : <p className="text-sm text-ink-secondary">Choose a question to see it with its answer key and explanation.</p>}
       </section>
     </div>
@@ -206,9 +210,73 @@ function StateBadge({ state, eligible }: { state: string; eligible: boolean }) {
   return <span className={tone}>{state}{state === 'APPROVED' && !eligible ? ' (superseded)' : ''}</span>
 }
 
-function QuestionPanel({ versionId, onError }: { versionId: string; onError: (error: unknown) => void }) {
+const ACTION_LABELS: Record<QuestionAction, string> = { PUBLISH: 'Publish', WITHHOLD: 'Withhold', RESTORE: 'Restore', MOVE: 'Move' }
+
+// One question at a time: check (writes nothing), then confirm with the printed phrase. Versions are immutable, so a
+// move adds a new version; the Bank is backed up before every change.
+function QuestionActions({ detail, onError, onBankChanged }: { detail: QuestionDetail; onError: (error: unknown) => void; onBankChanged: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false)
+  const [reason, setReason] = useState('')
+  const [target, setTarget] = useState<Section>(SECTIONS.find((value) => value !== detail.section) ?? 'MATH')
+  const [pending, setPending] = useState<{ action: QuestionAction; section?: Section; reason?: string } | null>(null)
+  const [result, setResult] = useState<JobResult | null>(null)
+  const active = ['DRAFT', 'IN_REVIEW', 'APPROVED'].includes(detail.state)
+  const run = async (request: { action: QuestionAction; section?: Section; reason?: string }, confirm?: string) => {
+    setBusy(true)
+    try {
+      const outcome = await changeQuestion({ versionId: detail.versionId, ...request, ...(confirm ? { confirm } : {}) })
+      setResult(outcome); setPending(confirm ? null : request)
+      if (confirm && outcome.ok) await onBankChanged()
+    } catch (failure) { onError(failure) } finally { setBusy(false) }
+  }
+  const phrase = result?.ok && pending ? result.confirmation : null
+  return (
+    <section className="mt-4 border border-rule rounded-[3px] p-3" aria-label="Change status or section" data-testid="admin-question-actions">
+      <h2 className="text-xs font-semibold text-ink-secondary">Change status or section</h2>
+      <div className="mt-2 flex flex-wrap items-end gap-2">
+        {['DRAFT', 'IN_REVIEW'].includes(detail.state) && (
+          <button type="button" className={buttonClass.secondary} disabled={busy} onClick={() => run({ action: 'PUBLISH' })} data-testid="admin-action-publish">Publish</button>
+        )}
+        {detail.state === 'QUARANTINED' && (
+          <button type="button" className={buttonClass.secondary} disabled={busy} onClick={() => run({ action: 'RESTORE' })} data-testid="admin-action-restore">Restore (publish again)</button>
+        )}
+        {active && (
+          <>
+            <label className="grid gap-1 text-xs font-semibold">Move to
+              <select className={inputClass} value={target} onChange={(e) => setTarget(e.target.value as Section)} data-testid="admin-action-section">
+                {SECTIONS.filter((value) => value !== detail.section).map((value) => <option key={value} value={value}>{SECTION_NAMES[value]}</option>)}
+              </select>
+            </label>
+            <button type="button" className={buttonClass.secondary} disabled={busy} onClick={() => run({ action: 'MOVE', section: target })} data-testid="admin-action-move">Move</button>
+          </>
+        )}
+      </div>
+      {active && (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <label className="grid gap-1 text-xs font-semibold flex-1 min-w-[12rem]">Reason to withhold
+            <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="for example: the key needs checking" data-testid="admin-action-reason" />
+          </label>
+          <button type="button" className={buttonClass.secondary} disabled={busy || reason.trim().length < 5} onClick={() => run({ action: 'WITHHOLD', reason })} data-testid="admin-action-withhold">Withhold</button>
+        </div>
+      )}
+      {busy && <p role="status" className="mt-2 text-sm text-ink-secondary">Working… (a change can take a minute)</p>}
+      {phrase && pending && (
+        <button type="button" className={`${buttonClass.primary} mt-2`} disabled={busy} onClick={() => run(pending, phrase)} data-testid="admin-action-confirm">
+          Confirm {ACTION_LABELS[pending.action].toLowerCase()} ({phrase})
+        </button>
+      )}
+      <JobOutput result={result} testId="admin-action-output" />
+      {result?.ok && !pending && <p className="mt-2 text-xs text-ink-secondary">Students see the change after the demo restarts (or after the Bank is uploaded to the server).</p>}
+    </section>
+  )
+}
+
+function QuestionPanel({ versionId, bankVersion, canChange, onError, onBankChanged }: {
+  versionId: string; bankVersion: number; canChange: boolean; onError: (error: unknown) => void; onBankChanged: () => Promise<void>
+}) {
   const [detail, setDetail] = useState<QuestionDetail | null>(null)
-  useEffect(() => { setDetail(null); loadQuestion(versionId).then(setDetail, onError) }, [versionId, onError])
+  // The panel is keyed by version; after a Bank change the details are re-read in place, keeping the change's result.
+  useEffect(() => { loadQuestion(versionId).then(setDetail, onError) }, [versionId, bankVersion, onError])
   if (!detail) return <p role="status" className="text-sm text-ink-secondary">Loading the question…</p>
   const blocks = (value: ContentBlock[] | null | undefined) => <ContentBlocks blocks={value} attemptId="" apiVersion="v1" imageSource={adminImageUrl} />
   return (
@@ -222,6 +290,7 @@ function QuestionPanel({ versionId, onError }: { versionId: string; onError: (er
         <dt className="font-semibold">Sources</dt><dd>{detail.sources.join('; ') || '—'}</dd>
         <dt className="font-semibold">Version</dt><dd className="font-mono break-all">v{detail.versionNo} · {detail.versionId}</dd>
       </dl>
+      {canChange && <QuestionActions detail={detail} onError={onError} onBankChanged={onBankChanged} />}
       {detail.passage && (
         <section className="mt-4 border-l-[3px] border-l-ochre pl-3">
           <h2 className="text-xs font-semibold text-ink-secondary mb-2">Passage</h2>
@@ -317,6 +386,19 @@ function InboxTab({ overview, onError, onBankChanged }: { overview: Overview; on
     setNotice(`Saved ${files?.length ?? 0} file(s) to the ${SECTION_NAMES[section]} inbox. Press "Check the inbox" next.`)
     setCheck(null); await reload()
   })
+  // Figures: ChatGPT names its PNG downloads the way the inbox expects; an own crop is saved under a named slot.
+  const uploadFigures = (target: Section, files: FileList | null, slotName?: string) => work(async () => {
+    const list = Array.from(files ?? [])
+    for (const file of list) {
+      const name = slotName ? slotName.replace(/\.[a-z]+$/i, `.${(file.name.split('.').pop() ?? 'png').toLowerCase()}`) : file.name
+      await saveFigure(target, name, await fileBase64(file))
+    }
+    setNotice(`Saved ${list.length} figure(s) to the ${SECTION_NAMES[target]} inbox.`); setCheck(null); await reload()
+  })
+  const retry = (target: Section, name: string) => work(async () => {
+    const moved = await retryRejected(target, name)
+    setNotice(`${moved.name} is back in the ${SECTION_NAMES[target]} inbox. Press "Check the inbox" next.`); setCheck(null); await reload()
+  })
   const savePaste = () => work(async () => {
     const saved = await saveInboxFile(section, 'pasted.json', pasted)
     setPasted(''); setNotice(`Saved as ${saved.name}. Press "Check the inbox" next.`); setCheck(null); await reload()
@@ -362,8 +444,13 @@ function InboxTab({ overview, onError, onBankChanged }: { overview: Overview; on
           <textarea className={`${inputClass} min-h-[8rem] py-2 font-mono text-xs`} value={pasted} onChange={(e) => setPasted(e.target.value)} data-testid="admin-inbox-paste" />
         </label>
         <button type="button" className={`${buttonClass.secondary} mt-2`} disabled={busy || !pasted.trim()} onClick={savePaste} data-testid="admin-inbox-save-paste">Save pasted answer</button>
+        <label className="mt-4 grid gap-1 text-sm font-semibold">Upload figures
+          <span className="font-normal text-ink-secondary">PNG, JPEG or WebP named like <code>MATH-S261122A-000031_NEW-IMG-001.png</code>, as ChatGPT names them. Figures of a rejected file can also be added one by one below.</span>
+          <input type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={busy}
+            onChange={(e) => { void uploadFigures(section, e.target.files); e.target.value = '' }} data-testid="admin-figure-upload" />
+        </label>
         {notice && <div className="mt-3"><Notice tone="success" testId="admin-inbox-notice">{notice}</Notice></div>}
-        {inbox && <InboxFiles inbox={inbox} />}
+        {inbox && <InboxFiles inbox={inbox} busy={busy} onFigure={uploadFigures} onRetry={retry} />}
       </section>
 
       <section className="border border-rule-strong rounded-[3px] bg-paper-sheet p-4">
@@ -399,28 +486,88 @@ function InboxTab({ overview, onError, onBankChanged }: { overview: Overview; on
   )
 }
 
-function InboxFiles({ inbox }: { inbox: InboxListing }) {
+/** Read a chosen file as base64 for the JSON upload route. */
+function fileBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ''))
+    reader.onerror = () => reject(new AdminError('The file could not be read.', 'FILE_UNREADABLE', 0))
+    reader.readAsDataURL(file)
+  })
+}
+
+const figureKey = (name: string) => name.replace(/\.[a-z]+$/i, '').toUpperCase()
+
+function InboxFiles({ inbox, busy, onFigure, onRetry }: {
+  inbox: InboxListing; busy: boolean; onFigure: (section: Section, files: FileList | null, slotName?: string) => void
+  onRetry: (section: Section, name: string) => void
+}) {
   return (
     <div className="mt-5 grid gap-3 text-sm" data-testid="admin-inbox-files">
       {SECTIONS.map((section) => {
         const folder = inbox[section]
+        const present = new Set(folder.figures.items.map((file) => figureKey(file.name)))
         return (
           <div key={section}>
-            <h3 className="font-semibold">{SECTION_NAMES[section]}: {folder.pending.count} waiting · {folder.imported.count} imported · {folder.rejected.count} rejected</h3>
+            <h3 className="font-semibold">{SECTION_NAMES[section]}: {folder.pending.count} waiting · {folder.figures.count} figure(s) · {folder.imported.count} imported · {folder.rejected.count} rejected</h3>
             <ul className="mt-1 text-xs text-ink-secondary">
-              {folder.pending.items.map((file) => <li key={file.name} className="font-mono">waiting · {file.name}</li>)}
-              {folder.rejected.items.slice(0, 3).map((file) => (
-                <li key={file.name}>
-                  <details><summary className="cursor-pointer font-mono text-pen-red">rejected · {file.name}</summary>
-                    <pre className="mt-1 whitespace-pre-wrap bg-paper-recessed border border-rule rounded-[3px] p-2">{file.errors ?? '(no message)'}</pre>
-                  </details>
+              {folder.pending.items.map((file) => (
+                <li key={file.name} className="mt-1">
+                  <span className="font-mono">waiting · {file.name}</span>
+                  <FigureSlots section={section} figures={file.figures ?? []} present={present} busy={busy} onFigure={onFigure} />
                 </li>
+              ))}
+              {folder.rejected.items.slice(0, 10).map((file) => (
+                <RejectedFile key={file.name} section={section} file={file} present={present} busy={busy} onFigure={onFigure} onRetry={onRetry} />
               ))}
             </ul>
           </div>
         )
       })}
     </div>
+  )
+}
+
+/** One line per figure the answer needs: added (✓) or not, with a picker that saves the chosen image under that name. */
+function FigureSlots({ section, figures, present, busy, onFigure }: {
+  section: Section; figures: string[]; present: Set<string>; busy: boolean
+  onFigure: (section: Section, files: FileList | null, slotName?: string) => void
+}) {
+  if (figures.length === 0) return null
+  return (
+    <ul className="mt-1 ml-3 grid gap-1">
+      {figures.map((name) => {
+        const added = present.has(figureKey(name))
+        return (
+          <li key={name} className="flex flex-wrap items-center gap-2">
+            <span className={`font-mono ${added ? 'text-ink-green' : ''}`}>{added ? '✓' : '·'} {name}</span>
+            <label className="text-ink underline cursor-pointer">{added ? 'replace' : 'add image'}
+              <input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp" disabled={busy}
+                onChange={(e) => { void onFigure(section, e.target.files, name); e.target.value = '' }} data-testid="admin-figure-slot" />
+            </label>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function RejectedFile({ section, file, present, busy, onFigure, onRetry }: {
+  section: Section; file: InboxFile; present: Set<string>; busy: boolean
+  onFigure: (section: Section, files: FileList | null, slotName?: string) => void; onRetry: (section: Section, name: string) => void
+}) {
+  const figures = file.figures ?? []
+  const missing = figures.filter((name) => !present.has(figureKey(name)))
+  return (
+    <li className="mt-1" data-testid="admin-rejected-file">
+      <details><summary className="cursor-pointer font-mono text-pen-red">rejected · {file.name}{figures.length ? ` · ${figures.length - missing.length}/${figures.length} figures added` : ''}</summary>
+        <pre className="mt-1 whitespace-pre-wrap bg-paper-recessed border border-rule rounded-[3px] p-2">{file.errors ?? '(no message)'}</pre>
+        <FigureSlots section={section} figures={figures} present={present} busy={busy} onFigure={onFigure} />
+        <button type="button" className={`${buttonClass.secondary} mt-2`} disabled={busy} onClick={() => onRetry(section, file.name)} data-testid="admin-inbox-retry">
+          Back to the inbox{missing.length ? ` (${missing.length} figure(s) still missing)` : ''}
+        </button>
+      </details>
+    </li>
   )
 }
 
