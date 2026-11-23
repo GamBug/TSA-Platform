@@ -229,11 +229,11 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
           return (
             <button key={item.sectionId} type="button" role="tab" aria-selected={selected} disabled={busy}
               data-testid={`section-${item.sectionId}`} onClick={() => !selected && switchTo(item.sectionId)}
-              className={`text-left px-3 py-2 border border-t-[3px] rounded-[3px] cursor-pointer min-w-0 ${
+              className={`grid grid-rows-[1fr_auto_auto] gap-0.5 text-left px-2 sm:px-3 py-2 border border-t-[3px] rounded-[3px] cursor-pointer min-w-0 ${
                 selected ? 'border-pen-red bg-pen-red-wash' : 'border-rule-strong border-t-rule-strong bg-paper-sheet hover:border-ink'}`}>
-              <span className="block text-xs font-semibold truncate">{SECTION_NAMES[item.sectionId]}</span>
+              <span className="text-xs font-semibold leading-tight">{SECTION_NAMES[item.sectionId]}</span>
               <span className={`block tabular-figures text-lg sm:text-2xl font-bold ${item.isOpen && time <= 300 ? 'text-pen-red' : 'text-ink'}`}>{formatClockMMSS(time)}</span>
-              <span className="hidden sm:flex items-center gap-1 text-[11px] text-ink-secondary">{(item.isLocked || time <= 0) && <IconLock size={11} />}{status}</span>
+              <span className="flex items-center gap-1 text-[11px] leading-tight text-ink-secondary">{(item.isLocked || time <= 0) && <IconLock size={11} className="shrink-0" />}{status}</span>
             </button>
           )
         })}
