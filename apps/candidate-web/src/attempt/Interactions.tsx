@@ -47,7 +47,7 @@ export function ChoiceControl({ slot, saved, disabled, attemptId, apiVersion, on
         const isSelected = selected.includes(option.id)
         const atLimit = multiple && !isSelected && selected.length >= max
         return (
-          <label key={option.id} className={`flex items-center gap-3 min-h-[56px] px-4 py-3 border rounded-[3px] cursor-pointer transition-colors ${
+          <label key={option.id} className={`flex items-center gap-3 min-h-[56px] px-4 py-3 border rounded-[3px] cursor-pointer transition-colors has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ink ${
             isSelected ? 'border-pen-red bg-pen-red-wash shadow-[inset_3px_0_0_var(--pen-red)]' : 'border-rule-strong bg-paper-sheet hover:border-ink'} ${disabled || atLimit ? 'cursor-not-allowed opacity-70' : ''}`}>
             <input type={multiple ? 'checkbox' : 'radio'} name={`answer-${slot.slotId}`} value={option.id} checked={isSelected}
               disabled={disabled || atLimit} data-testid={`option-${option.id}`} onChange={(event) => choose(option.id, event.target.checked)}

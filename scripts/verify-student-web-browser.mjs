@@ -46,12 +46,20 @@ async function journeyPage(browser, viewport, base = origin) {
 }
 
 /** Rehearsal questions name their key in the text ("nêu nhãn B"); choose it so grading is predictable. */
-async function answerByNote(page, byId) {
+async function answerByNote(page, byId, keyboard = false) {
   const text = await page.locator('#question-title').innerText();
   const option = /nhãn ([A-D])/.exec(text)?.[1]?.toLowerCase();
   assert.ok(option, 'rehearsal question names its label');
-  await page.locator(`label:has(input[data-testid="option-${option}"])`).click();
+  const input = byId(`option-${option}`);
+  if (keyboard) {
+    await input.focus();
+    await page.keyboard.press('Space');
+  } else {
+    await page.locator(`label:has(input[data-testid="option-${option}"])`).click();
+  }
   await page.waitForFunction(() => /^Đã lưu/.test(document.querySelector('[data-testid="save-status"]')?.textContent ?? ''), null, { timeout: 10_000 });
+  assert.ok(await input.isChecked(), 'the saved option is checked');
+  return input;
 }
 
 // The local demo starts one-click guests like the public one; each journey page is its own browser context.
@@ -104,6 +112,11 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
     assert.ok(title && title.y >= 0 && title.y + title.height <= viewport.height, 'the first question is on screen');
   }
   await snap(`${label}-practice-first`);
+  await byId('flag-toggle').focus();
+  await page.keyboard.press('Tab');
+  assert.ok(await page.evaluate(() => document.activeElement?.matches('[data-testid="option-list"] input[type="radio"]')),
+    'Tab moves from the flag control to the answers');
+  await answerByNote(page, byId, true);
   if (layoutOnly) {
     assert.deepEqual(problems, []);
     await page.close();
@@ -121,8 +134,8 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
     await byId('panel-toggle').click();
     assert.equal(await grid.isVisible(), true, 'the grid comes back');
   }
-  for (let position = 0; position < count; position += 1) {
-    if (position) await byId('question-next').click();
+  for (let position = 1; position < count; position += 1) {
+    await byId('question-next').click();
     await answerByNote(page, byId);
   }
   await snap(`${label}-question`);

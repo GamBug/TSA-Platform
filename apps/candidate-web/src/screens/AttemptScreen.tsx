@@ -111,7 +111,8 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
       else if (key === 'f' && slot) toggle(slot.slotId)
       else if (slot?.interaction.type === 'SINGLE_CHOICE' && !saving) {
         const option = slot.interaction.options.find((item) => item.id.toLowerCase() === key)
-        if (option) void save({ optionId: option.id })
+        if (!option) return
+        void save({ optionId: option.id })
       } else return
       event.preventDefault()
     }
