@@ -47,6 +47,12 @@ then regression and cross-browser. **Test and report only. Fix nothing.**
 4. Set the phase to DONE (or PARTIAL with what is left) in `STATUS.md`, stop your demos, and end the session with a
    five-line summary for the owner. Do not start the next phase in the same session.
 
+**DONE or PARTIAL.** A phase is DONE when every item has a result, and NOT RUN is a result. An item that cannot run for
+a reason another session would not change (the content does not exist in the Bank, it needs the owner, a rule or the
+guard refuses it) is NOT RUN, and the phase is still DONE. Use PARTIAL only when the session ended with items that
+could still run. A phase gets at most two sessions: in the second one, finish what you can, mark the rest NOT RUN, and
+set DONE. Keep the `STATUS.md` phase row short (status, report, finding counts); details go in the item log.
+
 ## Severity
 
 | Level | Meaning |
