@@ -159,3 +159,7 @@
 @media (max-width: 640px) {
   .content-math.inline { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; }
 }
+
+/* Formulas: KaTeX's fonts at the size of the surrounding text, so a prime or hat is as clear as the letters. */
+.content-math .katex { font-size: 1.12em; }
+.content-math.block .katex-display { margin: 0; }

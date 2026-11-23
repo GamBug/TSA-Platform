@@ -1,10 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react'
 import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import type { ContentBlock } from '@/api/types'
 import { IconExpand } from '@/components/Icons'
 
-// Question text is never parsed as HTML. Formulas are explicit math blocks or $...$ spans and render to
-// MathML with KaTeX in strict mode; on any parser error the accessible text or TeX source is shown.
+// Question text is never parsed as HTML. Formulas are explicit math blocks or $...$ spans and render with KaTeX in
+// strict mode: KaTeX's own HTML and fonts for the eye, so primes, hats, arrows and angle marks look the same on every
+// device instead of depending on the browser's MathML fonts, plus MathML for screen readers. On any parser error the
+// accessible text or TeX source is shown.
+
+/**
+ * Display-only clean-ups of how the stored TeX is written; the stored content is never changed. Pure.
+ * - A bare `f\prime(x)` is drawn as a superscript prime, the same as `f'(x)`, not a full-height mark.
+ * - `\vec{AB}` over two or more letters gets an arrow as wide as the letters, as Vietnamese textbooks print vectors.
+ */
+export function displayTex(tex: string): string {
+  return tex
+    .replace(/(?<=[A-Za-z0-9)\]])(?<!\\prime)(?:\\prime(?![A-Za-z]))+/g, (run) => "'".repeat(run.length / 6))
+    .replace(/\\vec\s*\{([^{}]{2,})\}/g, '\\overrightarrow{$1}')
+}
+
 function MathSpan({ tex, display = false, inline = false, accessibleText }: { tex: string; display?: boolean; inline?: boolean; accessibleText?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   const [failed, setFailed] = useState(false)
@@ -12,8 +27,8 @@ function MathSpan({ tex, display = false, inline = false, accessibleText }: { te
     const node = ref.current
     if (!node) return
     try {
-      katex.render(tex || '', node, {
-        output: 'mathml', displayMode: display, throwOnError: true, trust: false, strict: 'error',
+      katex.render(displayTex(tex || ''), node, {
+        output: 'htmlAndMathml', displayMode: display, throwOnError: true, trust: false, strict: 'error',
         maxSize: 10, maxExpand: 500, macros: Object.create(null),
       })
       setFailed(false)
@@ -37,16 +52,37 @@ const plainCaption = (text: string) => text.replace(/\\text\{([^}]*)\}/g, '$1').
 
 const INLINE_MATH = /\$(?=\S)([^$]+?)(?<=\S)\$/gu
 
+// A point name written outside $...$, such as "ABCD.A'B'C'D'", uses a typewriter apostrophe that is almost invisible
+// next to a capital letter. A word of capital letters (and digits, joined by dots) that carries a prime is typeset as a
+// formula, as textbooks print point names, so its primes look like the ones inside $...$. "I'm" is left alone: a
+// lowercase letter right after the apostrophe makes it a word, not a point name.
+const POINT_NAME = /(?<![\p{L}\p{N}'])[A-Z][A-Z0-9']*(?:\.[A-Z][A-Z0-9']*)*(?![\p{L}\p{N}])/gu
+
+function TextWithPointNames({ text, start }: { text: string; start: number }) {
+  const parts: React.ReactNode[] = []
+  let cursor = 0
+  for (const match of text.matchAll(POINT_NAME)) {
+    if (!match[0].includes("'")) continue
+    if (match.index! > cursor) parts.push(text.slice(cursor, match.index))
+    parts.push(<MathSpan key={`p${start + match.index!}`} tex={match[0]} inline />)
+    cursor = match.index! + match[0].length
+  }
+  if (cursor === 0) return <>{text}</>
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return <>{parts}</>
+}
+
 export function TextWithMath({ text }: { text: string }) {
+  const source = String(text ?? '')
   const parts: React.ReactNode[] = []
   let cursor = 0
   let key = 0
-  for (const match of String(text ?? '').matchAll(INLINE_MATH)) {
-    if (match.index! > cursor) parts.push(text.slice(cursor, match.index))
+  for (const match of source.matchAll(INLINE_MATH)) {
+    if (match.index! > cursor) parts.push(<TextWithPointNames key={key++} text={source.slice(cursor, match.index)} start={cursor} />)
     parts.push(<MathSpan key={key++} tex={match[1]} inline />)
     cursor = match.index! + match[0].length
   }
-  if (cursor < text.length) parts.push(text.slice(cursor))
+  if (cursor < source.length) parts.push(<TextWithPointNames key={key++} text={source.slice(cursor)} start={cursor} />)
   return <>{parts}</>
 }
 
