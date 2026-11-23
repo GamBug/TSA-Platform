@@ -32,7 +32,8 @@
   chemistry you describe (units, conservation, plausible magnitudes). Use web search to check constants and facts
   (for example a specific heat, a reaction product, a biological mechanism) and keep the constants in the scenario so
   the question does not depend on memory.
-- Describe graphs in words or as a table of values; CREATE mode never uses images.
+- Prefer a table of values or words for data. When a graph or apparatus drawing is really needed, draw it with Python
+  (AGENT.md section 3.6): labelled axes with units, the exact values used in the question.
 - Good question shapes: which conclusion the data supports; which change would test the hypothesis; predict a value
   between or beyond the measured points; which variable was held constant; compute a quantity from the table.
 - Distractors: a conclusion the data does not support, a reversed relation, correlation taken as causation, a unit

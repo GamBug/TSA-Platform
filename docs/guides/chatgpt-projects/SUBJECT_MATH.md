@@ -39,10 +39,23 @@
 - `NUMERIC` answers should be integers or short decimals. Say how to round when the result is not exact.
 - `TRUE_FALSE_GROUP`: 4 statements (a-d) about one function, figure-free situation or data set; mix true and false.
 - `CLOZE` for "điền vào chỗ trống" with 2-3 short numeric blanks; `MATCHING` for pairing expressions with values.
-- In CREATE mode a geometry or graph question must be fully solvable from the text: give coordinates or a table of
-  values instead of a drawing.
+- A geometry or graph question in CREATE mode may have a figure drawn with Python (AGENT.md section 3.6), but the text
+  or the figure's labels must still give every value the solution needs (coordinates, lengths, marked points).
 - Prefer `SINGLE_CHOICE` (about 60% of a batch), then `TRUE_FALSE_GROUP`, `NUMERIC`, `MULTIPLE_CHOICE`, and an occasional
   `CLOZE` or `MATCHING`.
+
+## Notation (students read it on a screen)
+
+Every point name, formula and symbol goes inside `$...$`, so primes, hats and arrows are drawn clearly:
+
+| Meaning | Write |
+|---|---|
+| Points with primes, a prism or cube | `$ABC.A'B'C'$`, `$ABCD.A'B'C'D'$`, `$A'C$` |
+| Derivatives | `$f'(x)$`, `$f''(x)$`, `$y'=3x^2$` (never `\prime` after a letter) |
+| Angles | `$\widehat{SAB}=60^\circ$`, `$\angle MSP$` |
+| Vectors | `$\vec{AB}$`, `$\vec{u}=(1;-2;3)$` |
+| Triangle, perpendicular, parallel | `$\triangle ABC$`, `$(SAB)\perp(ABCD)$`, `$d\parallel(P)$` |
+| Coordinates and intervals (Vietnamese style) | `$M(1;-2;3)$`, `$x\in(-\infty;2]$`, decimals `$4{,}5$` in text |
 
 ## Example request lines the owner sends
 

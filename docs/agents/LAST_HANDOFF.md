@@ -1,4 +1,28 @@
-# Current handoff — admin account and local admin page (2026-11-22)
+# Current handoff — clear math, figures from ChatGPT, single-question changes (2026-11-23)
+
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's request (clearer `A'` and angle marks; admin changes
+  status or section; ChatGPT crops or draws figures, true form; many rejections). Branch `feat/track-b-data-auth`.
+  [Decision](../decisions/OPEN_DECISIONS.md#clear-math-figures-from-chatgpt-and-single-question-changes--2026-11-23).
+- Cause found: the student app drew formulas with the browser's MathML fonts (tiny primes, misplaced hats); every
+  recorded inbox rejection was `ASSET_REQUIRED` (16 figures blocked 6 files).
+- Done: `ContentBlocks.tsx` renders KaTeX HTML with bundled fonts plus display-only `displayTex` clean-ups and point
+  names; `src/local/inbox-figures.mjs` and `questions:inbox` attach `<id>_<NEW-IMG-nnn>.png` files and write `FIGURES`
+  requests; `scripts/question-change.mjs` (`npm run bank:question`) publishes, withholds, restores or moves one version;
+  owner publication accepts a later version of an exchange-imported question; admin page: change box, figure upload and
+  slots, "Back to the inbox"; ChatGPT Project files (`AGENT.md`, instructions, subject files, README) updated.
+- Verification: `test:student-web` 7 pass (new `math-notation.test.mjs`), `test:student-web:browser` PASS,
+  `test:admin` 5, `test:question-inbox` 5 (new figure test), new `test:question-change` 1, `bank-correction` 3, owner
+  publication, twins, exchange import and image-library suites 20. A dry run on a copy of the 6 rejected files against
+  the retained Bank shows figure problems only, with a FIGURES request each. A browser check of the admin page on the real
+  Bank ran dry runs only; nothing was confirmed and `question-inbox/` was not changed.
+- Pre-existing, unchanged: `docs:check`/`test:docs` reject the tracked `chatgpt-projects/INSTRUCTIONS_*.txt` (same on
+  `ea7638e`).
+- Open for the owner: upload the changed `AGENT.md`, `SUBJECT_MATH.md`, `SUBJECT_SCIENCE.md`, `README` steps and paste
+  the new `INSTRUCTIONS_*.txt` into the three Projects; get the 16 figures for the rejected files (paste a FIGURES list
+  or crop them), add them, press "Back to the inbox" and import. ChatGPT's Python tool and file downloads on the owner's
+  plan are REQUIRES_VERIFICATION. Moving a question of a single-subject corpus taxonomy is refused by design.
+
+# Previous handoff — admin account and local admin page (2026-11-22)
 
 - Implementer: Claude Code (Opus 5.5), single agent, on the owner's request for an `AdminBao` account that sees the whole
   Bank, adds and approves .json answer files on localhost, and generates questions with an API key (or explains the

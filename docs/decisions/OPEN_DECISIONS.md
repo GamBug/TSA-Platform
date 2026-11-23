@@ -1,5 +1,27 @@
 # Architectural decisions and open questions
 
+## Clear math, figures from ChatGPT, and single-question changes — 2026-11-23
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-23.
+Evidence: the owner asked to "make math look more clearly, like A' ... or the angle symbol", that the "Admin could
+change status or section of the questions", and to "modify ChatGPT Web Project to also crop/generate image if needed,
+need true form of questions, recently I upload >100 math ques and get rejected a lot". The rejections on record were all
+`ASSET_REQUIRED`: 16 figures held back 6 files (about 60 questions).
+
+1. **Formulas use KaTeX's own HTML and fonts** (MathML kept for screen readers) instead of the browser's MathML fonts.
+   Display-only clean-ups: a bare `\prime` after a symbol is drawn as a superscript prime, `\vec` over two or more
+   letters gets a full-width arrow, and a point name with primes written outside `$...$` is typeset as a formula.
+   Stored content is unchanged.
+2. **Figures arrive as files.** ChatGPT crops each figure from the owner's pages (TRANSCRIBE) or draws it (CREATE) with
+   its Python tool and offers it as `<question id>_<request id>.png`. The inbox registers a matching file in the image
+   library under the answer's own source (so a transcription's figure carries the same corpus rights) and replaces the
+   `image_request` block; a missing figure still rejects its file, now with a `FIGURES` request for ChatGPT.
+3. **The admin changes one question at a time**: publish a draft, withhold (quarantine) with a reason, restore a
+   withheld question, or move a question to another section as a new version in the same taxonomy version. Each change
+   is a dry run, then a typed confirmation phrase; the Bank is backed up first and every approval repeats the owner
+   publication checks. A later owner-made version of an exchange-imported question is publishable like the original.
+   Guide: [admin page](../guides/ADMIN_PAGE.md#changing-one-question).
+
 ## Admin account and local admin page — 2026-11-22
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-22.

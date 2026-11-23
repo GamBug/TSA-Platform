@@ -3,9 +3,14 @@
 Three ChatGPT Projects, one per section, turn material into `tsa-question-set/1` JSON with no API cost. Each Project
 works in two modes:
 
-- **TRANSCRIBE**: you attach pictures or a PDF (with or without an answer key); ChatGPT converts **every** question,
-  faithfully, and solves the ones without a key.
-- **CREATE**: ChatGPT studies the public TSA style through web search and writes original questions.
+- **TRANSCRIBE**: you attach pictures or a PDF (with or without an answer key); ChatGPT converts **every** question in
+  its true form (same wording, interaction and figures), crops each figure from your pages with Python, and solves the
+  questions without a key.
+- **CREATE**: ChatGPT studies the public TSA style through web search and writes original questions; when one really
+  needs a graph or diagram it draws it with Python.
+
+Figures come back as PNG downloads named after their question (`MATH-S261122A-000031_NEW-IMG-001.png`). Saved next to
+the answer in the inbox, they are registered and attached automatically on import.
 
 | File | Where it goes |
 |---|---|
@@ -26,6 +31,10 @@ ids, reply shape, common rejections), and the files carry the detail.
   limit for instructions (not confirmed on OpenAI's pages); each instruction file here is about 3,200 characters.
 - Web search must be available in the chat for CREATE mode. If ChatGPT answers without searching, say "search the web
   first".
+- Figures need ChatGPT's Python tool (code execution / data analysis), which can read the pictures and PDFs you attach
+  and offer the files it makes as downloads. REQUIRES_VERIFICATION on your plan: if ChatGPT says it cannot run code,
+  turn the tool on in the Project or chat settings. Download links expire with the chat session, so save the PNGs
+  right away.
 - Files attached to a chat message (your pictures or PDF) are used for that chat only; they are not Project files.
 
 ## One-time setup (per subject)
@@ -50,13 +59,15 @@ Start a **new chat for each batch**. Long chats drift and the 10-question limit 
 CREATE · topic CALCULUS · 10 questions · default 4/3/3 mix · batch letter A
 TRANSCRIBE · batch letter B · (attach the pictures in page order, or the PDF) · the key is on the last page
 CONTINUE
+FIGURES · (paste the list from a rejected file's message)
 ```
 
 Batch letters must be new for every batch on the same day (A, B, C, ...), across both modes, because ids are built
 from the date and the letter. A reused id with different content rejects the whole file.
 
 Read the report above the code block before saving anything: in TRANSCRIBE mode check the inventory count against the
-source and look at every question tagged `key-uncertain`, `key-disagreement` or `unclear-text`.
+source and look at every question tagged `key-uncertain`, `key-disagreement`, `unclear-text` or `figure-low-quality`,
+and look at every crop ChatGPT shows: it must be the whole figure with its labels and nothing else.
 
 ## Where the output goes: the inbox, for both modes
 
@@ -72,16 +83,16 @@ real full test. The inbox reads the batch id to record where the questions came 
 Only transcribe material that permission covers. The decision is recorded in
 [OPEN_DECISIONS 2026-11-22](../../decisions/OPEN_DECISIONS.md#transcribed-questions-in-the-practice-pool--2026-11-22).
 
-**Figures.** A transcription with an `image_request` block is rejected with `ASSET_REQUIRED`, and the inbox prints a note
-for you, because ChatGPT cannot fix it. For each figure:
+**Figures.** Save every PNG ChatGPT gives you in the same folder as the answer (`question-inbox/<subject>/`) without
+renaming it, or add them on the admin page (**Import & publish → Upload figures**, or **add image** next to each figure
+an answer needs). The inbox matches a file to its `image_request` block by name
+(`<question or passage id>_<request id>.png`, `.jpg` or `.webp`; at most 2 MB and 4096 px a side). On import it
+registers the figure in the image library under the answer's own source (so a transcription's figures carry the same
+corpus rights), replaces the block with the image, and moves the PNG to `imported/` with its answer.
 
-1. Crop it from the original and register it under a source of the original document:
-   `npm run bank:register-source -- --file <original.pdf> --title "Corpus <name>" --confirm "REGISTER SOURCE"` (once per
-   document; note the printed source version id), then
-   `npm run images -- register --file fig.png --area <AREA> --alt "..." --source-version <id> --apply`
-   ([image library](../IMAGE_LIBRARY.md)).
-2. In the rejected file, replace the `image_request` block with an `image` block using the new `IMG-...` id, add that id
-   to the question's `asset_refs`, move the file back into `question-inbox/<subject>/` and run the inbox again.
+A figure that is still missing rejects only its answer. The `.errors.txt` message then holds a `FIGURES · ...` request:
+paste it into the same ChatGPT chat, save the PNGs it gives, and move the answer back into the inbox (on the admin page:
+**Back to the inbox**). You can also crop a figure yourself with any screenshot tool and add it under the listed name.
 
 **Do not transcribe questions that are already in the Bank.** An exact copy of a served question opens an
 exact-duplicate relation that hides the served original until it is resolved (`--keep-one-of-twins`).

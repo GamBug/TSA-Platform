@@ -23,6 +23,10 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-23 (math, figures, question changes): formulas render with KaTeX's own fonts, so primes, angle hats and
+  vector arrows are clear; ChatGPT crops or draws figures as named PNGs that the inbox registers and attaches; the admin
+  publishes, withholds, restores or moves single questions (`npm run bank:question`). See the
+  [decision](../decisions/OPEN_DECISIONS.md#clear-math-figures-from-chatgpt-and-single-question-changes--2026-11-23).
 - 2026-11-22 (admin account): The local demo has one sign-in account, `AdminBao`, on a new admin page
   (`/student/?page=admin`, loopback only; the public site answers 404 for it). The admin sees every Bank version with keys
   and explanations, adds ChatGPT answer files to the inbox, imports and publishes them through the owner commands, and
