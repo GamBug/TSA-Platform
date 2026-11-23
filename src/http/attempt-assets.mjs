@@ -68,7 +68,7 @@ function safeHeaders(contentType = 'application/json; charset=utf-8') {
     'Cache-Control': 'private, no-store',
     'X-Content-Type-Options': 'nosniff',
     'Cross-Origin-Resource-Policy': 'same-origin',
-    'Content-Security-Policy': "default-src 'none'",
+    'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
   };
 }
 

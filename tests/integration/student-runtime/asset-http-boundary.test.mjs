@@ -63,7 +63,7 @@ test('asset handler authenticates, authorizes, and returns the complete bounded 
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(response.headers.get('cross-origin-resource-policy'), 'same-origin');
-  assert.equal(response.headers.get('content-security-policy'), "default-src 'none'");
+  assert.equal(response.headers.get('content-security-policy'), "default-src 'none'; frame-ancestors 'none'");
   assert.equal(response.headers.get('access-control-allow-origin'), null);
 
   const ranged = await handler(makeRequest(undefined, { method: 'GET', origin: TRUSTED_ORIGIN, extraHeaders: { range: 'bytes=0-1' } }));

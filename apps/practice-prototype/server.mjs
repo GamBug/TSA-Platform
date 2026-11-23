@@ -228,9 +228,8 @@ export function legacyStudentRedirect(url) {
   return mode !== null && Object.hasOwn(LEGACY_STUDENT_MODES, mode) ? `/student/${LEGACY_STUDENT_MODES[mode]}` : null;
 }
 
-// Headers added to every response of the public demo. The policy matches the built student app:
-// scripts, connections and images come from the app's own origin only; inline styles are allowed
-// because React and the math renderer set style attributes.
+// The demo policy allows same-origin scripts, connections and KaTeX fonts, as well as
+// the math renderer's inline styles and the app's local image previews.
 export const PUBLIC_SECURITY_HEADERS = Object.freeze({
   "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
     + "font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
@@ -264,6 +263,7 @@ export function createPrototypeServer({
   redirectLegacyStudentUi = false,
   // Loopback demo only: the bare home page (the old staff workspace) redirects here instead.
   homeRedirect = null,
+  studentSecurityHeaders = false,
   // Public demo: an https origin served by a reverse proxy; see mapPublicRequest.
   publicOrigin = null,
 } = {}) {
@@ -278,7 +278,7 @@ export function createPrototypeServer({
     throw new TypeError("maxRequestBytes must be an integer from 1 through 1048576");
   }
   const handle = createPrototypeHandler({ mockService, studentOnly: publicOrigin !== null });
-  const extraHeaders = publicOrigin === null ? {} : PUBLIC_SECURITY_HEADERS;
+  const extraHeaders = publicOrigin !== null || studentSecurityHeaders ? PUBLIC_SECURITY_HEADERS : {};
   return createServer(async (incoming, outgoing) => {
     try {
       const method = incoming.method ?? "GET";
@@ -312,7 +312,7 @@ export function createPrototypeServer({
       const legacyTarget = redirectLegacyStudentUi && publicOrigin === null && method === "GET" ? legacyStudentRedirect(url)
         ?? (homeRedirect && /^\/(?:index\.html)?$/.test(new URL(url, "http://127.0.0.1").pathname) ? homeRedirect : null) : null;
       if (legacyTarget) {
-        await sendResponse(outgoing, method, result(303, { Location: legacyTarget, "Cache-Control": "no-store" }, ""));
+        await sendResponse(outgoing, method, result(303, { Location: legacyTarget, "Cache-Control": "no-store" }, ""), extraHeaders);
         return;
       }
       if (typeof integratedRequestHandler === "function" && requestLike(method, new URL(url, "http://127.0.0.1").pathname)) {

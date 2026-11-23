@@ -180,6 +180,7 @@ export async function startUniDemo({
     runtime = await createTrackBRuntime({
       imageStore,
       redirectLegacyStudentUi: true,
+      studentSecurityHeaders: true,
       env: { NODE_ENV: 'development', LOCAL_SYNTHETIC_ONLY: 'true', LOCAL_STUDENT_ENABLED: 'true', LOCAL_FULL_SIMULATION_ENABLED: 'true',
         LOCAL_NUMERIC_PRACTICE_ENABLED: 'true', LOCAL_CLOZE_MATCHING_ENABLED: 'true' },
       dataDirectory: clusterDirectory, port, pgBin,

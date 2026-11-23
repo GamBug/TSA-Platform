@@ -166,6 +166,7 @@ export async function createTrackBRuntime({
   localRoutes = {},
   // When true, the retired student UI links (/?student=...) redirect to the React student app.
   redirectLegacyStudentUi = false,
+  studentSecurityHeaders = false,
   // Public demo: { origin: 'https://…', guestPool, guestsPerHour } serves only the student app and
   // candidate APIs to guest identities; staff routes and handlers do not exist. Off by default.
   publicDemo = null,
@@ -322,6 +323,7 @@ export async function createTrackBRuntime({
       maxRequestBytes: MAX_INTEGRATED_REQUEST_BYTES,
       integratedRequestHandler,
       redirectLegacyStudentUi,
+      studentSecurityHeaders,
       homeRedirect,
       publicOrigin: publicMode?.origin ?? null,
     });

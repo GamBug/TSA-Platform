@@ -155,7 +155,7 @@ test('public mode serves the student app only, to one guest per browser', { time
 
     for (const response of [health, notice, await call(demo, '/student/'), await call(demo, '/'),
       await call(demo, '/local-auth/guest', { method: 'POST', body: {}, origin: 'https://evil.example' }),
-      await call(demo, '/api/v1/questions'), await call(demo, '/student/assets/missing.js')]) {
+      await call(demo, '/api/v1/catalog'), await call(demo, '/api/v1/questions'), await call(demo, '/student/assets/missing.js')]) {
       for (const [name, value] of Object.entries(PUBLIC_SECURITY_HEADERS)) {
         assert.equal(response.headers[name.toLowerCase()], value, `${name} on a ${response.status} response`);
       }

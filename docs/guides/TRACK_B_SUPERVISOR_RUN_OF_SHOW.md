@@ -118,8 +118,10 @@ What a visitor can reach: `/student/` and its assets, the candidate APIs (`/api/
 attempt, catalog and topic routes), `GET /local-auth/session`, `POST /local-auth/guest` and
 `GET /local/demo-notice`. Every other path, including `/`, the old student screens, the mock API and
 all staff, bank and exam-manager routes, answers 404 with no detail. No staff handler is created and
-no staff or fixed student account can sign in. Responses carry a Content-Security-Policy
-(`script-src 'self'`), `nosniff`, `Referrer-Policy: same-origin` and `X-Frame-Options: DENY`.
+no staff or fixed student account can sign in. Responses in both demo modes block framing with
+Content-Security-Policy and `X-Frame-Options: DENY`, and carry `X-Content-Type-Options: nosniff`
+and `Referrer-Policy: same-origin`. The student page policy permits same-origin scripts and KaTeX
+fonts plus inline styles.
 
 Guest flow: the student app calls `POST /local-auth/guest` with an empty JSON body and the `Origin`
 header. A browser without a session gets the next unused guest (201, cookies `tsa_local_session`

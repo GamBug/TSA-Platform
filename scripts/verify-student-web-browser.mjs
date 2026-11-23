@@ -27,6 +27,9 @@ async function journeyPage(browser, viewport, base = origin) {
   const page = await browser.newPage({ viewport });
   const problems = [];
   page.on('pageerror', (error) => problems.push(`page error: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /content security policy/i.test(message.text())) problems.push(message.text());
+  });
   page.on('request', (request) => {
     const url = new URL(request.url());
     if (/^https?:$/.test(url.protocol) && url.origin !== base) problems.push(`third-party request: ${url.origin}`);

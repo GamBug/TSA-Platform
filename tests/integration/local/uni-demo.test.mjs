@@ -50,7 +50,21 @@ test('the demo serves only published versions of its source Bank and removes its
   assert.equal((await fetch(`${demo.origin}/local/demo-notice`, { method: 'POST' })).status, 405);
 
   const student = await loginActor(demo, 'studentA');
-  const catalog = await json(await bankRequest(demo, student, '/api/v1/catalog', { query: 'limit=100' }));
+  const catalogResponse = await bankRequest(demo, student, '/api/v1/catalog', { query: 'limit=100' });
+  const unauthenticated = await fetch(`${demo.origin}/api/v1/catalog`);
+  assert.equal(unauthenticated.status, 401);
+  const app = await fetch(`${demo.origin}/student/`);
+  assert.ok([200, 503].includes(app.status), 'the demo serves the app or reports a missing build');
+  for (const response of [app, catalogResponse, unauthenticated]) {
+    const policy = response.headers.get('content-security-policy');
+    assert.match(policy, /(?:^|; )frame-ancestors 'none'(?:;|$)/);
+    assert.match(policy, /(?:^|; )style-src 'self' 'unsafe-inline'(?:;|$)/);
+    assert.match(policy, /(?:^|; )font-src 'self'(?: |;|$)/);
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  }
+  await app.arrayBuffer();
+  await unauthenticated.arrayBuffer();
+  const catalog = await json(catalogResponse);
   assert.deepEqual(catalog.items.map((item) => [item.domain, item.questionCount, item.blueprintVersionId]).sort(),
     report.offerings.map((offering) => [offering.section, offering.section === 'READING' ? 20 : 40, offering.blueprintVersionId]).sort());
   assert.deepEqual((await json(await bankRequest(demo, student, '/api/v3/catalog', { query: 'limit=100' }))).items, []);
@@ -243,6 +257,7 @@ test('the demo delivers private library images to the owning student and guards 
   assert.equal(question.status, 200, await question.clone().text());
   assert.equal(question.headers.get('content-type'), 'image/png');
   assert.equal(question.headers.get('cache-control'), 'private, no-store');
+  assert.equal(question.headers.get('content-security-policy'), "default-src 'none'; frame-ancestors 'none'");
   assert.deepEqual(Buffer.from(await question.arrayBuffer()), fixture.assets.QUESTION.bytes);
   assert.equal((await bankRequest(demo, other, `${route}${fixture.assets.QUESTION.id}`, { query: 'purpose=question' })).status, 404);
   assert.equal((await bankRequest(demo, student, `${route}${fixture.assets.EXPLANATION.id}`, { query: 'purpose=explanation' })).status, 404);
