@@ -116,7 +116,9 @@ async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   await page.keyboard.press('Tab');
   assert.ok(await page.evaluate(() => document.activeElement?.matches('[data-testid="option-list"] input[type="radio"]')),
     'Tab moves from the flag control to the answers');
-  await answerByNote(page, byId, true);
+  const savedOption = await answerByNote(page, byId, true);
+  assert.ok(await savedOption.evaluate((option) => option === document.activeElement),
+    'the practice answer keeps keyboard focus after saving');
   if (layoutOnly) {
     assert.deepEqual(problems, []);
     await page.close();
@@ -174,6 +176,12 @@ async function fullSimulation(browser, viewport, label, layoutOnly = false) {
       parts.every((part) => part.scrollWidth <= part.clientWidth)), `${section} clock text fits its tab`);
   }
   await snap(`${label}-simulation-first`);
+  const savedOption = await answerByNote(page, byId, true);
+  assert.ok(await savedOption.evaluate((option) => option === document.activeElement),
+    'the simulation answer keeps keyboard focus after saving');
+  await page.keyboard.press('Tab');
+  assert.ok(await page.evaluate(() => document.activeElement?.matches('aside button[aria-current="step"]')),
+    'Tab continues from the saved answer to the question grid');
   if (layoutOnly) {
     await byId('section-reading').click();
     await page.waitForFunction(() => /Đang tính giờ/.test(document.querySelector('[data-testid="section-reading"]')?.textContent ?? ''));
@@ -189,7 +197,7 @@ async function fullSimulation(browser, viewport, label, layoutOnly = false) {
       await byId(`section-${section}`).click();
       await page.waitForFunction((id) => document.querySelector(`[data-testid="section-${id}"]`)?.getAttribute('aria-selected') === 'true', section);
     }
-    for (let position = 0; position < answers; position += 1) {
+    for (let position = section === 'math' ? 1 : 0; position < answers; position += 1) {
       if (position) await byId('question-next').click();
       await answerByNote(page, byId);
     }

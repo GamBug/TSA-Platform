@@ -225,7 +225,8 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
                     <ContentBlocks blocks={slot.content} attemptId={attempt.attemptId} apiVersion={apiVersion} />
                   </section>
                   <div className="mt-5">
-                    <AnswerControl key={slot.slotId} slot={slot} saved={saved} disabled={saving} attemptId={attempt.attemptId} apiVersion={apiVersion} onSave={save} onDirtyChange={onDirtyChange} />
+                    <AnswerControl key={slot.slotId} slot={slot} saved={saved} disabled={false} pending={saving}
+                      attemptId={attempt.attemptId} apiVersion={apiVersion} onSave={save} onDirtyChange={onDirtyChange} />
                   </div>
                   <p className="mt-4 tabular-figures text-xs text-ink-secondary" role="status" data-testid="save-status">
                     {saving ? 'Đang lưu…' : isAnswered(slot, saved) ? `Đã lưu${savedAt ? ` lúc ${savedAt}` : ''}` : 'Chưa có câu trả lời được lưu'}

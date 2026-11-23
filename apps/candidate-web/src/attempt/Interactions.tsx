@@ -7,6 +7,7 @@ export interface ControlProps {
   slot: Slot
   saved: AnswerValue | undefined
   disabled: boolean
+  pending?: boolean
   attemptId: string
   apiVersion: string
   onSave: (input: unknown) => Promise<boolean>
@@ -30,12 +31,13 @@ function OptionLetter({ id, selected }: { id: string; selected: boolean }) {
   )
 }
 
-export function ChoiceControl({ slot, saved, disabled, attemptId, apiVersion, onSave }: ControlProps) {
+export function ChoiceControl({ slot, saved, disabled, pending, attemptId, apiVersion, onSave }: ControlProps) {
   if (slot.interaction.type !== 'SINGLE_CHOICE' && slot.interaction.type !== 'MULTIPLE_CHOICE') return null
   const multiple = slot.interaction.type === 'MULTIPLE_CHOICE'
   const selected = saved?.type === 'MULTIPLE_CHOICE' ? saved.optionIds : saved?.type === 'SINGLE_CHOICE' && saved.optionId ? [saved.optionId] : []
   const max = slot.interaction.type === 'MULTIPLE_CHOICE' ? slot.interaction.maxSelections : 1
   const choose = (id: string, checked: boolean) => {
+    if (pending) return
     if (!multiple) return void onSave({ optionId: id })
     const next = checked ? [...selected, id] : selected.filter((value) => value !== id)
     void onSave({ optionIds: next })
@@ -48,9 +50,9 @@ export function ChoiceControl({ slot, saved, disabled, attemptId, apiVersion, on
         const atLimit = multiple && !isSelected && selected.length >= max
         return (
           <label key={option.id} className={`flex items-center gap-3 min-h-[56px] px-4 py-3 border rounded-[3px] cursor-pointer transition-colors has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ink ${
-            isSelected ? 'border-pen-red bg-pen-red-wash shadow-[inset_3px_0_0_var(--pen-red)]' : 'border-rule-strong bg-paper-sheet hover:border-ink'} ${disabled || atLimit ? 'cursor-not-allowed opacity-70' : ''}`}>
+            isSelected ? 'border-pen-red bg-pen-red-wash shadow-[inset_3px_0_0_var(--pen-red)]' : 'border-rule-strong bg-paper-sheet hover:border-ink'} ${disabled || pending || atLimit ? 'cursor-not-allowed opacity-70' : ''}`}>
             <input type={multiple ? 'checkbox' : 'radio'} name={`answer-${slot.slotId}`} value={option.id} checked={isSelected}
-              disabled={disabled || atLimit} data-testid={`option-${option.id}`} onChange={(event) => choose(option.id, event.target.checked)}
+              disabled={disabled || atLimit} aria-disabled={pending || undefined} data-testid={`option-${option.id}`} onChange={(event) => choose(option.id, event.target.checked)}
               className="sr-only peer" />
             <OptionLetter id={option.id} selected={isSelected} />
             <ContentBlocks blocks={option.content} attemptId={attemptId} apiVersion={apiVersion} className="text-[15px] leading-[1.55] flex-1" />
@@ -61,10 +63,11 @@ export function ChoiceControl({ slot, saved, disabled, attemptId, apiVersion, on
   )
 }
 
-export function TrueFalseControl({ slot, saved, disabled, attemptId, apiVersion, onSave }: ControlProps) {
+export function TrueFalseControl({ slot, saved, disabled, pending, attemptId, apiVersion, onSave }: ControlProps) {
   if (slot.interaction.type !== 'TRUE_FALSE_GROUP') return null
   const values = new Map((saved?.type === 'TRUE_FALSE_GROUP' ? saved.statementValues : []).map((item) => [item.statementId, item.value]))
   const choose = (statementId: string, value: boolean) => {
+    if (pending) return
     const next = new Map(values); next.set(statementId, value)
     void onSave({ statementValues: [...next].map(([id, item]) => ({ statementId: id, value: item })) })
   }
@@ -84,7 +87,7 @@ export function TrueFalseControl({ slot, saved, disabled, attemptId, apiVersion,
               return (
                 <label key={label} className={`relative inline-flex items-center justify-center w-[72px] min-h-[44px] text-sm font-semibold border rounded-[3px] cursor-pointer has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ink ${
                   checked ? 'bg-pen-red border-pen-red text-paper-sheet' : 'bg-paper-sheet border-rule-strong text-ink hover:border-ink'}`}>
-                  <input type="radio" name={`answer-${slot.slotId}-${statement.id}`} checked={checked} disabled={disabled}
+                  <input type="radio" name={`answer-${slot.slotId}-${statement.id}`} checked={checked} disabled={disabled} aria-disabled={pending || undefined}
                     data-testid={`tf-${statement.id}-${value}`} onChange={() => choose(statement.id, value)} className="absolute opacity-0 w-px h-px" />
                   {label}
                 </label>
@@ -249,13 +252,14 @@ export function MatchingControl({ slot, saved, disabled, onSave, onDirtyChange }
 }
 
 export function AnswerControl(props: ControlProps) {
+  const blocked = props.disabled || props.pending === true
   switch (props.slot.interaction.type) {
     case 'SINGLE_CHOICE':
     case 'MULTIPLE_CHOICE': return <ChoiceControl {...props} />
     case 'TRUE_FALSE_GROUP': return <TrueFalseControl {...props} />
-    case 'NUMERIC_RESPONSE': return <NumericControl {...props} />
-    case 'CLOZE': return <ClozeControl {...props} />
-    case 'MATCHING': return <MatchingControl {...props} />
+    case 'NUMERIC_RESPONSE': return <NumericControl {...props} disabled={blocked} />
+    case 'CLOZE': return <ClozeControl {...props} disabled={blocked} />
+    case 'MATCHING': return <MatchingControl {...props} disabled={blocked} />
     default: return <p className="text-sm text-pen-red">Loại câu hỏi này chưa được hỗ trợ trong giao diện mới.</p>
   }
 }

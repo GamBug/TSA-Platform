@@ -269,7 +269,7 @@ export function SimulationScreen({ onSessionLost }: { onSessionLost: (message: s
                       <ContentBlocks blocks={slot.content} attemptId={view.attemptId} apiVersion="v3" />
                     </section>
                     <div className="mt-5">
-                      <AnswerControl key={slot.slotId} slot={slot} saved={answers.get(slot.slotId)} disabled={busy || locked}
+                      <AnswerControl key={slot.slotId} slot={slot} saved={answers.get(slot.slotId)} disabled={locked} pending={busy}
                         attemptId={view.attemptId} apiVersion="v3" onSave={save} />
                     </div>
                     <p className="mt-4 tabular-figures text-xs text-ink-secondary" role="status" data-testid="save-status">
