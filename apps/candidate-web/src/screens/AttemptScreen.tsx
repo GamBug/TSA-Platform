@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ApiError, Attempt, ReviewSlot, StudentApi } from '@/api/types'
 import { ContentBlocks } from '@/content/ContentBlocks'
 import { AnswerControl, KIND_LABELS } from '@/attempt/Interactions'
@@ -31,6 +31,11 @@ export function AttemptScreen({ api, apiVersion, initial, onExit, onSessionLost 
   const { flags, toggle } = useFlags(attempt.attemptId)
   const panel = useQuestionPanel()
   const submitDialog = useRef<HTMLDialogElement>(null)
+
+  // The catalog may have been scrolled to reach a section card.
+  useLayoutEffect(() => {
+    if (attempt.state === 'IN_PROGRESS') window.scrollTo(0, 0)
+  }, [attempt.attemptId, attempt.state])
 
   const adopt = useCallback((next: Attempt) => {
     setAttempt(next)

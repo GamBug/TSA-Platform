@@ -59,7 +59,7 @@ async function login(byId) {
   await byId('guest-start').click();
 }
 
-async function sectionPractice(browser, viewport, actor, label) {
+async function sectionPractice(browser, viewport, label, layoutOnly = false) {
   const { page, problems, byId, snap } = await journeyPage(browser, viewport);
   await page.goto(`${origin}/student/`);
   await byId('guest-start').waitFor();
@@ -71,8 +71,23 @@ async function sectionPractice(browser, viewport, actor, label) {
   assert.deepEqual(await page.locator('[data-testid^="start-"]').evaluateAll((items) => items.map((item) => item.dataset.testid)),
     ['start-MATH', 'start-READING', 'start-SCIENCE'], 'the catalog offers exactly the three section tests');
   assert.equal(await page.locator('[data-testid^="mode-"]').count(), 2, 'only section tests and the full test are offered');
+  if (viewport.width < 640) {
+    await byId('start-MATH').evaluate((button) => button.scrollIntoView({ block: 'center' }));
+    assert.ok(await page.evaluate(() => window.scrollY > 0), 'the phone catalog scrolls to its Math card');
+  }
   await byId('start-MATH').click();
   await byId('attempt-workspace').waitFor();
+  if (viewport.width < 640) {
+    assert.equal(await page.evaluate(() => window.scrollY), 0, 'practice opens at the top of the question');
+    const title = await page.locator('#question-title').boundingBox();
+    assert.ok(title && title.y >= 0 && title.y + title.height <= viewport.height, 'the first question is on screen');
+  }
+  await snap(`${label}-practice-first`);
+  if (layoutOnly) {
+    assert.deepEqual(problems, []);
+    await page.close();
+    return;
+  }
   const count = await page.locator('[data-testid^="question-jump-"]').count();
   assert.equal(count, 40, 'the Math section test has the real length');
   if (viewport.width >= 1024) {
@@ -157,10 +172,12 @@ try {
   browser = await chromium.launch({ executablePath: process.env.STUDENT_BROWSER ?? '/snap/bin/chromium' });
   const desktop = { width: 1440, height: 900 };
   const mobile = { width: 390, height: 844 };
-  await sectionPractice(browser, desktop, 'studentA', 'desktop');
-  await fullSimulation(browser, desktop, 'studentA', 'desktop');
-  await sectionPractice(browser, mobile, 'studentB', 'mobile');
-  await fullSimulation(browser, mobile, 'studentB', 'mobile');
+  const layoutOnly = process.env.STUDENT_WEB_LAYOUT_ONLY === 'true';
+  await sectionPractice(browser, { width: 360, height: 800 }, 'phone-360', true);
+  await sectionPractice(browser, desktop, 'desktop', layoutOnly);
+  if (!layoutOnly) await fullSimulation(browser, desktop, 'studentA', 'desktop');
+  await sectionPractice(browser, mobile, 'mobile', layoutOnly);
+  if (!layoutOnly) await fullSimulation(browser, mobile, 'studentB', 'mobile');
 
   console.log(JSON.stringify({ status: 'PASS', ...report }, null, 2));
 } catch (error) {
