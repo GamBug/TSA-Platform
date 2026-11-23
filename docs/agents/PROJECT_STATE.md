@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-11-17. This is current navigation; historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
+Updated 2026-11-23. Historical state is in the [dated archive](../archive/2026-11-08/PROJECT_STATE.md).
 
 ## Product goal and owner decisions
 
@@ -23,6 +23,9 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-23 (QA follow-up). Verified the real test assembly against the owner's twin decision. Fixed move approval,
+  demo response headers, student phone layout and keyboard input, Reading credit display and the admin figure upload
+  limit in local commits. The public guest test still has its known fixture failure. [Verification and open findings](LAST_HANDOFF.md).
 - 2026-11-23 (math, figures, question changes): formulas render with KaTeX's own fonts, so primes, angle hats and
   vector arrows are clear; ChatGPT crops or draws figures as named PNGs that the inbox registers and attaches; the admin
   publishes, withholds, restores or moves single questions (`npm run bank:question`). See the

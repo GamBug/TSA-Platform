@@ -15,6 +15,12 @@ CP0 and CP1 are complete; see the [baseline report](https://github.com/GamBug/TS
 
 Only the owner can approve question publication or record corpus permission evidence. Do not infer those gates from implementation or test results.
 
+## QA follow-up
+
+The 2026-11-23 repair assignment is complete in local commits. The real simulation and all three section tests assembled
+from the copied Bank selected zero complete exact-twin pairs. The public guest test and unconfirmed QA findings remain open.
+[Commits and verification](../agents/LAST_HANDOFF.md#current-handoff--qa-follow-up-2026-11-23).
+
 ## Program audit and repair loop
 
 Status: ACTIVE, updated 2026-11-12. Owner requested a full-program audit and repair loop with

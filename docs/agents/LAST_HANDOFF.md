@@ -1,3 +1,41 @@
+# Current handoff — QA follow-up (2026-11-23)
+
+The owner authorized this single-agent Codex repair on `feat/track-b-data-auth` on 2026-11-23. The changes are local
+commits. Bank and browser checks used disposable databases, including physical copies for the real corpus checks.
+The retained Bank and the separate QA worktree are unchanged. [QA findings](../../plans/261123-1449-qa-full-test/reports/SUMMARY.md).
+
+| Finding | Commit | Result |
+|---|---|---|
+| F-04-03 | `66acc78` | Move previews run the authoring and applicable publication checks in a rolled-back transaction. Confirmed equivalents fail before version creation. A confirmed move backs up the Bank and commits atomically. |
+| F-03-01 | `46203b8` | The uni demo sends framing protection and `nosniff` in both modes. The student policy supports bundled KaTeX fonts and inline styles. Protected API assets retain their restrictive policy with an explicit framing directive. |
+| F-02-01 | `1d911ad` | Wide passage content stays inside the 360 px layout, including Science tables. |
+| F-02-05 | `870ba6c` | Section practice opens on the question from a scrolled catalog. |
+| F-02-13 | `fe0abcf` | Full simulation clocks show complete section names, times and statuses on phones. |
+| F-02-06 | `5030cc8` | Submit labels fit on one line in both student modes. |
+| F-02-14 | `202471a` | Student navigation, flag and question grid buttons have 44 × 44 px targets. |
+| F-02-08 | `0fe35d8` | Tab reaches practice radios, and Space saves the answer. |
+| F-02-12 | `ad0ae93` | Radio focus survives the asynchronous save in both modes. |
+| F-02-10 | `d58ee20` | The renderer displays the balanced legacy italic credits. The stored stimulus versions `15cfa41e-08c5-5f06-ad8a-c272f393f560` and `7fc3832b-2896-4afb-bf84-b3a6db6ae472` each cover 10 eligible questions. Both rendered correctly from the scratch Bank. |
+| F-03-02 | `a262bf8` | The local admin figure endpoint accepted and saved a 2,097,152-byte PNG exactly. It rejected one additional byte, enforced CSRF and kept other routes at their existing limits. |
+
+**F-04-01 verified on real stock.** The copy had 270 confirmed exact pairs with both versions eligible. A full
+100-question form and Math, Reading and Science forms with 40, 20 and 40 questions respectively each selected zero
+complete pairs. This matches the [owner decision](../decisions/OPEN_DECISIONS.md#science-from-captures-twins-keep-one-all-usable-questions--2026-11-19).
+
+**Verification.** `npm run test:question-change` (2), `npm run test:admin` (6), `npm run test:owner-twins` (1),
+`npm run test:demo:uni` (20), `npm run test:student-web` (8), the protected asset HTTP tests (8),
+`npm run test:student:keyboard` and `npm run test:student-web:browser` passed. `npm run test:demo:public` passed 12
+checks and reproduced the existing `blueprintVersionId` failure in “each browser gets its own guest,” also counted
+against its parent. `npm run docs:check` reported only the three pre-existing unsupported instruction text files.
+Screenshots at 360, 390 and 1440 px were inspected in `tmp/student-web-browser/` and
+`tmp/student-web-qa-fixes/`. The focused real Science browser check passed across 40 questions, including tables.
+The supplemental whole real-pool answer-and-grade run was stopped during Science and produced no completed result.
+Self-review used the code-review skill.
+
+**Open.** The public guest test failure and the existing tracked ChatGPT instruction-file docs checks remain open.
+Suspected QA findings F-02-02, F-02-07, F-05-04, F-05-05, F-05-06 and F-06-02 remain unconfirmed. The other findings
+outside the owner’s repair assignment remain in the QA reports.
+
 # Current handoff — clear math, figures from ChatGPT, single-question changes (2026-11-23)
 
 - Implementer: Claude Code (Opus 5.5), single agent, on the owner's request (clearer `A'` and angle marks; admin changes
