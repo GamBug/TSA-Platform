@@ -109,7 +109,7 @@ export function testLayout(open: boolean, passage: boolean) {
     body: open ? 'flex-1 grid grid-cols-1 lg:grid-cols-[1fr_260px] min-h-0' : 'flex-1 grid grid-cols-1 min-h-0',
     width: passage ? 'max-w-[1440px]' : 'max-w-[960px]',
     // With the grid hidden there is room for passage and question side by side from 1024 px; otherwise from 1280 px.
-    split: open ? 'grid gap-6 xl:grid-cols-2 items-start' : 'grid gap-6 lg:grid-cols-2 items-start',
+    split: open ? 'grid grid-cols-1 gap-6 xl:grid-cols-2 items-start' : 'grid grid-cols-1 gap-6 lg:grid-cols-2 items-start',
     aside: open ? '' : 'lg:hidden',
   }
 }

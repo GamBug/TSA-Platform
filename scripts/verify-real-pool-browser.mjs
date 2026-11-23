@@ -63,6 +63,10 @@ function inspectScreen() {
     brokenImages: images.filter((image) => !image.ok).length,
     imagesWithoutAlt: images.filter((image) => !image.alt).length,
     overflowPx: document.documentElement.scrollWidth - window.innerWidth,
+    passageClipped: [...root.querySelectorAll('section[aria-label="Đoạn văn"]')].some((passage) => {
+      const { left, right } = passage.getBoundingClientRect();
+      return left < -1 || right > window.innerWidth + 1;
+    }),
     // The elements that stick out past the right edge of the screen, for fixing the layout.
     overflowing: [...root.querySelectorAll('*')].filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1)
       .slice(0, 4).map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)} right=${Math.round(el.getBoundingClientRect().right)}`),
@@ -163,6 +167,7 @@ async function journey(browser, viewport, label) {
     q.brokenImages && `${q.section} ${q.position}: ${q.brokenImages} broken image(s)`,
     q.emptyQuestion && `${q.section} ${q.position}: nearly empty question`,
     q.overflowPx > 0 && `${q.section} ${q.position}: page scrolls sideways by ${q.overflowPx}px (${q.overflowing.join('; ')})`,
+    q.passageClipped && `${q.section} ${q.position}: the passage extends outside the viewport`,
     q.options === 0 && q.statements === 0 && `${q.section} ${q.position}: nothing to answer`,
   ]).filter(Boolean);
   const warnings = questions.flatMap((q) => [
