@@ -20,6 +20,9 @@ need true form of questions, recently I upload >100 math ques and get rejected a
    withheld question, or move a question to another section as a new version in the same taxonomy version. Each change
    is a dry run, then a typed confirmation phrase; the Bank is backed up first and every approval repeats the owner
    publication checks. A later owner-made version of an exchange-imported question is publishable like the original.
+   Follow-up the same day: corpus questions move too ("Yes they should. ah and no duplicate questions"). A question whose
+   taxonomy lacks the section moves to the real-content taxonomy version serving the most questions there (never into
+   or out of the practice pool), and a move is refused when an identical question is already in the target section.
    Guide: [admin page](../guides/ADMIN_PAGE.md#changing-one-question).
 
 ## Admin account and local admin page — 2026-11-22

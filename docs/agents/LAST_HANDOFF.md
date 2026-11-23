@@ -20,7 +20,10 @@
 - Open for the owner: upload the changed `AGENT.md`, `SUBJECT_MATH.md`, `SUBJECT_SCIENCE.md`, `README` steps and paste
   the new `INSTRUCTIONS_*.txt` into the three Projects; get the 16 figures for the rejected files (paste a FIGURES list
   or crop them), add them, press "Back to the inbox" and import. ChatGPT's Python tool and file downloads on the owner's
-  plan are REQUIRES_VERIFICATION. Moving a question of a single-subject corpus taxonomy is refused by design.
+  plan: confirmed by the owner (Plus gives downloadable files).
+- Follow-up: corpus questions move to the real-content taxonomy serving the target section (on the retained Bank a dry
+  run picks "TSA simulation taxonomy v1"); a move onto an identical question in that section is refused. New test
+  `question-change` 2 pass; `bank-correction` and `admin-page` 8 pass.
 
 # Previous handoff — admin account and local admin page (2026-11-22)
 

@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildRevisionDraft, loadCorrectionTarget, ownerApprove, ownerConfirmSingleton, ROUTE_PREFIX } from '../src/local/bank-correction.mjs';
 import { backupLocalDatabase } from '../src/local/database-backup.mjs';
 import { OWNER_SECTIONS } from '../src/local/owner-publication.mjs';
+import { findPracticePool } from '../src/local/practice-pool.mjs';
 import { startPersistentPostgres } from '../src/local/postgres.mjs';
 import { createTrackBRuntime } from '../src/local/track-b.mjs';
 import { withTransaction } from '../src/modules/database/pool.mjs';
@@ -46,10 +47,44 @@ export function questionChangeProblem(action, version, section = null) {
 
 const MOVE_NOTE = (from, to) => `Moved by the owner from the ${from} section to the ${to} section; content, key and explanation unchanged.`;
 
-async function loadTarget(dataDirectory, versionId) {
+/**
+ * Where a moved question goes: its own taxonomy version when that has the section; otherwise the taxonomy version that
+ * already serves the most questions in the section. The ChatGPT practice pool and the real content never mix, so a
+ * question moves inside the pool or between real-content taxonomies only. Returns { taxonomyVersionId, name, nodes }.
+ */
+async function moveTaxonomy(client, version, nodes, section) {
+  if (nodes.some((node) => node.kind === 'DOMAIN' && node.code === section)) {
+    return { taxonomyVersionId: version.taxonomy_version_id, name: null, nodes };
+  }
+  const pool = await findPracticePool(client);
+  const candidate = (await client.query(`SELECT t.id, t.name,
+      (SELECT count(*) FROM tsa.question_versions v JOIN tsa.questions q ON q.eligible_version_id=v.id
+        WHERE v.taxonomy_version_id=t.id AND v.section::text=$1)::integer AS served
+    FROM tsa.taxonomy_versions t JOIN tsa.taxonomy_nodes d ON d.taxonomy_version_id=t.id AND d.kind='DOMAIN' AND d.code=$1
+    WHERE t.id IS DISTINCT FROM $2::uuid ORDER BY served DESC, t.name, t.id LIMIT 1`, [section, pool])).rows[0];
+  if (!candidate) return { taxonomyVersionId: version.taxonomy_version_id, name: null, nodes };
+  const targetNodes = (await client.query('SELECT id, code, kind, parent_id FROM tsa.taxonomy_nodes WHERE taxonomy_version_id=$1', [candidate.id])).rows;
+  return { taxonomyVersionId: candidate.id, name: candidate.name, nodes: targetNodes };
+}
+
+/** Another question in the section whose content is identical (same normalized fingerprint), or null. */
+async function identicalInSection(client, versionId, section) {
+  return (await client.query(`SELECT o.id FROM tsa.question_versions v JOIN tsa.question_versions o
+      ON o.normalized_fingerprint=v.normalized_fingerprint AND o.question_id<>v.question_id AND o.section::text=$2
+    JOIN tsa.question_workflow w ON w.question_version_id=o.id
+    WHERE v.id=$1 AND w.state::text IN ('DRAFT','IN_REVIEW','APPROVED') ORDER BY o.id LIMIT 1`, [versionId, section])).rows[0]?.id ?? null;
+}
+
+async function loadTarget(dataDirectory, versionId, section) {
   const database = await startPersistentPostgres(dataDirectory);
-  try { return await withTransaction(database.ownerPool, (client) => loadCorrectionTarget(client, versionId)); }
-  finally { await database.stop(); }
+  try {
+    return await withTransaction(database.ownerPool, async (client) => {
+      const target = await loadCorrectionTarget(client, versionId);
+      if (!section || section === target.version.section || !OWNER_SECTIONS.includes(section)) return target;
+      return { ...target, move: await moveTaxonomy(client, target.version, target.nodes, section),
+        duplicate: await identicalInSection(client, versionId, section) };
+    });
+  } finally { await database.stop(); }
 }
 
 async function hasImages(dataDirectory, versionId) {
@@ -86,12 +121,17 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
   if (!UUID.test(versionId ?? '')) throw new TypeError('--version must be a question version UUID');
   if (!QUESTION_ACTIONS.includes(action)) throw new TypeError(`The action must be one of ${QUESTION_ACTIONS.join(', ')}`);
   if (action === 'WITHHOLD' && (typeof reason !== 'string' || reason.trim().length < 5)) throw new TypeError('Withholding needs a --reason of at least 5 characters');
-  const target = await loadTarget(dataDirectory, versionId);
+  const target = await loadTarget(dataDirectory, versionId, action === 'MOVE' ? section : null);
   const { version } = target;
   const phrase = questionChangePhrase(action, versionId, section);
   let problem = questionChangeProblem(action, version, section);
+  // No duplicates: an identical question already in the target section would be a second copy (and an exact twin,
+  // which hides both until resolved). The owner withholds this one instead.
+  if (!problem && action === 'MOVE' && target.duplicate) {
+    problem = `An identical question is already in ${section} (version ${target.duplicate}); withhold this one instead of moving it`;
+  }
   if (!problem && action === 'MOVE') {
-    try { buildRevisionDraft(target, { classification: 'MOVE', note: MOVE_NOTE(version.section, section), changes: { section } }); }
+    try { buildRevisionDraft(target, { classification: 'MOVE', note: MOVE_NOTE(version.section, section), changes: { section, taxonomy: target.move } }); }
     catch (error) { problem = error.message; }
   }
   log(`Question version ${versionId}: ${version.section}, ${version.state}${version.eligible_version_id === versionId ? ', served' : ''}`);
@@ -100,7 +140,7 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
     PUBLISH: 'Approve and publish this question as the owner (rights, checks and approval as in Publish).',
     WITHHOLD: 'Withhold this question: it is no longer served, and tests already built with it are held.',
     RESTORE: 'Publish this withheld question again (submitted, confirmed and approved by the owner).',
-    MOVE: `Add a new version in ${section}. ${version.state === 'APPROVED' ? 'It is approved and served instead of this one.' : `It stays ${version.state === 'IN_REVIEW' ? 'IN_REVIEW' : 'a DRAFT'} for Publish.`}`,
+    MOVE: `Add a new version in ${section}${target.move?.name ? ` (taxonomy "${target.move.name}")` : ''}. ${version.state === 'APPROVED' ? 'It is approved and served instead of this one.' : `It stays ${version.state === 'IN_REVIEW' ? 'IN_REVIEW' : 'a DRAFT'} for Publish.`}`,
   }[action];
   log(plan);
   if (confirm === undefined) {
@@ -142,7 +182,7 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
   }
 
   // MOVE: a new version of the same question in the other section, then the same workflow position as before.
-  const draft = buildRevisionDraft(target, { classification: 'MOVE', note: MOVE_NOTE(version.section, section), changes: { section },
+  const draft = buildRevisionDraft(target, { classification: 'MOVE', note: MOVE_NOTE(version.section, section), changes: { section, taxonomy: target.move },
     transformation: MOVE_NOTE(version.section, section) });
   const created = await withRuntime(dataDirectory, version.schema_version, async (origin) => {
     const author = await session(origin, 'author');

@@ -34,10 +34,12 @@ as publication:
 | **Restore** | QUARANTINED | Submitted, confirmed and approved again by the owner. |
 | **Move** to another section | DRAFT, IN_REVIEW, APPROVED | A new version in that section; the old version stays as history. A published question is replaced at once; a draft stays a draft for **Publish**. |
 
-Question versions are immutable, so nothing is edited in place. A move keeps the taxonomy version and takes the new
-section's domain and skill in it: practice-pool questions (everything imported through the inbox) can move between all
-three sections, while a question of a single-subject corpus taxonomy cannot, and a question with a shared passage
-cannot be moved on its own.
+Question versions are immutable, so nothing is edited in place. A move takes the new section's domain and skill in the
+question's own taxonomy version when it has that section; a question of a single-subject corpus taxonomy goes to the
+real-content taxonomy version that already serves the most questions in that section (the check names it). Practice-pool
+questions stay in the pool and real content stays out of it. A question with a shared passage cannot be moved on its
+own. **No duplicates:** a move is refused when an identical question is already in the target section; withhold this
+one instead.
 
 Import and publication run the same owner commands as the terminal (`npm run questions:inbox` and
 `npm run bank:owner-publish -- --taxonomy-version <practice pool>`), one at a time, on the owner's retained Bank

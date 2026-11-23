@@ -79,7 +79,7 @@ export async function loadCorrectionTarget(client, versionId) {
  */
 export function sectionTaxonomy(nodes, section) {
   const domain = nodes.find((node) => node.kind === 'DOMAIN' && node.code === section);
-  if (!domain) throw new Error(`This question's taxonomy has no ${section} domain, so it cannot move to ${section}; import it again in the ${section} inbox`);
+  if (!domain) throw new Error(`No taxonomy has a ${section} domain to move this question into`);
   const skills = nodes.filter((node) => node.kind === 'SKILL' && node.parent_id === domain.id);
   if (skills.length !== 1) throw new Error(`The ${section} domain of this taxonomy has ${skills.length} skills; a move needs exactly one`);
   return { domainId: domain.id, skillIds: [skills[0].id] };
@@ -100,14 +100,15 @@ export function buildRevisionDraft(target, item) {
   const list = (value) => (typeof value === 'string' ? JSON.parse(value) : value);
   const set = item.changes;
   const evidenceRefs = [...new Set(provenance.map((entry) => entry.decisionId))];
-  // A section change keeps the taxonomy version and takes that section's domain and skill in it.
+  // A section change takes that section's domain and skill in the target taxonomy version (by default the same one).
   const section = set.section ?? version.section;
-  const moved = section !== version.section ? sectionTaxonomy(nodes, section) : null;
+  const taxonomy = set.taxonomy ?? { taxonomyVersionId: version.taxonomy_version_id, nodes };
+  const moved = section !== version.section ? sectionTaxonomy(taxonomy.nodes, section) : null;
   return {
     schemaVersion: version.schema_version,
     language: version.language,
     section,
-    taxonomyVersionId: version.taxonomy_version_id,
+    taxonomyVersionId: moved ? taxonomy.taxonomyVersionId : version.taxonomy_version_id,
     domainId: moved ? moved.domainId : idOf(version.domain_id),
     skillIds: moved ? moved.skillIds : list(version.skill_ids).map(idOf),
     subskillIds: moved ? [] : list(version.subskill_ids).map(idOf),

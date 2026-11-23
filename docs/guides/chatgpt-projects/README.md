@@ -32,8 +32,9 @@ ids, reply shape, common rejections), and the files carry the detail.
 - Web search must be available in the chat for CREATE mode. If ChatGPT answers without searching, say "search the web
   first".
 - Figures need ChatGPT's Python tool (code execution / data analysis), which can read the pictures and PDFs you attach
-  and offer the files it makes as downloads. REQUIRES_VERIFICATION on your plan: if ChatGPT says it cannot run code,
-  turn the tool on in the Project or chat settings. Download links expire with the chat session, so save the PNGs
+  and offer the files it makes as downloads. The owner confirmed on 2026-11-23 that ChatGPT Plus replies with
+  downloadable files (it shows "Connecting to the computer" while it works); if a chat says it cannot run code, turn the
+  tool on in the Project or chat settings. Download links expire with the chat session, so save the PNGs
   right away.
 - Files attached to a chat message (your pictures or PDF) are used for that chat only; they are not Project files.
 
