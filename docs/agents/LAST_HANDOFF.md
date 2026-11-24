@@ -1,3 +1,31 @@
+# Current handoff — AI studio: chat writer, automatic repair, AI review and one-click publish (2026-11-25)
+
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's request of 2026-11-24 (no more manual ChatGPT
+  Projects; choose agent, model and prompt; attach files; AI checks and approves; Reading and Science as passages).
+  Branch `feat/track-b-data-auth`. [Decision](../decisions/OPEN_DECISIONS.md#ai-studio-chat-writer-and-reviewer-agents-on-the-admin-page--2026-11-24),
+  [guide](../guides/ADMIN_PAGE.md#ai-studio), [plan](../../plans/261124-ai-studio/plan.md).
+- Done: `src/local/admin/ai-studio.mjs` (chats, turn pipeline, publish, draft review), `ai-agents.mjs` (CLI runners,
+  model lists, plain-language failures, agents stopped when the demo exits), `ai-review.mjs`, `bank-examples.mjs`,
+  `exchange-normalize.mjs`; routes under `/local/admin/ai/`; `questions:inbox --only --report`;
+  `bank:owner-publish --versions`; `AiStudio.tsx` with the AI-checked badge and filter in All questions;
+  writer/reviewer instructions in `docs/guides/ai-studio/`; passage sizes 10 (Reading) and 5 (Science) in the
+  ChatGPT Project files.
+- Verification: `test:admin` 15 (new `ai-studio.test.mjs` 5 with fake agents), `test:question-inbox` 5,
+  `test:question-change` 2, `test:owner-twins` 1, `test:demo:uni` 20, `test:student-web` 8, candidate-web build.
+  `docs:check` reports only the known tracked `INSTRUCTIONS_*.txt` files. Real runs on a copy of the retained Bank
+  (scratch, not `.local/track-b`): Math 3 questions (Claude Code writes, Codex reviews, about 2 min), Reading one
+  910-word passage with 10 questions (Codex writes, Claude Code reviews, about 6 min), Science one scenario with a drawn
+  velocity graph and 5 questions (Codex/Claude Code, about 4 min): all checked, passed, imported and published
+  APPROVED and eligible; the graph became `IMG-SCIE-000001`. An Antigravity run showed the review → fix loop (2 rounds)
+  and was stopped at the owner's request (low Antigravity quota). Playwright screenshots at 1440 and 390 px of the
+  studio and the question list on that copy: no console errors.
+- Found and fixed during the real runs: a drawn figure was lost when the run folder was removed; unexpected errors now
+  read as a sentence.
+- Open: the owner restarts `npm start` to get the studio (the running demo has the old server); Claude Code draws
+  figures only after `sudo apt install bubblewrap socat`; the owner should avoid choosing Antigravity for now; Claude
+  Code's sign-in on this computer expires between 2026-11-30 and 2026-12-03 (`claude auth login`). The live site is
+  unchanged (the studio is local only).
+
 # Current handoff — question ids, identical images, three states, AI writers, view-only public admin (2026-11-24)
 
 - Implementer: Claude Code (Opus 5.5), single agent, on the owner's request of 2026-11-24. Branch

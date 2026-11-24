@@ -11,6 +11,8 @@ export interface QuestionSummary {
   displayId: string; imageCodes: string[]
   interactionType: string; domainId: string; taxonomy: string; taxonomyName: string; exchangeId: string | null
   hasPassage: boolean; hasKey: boolean; preview: string; createdAt: string
+  /** The AI reviewer's verdict on this version, when the AI studio reviewed it. */
+  aiReview?: 'PASS' | 'FIX' | 'REJECT'
 }
 
 /** The owner's three states; the Bank's IN_REVIEW shows as DRAFT, REJECTED and RETIRED as QUARANTINED. */
@@ -30,6 +32,8 @@ export interface QuestionDetail extends Omit<QuestionSummary, 'hasPassage' | 'ha
 }
 
 export interface Overview {
+  /** The AI studio chat is available (local demo). */
+  studio?: boolean
   contentMode: 'PUBLISHED' | 'REHEARSAL'; readAt: string; total: number
   counts: Partial<Record<Section, Record<string, number>>>; practicePoolTaxonomyId: string | null
   jobs: { available: boolean; running: string | null }; canRefresh: boolean
@@ -119,3 +123,54 @@ export const runPublish = (options: { section: Section | null; keepOneOfTwins: b
 export const refreshBank = () => call<Overview>('refresh', { method: 'POST' })
 export const generate = (section: Section, topic: string, count: number, provider: string) =>
   call<GenerateResult>('generate', { method: 'POST', body: { section, topic, count, provider } })
+
+
+// ---------------------------------------------------------------- AI studio
+
+export interface AgentModel { id: string; label: string; efforts: string[] }
+export interface AgentProvider {
+  id: string; label: string; available: boolean; models: AgentModel[]; note: string | null
+  abilities: { images: boolean; files: boolean; web: boolean; figures: boolean }
+}
+export interface AgentSetting { provider: string; model: string; effort: string }
+export interface StudioSettings {
+  section: Section; writer: AgentSetting | null; reviewer: AgentSetting | null; web: boolean; bankExamples: boolean; autoPublish: boolean
+}
+export interface Review { verdict: 'PASS' | 'FIX' | 'REJECT'; myAnswer: string | null; issues: string[]; reviewer?: string }
+export interface BatchQuestion { id: string; type: string; difficulty: string | null; topic: string | null; passageRef: string | null; preview: string; review: Review | null }
+export interface StudioBatch {
+  messageId: string; batchId: string; kind: 'CREATE' | 'TRANSCRIBE'; section: Section; status: 'READY' | 'SAVED' | 'PUBLISHED' | 'REPLACED'
+  questions: BatchQuestion[]; passages: Record<string, { title: string | null; preview: string; words: number }>; figures: string[]
+  dropped: { id: string; reason: string }[]; rounds: number; reviewed: boolean; reviewNote: string | null; autoNote?: string
+  document: { passages?: any[]; questions: any[] }; versionIds?: string[]; heldBack?: string[]; publishedCount?: number; publishedAt?: string
+}
+export interface DraftReview {
+  section: Section; status: 'READY' | 'PUBLISHED'; publishedCount?: number; heldBack?: string[]
+  items: { versionId: string; displayId: string; stimulusVersionId: string | null; preview: string; review: Review }[]
+}
+export interface StudioMessage {
+  id: string; role: 'user' | 'assistant' | 'notice'; at: string; text: string; author?: string
+  attachments?: { name: string; kind: 'image' | 'pdf' | 'text'; bytes: number }[]
+  batch?: StudioBatch; draftReview?: DraftReview
+  tone?: 'info' | 'error'; actions?: ('retry' | 'settings' | 'publish' | 'fix')[]; fix?: string; messageId?: string
+}
+export interface StudioTurn { id: string; kind: string; stage: string; note: string; startedAt: string; steps: { at: string; stage: string; note: string }[] }
+export interface StudioSession { id: string; title: string; createdAt: string; updatedAt: string; settings: StudioSettings; turn: StudioTurn | null; messages: StudioMessage[] }
+export interface StudioSummary { id: string; title: string; section: Section; updatedAt: string; working: boolean; messages: number }
+
+export const loadAgents = (fresh = false) => call<AgentProvider[]>(`ai/catalog${fresh ? '?fresh=1' : ''}`)
+export const loadChats = () => call<StudioSummary[]>('ai/sessions')
+export const loadChat = (id: string) => call<StudioSession>(`ai/session?id=${encodeURIComponent(id)}`)
+export const createChat = (settings: Partial<StudioSettings>) => call<StudioSession>('ai/session/create', { method: 'POST', body: { settings } })
+export const updateChat = (id: string, settings: Partial<StudioSettings>) => call<StudioSession>('ai/session/settings', { method: 'POST', body: { id, settings } })
+export const deleteChat = (id: string) => call<{ ok: true }>('ai/session/delete', { method: 'POST', body: { id } })
+export const sendChat = (id: string, text: string, attachments: { name: string; base64: string }[]) =>
+  call<StudioSession>('ai/session/send', { method: 'POST', body: { id, text, attachments } })
+export const retryChat = (id: string) => call<StudioSession>('ai/session/retry', { method: 'POST', body: { id } })
+export const stopChat = (id: string) => call<StudioSession>('ai/session/stop', { method: 'POST', body: { id } })
+export const publishBatch = (id: string, messageId: string, draftsOnly = false) =>
+  call<StudioSession>('ai/session/publish', { method: 'POST', body: { id, messageId, draftsOnly } })
+export const reviewDrafts = (id: string, section: Section, limit: number) =>
+  call<StudioSession>('ai/session/review-drafts', { method: 'POST', body: { id, section, limit } })
+export const studioFileUrl = (session: string, kind: 'figure' | 'attachment', owner: string, name: string) =>
+  `/local/admin/ai/file?session=${encodeURIComponent(session)}&kind=${kind}&owner=${encodeURIComponent(owner)}&name=${encodeURIComponent(name)}`

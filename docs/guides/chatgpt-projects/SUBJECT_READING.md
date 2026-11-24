@@ -31,10 +31,14 @@
 - **Write the passage yourself.** Use web search only to check facts for the topic (for example how a technology
   works or a real statistic with its source year); never copy or closely paraphrase an article. Invented figures are
   fine if the passage is clearly hypothetical; real-world figures must be correct.
-- Passage length: 350-600 words for a two-question passage, unless the owner asks for the full 800-1,000 words.
-  Use 4-6 paragraphs, a neutral academic register, correct Vietnamese spelling and punctuation, and paragraph breaks as separate `text` blocks.
-- **Exactly 2 questions per passage**, testing different skills (for example one `DETAIL` or `MAIN_IDEA`, one
-  `INFERENCE`, `AUTHOR_VIEW` or `EVALUATION`).
+- **Passages are long and carry many questions, as in the real test** (HUST 2026, Đợt 1: 2 texts × 10 questions).
+  Default: one passage of 800-1,000 words with **10 questions**; the owner may ask for a 5-question passage of about
+  500 words. Never 2-question passages. A section test takes passages whole, so 10 and 5 add up to the 20 questions.
+- Use 6-10 paragraphs, a neutral academic register, correct Vietnamese spelling and punctuation, and paragraph breaks
+  as separate `text` blocks.
+- The questions of one passage test different skills and parts of the text (main idea, details, inference, vocabulary
+  in context, structure, author's view, evaluation, data in the text), roughly in text order, with the 4:3:3
+  EASY:MEDIUM:HARD mix inside the passage.
 - The correct option is supported by a specific sentence; name that sentence or paragraph in the explanation
   ("Đoạn 3, câu 2 cho biết ..."). Each distractor is wrong for a reason you can point to in the text: too broad, too
   narrow, contradicts paragraph N, true in the world but not stated, reverses cause and effect.
@@ -53,7 +57,7 @@
 ## Example request lines the owner sends
 
 ```text
-CREATE · 3 passages (6 questions) · topics: technology, medicine, agriculture · batch letter A
-CREATE · 1 passage of 900 words · 2 questions: INFERENCE, EVALUATION · HARD · batch letter B
+CREATE · 1 passage of 900 words · 10 questions · topic: renewable energy
+CREATE · 1 passage of 500 words · 5 questions · INFERENCE, EVALUATION · HARD
 TRANSCRIBE · batch letter C · (pictures attached, in page order) · no answer key in the source
 ```

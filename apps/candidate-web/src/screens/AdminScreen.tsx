@@ -6,6 +6,7 @@ import {
   type QuestionSummary, type Section,
 } from '@/api/admin'
 import { ContentBlocks } from '@/content/ContentBlocks'
+import { AiStudio } from './AiStudio'
 import { buttonClass, Notice } from '@/ui/Shell'
 import type { ContentBlock } from '@/api/types'
 
@@ -102,7 +103,7 @@ function AdminWorkspace({ onSessionLost, onSignedOut }: { onSessionLost: (text?:
           {tabs.map((key) => (
             <button key={key} type="button" aria-pressed={tab === key} data-testid={`admin-tab-${key}`} onClick={() => setTab(key)}
               className={`px-3 min-h-[40px] text-xs font-semibold border rounded-[3px] cursor-pointer ${tab === key ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet text-ink border-rule-strong hover:border-ink'}`}>
-              {key === 'questions' ? 'All questions' : key === 'inbox' ? 'Import & publish' : 'AI questions'}
+              {key === 'questions' ? 'All questions' : key === 'inbox' ? 'Import & publish' : overview?.studio ? 'AI studio' : 'AI questions'}
             </button>
           ))}
           <button type="button" onClick={signOut} data-testid="admin-logout"
@@ -114,7 +115,9 @@ function AdminWorkspace({ onSessionLost, onSignedOut }: { onSessionLost: (text?:
       <div className="mt-6">
         {tab === 'questions' && <QuestionsTab bankVersion={bankVersion} canChange={overview?.jobs.available === true && !overview.readOnly} onError={fail} onBankChanged={bankChanged} />}
         {tab === 'inbox' && overview && !overview.readOnly && <InboxTab overview={overview} onError={fail} onBankChanged={bankChanged} />}
-        {tab === 'ai' && overview && !overview.readOnly && <AiTab overview={overview} onError={fail} onGoToInbox={() => setTab('inbox')} />}
+        {tab === 'ai' && overview && !overview.readOnly && (overview.studio
+          ? <AiStudio overview={overview} onError={fail} onBankChanged={bankChanged} />
+          : <AiTab overview={overview} onError={fail} onGoToInbox={() => setTab('inbox')} />)}
       </div>
     </main>
   )
@@ -155,7 +158,7 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
   const types = useMemo(() => [...new Set((items ?? []).map((item) => item.interactionType))].sort(), [items])
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    return (items ?? []).filter((item) => (!section || item.section === section) && (!stateName || item.state === stateName)
+    return (items ?? []).filter((item) => (!section || item.section === section) && (!stateName || (stateName === 'AI_PASS' ? item.aiReview === 'PASS' && item.state === 'DRAFT' : item.state === stateName))
       && (!type || item.interactionType === type)
       && (!needle || item.preview.toLowerCase().includes(needle) || item.displayId.toLowerCase().includes(needle)
         || item.imageCodes.some((code) => code.toLowerCase().includes(needle)) || item.questionId.includes(needle)
@@ -175,6 +178,7 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
           </select>
           <select aria-label="State" className={inputClass} value={stateName} onChange={(e) => setStateName(e.target.value)} data-testid="admin-filter-state">
             <option value="">All states</option>{STATES.map((value) => <option key={value} value={value}>{value}</option>)}
+            <option value="AI_PASS">DRAFT, AI-checked ✓</option>
           </select>
           <select aria-label="Type" className={inputClass} value={type} onChange={(e) => setType(e.target.value)}>
             <option value="">All types</option>{types.map((value) => <option key={value} value={value}>{value}</option>)}
@@ -194,6 +198,7 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
                   <span>{item.interactionType}</span><span>v{item.versionNo}</span>
                   {item.imageCodes.length > 0 && <span className="font-mono">{item.imageCodes.join(' ')}</span>}
                   {!item.hasKey && <span className="text-pen-red">no key</span>}
+                  {item.aiReview && <span className={item.aiReview === 'PASS' ? 'text-ink-green' : 'text-pen-red'} data-testid="admin-ai-review">{item.aiReview === 'PASS' ? 'AI-checked ✓' : `AI: ${item.aiReview}`}</span>}
                 </span>
                 <span className="block mt-1 text-sm text-ink line-clamp-2">{item.preview || '(no text)'}</span>
               </button>

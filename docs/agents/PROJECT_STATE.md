@@ -23,6 +23,10 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-24 (AI studio): the admin page's AI studio is a chat with a chosen writer and reviewer agent (model, effort,
+  attachments, web research, Bank examples); batches are repaired automatically, AI-reviewed and published on one click
+  or by the chat's auto-publish switch. Reading and Science passages follow the real test (10 and 5 questions).
+  [Guide](../guides/ADMIN_PAGE.md#ai-studio), [handoff](LAST_HANDOFF.md).
 - 2026-11-24 (admin ids, states, AI writers, public view): question ids and image codes on the admin page; pixel-identical
   images are one library image; three states with Back to draft before Publish; AI questions through Codex, Claude Code
   or Antigravity on the owner's computer; AdminBao can view the Bank on the public site, read-only. [Handoff](LAST_HANDOFF.md).

@@ -3,7 +3,8 @@
 // The running demo serves a disposable copy, so students see published changes after the demo restarts.
 // One job runs at a time; each takes a backup of the retained Bank before it writes (the commands do this).
 import { spawn } from 'node:child_process';
-import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractJson } from '../../../scripts/questions-inbox.mjs';
@@ -83,8 +84,10 @@ export function createAdminJobs({ dataDirectory, inboxDirectory = path.join(ROOT
     ...(imageStoreDirectory ? { TSA_IMAGE_STORE_DIRECTORY: imageStoreDirectory } : {}),
   });
 
-  async function exclusive(name, work) {
+  async function exclusive(name, work, { wait = false } = {}) {
     if (!available) return { ok: false, code: 'NO_RETAINED_BANK', output: 'This demo runs on rehearsal content. Imports and publication need the real Bank (npm start).' };
+    // The AI studio queues behind a running job instead of failing; a click on the page does not.
+    for (const started = Date.now(); wait && running && Date.now() - started < JOB_TIMEOUT_MS;) await new Promise((resolve) => setTimeout(resolve, 500));
     if (running) return { ok: false, code: 'JOB_RUNNING', output: `Another job is running: ${running}. Wait for it to finish.` };
     running = name;
     try { return await work(); } finally { running = null; }
@@ -94,6 +97,17 @@ export function createAdminJobs({ dataDirectory, inboxDirectory = path.join(ROOT
     const result = await runCommand([path.join(ROOT, 'scripts', script), ...args], childEnv());
     if (changesBank && result.exitCode === 0) await onBankChanged();
     return { ok: result.exitCode === 0, exitCode: result.exitCode, output: result.output, confirmation: confirmationFromOutput(result.output) };
+  }
+
+  /** Run the inbox command on one file with a JSON report; resolves the run plus `report` (null when none was written). */
+  async function runInboxReport(args, changesBank) {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'tsa-inbox-report-'));
+    try {
+      const reportFile = path.join(directory, 'report.json');
+      const result = await run('questions-inbox.mjs', [...args, '--report', reportFile], { changesBank });
+      const report = await readFile(reportFile, 'utf8').then(JSON.parse, () => null);
+      return { ...result, report };
+    } finally { await rm(directory, { recursive: true, force: true }); }
   }
 
   return Object.freeze({
@@ -229,6 +243,37 @@ export function createAdminJobs({ dataDirectory, inboxDirectory = path.join(ROOT
       return run('question-change.mjs', ['--version', versionId, ...flag, ...(confirm === undefined ? [] : ['--confirm', String(confirm)])],
         { changesBank: confirm !== undefined });
     }),
+
+    /**
+     * Check one inbox file (`<folder>/<name>`) and, when it is clean and `importIt` is set, import it as DRAFTs. Waits for a
+     * running job. Resolves { ok, report, output, imported }; the confirmation phrase is taken from the dry run.
+     */
+    checkAndImportOne: ({ only, importIt = false }) => exclusive('ai-import', async () => {
+      if (!/^(math|reading|science)\/[A-Za-z0-9._-]+$/.test(only ?? '')) return { ok: false, code: 'INVALID_FILE', output: 'Unknown inbox file.' };
+      const dry = await runInboxReport(['--only', only], false);
+      const file = dry.report?.files?.[0];
+      if (!dry.ok || !file || !importIt || file.problems.length || !dry.report.taxonomyVersionId) return { ...dry, imported: false };
+      const done = await runInboxReport(['--only', only, '--confirm', dry.report.phrase], true);
+      return { ...done, imported: done.ok && (done.report?.imported ?? 0) > 0 };
+    }, { wait: true }),
+
+    /** Register the practice pool once when it is missing (the studio needs it to import). */
+    ensurePool: () => exclusive('setup', async () => {
+      const dry = await run('questions-inbox.mjs', ['--setup'], { changesBank: false });
+      if (!dry.ok || !dry.confirmation) return dry;
+      return run('questions-inbox.mjs', ['--setup', '--confirm', dry.confirmation], { changesBank: true });
+    }, { wait: true }),
+
+    /** Approve and publish exactly these DRAFT versions (dry run first, then its phrase). Waits for a running job. */
+    publishVersions: ({ versionIds, keepOneOfTwins = false }) => exclusive('ai-publish', async () => {
+      if (!Array.isArray(versionIds) || versionIds.length === 0 || !versionIds.every((id) => UUID.test(id))) {
+        return { ok: false, code: 'INVALID_VERSION', output: 'No question versions to publish.' };
+      }
+      const args = ['--versions', versionIds.join(','), ...(keepOneOfTwins ? ['--keep-one-of-twins'] : [])];
+      const dry = await run('owner-publish.mjs', args, { changesBank: false });
+      if (!dry.ok || !dry.confirmation) return dry;
+      return run('owner-publish.mjs', [...args, '--confirm', dry.confirmation], { changesBank: true });
+    }, { wait: true }),
 
     /** Dry run without `confirm`; with the phrase the dry run printed, imports the importable files as DRAFTs. */
     inbox: ({ confirm } = {}) => exclusive('inbox', () => run('questions-inbox.mjs',

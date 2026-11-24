@@ -92,6 +92,7 @@ function toDetail(row) {
     content: row.content ?? [],
     interaction: row.interaction ?? {},
     passage: row.stimulus_content ?? null,
+    stimulusVersionId: row.stimulus_version_id ?? null,
     answerKey: row.answer_key ?? null,
     explanation: row.explanation ?? [],
     origin: row.origin,

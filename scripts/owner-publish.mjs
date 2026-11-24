@@ -3,6 +3,7 @@
 //   npm run bank:owner-publish -- --section READING    limit to one section
 //   npm run bank:owner-publish -- --taxonomy-version <uuid>   limit to versions authored in one taxonomy version
 //   npm run bank:owner-publish -- --keep-one-of-twins         also confirm each exact twin as one equivalence group (owner decision 2026-11-19)
+//   npm run bank:owner-publish -- --versions <uuid>,<uuid>    limit to exactly these question versions (AI studio batches)
 //   npm run bank:owner-publish -- --confirm "PUBLISH 100 READING"
 // Only the project owner runs the confirmed form; agents never approve items.
 import path from 'node:path';
@@ -93,7 +94,7 @@ export async function ownerPublish({ dataDirectory, section = null, taxonomyVers
   const twinCount = await countOpenTwins(dataDirectory, targets.map((row) => row.id));
   if (twinCount) log(keepOneOfTwins ? `Open exact twins to confirm as one equivalence group each: ${twinCount}` : `Open exact twins among them: ${twinCount}. Add --keep-one-of-twins to confirm each as one equivalence group; without it publication stops at the first twin.`);
   if (confirm === undefined) {
-    log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}${taxonomyVersionId ? `--taxonomy-version ${taxonomyVersionId} ` : ''}${keepOneOfTwins ? '--keep-one-of-twins ' : ''}--confirm "${phrase}"`);
+    log(`Dry run only. To approve and publish them as the owner, run:\n  npm run bank:owner-publish -- ${section ? `--section ${section} ` : ''}${taxonomyVersionId ? `--taxonomy-version ${taxonomyVersionId} ` : ''}${versionIds ? `--versions ${versionIds.join(',')} ` : ''}${keepOneOfTwins ? '--keep-one-of-twins ' : ''}--confirm "${phrase}"`);
     return { published: 0, phrase };
   }
   if (confirm !== phrase) throw new Error(`Confirmation does not match. Expected exactly: "${phrase}"`);
@@ -156,8 +157,9 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
     if (args[index] === '--section' && OWNER_SECTIONS.includes(args[index + 1])) options.section = args[index + 1];
     else if (args[index] === '--taxonomy-version' && typeof args[index + 1] === 'string') options.taxonomyVersionId = args[index + 1];
     else if (args[index] === '--keep-one-of-twins') { options.keepOneOfTwins = true; index -= 1; }
+    else if (args[index] === '--versions' && typeof args[index + 1] === 'string') options.versionIds = args[index + 1].split(',').filter(Boolean);
     else if (args[index] === '--confirm' && typeof args[index + 1] === 'string') options.confirm = args[index + 1];
-    else { process.stderr.write('Usage: npm run bank:owner-publish -- [--section MATH|READING|SCIENCE] [--taxonomy-version <uuid>] [--keep-one-of-twins] [--confirm "PUBLISH N SECTION"]\n'); process.exit(1); }
+    else { process.stderr.write('Usage: npm run bank:owner-publish -- [--section MATH|READING|SCIENCE] [--taxonomy-version <uuid>] [--versions <uuid>,...] [--keep-one-of-twins] [--confirm "PUBLISH N SECTION"]\n'); process.exit(1); }
   }
   try {
     await ownerPublish({ ...options, dataDirectory: process.env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b') });

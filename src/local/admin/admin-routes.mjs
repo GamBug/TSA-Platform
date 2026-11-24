@@ -2,6 +2,7 @@
 // them read-only (`readOnly`): sign-in, sign-out and the GET views of the Bank, nothing that changes or imports.
 import { generateQuestions, generationStatus, PROVIDERS } from './admin-generate.mjs';
 import { INBOX_FOLDERS, MAX_ARCHIVE_BYTES } from './admin-jobs.mjs';
+import { MAX_MESSAGE_BYTES } from './ai-studio.mjs';
 
 export const ADMIN_ROUTE_PREFIX = '/local/admin/';
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -11,7 +12,23 @@ const MAX_FIGURE_BODY_BYTES = 3 * 1024 * 1024;
 const MAX_ARCHIVE_BODY_BYTES = Math.ceil(MAX_ARCHIVE_BYTES / 3) * 4 + 1024;
 const FIGURE_ROUTE = 'inbox/figure';
 const ARCHIVE_ROUTE = 'inbox/archive';
-const BODY_LIMITS = Object.freeze({ [FIGURE_ROUTE]: MAX_FIGURE_BODY_BYTES, [ARCHIVE_ROUTE]: MAX_ARCHIVE_BODY_BYTES });
+// A chat message carries its attachments base64-encoded.
+const STUDIO_SEND_ROUTE = 'ai/session/send';
+const BODY_LIMITS = Object.freeze({ [FIGURE_ROUTE]: MAX_FIGURE_BODY_BYTES, [ARCHIVE_ROUTE]: MAX_ARCHIVE_BODY_BYTES,
+  [STUDIO_SEND_ROUTE]: Math.ceil(MAX_MESSAGE_BYTES / 3) * 4 + 256 * 1024 });
+const FIGURE_TYPES = Object.freeze({ '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.pdf': 'application/pdf' });
+
+/** The AI studio's answer for one call: its value, or a readable error with a status. */
+async function studioCall(work) {
+  try { return json(200, await work()); }
+  catch (failure) {
+    if (failure?.code === 'NOT_FOUND') return error(404, 'NOT_FOUND', failure.message);
+    if (failure?.code === 'BUSY') return error(409, 'BUSY', failure.message);
+    if (failure instanceof TypeError) return error(400, 'INVALID_REQUEST', failure.message);
+    console.error('AI studio request failed:', failure);
+    return error(500, 'STUDIO_FAILED', 'The AI studio could not do that. Try again; if it keeps failing, restart the demo.');
+  }
+}
 export const ADMIN_POST_BODY_LIMITS = Object.freeze(Object.fromEntries(Object.entries(BODY_LIMITS).map(([route, limit]) => [`${ADMIN_ROUTE_PREFIX}${route}`, limit])));
 const HEADERS = Object.freeze({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
 
@@ -34,7 +51,7 @@ const section = (value) => (Object.hasOwn(INBOX_FOLDERS, value) ? value : null);
  * One handler for every /local/admin/ path. `getSnapshot()` returns the current Bank snapshot; `refreshSnapshot()`
  * re-reads it from the retained Bank (null in rehearsal). `imageStore` reads library images for the question view.
  */
-export function createAdminRoutes({ auth, jobs = null, getSnapshot, refreshSnapshot = null, imageStore = null, contentMode,
+export function createAdminRoutes({ auth, jobs = null, studio = null, getSnapshot, refreshSnapshot = null, imageStore = null, contentMode,
   inboxDirectory, env = process.env, readOnly = false }) {
   if (!readOnly && !jobs) throw new TypeError('The writable admin routes need the admin jobs');
   const overview = async () => {
@@ -42,7 +59,7 @@ export function createAdminRoutes({ auth, jobs = null, getSnapshot, refreshSnaps
     const common = { contentMode, readAt: snapshot.readAt, total: snapshot.total, counts: snapshot.counts, readOnly };
     if (readOnly) return { ...common, practicePoolTaxonomyId: null, jobs: { available: false, running: null },
       generation: { configured: false, model: null, providers: [] }, canRefresh: false };
-    return { ...common, practicePoolTaxonomyId: snapshot.practicePoolTaxonomyId, jobs: jobs.status(),
+    return { ...common, practicePoolTaxonomyId: snapshot.practicePoolTaxonomyId, jobs: jobs.status(), studio: studio !== null,
       generation: await generationStatus(env), canRefresh: refreshSnapshot !== null };
   };
 
@@ -74,7 +91,24 @@ export function createAdminRoutes({ auth, jobs = null, getSnapshot, refreshSnaps
 
     if (method === 'GET') {
       if (route === 'overview') return json(200, await overview());
-      if (route === 'questions') return json(200, { readAt: getSnapshot().readAt, items: getSnapshot().summaries });
+      if (route === 'questions') {
+        const items = studio ? getSnapshot().summaries.map((summary) => {
+          const review = studio.reviewOf(summary.versionId);
+          return review ? { ...summary, aiReview: review.verdict } : summary;
+        }) : getSnapshot().summaries;
+        return json(200, { readAt: getSnapshot().readAt, items });
+      }
+      if (!readOnly && studio && route === 'ai/catalog') return studioCall(() => studio.catalog({ fresh: url.searchParams.get('fresh') === '1' }));
+      if (!readOnly && studio && route === 'ai/sessions') return studioCall(() => studio.list());
+      if (!readOnly && studio && route === 'ai/session') return studioCall(() => studio.get(url.searchParams.get('id')));
+      if (!readOnly && studio && route === 'ai/file') {
+        const name = url.searchParams.get('name') ?? '';
+        const type = FIGURE_TYPES[(name.match(/\.[A-Za-z]+$/)?.[0] ?? '').toLowerCase()];
+        const found = type ? await studio.file(url.searchParams.get('session'), { kind: url.searchParams.get('kind'), owner: url.searchParams.get('owner'), name }).catch(() => null) : null;
+        if (!found) return error(404, 'NOT_FOUND');
+        return new Response(found.bytes, { status: 200, headers: { 'content-type': type, 'cache-control': 'private, max-age=300', 'x-content-type-options': 'nosniff',
+          'content-security-policy': "default-src 'none'; sandbox" } });
+      }
       if (route === 'question') {
         const detail = getSnapshot().detail(url.searchParams.get('id'));
         return detail ? json(200, detail) : error(404, 'NOT_FOUND');
@@ -135,6 +169,19 @@ export function createAdminRoutes({ auth, jobs = null, getSnapshot, refreshSnaps
       if (!refreshSnapshot) return error(409, 'NO_RETAINED_BANK');
       await refreshSnapshot();
       return json(200, await overview());
+    }
+    if (studio && route.startsWith('ai/session/')) {
+      const id = typeof input.id === 'string' ? input.id : '';
+      const action = route.slice('ai/session/'.length);
+      if (action === 'create') return studioCall(() => studio.create(input.settings ?? {}));
+      if (action === 'settings') return studioCall(() => studio.update(id, input.settings ?? {}));
+      if (action === 'delete') return studioCall(() => studio.remove(id));
+      if (action === 'send') return studioCall(() => studio.send(id, { text: input.text, attachments: Array.isArray(input.attachments) ? input.attachments : [] }));
+      if (action === 'retry') return studioCall(() => studio.retry(id));
+      if (action === 'stop') return studioCall(() => studio.stop(id));
+      if (action === 'publish') return studioCall(() => studio.publish(id, { messageId: input.messageId, draftsOnly: input.draftsOnly === true }));
+      if (action === 'review-drafts') return studioCall(() => studio.reviewDrafts(id, { section: input.section, limit: input.limit }));
+      return error(404, 'NOT_FOUND');
     }
     if (route === 'generate') {
       if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');

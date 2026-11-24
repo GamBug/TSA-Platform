@@ -1,5 +1,35 @@
 # Architectural decisions and open questions
 
+## AI studio: chat writer and reviewer agents on the admin page — 2026-11-24
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-24.
+Evidence: the owner asked that the admin "could choose model AI agent and even prompt, send images/files if needed
+(almost like a AI chat, but just for question generate)", with a setup "totally complete that don't need to worry about
+error code stuff", that the "model even now could help admin auto check&approve ques", "no more manual ChatGPT Web
+Project", that Reading and Science "don't stand in separate question like math", and that generation be based on
+"exist ques in bank, online research". Asked in the same conversation, the owner chose: auto-publish as a switch per
+chat (off by default); the reviewer is a different agent from the writer by default; the writer may see any Bank
+question, corpus included.
+
+1. **AI studio.** The local admin page has a chat (`src/local/admin/ai-studio.mjs`, `AiStudio.tsx`) with a writer and a
+   reviewer chosen from the agents installed and signed in on the owner's computer (Claude Code, Codex, Antigravity;
+   OpenAI with a key), each with its model and effort. Attachments (pictures, PDF, text) reach the agent. Web search is
+   the agent's own tool. The public site has no studio.
+2. **Automatic repair.** Ids, batch id and fixed fields are set by the platform; validator, student-type and Bank dry-run
+   problems go back to the writer automatically, at most 3 rounds; questions that still fail are dropped and listed.
+3. **AI review and approval.** A second agent solves each question blind and returns PASS, FIX or REJECT. Only a batch in
+   which every remaining question passed is published by the **Auto-publish** switch; with the switch off (the default)
+   the owner presses **Publish**. For chats with the switch on, this owner decision replaces the rule that AI output
+   needs a human approval before students see it; validation still applies to every question, and the owner can
+   withhold any question afterwards. Publication is limited to the batch's own versions, whole passages only, and a
+   version with an open exact twin is never published by the studio.
+4. **Bank examples.** Matching APPROVED questions of the subject (Math single questions; Reading and Science whole
+   passages with all their questions) are sent to the writer's provider as style examples, under the owner's corpus
+   attestation of 2026-11-11.
+5. **Passage sizes follow the real test.** CREATE writes Reading passages of 10 questions (5 when asked) and Science
+   scenarios of 5, replacing "exactly 2 questions per passage" (HUST 2026 Đợt 1 in the corpus: Reading 2 texts × 10,
+   Science 8 texts × about 5). Guide: [admin page](../guides/ADMIN_PAGE.md#ai-studio).
+
 ## Question ids, identical images, three states, AI writers and the view-only public admin — 2026-11-24
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-24.

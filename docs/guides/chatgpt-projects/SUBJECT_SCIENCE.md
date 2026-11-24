@@ -26,8 +26,12 @@
 
 ## Writing good Science items (CREATE mode)
 
-- **Scenario first.** Put the scenario in `passages` (a few short paragraphs plus a `table` block of data) and write
-  **exactly 2 questions per passage**. A self-contained short question without a passage is fine too.
+- **Scenario first, several questions each, as in the real test** (HUST 2026, Đợt 1: 8 texts with about 5 questions
+  each). Put the scenario in `passages` (an introduction of several paragraphs: the phenomenon, the experiment or
+  model, the method, plus `table` blocks of data) and write **5 questions per passage** by default (the owner may
+  ask for 4 or 6). Never 2-question passages, and no standalone Science questions unless the owner asks.
+- The questions of one scenario build on each other: read the data, explain a mechanism, predict a value, judge a
+  conclusion or an experimental design, with the 4:3:3 EASY:MEDIUM:HARD mix.
 - **Data is synthetic and consistent.** Invent the measurements, then check that every number obeys the physics or
   chemistry you describe (units, conservation, plausible magnitudes). Use web search to check constants and facts
   (for example a specific heat, a reaction product, a biological mechanism) and keep the constants in the scenario so
@@ -51,7 +55,7 @@
 ## Example request lines the owner sends
 
 ```text
-CREATE · 4 scenarios (8 questions) · PHYSICS, CHEMISTRY, BIOLOGY, EXPERIMENT_DESIGN · batch letter A
-CREATE · 5 standalone PROBLEM_SOLVING questions · HARD · batch letter B
+CREATE · 2 scenarios (10 questions) · PHYSICS, BIOLOGY
+CREATE · 1 scenario · 5 questions · CHEMISTRY · equilibrium with a data table · HARD
 TRANSCRIBE · batch letter C · (PDF attached) · key is printed after each question
 ```

@@ -2,6 +2,8 @@
 //   npm run questions:inbox                                         dry run: checks every pasted file, writes nothing
 //   npm run questions:inbox -- --confirm "IMPORT 20"                imports the importable files and sorts every file
 //   npm run questions:inbox -- --setup [--confirm "REGISTER TAXONOMY"]   one time: register the practice pool
+//   npm run questions:inbox -- --only math/<file> [--report <file.json>]   check or import that one file only; the
+//                                                                   report is a JSON summary for the admin page
 // Paste each ChatGPT answer as a file in question-inbox/math, question-inbox/reading or question-inbox/science
 // (.json, .txt or .md; a ```json code block or bare JSON). A confirmed run registers each importable file as its own
 // OWNED source, imports its questions as DRAFTs into the pool (a backup is taken first), and moves the file to
@@ -76,8 +78,9 @@ export function chatGptFixMessage(problems, missingFigures = []) {
   return parts.join('\n\n');
 }
 
-/** Every pasted file, in a stable order, with its folder's subject and the figure files of that folder. */
-async function pastedFiles(inbox) {
+/** Every pasted file, in a stable order, with its folder's subject and the figure files of that folder. `only` keeps one
+ * "<folder>/<name>" file. */
+async function pastedFiles(inbox, only = null) {
   const files = [];
   for (const [folder, subject] of Object.entries(INBOX_SUBJECTS)) {
     const directory = path.join(inbox, folder);
@@ -87,6 +90,7 @@ async function pastedFiles(inbox) {
       .sort((a, b) => a.name.localeCompare(b.name));
     const figures = entries.filter((entry) => isFigureFile(entry.name)).map((entry) => path.join(directory, entry.name));
     for (const entry of entries) {
+      if (only !== null && only !== `${folder}/${entry.name}`) continue;
       if (PASTE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
         files.push({ subject, folder, name: entry.name, file: path.join(directory, entry.name), figures });
       }
@@ -146,8 +150,18 @@ async function sortInto(entry, outcome, problems = []) {
   return target;
 }
 
-export async function runInbox({ dataDirectory, inbox, confirm, imageStoreDirectory = DEFAULT_IMAGE_STORE(), log = (line) => process.stdout.write(`${line}\n`) }) {
-  const files = await pastedFiles(inbox);
+/** A JSON-ready summary of one run for the admin page's AI studio. Pure. */
+export function inboxReport(result) {
+  return {
+    taxonomyVersionId: result.taxonomyVersionId ?? null, phrase: result.phrase ?? null, imported: result.imported ?? 0,
+    createdVersionIds: result.createdVersionIds ?? [], twinVersionIds: result.twinVersionIds ?? [],
+    files: (result.checked ?? []).map((entry) => ({ folder: entry.folder, name: entry.name, writes: entry.writes ?? 0,
+      problems: entry.problems ?? [], missingFigures: (entry.missing ?? []).map((figure) => figure.fileName) })),
+  };
+}
+
+export async function runInbox({ dataDirectory, inbox, confirm, only = null, imageStoreDirectory = DEFAULT_IMAGE_STORE(), log = (line) => process.stdout.write(`${line}\n`) }) {
+  const files = await pastedFiles(inbox, only);
   const database = await startPersistentPostgres(dataDirectory);
   let taxonomyVersionId, checked = [];
   try {
@@ -215,21 +229,25 @@ export async function runInbox({ dataDirectory, inbox, confirm, imageStoreDirect
     createdVersionIds.push(...(result.created ?? []).map((row) => row.versionId));
     log(`Imported ${result.imported} DRAFT(s) from ${entry.folder}/${entry.name} -> ${path.relative(inbox, await sortInto(entry, 'imported'))}`);
   }
-  const twins = await openTwins(dataDirectory, createdVersionIds);
+  const twinVersionIds = await openTwinVersions(dataDirectory, createdVersionIds);
+  const twins = twinVersionIds.length;
   if (twins) log(`WARNING: ${twins} imported question(s) are exact copies of a question already in the Bank. While a twin is open, neither copy is served.\n`
     + '  Publish with --keep-one-of-twins to keep one of each pair.');
   log(`Imported ${imported} DRAFT(s) into the practice pool${figuresRegistered ? ` with ${figuresRegistered} figure(s)` : ''}. Review them, then publish:\n`
     + `  npm run bank:owner-publish -- --taxonomy-version ${taxonomyVersionId}${twins ? ' --keep-one-of-twins' : ''}\n`
     + 'Then restart the local demo, or upload the Bank to the live server (bash infra/server/upload-bank.sh).');
-  return { taxonomyVersionId, imported, phrase, checked, createdVersionIds, twins, figuresRegistered };
+  return { taxonomyVersionId, imported, phrase, checked, createdVersionIds, twins, twinVersionIds, figuresRegistered };
 }
 
-async function openTwins(dataDirectory, versionIds) {
-  if (versionIds.length === 0) return 0;
+/** The given versions that are one side of an open exact-duplicate relation. */
+async function openTwinVersions(dataDirectory, versionIds) {
+  if (versionIds.length === 0) return [];
   const database = await startPersistentPostgres(dataDirectory);
   try {
-    return (await database.ownerPool.query(`SELECT count(*)::integer AS count FROM tsa.duplicate_relations
-      WHERE kind='EXACT' AND resolution='OPEN' AND (left_version_id = ANY($1::uuid[]) OR right_version_id = ANY($1::uuid[]))`, [versionIds])).rows[0].count;
+    const rows = (await database.ownerPool.query(`SELECT left_version_id, right_version_id FROM tsa.duplicate_relations
+      WHERE kind='EXACT' AND resolution='OPEN' AND (left_version_id = ANY($1::uuid[]) OR right_version_id = ANY($1::uuid[]))`, [versionIds])).rows;
+    const wanted = new Set(versionIds);
+    return [...new Set(rows.flatMap((row) => [row.left_version_id, row.right_version_id]).filter((id) => wanted.has(id)))];
   } finally { await database.stop(); }
 }
 
@@ -242,13 +260,18 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--setup') options.setup = true;
     else if (args[index] === '--confirm' && typeof args[index + 1] === 'string') options.confirm = args[++index];
-    else { process.stderr.write('Usage: npm run questions:inbox -- [--setup] [--confirm "<phrase>"]\n'); process.exit(1); }
+    else if (args[index] === '--only' && /^(math|reading|science)\/[A-Za-z0-9._-]+$/.test(args[index + 1] ?? '')) options.only = args[++index];
+    else if (args[index] === '--report' && typeof args[index + 1] === 'string') options.report = args[++index];
+    else { process.stderr.write('Usage: npm run questions:inbox -- [--setup] [--only <folder>/<file>] [--report <file.json>] [--confirm "<phrase>"]\n'); process.exit(1); }
   }
   const dataDirectory = process.env.TRACK_B_DATA_DIRECTORY ?? path.join(ROOT, '.local', 'track-b');
   const inbox = process.env.TSA_QUESTION_INBOX ?? path.join(ROOT, 'question-inbox');
   try {
     if (options.setup) await setupPracticePool({ dataDirectory, confirm: options.confirm, log: (line) => process.stdout.write(`${line}\n`) });
-    else await runInbox({ dataDirectory, inbox, confirm: options.confirm });
+    else {
+      const result = await runInbox({ dataDirectory, inbox, confirm: options.confirm, only: options.only ?? null });
+      if (options.report) await writeFile(options.report, `${JSON.stringify(inboxReport(result), null, 2)}\n`, 'utf8');
+    }
   } catch (error) {
     process.stderr.write(`Inbox stopped: ${error.message}\nBackups taken before changes are in .local/track-b-backups/.\n`);
     process.exitCode = 1;

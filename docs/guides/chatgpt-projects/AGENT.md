@@ -98,8 +98,9 @@ Goal: **every** question in the material becomes a valid question, faithfully, w
    the figure with Python (matplotlib): exact values from your question, every point, axis and label the question
    names, white background, black or dark lines, at least 800 px wide, and nothing that gives the answer away. Save and
    share it exactly as in section 2.5 (same file names, same checks). The question must agree with the drawing.
-7. **Passages: exactly 2 questions each** (Reading and Science). A test takes a passage with all its questions, so
-   2-question passages always add up exactly to the 20 Reading or 40 Science questions of a section test.
+7. **Passages carry several questions, as in the real test** (HUST 2026, Đợt 1: Reading 2 texts × 10 questions,
+   Science 8 texts × about 5). Reading: 10 questions per passage (or 5 when asked); Science: 5 per scenario. A test
+   takes a passage with all its questions, so these sizes add up exactly to the 20 Reading or 40 Science questions.
 8. Add the tag `ai-original` to every question.
 
 ## 4. Ids and batch ids

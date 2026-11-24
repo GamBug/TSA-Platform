@@ -15,6 +15,7 @@ import { DEMO_SECTIONS, seedUniDemoOfferings } from './uni-demo-seed.mjs';
 import { createAdminAuth } from './admin/admin-auth.mjs';
 import { readBankSnapshot } from './admin/admin-bank.mjs';
 import { createAdminJobs } from './admin/admin-jobs.mjs';
+import { createAiStudio } from './admin/ai-studio.mjs';
 import { ADMIN_POST_BODY_LIMITS, ADMIN_ROUTE_PREFIX, createAdminRoutes } from './admin/admin-routes.mjs';
 
 export const UNI_DEMO_DEFAULT_PORT = 4180;
@@ -147,6 +148,8 @@ export async function startUniDemo({
   // Local admin page (loopback only): the question inbox it imports from, and the environment that may hold
   // DEMO_ADMIN_PASSWORD, OPENAI_API_KEY and OPENAI_MODEL.
   inboxDirectory = fileURLToPath(new URL('../../question-inbox', import.meta.url)),
+  // AI studio chats; beside a custom inbox (tests) so a test never writes the owner's .local folder.
+  aiStudioDirectory = null,
   adminEnv = process.env,
   // Injectable for tests: runs one admin job command.
   adminRunCommand,
@@ -216,7 +219,10 @@ export async function startUniDemo({
       } : null;
       const jobs = createAdminJobs({ dataDirectory: retained, inboxDirectory, imageStoreDirectory: imageStoreDirectory ?? undefined,
         ...(adminRunCommand ? { runCommand: adminRunCommand } : {}), onBankChanged: refreshSnapshot ?? undefined });
-      adminHandler = createAdminRoutes({ auth: createAdminAuth({ trustedOrigin: runtime.origin, env: adminEnv }), jobs,
+      const studioDirectory = aiStudioDirectory ?? (path.resolve(inboxDirectory) === path.resolve(fileURLToPath(new URL('../../question-inbox', import.meta.url)))
+        ? fileURLToPath(new URL('../../.local/ai-studio', import.meta.url)) : path.join(path.dirname(inboxDirectory), 'ai-studio'));
+      const studio = createAiStudio({ rootDirectory: studioDirectory, inboxDirectory, jobs, getSnapshot: () => snapshot, env: adminEnv });
+      adminHandler = createAdminRoutes({ auth: createAdminAuth({ trustedOrigin: runtime.origin, env: adminEnv }), jobs, studio,
         getSnapshot: () => snapshot, refreshSnapshot, imageStore, contentMode: mode, inboxDirectory, env: adminEnv });
     } else {
       // Public site: the owner signs in over https to look at the Bank this copy serves; nothing can be changed here.
