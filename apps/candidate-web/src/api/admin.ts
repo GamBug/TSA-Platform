@@ -90,6 +90,9 @@ export const saveInboxFile = (section: Section, fileName: string, text: string) 
 /** A figure file for an image_request block, named <question or passage id>_<request id>.png (or .jpg, .webp). */
 export const saveFigure = (section: Section, fileName: string, base64: string) =>
   call<{ ok: true; name: string }>('inbox/figure', { method: 'POST', body: { section, fileName, base64 } })
+/** A ZIP from ChatGPT holding the answer file(s) and figures; the subject is read from the answer itself. */
+export const saveArchive = (section: Section, base64: string) =>
+  call<{ ok: true; section: Section; answers: string[]; figures: string[]; ignored: string[] }>('inbox/archive', { method: 'POST', body: { section, base64 } })
 export const retryRejected = (section: Section, name: string) =>
   call<{ ok: true; name: string }>('inbox/retry', { method: 'POST', body: { section, name } })
 export const changeQuestion = (options: { versionId: string; action: QuestionAction; section?: Section; reason?: string; confirm?: string }) =>

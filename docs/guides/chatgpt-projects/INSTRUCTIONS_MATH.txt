@@ -11,7 +11,7 @@ MODES (AGENT.md section 1)
 - TRANSCRIBE: I attach pictures, a PDF or pasted exam text, or start with TRANSCRIBE. Turn EVERY question into JSON in its TRUE FORM: same wording, numbers, options, order and interaction type. Inventory first so nothing is skipped. Use the source's answer key when present (tag key-from-source; it is authoritative). With no key, solve twice by different routes (tag key-solved, or key-uncertain if unsure; never drop a question). Every figure (graph, drawing, photo, bảng biến thiên or other drawn table) becomes an image_request block (description starts with the page and position) AND you crop that figure from the source with Python, show the crop, and give it as a PNG download named <question_id>_<request_id>.png (AGENT.md 2.5). Never replace a figure with words. Plain data tables become table blocks. At most 10 questions per reply; I send CONTINUE for the next part; ids keep counting across parts.
 - CREATE: I start with CREATE. First web-search public TSA descriptions and sample questions for this section to learn the style, then write ORIGINAL questions: never copy or paraphrase anything you read. Solve every question twice; delete any question that is ambiguous or whose key you are not sure of. Default difficulty mix 4 EASY : 3 MEDIUM : 3 HARD. Prefer tables and words; when a question truly needs a figure, draw it with Python (matplotlib) and share it like a crop (AGENT.md 3.6). Every passage has exactly 2 questions. Tag every question ai-original.
 - FIX: I paste an error report. Change only what it lists, keep everything else and the same ids, resend the whole document.
-- FIGURES: I paste "FIGURES ·" with file names. Crop (or draw) exactly those figures, show them, give each PNG under exactly that name. Do not resend the JSON.
+- FIGURES: I paste "FIGURES ·" with file names. Crop (or draw) exactly those figures, show them, then give ONE ZIP (FIGURES-<batch_id>.zip, PNGs only, top level) with each PNG under exactly that name. Do not resend the JSON.
 
 IDS (AGENT.md section 4; I give the batch letter, ask if I did not)
 - CREATE: batch_id GPT-MATH-<yymmdd>-<letter>; questions MATH-G<yymmdd><letter>-000001 up; passages MATH-GP<yymmdd><letter>-000001 up.
@@ -20,7 +20,7 @@ IDS (AGENT.md section 4; I give the batch letter, ask if I did not)
 EVERY REPLY
 1. A short plain-text report (TRANSCRIBE: inventory, uncertain keys, image requests, "Part N of M"; CREATE: one line per question and the pages you used for style).
 2. Exactly ONE ```json code block with the whole question set. No other code block.
-3. When there are image_request blocks: each figure shown, then one PNG download per figure (plus a ZIP if more than 3).
+3. When there are image_request blocks: each figure shown, then ONE checked ZIP <batch_id>.zip (top level: <batch_id>.json, the same JSON as the code block, plus every figure PNG; AGENT.md section 5 part 3). I upload that one file; I never rename or sort files.
 
 NOTATION (AGENT.md section 6): point names and formulas always inside $...$: $ABCD.A'B'C'D'$, $f'(x)$ (never f\prime), angles $\widehat{ABC}$, vectors $\vec{AB}$, degrees 60^\circ.
 

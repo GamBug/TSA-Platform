@@ -1,13 +1,17 @@
 // HTTP routes of the local admin page, all under /local/admin/. Loopback demo only: the public demo never creates them.
 import { generateQuestions, generationStatus } from './admin-generate.mjs';
-import { INBOX_FOLDERS } from './admin-jobs.mjs';
+import { INBOX_FOLDERS, MAX_ARCHIVE_BYTES } from './admin-jobs.mjs';
 
 export const ADMIN_ROUTE_PREFIX = '/local/admin/';
 const MAX_BODY_BYTES = 1024 * 1024;
 // A figure arrives base64-encoded (4 bytes for every 3), up to the image library's 2 MiB.
 const MAX_FIGURE_BODY_BYTES = 3 * 1024 * 1024;
+// A ZIP of answers and figures is base64-encoded too, up to MAX_ARCHIVE_BYTES.
+const MAX_ARCHIVE_BODY_BYTES = Math.ceil(MAX_ARCHIVE_BYTES / 3) * 4 + 1024;
 const FIGURE_ROUTE = 'inbox/figure';
-export const ADMIN_POST_BODY_LIMITS = Object.freeze({ [`${ADMIN_ROUTE_PREFIX}${FIGURE_ROUTE}`]: MAX_FIGURE_BODY_BYTES });
+const ARCHIVE_ROUTE = 'inbox/archive';
+const BODY_LIMITS = Object.freeze({ [FIGURE_ROUTE]: MAX_FIGURE_BODY_BYTES, [ARCHIVE_ROUTE]: MAX_ARCHIVE_BODY_BYTES });
+export const ADMIN_POST_BODY_LIMITS = Object.freeze(Object.fromEntries(Object.entries(BODY_LIMITS).map(([route, limit]) => [`${ADMIN_ROUTE_PREFIX}${route}`, limit])));
 const HEADERS = Object.freeze({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
 
 const json = (status, payload, extra = {}) => new Response(JSON.stringify(payload), { status, headers: { ...HEADERS, ...extra } });
@@ -88,7 +92,7 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       auth.logout(session);
       return json(200, { authenticated: false }, { 'set-cookie': auth.clearedCookie() });
     }
-    const body = await readBody(request, route === FIGURE_ROUTE ? MAX_FIGURE_BODY_BYTES : MAX_BODY_BYTES);
+    const body = await readBody(request, BODY_LIMITS[route] ?? MAX_BODY_BYTES);
     if (body.tooLarge) return error(413, 'PAYLOAD_TOO_LARGE');
     if (!body.ok) return error(400, 'INVALID_REQUEST');
     const input = body.value;
@@ -98,6 +102,11 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');
       const result = await jobs.saveInboxFile({ section: section(input.section), fileName: input.fileName, text: input.text });
       return result.ok ? json(201, result) : error(400, result.code);
+    }
+    if (route === ARCHIVE_ROUTE) {
+      if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');
+      const result = await jobs.saveArchive({ section: section(input.section), base64: input.base64 });
+      return result.ok ? json(201, result) : error(400, result.code, result.message);
     }
     if (route === FIGURE_ROUTE || route === 'inbox/retry') {
       if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');

@@ -84,16 +84,18 @@ real full test. The inbox reads the batch id to record where the questions came 
 Only transcribe material that permission covers. The decision is recorded in
 [OPEN_DECISIONS 2026-11-22](../../decisions/OPEN_DECISIONS.md#transcribed-questions-in-the-practice-pool--2026-11-22).
 
-**Figures.** Save every PNG ChatGPT gives you in the same folder as the answer (`question-inbox/<subject>/`) without
-renaming it, or add them on the admin page (**Import & publish → Upload figures**, or **add image** next to each figure
-an answer needs). The inbox matches a file to its `image_request` block by name
+**Figures.** When a set has figures, ChatGPT ends its reply with **one ZIP**: the answer JSON plus every figure PNG,
+checked by Python before it is offered ([AGENT.md](AGENT.md) section 5, part 3). On the admin page choose
+**Import & publish → Upload ZIP or files** and pick that ZIP: nothing else to rename or sort. The page unpacks it into
+`question-inbox/<subject>/`, taking the subject from the answer. Loose files work too (the answer and its PNGs together,
+or **add image** next to a figure a rejected answer needs). The inbox matches a file to its `image_request` block by name
 (`<question or passage id>_<request id>.png`, `.jpg` or `.webp`; at most 2 MB and 4096 px a side). On import it
 registers the figure in the image library under the answer's own source (so a transcription's figures carry the same
 corpus rights), replaces the block with the image, and moves the PNG to `imported/` with its answer.
 
 A figure that is still missing rejects only its answer. The `.errors.txt` message then holds a `FIGURES · ...` request:
-paste it into the same ChatGPT chat, save the PNGs it gives, and move the answer back into the inbox (on the admin page:
-**Back to the inbox**). You can also crop a figure yourself with any screenshot tool and add it under the listed name.
+paste it into the same ChatGPT chat, upload the ZIP of PNGs it gives (it can be uploaded on its own), and move the answer
+back into the inbox (on the admin page: **Back to the inbox**). You can also crop a figure yourself with any screenshot tool and add it under the listed name.
 
 **Do not transcribe questions that are already in the Bank.** An exact copy of a served question opens an
 exact-duplicate relation that hides the served original until it is resolved (`--keep-one-of-twins`).

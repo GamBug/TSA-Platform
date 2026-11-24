@@ -43,8 +43,9 @@ rejects the whole file. Putting the date and a letter in the id (`G261120A`, `G2
 
 1. Copy ChatGPT's code block (use its Copy button) into a new file in `question-inbox/math/`, `reading/` or `science/`.
    `.json`, `.txt` and `.md` all work; text around the code block is ignored. The folder is git-ignored because the
-   files contain answer keys. Save the figure PNGs ChatGPT gives (named `<question id>_NEW-IMG-001.png`) in the same
-   folder, unrenamed.
+   files contain answer keys. Easier: when the set has figures, ChatGPT gives one ZIP (answer and figures together).
+   Upload it on the admin page (**Import & publish → Upload ZIP or files**) and skip the folder; the page unpacks it into
+   the right folder by the subject written in the answer. Without the admin page, unzip it into the folder, unrenamed.
 2. `npm run questions:inbox` checks every file and writes nothing. For each rejected file it prints a message to paste
    back into that ChatGPT chat; replace the file with the corrected answer.
 3. Run the printed command, for example `npm run questions:inbox -- --confirm "IMPORT 20"`. Each good file is
@@ -74,8 +75,8 @@ exactly to 20 or 40.
 
 - **`WRONG_FOLDER`**: a question's subject does not match its folder. Move the file or fix the subject.
 - **`ASSET_REQUIRED`** or **`FIGURE_INVALID`**: a figure file is missing or is not a readable PNG, JPEG or WebP. The
-  message is a `FIGURES · ...` request listing the exact file names; paste it into the same ChatGPT chat, save the PNGs
-  in the folder and move the answer back from `rejected/`. A supplied figure is registered in the image library under
+  message is a `FIGURES · ...` request listing the exact file names; paste it into the same ChatGPT chat, upload
+  the ZIP it gives on the admin page (or save the PNGs in the folder) and move the answer back from `rejected/`. A supplied figure is registered in the image library under
   the answer's source when the import is confirmed ([details](chatgpt-projects/README.md#where-the-output-goes-the-inbox-for-both-modes)).
 - **`DUPLICATE_ACROSS_FILES`** or **`CONTENT_VERSION_CONFLICT`**: an id is reused. Ask ChatGPT to renumber from a new prefix.
 - **Exact twin warning** after import: a question is identical to one already in the Bank, and neither is served until

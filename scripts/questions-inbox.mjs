@@ -68,7 +68,7 @@ export function chatGptFixMessage(problems, missingFigures = []) {
   }
   if (missingFigures.length) {
     parts.push(['FIGURES · The platform needs these figures as image files. With Python, crop each one from the pages I sent',
-      '(or draw it, for a question you created), show it to me, and give every PNG as a download named exactly:', '',
+      '(or draw it, for a question you created), show it to me, and put every PNG into ONE ZIP (PNG files only, no folders) to download,', 'with each file named exactly:', '',
       ...missingFigures.map((figure) => `- ${figure.fileName}  (${figure.unreadable ? 'the file I saved could not be read; make it again. ' : ''}`
         + `${figure.description.replace(/\s+/g, ' ').slice(0, 160)})`),
       '', 'Do not change the JSON for this.'].join('\n'));

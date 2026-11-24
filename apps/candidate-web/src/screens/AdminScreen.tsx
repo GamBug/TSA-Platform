@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AdminError, adminImageUrl, adminLogin, adminLogout, adminSession, changeQuestion, generate, loadInbox, loadOverview, loadQuestion, loadQuestions,
-  refreshBank, retryRejected, runInbox, runPublish, saveFigure, saveInboxFile, SECTION_NAMES, SECTIONS, setupPool,
+  refreshBank, retryRejected, runInbox, runPublish, saveArchive, saveFigure, saveInboxFile, SECTION_NAMES, SECTIONS, setupPool,
   type GenerateResult, type InboxFile, type InboxListing, type JobResult, type Overview, type QuestionAction, type QuestionDetail,
   type QuestionSummary, type Section,
 } from '@/api/admin'
@@ -381,9 +381,27 @@ function InboxTab({ overview, onError, onBankChanged }: { overview: Overview; on
     setBusy(true); setNotice(null)
     try { await action() } catch (failure) { onError(failure) } finally { setBusy(false) }
   }
+  // One control for everything ChatGPT gives back: the answer file(s), the figure images, or one ZIP holding both.
+  // The subject comes from the answer's own "subject" field; the selector is only the fallback.
   const upload = (files: FileList | null) => work(async () => {
-    for (const file of Array.from(files ?? [])) await saveInboxFile(section, file.name, await file.text())
-    setNotice(`Saved ${files?.length ?? 0} file(s) to the ${SECTION_NAMES[section]} inbox. Press "Check the inbox" next.`)
+    const list = Array.from(files ?? [])
+    const kind = (file: File) => /\.zip$/i.test(file.name) ? 'zip' : /\.(png|jpe?g|webp)$/i.test(file.name) ? 'figure' : 'answer'
+    const answerTexts = new Map<File, string>()
+    for (const file of list) if (kind(file) === 'answer') answerTexts.set(file, await file.text())
+    const detected = [...answerTexts.values()].map((text) => /"subject"\s*:\s*"(MATH|READING|SCIENCE)"/.exec(text)?.[1] as Section | undefined).find(Boolean)
+    const target = detected ?? section
+    let answers = 0, figures = 0
+    const ignored: string[] = []
+    for (const file of list) {
+      const type = kind(file)
+      if (type === 'answer') { await saveInboxFile(target, file.name, answerTexts.get(file) ?? ''); answers += 1 }
+      else if (type === 'figure') { await saveFigure(target, file.name, await fileBase64(file)); figures += 1 }
+      else {
+        const saved = await saveArchive(target, await fileBase64(file))
+        answers += saved.answers.length; figures += saved.figures.length; ignored.push(...saved.ignored)
+      }
+    }
+    setNotice(`Saved ${answers} answer file(s) and ${figures} figure(s) to the ${SECTION_NAMES[target]} inbox.${ignored.length ? ` Ignored: ${ignored.join(', ')}.` : ''} Press "Check the inbox" next.`)
     setCheck(null); await reload()
   })
   // Figures: ChatGPT names its PNG downloads the way the inbox expects; an own crop is saved under a named slot.
@@ -429,26 +447,21 @@ function InboxTab({ overview, onError, onBankChanged }: { overview: Overview; on
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-testid="admin-inbox">
       <section className="border border-rule-strong rounded-[3px] bg-paper-sheet p-4">
-        <h2 className="font-semibold">1. Add question files</h2>
-        <p className="mt-1 text-sm text-ink-secondary">ChatGPT answers in the <code>tsa-question-set/1</code> format (.json, .txt or .md). They go to <code>question-inbox/</code> on this computer.</p>
-        <label className="mt-3 grid gap-1 text-sm font-semibold max-w-[16rem]">Subject
+        <h2 className="font-semibold">1. Add what ChatGPT gave you</h2>
+        <p className="mt-1 text-sm text-ink-secondary">Upload the ZIP ChatGPT offers (it holds the answer and its figures), or the answer file (<code>tsa-question-set/1</code> as .json, .txt or .md) and the figure images together. Everything goes to <code>question-inbox/</code> on this computer, sorted by the subject written in the answer.</p>
+        <label className="mt-3 grid gap-1 text-sm font-semibold max-w-[16rem]">Subject (only if the files do not say)
           <select className={inputClass} value={section} onChange={(e) => setSection(e.target.value as Section)} data-testid="admin-inbox-section">
             {SECTIONS.map((value) => <option key={value} value={value}>{SECTION_NAMES[value]}</option>)}
           </select>
         </label>
-        <label className="mt-3 grid gap-1 text-sm font-semibold">Upload files
-          <input type="file" multiple accept=".json,.txt,.md,application/json,text/plain,text/markdown" disabled={busy}
+        <label className="mt-3 grid gap-1 text-sm font-semibold">Upload ZIP or files
+          <input type="file" multiple accept=".zip,.json,.txt,.md,.png,.jpg,.jpeg,.webp,application/zip,application/json,text/plain,text/markdown,image/png,image/jpeg,image/webp" disabled={busy}
             onChange={(e) => { void upload(e.target.files); e.target.value = '' }} data-testid="admin-inbox-upload" />
         </label>
         <label className="mt-3 grid gap-1 text-sm font-semibold">…or paste one answer
           <textarea className={`${inputClass} min-h-[8rem] py-2 font-mono text-xs`} value={pasted} onChange={(e) => setPasted(e.target.value)} data-testid="admin-inbox-paste" />
         </label>
         <button type="button" className={`${buttonClass.secondary} mt-2`} disabled={busy || !pasted.trim()} onClick={savePaste} data-testid="admin-inbox-save-paste">Save pasted answer</button>
-        <label className="mt-4 grid gap-1 text-sm font-semibold">Upload figures
-          <span className="font-normal text-ink-secondary">PNG, JPEG or WebP named like <code>MATH-S261122A-000031_NEW-IMG-001.png</code>, as ChatGPT names them. Figures of a rejected file can also be added one by one below.</span>
-          <input type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={busy}
-            onChange={(e) => { void uploadFigures(section, e.target.files); e.target.value = '' }} data-testid="admin-figure-upload" />
-        </label>
         {notice && <div className="mt-3"><Notice tone="success" testId="admin-inbox-notice">{notice}</Notice></div>}
         {inbox && <InboxFiles inbox={inbox} busy={busy} onFigure={uploadFigures} onRetry={retry} />}
       </section>

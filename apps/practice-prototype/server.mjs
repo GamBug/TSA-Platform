@@ -10,7 +10,7 @@ import { createMockApiService } from "./src/mock-api.mjs";
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 4173;
 const MAX_REQUEST_BYTES = 32 * 1024;
-const MAX_LOCAL_POST_BYTES = 3 * 1024 * 1024;
+const MAX_LOCAL_POST_BYTES = 36 * 1024 * 1024;
 
 const PUBLIC_FILES = new Map([
   ["/", "public/index.html"],
@@ -282,7 +282,7 @@ export function createPrototypeServer({
   const postLimits = new Map(Object.entries(localPostBodyLimits));
   for (const [pathname, limit] of postLimits) {
     if (!pathname.startsWith("/local/") || !Number.isSafeInteger(limit) || limit < 1 || limit > MAX_LOCAL_POST_BYTES) {
-      throw new TypeError("localPostBodyLimits must map local paths to positive byte limits of at most 3 MiB");
+      throw new TypeError("localPostBodyLimits must map local paths to positive byte limits of at most 36 MiB");
     }
   }
   const handle = createPrototypeHandler({ mockService, studentOnly: publicOrigin !== null });

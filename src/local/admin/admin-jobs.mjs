@@ -9,12 +9,16 @@ import { fileURLToPath } from 'node:url';
 import { extractJson } from '../../../scripts/questions-inbox.mjs';
 import { sniffMediaType } from '../../modules/bank/image-library.mjs';
 import { FIGURE_EXTENSIONS, imageRequests, parseFigureName } from '../inbox-figures.mjs';
+import { readZip, ZipError } from '../zip-reader.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 export const INBOX_FOLDERS = Object.freeze({ MATH: 'math', READING: 'reading', SCIENCE: 'science' });
 const PASTE_EXTENSIONS = new Set(['.json', '.txt', '.md']);
 export const MAX_INBOX_FILE_BYTES = 900 * 1024;
 export const MAX_FIGURE_BYTES = 2 * 1024 * 1024;
+// One ZIP from ChatGPT holds the answer file(s) and every figure of a batch.
+export const MAX_ARCHIVE_BYTES = 24 * 1024 * 1024;
+const MAX_ARCHIVE_ENTRIES = 100;
 export const QUESTION_CHANGE_ACTIONS = Object.freeze(['PUBLISH', 'WITHHOLD', 'RESTORE', 'MOVE']);
 const ERRORS_SUFFIX = '.errors.txt';
 const MAX_OUTPUT = 64 * 1024;
@@ -33,6 +37,13 @@ export function inboxFileName(requested, stamp) {
   const extension = path.extname(base).toLowerCase();
   const name = PASTE_EXTENSIONS.has(extension) ? base : `${base || 'pasted'}.json`;
   return `${stamp}-${name}`;
+}
+
+/** The error code for figure bytes the inbox cannot take, or null. Pure. */
+function figureProblem(bytes) {
+  if (bytes.byteLength === 0) return 'EMPTY_FILE';
+  if (bytes.byteLength > MAX_FIGURE_BYTES) return 'FILE_TOO_LARGE';
+  return sniffMediaType(bytes) ? null : 'FIGURE_NOT_IMAGE';
 }
 
 const timestamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
@@ -126,13 +137,64 @@ export function createAdminJobs({ dataDirectory, inboxDirectory = path.join(ROOT
       if (!parseFigureName(name)) return { ok: false, code: 'FIGURE_NAME_INVALID' };
       if (typeof base64 !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) return { ok: false, code: 'EMPTY_FILE' };
       const bytes = Buffer.from(base64, 'base64');
-      if (bytes.byteLength === 0) return { ok: false, code: 'EMPTY_FILE' };
-      if (bytes.byteLength > MAX_FIGURE_BYTES) return { ok: false, code: 'FILE_TOO_LARGE' };
-      if (!sniffMediaType(bytes)) return { ok: false, code: 'FIGURE_NOT_IMAGE' };
+      const problem = figureProblem(bytes);
+      if (problem) return { ok: false, code: problem };
       const directory = path.join(inboxDirectory, folder);
       await mkdir(directory, { recursive: true });
       await writeFile(path.join(directory, name), bytes);
       return { ok: true, section, name };
+    },
+
+    /**
+     * Save a ZIP from ChatGPT: every answer file (.json, .txt, .md) and every figure named by the inbox convention goes
+     * to the subject's inbox folder; other entries are ignored and reported. The subject is read from the answer's own
+     * "subject" field (`section` is the fallback for an archive of figures only). Nothing is written unless the whole
+     * archive is acceptable.
+     */
+    async saveArchive({ section, base64 }) {
+      if (typeof base64 !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) return { ok: false, code: 'EMPTY_FILE' };
+      const archive = Buffer.from(base64, 'base64');
+      if (archive.byteLength > MAX_ARCHIVE_BYTES) return { ok: false, code: 'FILE_TOO_LARGE' };
+      let entries;
+      try { entries = readZip(archive, { maxEntries: MAX_ARCHIVE_ENTRIES, maxEntryBytes: MAX_FIGURE_BYTES, maxTotalBytes: MAX_ARCHIVE_BYTES }); }
+      catch (error) { if (error instanceof ZipError) return { ok: false, code: error.code, message: error.message }; throw error; }
+
+      const answers = [], figures = [], ignored = [];
+      for (const entry of entries) {
+        const name = path.basename(entry.name);
+        const extension = path.extname(name).toLowerCase();
+        if (name.startsWith('.') || entry.name.startsWith('__MACOSX/')) continue;
+        if (PASTE_EXTENSIONS.has(extension)) {
+          if (entry.data.byteLength > MAX_INBOX_FILE_BYTES) return { ok: false, code: 'FILE_TOO_LARGE', message: `${name} is too large.` };
+          const text = entry.data.toString('utf8');
+          if (text.trim() === '') { ignored.push(name); continue; }
+          answers.push({ name, text });
+        } else if (FIGURE_EXTENSIONS.includes(extension) && parseFigureName(name)) {
+          const problem = figureProblem(entry.data);
+          if (problem) return { ok: false, code: problem, message: `${name} is not a usable figure.` };
+          figures.push({ name, bytes: entry.data });
+        } else ignored.push(name);
+      }
+      const names = [...answers, ...figures].map(({ name }) => name);
+      const repeated = names.find((name, index) => names.indexOf(name) !== index);
+      if (repeated) return { ok: false, code: 'ARCHIVE_DUPLICATE_NAME', message: `The archive holds ${repeated} more than once.` };
+      if (answers.length === 0 && figures.length === 0) return { ok: false, code: 'ARCHIVE_EMPTY', message: 'The archive holds no answer file and no figure named like MATH-S261122A-000031_NEW-IMG-001.png.' };
+
+      const subjects = new Set(answers.map(({ text }) => {
+        const subject = extractJson(text).document?.questions?.[0]?.subject;
+        return Object.hasOwn(INBOX_FOLDERS, subject) ? subject : null;
+      }).filter(Boolean));
+      if (subjects.size > 1) return { ok: false, code: 'MIXED_SUBJECTS', message: 'The archive mixes answers of different subjects.' };
+      const target = subjects.size === 1 ? [...subjects][0] : section;
+      const folder = INBOX_FOLDERS[target];
+      if (!folder) return { ok: false, code: 'INVALID_SECTION' };
+
+      const directory = path.join(inboxDirectory, folder);
+      await mkdir(directory, { recursive: true });
+      const stamp = timestamp();
+      for (const figure of figures) await writeFile(path.join(directory, figure.name), figure.bytes);
+      for (const answer of answers) await writeFile(path.join(directory, inboxFileName(answer.name, stamp)), answer.text, { encoding: 'utf8', flag: 'wx' });
+      return { ok: true, section: target, answers: answers.map(({ name }) => name), figures: figures.map(({ name }) => name), ignored };
     },
 
     /** Move a rejected file back into its inbox folder (after its figures were added or its JSON replaced). */

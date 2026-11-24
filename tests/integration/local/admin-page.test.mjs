@@ -14,6 +14,7 @@ import { batchDate, createMessage, generateQuestions, nextBatchLetter } from '..
 import { startUniDemo } from '../../../src/local/uni-demo.mjs';
 import { startPersistentPostgres } from '../../../src/local/postgres.mjs';
 import { migrate } from '../../../src/modules/database/migrate.mjs';
+import { buildZip } from '../../ai/fixtures/zip-builder.mjs';
 import { buildRehearsalSource } from '../../../scripts/uni-demo-rehearsal-source.mjs';
 
 const ORIGIN = 'http://127.0.0.1:4180';
@@ -295,7 +296,49 @@ test('the local admin can upload an exact 2 MiB figure through HTTP', { timeout:
     assert.equal((await upload(image, 'inbox/file')).status, 413, 'other routes retain the 1 MiB request limit');
     assert.equal((await upload(figureOfSize(3 * 1024 * 1024))).status, 413, 'figure request envelopes are capped too');
     assert.deepEqual(await readFile(path.join(inboxDirectory, 'math', fileName)), image);
+
+    // One ZIP of several full-size figures passes the envelope limit that a single figure may not.
+    const archive = buildZip([['MATH-S1-000002_NEW-IMG-001.png', image, 0], ['MATH-S1-000003_NEW-IMG-001.png', image, 0], ['MATH-S1-000004_NEW-IMG-001.png', image, 0]]);
+    const sent = await fetch(`${origin}/local/admin/inbox/archive`, { method: 'POST', headers: { ...jsonHeaders, cookie, 'x-admin-csrf': csrf },
+      body: JSON.stringify({ section: 'MATH', base64: archive.toString('base64') }) });
+    const sentBody = await sent.json();
+    assert.equal(sent.status, 201, JSON.stringify(sentBody));
+    assert.equal(sentBody.figures.length, 3);
+    assert.deepEqual(await readFile(path.join(inboxDirectory, 'math', 'MATH-S1-000004_NEW-IMG-001.png')), image);
   } finally {
     try { await demo?.close(); } finally { await rm(root, { recursive: true, force: true }); }
   }
+});
+
+// ChatGPT hands over one ZIP with the answer and its figures; the admin uploads it once and the files land sorted.
+test('admin jobs unpack one ZIP of an answer and its figures into the subject inbox', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tsa-admin-archive-'));
+  try {
+    const jobs = createAdminJobs({ dataDirectory: path.join(root, 'bank'), inboxDirectory: path.join(root, 'inbox'), runCommand: async () => ({ exitCode: 0, output: '' }) });
+    const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: '#000' } }).png().toBuffer();
+    const answer = Buffer.from(JSON.stringify({ format: 'tsa-question-set/1', batch_id: 'SRC-SCIENCE-261124-A-P1', passages: [],
+      questions: [{ question_id: 'SCIE-S261124A-000001', subject: 'SCIENCE', content_blocks: [{ type: 'image_request', request_id: 'NEW-IMG-001', description: 'g', alt: 'g' }] }] }));
+    const upload = (entries, section = 'MATH') => jobs.saveArchive({ section, base64: buildZip(entries).toString('base64') });
+
+    const saved = await upload([['SRC-SCIENCE-261124-A-P1.json', answer], ['figures/SCIE-S261124A-000001_NEW-IMG-001.png', png, 0],
+      ['notes.txt.bak', Buffer.from('x')], ['page22.png', png, 0], ['__MACOSX/._x.png', png, 0]]);
+    assert.deepEqual(saved, { ok: true, section: 'SCIENCE', answers: ['SRC-SCIENCE-261124-A-P1.json'], figures: ['SCIE-S261124A-000001_NEW-IMG-001.png'],
+      ignored: ['notes.txt.bak', 'page22.png'] }, 'the subject comes from the answer, not from the selector; other files are reported');
+    const listing = (await jobs.listInbox()).SCIENCE;
+    assert.equal(listing.pending.count, 1);
+    assert.deepEqual(listing.pending.items[0].figures, ['SCIE-S261124A-000001_NEW-IMG-001.png']);
+    assert.equal(listing.figures.count, 1);
+    assert.deepEqual(await readFile(path.join(root, 'inbox', 'science', 'SCIE-S261124A-000001_NEW-IMG-001.png')), png);
+    assert.equal((await jobs.listInbox()).MATH.pending.count, 0);
+
+    // A figure-only archive uses the selected subject; a bad archive writes nothing.
+    assert.equal((await upload([['MATH-S1-000001_NEW-IMG-001.png', png, 0]], 'MATH')).section, 'MATH');
+    assert.equal((await upload([['MATH-S1-000002_NEW-IMG-001.png', png, 0], ['MATH-S1-000003_NEW-IMG-001.png', Buffer.from('<svg/>'), 0]])).code, 'FIGURE_NOT_IMAGE');
+    assert.equal((await jobs.listInbox()).MATH.figures.count, 1, 'the good figure of a refused archive was not saved');
+    assert.equal((await upload([['readme.pdf', Buffer.from('x')]])).code, 'ARCHIVE_EMPTY');
+    assert.equal((await upload([['a/MATH-S1-000009_NEW-IMG-001.png', png, 0], ['b/MATH-S1-000009_NEW-IMG-001.png', png, 0]])).code, 'ARCHIVE_DUPLICATE_NAME');
+    assert.equal((await upload([['a.json', Buffer.from(JSON.stringify({ questions: [{ subject: 'MATH' }] }))], ['b.json', Buffer.from(JSON.stringify({ questions: [{ subject: 'READING' }] }))]])).code, 'MIXED_SUBJECTS');
+    assert.equal((await jobs.saveArchive({ section: 'MATH', base64: Buffer.from('not a zip file at all, just text').toString('base64') })).code, 'ZIP_INVALID');
+    assert.equal((await jobs.saveArchive({ section: 'MATH', base64: '***' })).code, 'EMPTY_FILE');
+  } finally { await rm(root, { recursive: true, force: true }); }
 });

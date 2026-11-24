@@ -67,8 +67,7 @@ Goal: **every** question in the material becomes a valid question, faithfully, w
      labels, axes, letters and numbers and leaving out the question text around it. Do not redraw, recolour or retouch.
      Save it as PNG, at most 2 MB and 4096 px a side, named `<question_id>_<request_id>.png` (for a passage figure
      `<passage_id>_<request_id>.png`), for example `MATH-S261122A-000031_NEW-IMG-001.png`. Show every crop in the chat
-     so the owner can check it, then give a download link for each PNG, plus one ZIP of all of them when there are more
-     than three. If a page is too blurred to crop, still crop it and tag the question `figure-low-quality`.
+     so the owner can check it, then put every PNG into the one ZIP of the reply (section 5, part 3). If a page is too blurred to crop, still crop it and tag the question `figure-low-quality`.
 6. **Passages.** A shared text (Reading passage, Science experiment description) is one entry in `passages`, and every
    question about it has `passage_ref`. Keep the source's grouping: a passage keeps all its questions, however many.
 7. **Long material.** At most 10 questions per reply. Number the parts: part 1 has the first 10 questions, the owner
@@ -130,8 +129,16 @@ Every reply has exactly these parts, in this order:
      "Part N of M; send CONTINUE for the next part" when more remain.
    - CREATE: one line per question: id, difficulty, type, one-line summary. Then the web pages you used for style.
 2. **One ```json code block** holding the whole question set and nothing else. Only one code block per reply.
-3. **Figure files**, when the set has `image_request` blocks: each crop or drawing shown in the chat, then a download
-   link per PNG named as in section 4 (and a ZIP when there are more than three). These are files, not code blocks.
+3. **One ZIP**, when the set has `image_request` blocks: first show each crop or drawing in the chat, then build the
+   ZIP with Python (`zipfile`, `ZIP_DEFLATED`) and give ONE download link. The owner uploads that single file on the admin
+   page and the program does the rest, so it must be complete:
+   - Name: `<batch_id>.zip` (for example `SRC-MATH-261122-A-P4.zip`).
+   - Contents, all at the top level (no folders): `<batch_id>.json`, the exact JSON of the code block (write the same
+     string to the file; do not retype it), plus one PNG per `image_request`, named as in section 4.
+   - Before you offer it, check it with Python: reopen the ZIP, `json.loads` the JSON file, and confirm that every
+     `image_request` has a file `<question_or_passage_id>_<request_id>.png` in the ZIP and that each PNG opens and is at most
+     2 MB. Fix what fails, then say in one line: "ZIP checked: N figures for N image requests".
+   - The ZIP is a file, not a code block. With no `image_request` block there is no ZIP: the code block is enough.
 
 ## 6. Self-check before sending (do it every time)
 
@@ -174,7 +181,8 @@ listed question cannot be fixed with certainty: in CREATE mode remove it; in TRA
 **FIGURES.** The owner pastes a list of figure file names the platform still needs (it starts with `FIGURES ·`). For
 each name, find its `image_request` in this chat (the question id and request id are in the name), crop the figure from
 the source pages already in this chat (TRANSCRIBE) or draw it (CREATE) as in section 2.5 or 3.6, show it, and give the
-PNG for download under exactly that name. Do not send the JSON again: it is already correct. If the source is no longer
+PNG under exactly that name, and put them all in one ZIP named `FIGURES-<batch_id>.zip` (PNGs only, top level, checked as in
+section 5 part 3). Do not send the JSON again: it is already correct. If the source is no longer
 available in this chat, say so and ask the owner to attach that page again.
 
 ## 8. Never
