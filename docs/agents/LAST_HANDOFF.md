@@ -1,8 +1,31 @@
-# Current handoff — QA follow-up (2026-11-23)
+# Current handoff — one ZIP upload on the admin page; Math corrections confirmed (2026-11-24)
 
-The owner authorized this single-agent Codex repair on `feat/track-b-data-auth` on 2026-11-23. The changes are local
-commits. Bank and browser checks used disposable databases, including physical copies for the real corpus checks.
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's request to finish and commit the ZIP upload and to
+  apply the seven prepared Math corrections if they are correct. Branch `feat/track-b-data-auth`.
+- Done: `src/local/zip-reader.mjs` (dependency-free reader with entry, size and unpacked-size limits; ZIP64, encrypted
+  and multi-disk archives refused); `POST /local/admin/inbox/archive` saves the answer file(s) and inbox-named figures of
+  one ZIP into the subject folder read from the answer, refusing the whole archive on a bad figure, mixed subjects or a
+  repeated file name; the admin page has one "Upload ZIP or files" control; the ChatGPT Project files ask for one ZIP.
+- Math corrections: the seven items of `data/corpus-ingest/audit-2026-11-16/corrections-verification.json` were already
+  applied in the retained Bank (six served corrected version 2s, one withheld). A dry run on a copy reports all seven as
+  done, and each corrected key was re-derived independently (11 progressions; 480 and 45 360; x = 2/3, y = 1/3; 222 under
+  the continuous reading, 210 if tons must be whole; −10.53 rounds to −11; minimum √2/2 at 60°). Nothing was changed.
+- Verification: `test:admin` 9 (now includes the ZIP reader tests), `test:question-inbox` 5, candidate-web typecheck,
+  `test:demo:uni:browser` PASS. `docs:check` still reports only the known tracked `INSTRUCTIONS_*.txt` files.
+- Open: the owner uploads the changed Project files (`AGENT.md`, `INSTRUCTIONS_*.txt`) into the three ChatGPT Projects;
+  not tried with a real ChatGPT ZIP yet. The diamond question (222) reads tons as continuous; the owner may prefer 210.
+
+# Previous handoff — QA follow-up (2026-11-23)
+
+The owner authorized this single-agent Codex repair on `feat/track-b-data-auth` on 2026-11-23. GitHub has the repair
+commits through `ec56009`. Bank and browser checks used disposable databases, including physical copies for the real corpus checks.
 The retained Bank and the separate QA worktree are unchanged. [QA findings](../../plans/261123-1449-qa-full-test/reports/SUMMARY.md).
+
+**Launch deployment.** Release `demo-261123-rc1` (`ec56009`) went live on 2026-11-23 at 22:54 Asia/Bangkok.
+The VPS service is active, its startup Bank backup completed, and the public app served the new bundle and security
+headers. Two synthetic guests verified isolation, full 40/20/40 simulation grading and 40-question Math practice
+grading. The previous release `demo-261120-rc6-5-g9f21e78` is still on the VPS for rollback.
+[Live student app](https://tsa.smartnovi.tech/student/).
 
 | Finding | Commit | Result |
 |---|---|---|

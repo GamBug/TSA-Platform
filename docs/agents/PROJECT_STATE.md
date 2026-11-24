@@ -23,9 +23,12 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-24 (ZIP upload): the admin page takes one ZIP from ChatGPT (answer plus figures) and sorts it into the inbox by
+  the answer's subject. The seven 2026-11-16 Math corrections are confirmed applied and re-checked. [Handoff](LAST_HANDOFF.md).
 - 2026-11-23 (QA follow-up). Verified the real test assembly against the owner's twin decision. Fixed move approval,
   demo response headers, student phone layout and keyboard input, Reading credit display and the admin figure upload
-  limit in local commits. The public guest test still has its known fixture failure. [Verification and open findings](LAST_HANDOFF.md).
+  limit. Release `demo-261123-rc1` is live with verified guest isolation and test grading. The public guest integration
+  test still has its known fixture failure. [Verification and open findings](LAST_HANDOFF.md).
 - 2026-11-23 (math, figures, question changes): formulas render with KaTeX's own fonts, so primes, angle hats and
   vector arrows are clear; ChatGPT crops or draws figures as named PNGs that the inbox registers and attaches; the admin
   publishes, withholds, restores or moves single questions (`npm run bank:question`). See the
