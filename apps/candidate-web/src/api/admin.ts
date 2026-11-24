@@ -1,4 +1,4 @@
-// Client for the local admin routes (/local/admin/*). They exist only on the loopback demo.
+// Client for the admin routes (/local/admin/*): full on the loopback demo, view-only on the public site.
 import type { ContentBlock } from './types'
 
 export type Section = 'MATH' | 'READING' | 'SCIENCE'
@@ -6,12 +6,22 @@ export const SECTIONS: Section[] = ['MATH', 'READING', 'SCIENCE']
 export const SECTION_NAMES: Record<Section, string> = { MATH: 'Math', READING: 'Reading', SCIENCE: 'Science' }
 
 export interface QuestionSummary {
-  versionId: string; questionId: string; versionNo: number; section: Section; state: string; eligible: boolean
+  versionId: string; questionId: string; versionNo: number; section: Section; state: AdminState; eligible: boolean
+  /** The id to search for: the exchange id of an imported question, else Q- and the first 8 hex digits of the question. */
+  displayId: string; imageCodes: string[]
   interactionType: string; domainId: string; taxonomy: string; taxonomyName: string; exchangeId: string | null
   hasPassage: boolean; hasKey: boolean; preview: string; createdAt: string
 }
 
-export interface QuestionDetail extends Omit<QuestionSummary, 'hasPassage' | 'hasKey' | 'preview'> {
+/** The owner's three states; the Bank's IN_REVIEW shows as DRAFT, REJECTED and RETIRED as QUARANTINED. */
+export type AdminState = 'DRAFT' | 'APPROVED' | 'QUARANTINED'
+export const ADMIN_STATES: AdminState[] = ['DRAFT', 'APPROVED', 'QUARANTINED']
+
+export interface QuestionDetail extends Omit<QuestionSummary, 'hasPassage' | 'hasKey' | 'preview' | 'imageCodes'> {
+  /** The Bank's own workflow state behind `state`. */
+  workflowState: string
+  /** Readable library code of every image the version shows, by asset version id. */
+  imageCodes: Record<string, string>
   schemaVersion: string; quarantineReason: string | null; skillIds: string[]; cognitiveLevel: string | null
   difficulty: { target?: string | null } | null
   content: ContentBlock[]; interaction: Record<string, any>; passage: ContentBlock[] | null
@@ -22,8 +32,13 @@ export interface QuestionDetail extends Omit<QuestionSummary, 'hasPassage' | 'ha
 export interface Overview {
   contentMode: 'PUBLISHED' | 'REHEARSAL'; readAt: string; total: number
   counts: Partial<Record<Section, Record<string, number>>>; practicePoolTaxonomyId: string | null
-  jobs: { available: boolean; running: string | null }; generation: { configured: boolean; model: string }; canRefresh: boolean
+  jobs: { available: boolean; running: string | null }; canRefresh: boolean
+  generation: { configured: boolean; model: string | null; providers: GenerationProvider[] }
+  /** The public site: the Bank can be viewed, nothing can be changed. */
+  readOnly: boolean
 }
+
+export interface GenerationProvider { id: string; label: string; available: boolean }
 
 export interface JobResult { ok: boolean; code?: string; exitCode?: number; output: string; confirmation: string | null }
 
@@ -34,7 +49,7 @@ export type QuestionAction = 'PUBLISH' | 'WITHHOLD' | 'RESTORE' | 'MOVE'
 
 export interface GenerateResult {
   ok: boolean; code?: string; message?: string; status?: number; file?: string; batchId?: string; model?: string
-  questions?: number; problems?: string[]; report?: string
+  questions?: number; problems?: string[]; report?: string; provider?: string
 }
 
 export class AdminError extends Error {
@@ -52,7 +67,7 @@ async function call<T>(path: string, init: { method?: 'GET' | 'POST'; body?: unk
     response = await fetch(`/local/admin/${path}`, { method, headers, credentials: 'same-origin', cache: 'no-store',
       ...(method === 'POST' ? { body: JSON.stringify(init.body ?? {}) } : {}) })
   } catch {
-    throw new AdminError('The local demo server is not reachable.', 'NETWORK', 0)
+    throw new AdminError('The demo server is not reachable.', 'NETWORK', 0)
   }
   const data = await response.json().catch(() => null) as any
   if (!response.ok && !(path === 'generate' && data && typeof data.ok === 'boolean')) {
@@ -102,5 +117,5 @@ export const setupPool = (confirm?: string) => call<JobResult>('pool/setup', { m
 export const runPublish = (options: { section: Section | null; keepOneOfTwins: boolean; confirm?: string }) =>
   call<JobResult>('publish', { method: 'POST', body: { ...options, ...(options.section ? {} : { section: undefined }) } })
 export const refreshBank = () => call<Overview>('refresh', { method: 'POST' })
-export const generate = (section: Section, topic: string, count: number) =>
-  call<GenerateResult>('generate', { method: 'POST', body: { section, topic, count } })
+export const generate = (section: Section, topic: string, count: number, provider: string) =>
+  call<GenerateResult>('generate', { method: 'POST', body: { section, topic, count, provider } })

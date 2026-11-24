@@ -28,8 +28,8 @@ async function state(dataDirectory, exchangeId) {
   } finally { await database.stop(); }
 }
 
-// The admin changes one question at a time through the owner workflow: publish a draft, withhold and restore a
-// published question, and move a question to another section as a new version (immutable history is kept).
+// The admin changes one question at a time through the owner workflow: publish a draft, withhold a published question,
+// return it to draft and publish it again, and move a question to another section as a new version (immutable history is kept).
 test('the owner publishes, withholds, restores and moves single questions', { timeout: 900_000 }, async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'question-change-'));
   try {
@@ -66,7 +66,11 @@ test('the owner publishes, withholds, restores and moves single questions', { ti
     assert.deepEqual((await state(dataDirectory, 'MATH-C1-000001')).map((row) => row.state), ['QUARANTINED']);
     assert.match((await run(first.id, 'MOVE', { section: 'SCIENCE' })).problem, /restore it first/);
 
+    // A withheld question never returns straight to service: it goes back to a draft, then Publish serves it.
     await confirmed(first.id, 'RESTORE');
+    assert.deepEqual((await state(dataDirectory, 'MATH-C1-000001')).map((row) => [row.state, row.served === true]), [['IN_REVIEW', false]]);
+    assert.match((await run(first.id, 'RESTORE')).problem, /Only a withheld/);
+    await confirmed(first.id, 'PUBLISH');
     assert.deepEqual((await state(dataDirectory, 'MATH-C1-000001')).map((row) => [row.state, row.served]), [['APPROVED', true]]);
 
     // Moving a published question serves the new version in the new section at once.

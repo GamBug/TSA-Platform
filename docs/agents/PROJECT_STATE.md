@@ -23,6 +23,9 @@ The owner's [2026-11-07 direction](../decisions/OPEN_DECISIONS.md#university-dem
 
 ## Current checkpoint
 
+- 2026-11-24 (admin ids, states, AI writers, public view): question ids and image codes on the admin page; pixel-identical
+  images are one library image; three states with Back to draft before Publish; AI questions through Codex, Claude Code
+  or Antigravity on the owner's computer; AdminBao can view the Bank on the public site, read-only. [Handoff](LAST_HANDOFF.md).
 - 2026-11-24 (ZIP upload): the admin page takes one ZIP from ChatGPT (answer plus figures) and sorts it into the inbox by
   the answer's subject. The seven 2026-11-16 Math corrections are confirmed applied and re-checked. [Handoff](LAST_HANDOFF.md).
 - 2026-11-23 (QA follow-up). Verified the real test assembly against the owner's twin decision. Fixed move approval,

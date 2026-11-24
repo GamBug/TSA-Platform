@@ -1,22 +1,30 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  AdminError, adminImageUrl, adminLogin, adminLogout, adminSession, changeQuestion, generate, loadInbox, loadOverview, loadQuestion, loadQuestions,
+  ADMIN_STATES, AdminError, adminImageUrl, adminLogin, adminLogout, adminSession, changeQuestion, generate, loadInbox, loadOverview, loadQuestion, loadQuestions,
   refreshBank, retryRejected, runInbox, runPublish, saveArchive, saveFigure, saveInboxFile, SECTION_NAMES, SECTIONS, setupPool,
-  type GenerateResult, type InboxFile, type InboxListing, type JobResult, type Overview, type QuestionAction, type QuestionDetail,
+  type AdminState, type GenerateResult, type InboxFile, type InboxListing, type JobResult, type Overview, type QuestionAction, type QuestionDetail,
   type QuestionSummary, type Section,
 } from '@/api/admin'
 import { ContentBlocks } from '@/content/ContentBlocks'
 import { buttonClass, Notice } from '@/ui/Shell'
 import type { ContentBlock } from '@/api/types'
 
-// The owner's admin page on the local demo: the whole Bank, the question inbox, publication and AI questions.
-// It is in English (owner-facing); question text stays as written.
+// The owner's admin page. On the local demo: the whole Bank, the question inbox, publication and AI questions. On the
+// public site the same page only shows the Bank (overview.readOnly). It is in English (owner-facing); question text
+// stays as written.
 
 const messageOf = (error: unknown) => (error as AdminError)?.message || 'The request did not complete.'
 const sessionLost = (error: unknown) => [401, 403].includes((error as AdminError)?.status)
 const inputClass = 'min-h-[44px] px-3 text-sm bg-paper-sheet text-ink border border-rule-strong rounded-[3px] focus:border-ink'
 const PAGE_SIZE = 50
-const STATES = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'QUARANTINED', 'RETIRED']
+const STATES = ADMIN_STATES
+
+/** A copy of content blocks whose images show their library code as a caption, so a figure can be found by its code. */
+function labelImages(blocks: ContentBlock[] | null | undefined, codes: Record<string, string>): ContentBlock[] | null | undefined {
+  if (!blocks) return blocks
+  return blocks.map((block) => block.type === 'image' && codes[block.assetVersionId]
+    ? { ...block, caption: [codes[block.assetVersionId], block.caption].filter(Boolean).join(' · ') } : block)
+}
 
 type Tab = 'questions' | 'inbox' | 'ai'
 
@@ -47,9 +55,9 @@ function AdminLogin({ message, onSignedIn }: { message: string | null; onSignedI
   }
   return (
     <main className="flex-1 px-5 py-10 sm:px-10 sm:py-14 max-w-[560px]">
-      <p className="text-xs font-semibold text-ink-secondary mb-3">Local demo · this computer only</p>
+      <p className="text-xs font-semibold text-ink-secondary mb-3">Owner only</p>
       <h1 className="font-display text-[32px] leading-[1.1] font-semibold text-ink">Admin sign-in</h1>
-      <p className="mt-3 text-sm text-ink-secondary">Students do not need an account. The admin page is not available on the public site.</p>
+      <p className="mt-3 text-sm text-ink-secondary">Students do not need an account. On the public site the admin page only shows the questions; changes are made on the owner's computer.</p>
       {(error || message) && <div className="mt-6"><Notice tone={error ? 'error' : 'info'} testId="admin-login-message">{error ?? message}</Notice></div>}
       <form onSubmit={submit} className="mt-6 grid gap-4" data-testid="admin-login">
         <label className="grid gap-1 text-sm font-semibold">Username
@@ -74,6 +82,7 @@ function AdminWorkspace({ onSessionLost, onSignedOut }: { onSessionLost: (text?:
     try { setOverview(await loadOverview()) } catch (failure) { fail(failure) }
   }, [fail])
   useEffect(() => { void reloadOverview() }, [reloadOverview])
+  const tabs: Tab[] = overview?.readOnly ? ['questions'] : ['questions', 'inbox', 'ai']
   const bankChanged = useCallback(async () => { await reloadOverview(); setBankVersion((value) => value + 1) }, [reloadOverview])
   const signOut = async () => { try { await adminLogout() } catch { /* the session ends either way */ } onSignedOut() }
 
@@ -85,11 +94,12 @@ function AdminWorkspace({ onSessionLost, onSignedOut }: { onSessionLost: (text?:
           {overview && (
             <p className="text-xs text-ink-secondary" data-testid="admin-overview">
               {overview.total} question versions · {overview.contentMode === 'REHEARSAL' ? 'rehearsal content' : 'real Bank'} · read {new Date(overview.readAt).toLocaleString()}
+              {overview.readOnly ? ' · view only (public site)' : ''}
             </p>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {(['questions', 'inbox', 'ai'] as Tab[]).map((key) => (
+          {tabs.map((key) => (
             <button key={key} type="button" aria-pressed={tab === key} data-testid={`admin-tab-${key}`} onClick={() => setTab(key)}
               className={`px-3 min-h-[40px] text-xs font-semibold border rounded-[3px] cursor-pointer ${tab === key ? 'bg-ink text-paper-sheet border-ink' : 'bg-paper-sheet text-ink border-rule-strong hover:border-ink'}`}>
               {key === 'questions' ? 'All questions' : key === 'inbox' ? 'Import & publish' : 'AI questions'}
@@ -102,9 +112,9 @@ function AdminWorkspace({ onSessionLost, onSignedOut }: { onSessionLost: (text?:
       {overview && <CountsTable overview={overview} />}
       {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
       <div className="mt-6">
-        {tab === 'questions' && <QuestionsTab bankVersion={bankVersion} canChange={overview?.jobs.available === true} onError={fail} onBankChanged={bankChanged} />}
-        {tab === 'inbox' && overview && <InboxTab overview={overview} onError={fail} onBankChanged={bankChanged} />}
-        {tab === 'ai' && overview && <AiTab overview={overview} onError={fail} onGoToInbox={() => setTab('inbox')} />}
+        {tab === 'questions' && <QuestionsTab bankVersion={bankVersion} canChange={overview?.jobs.available === true && !overview.readOnly} onError={fail} onBankChanged={bankChanged} />}
+        {tab === 'inbox' && overview && !overview.readOnly && <InboxTab overview={overview} onError={fail} onBankChanged={bankChanged} />}
+        {tab === 'ai' && overview && !overview.readOnly && <AiTab overview={overview} onError={fail} onGoToInbox={() => setTab('inbox')} />}
       </div>
     </main>
   )
@@ -147,7 +157,8 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
     const needle = search.trim().toLowerCase()
     return (items ?? []).filter((item) => (!section || item.section === section) && (!stateName || item.state === stateName)
       && (!type || item.interactionType === type)
-      && (!needle || item.preview.toLowerCase().includes(needle) || (item.exchangeId ?? '').toLowerCase().includes(needle)
+      && (!needle || item.preview.toLowerCase().includes(needle) || item.displayId.toLowerCase().includes(needle)
+        || item.imageCodes.some((code) => code.toLowerCase().includes(needle)) || item.questionId.includes(needle)
         || item.versionId.includes(needle) || item.taxonomy.toLowerCase().includes(needle)))
   }, [items, section, stateName, type, search])
   useEffect(() => { setPage(0) }, [section, stateName, type, search])
@@ -168,7 +179,7 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
           <select aria-label="Type" className={inputClass} value={type} onChange={(e) => setType(e.target.value)}>
             <option value="">All types</option>{types.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
-          <input aria-label="Search" placeholder="Search text, id, taxonomy" className={`${inputClass} flex-1 min-w-[12rem]`} value={search} onChange={(e) => setSearch(e.target.value)} data-testid="admin-search" />
+          <input aria-label="Search" placeholder="Search text, question id (Q-…, MATH-…), image code (IMG-…), taxonomy" className={`${inputClass} flex-1 min-w-[12rem]`} value={search} onChange={(e) => setSearch(e.target.value)} data-testid="admin-search" />
         </div>
         <p className="mt-3 text-xs text-ink-secondary" data-testid="admin-result-count">{filtered.length} of {items.length} versions</p>
         <ul className="mt-2 divide-y divide-rule border border-rule rounded-[3px] bg-paper-sheet" data-testid="admin-question-list">
@@ -178,9 +189,10 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
                 data-testid="admin-question-item"
                 className={`w-full text-left px-3 py-2 cursor-pointer hover:bg-paper ${selected === item.versionId ? 'bg-ochre-wash' : ''}`}>
                 <span className="flex flex-wrap gap-2 text-[11px] font-semibold text-ink-secondary">
+                  <span className="font-mono text-ink" data-testid="admin-question-id">{item.displayId}</span>
                   <span>{SECTION_NAMES[item.section]}</span><StateBadge state={item.state} eligible={item.eligible} />
                   <span>{item.interactionType}</span><span>v{item.versionNo}</span>
-                  {item.exchangeId && <span className="font-mono">{item.exchangeId}</span>}
+                  {item.imageCodes.length > 0 && <span className="font-mono">{item.imageCodes.join(' ')}</span>}
                   {!item.hasKey && <span className="text-pen-red">no key</span>}
                 </span>
                 <span className="block mt-1 text-sm text-ink line-clamp-2">{item.preview || '(no text)'}</span>
@@ -205,12 +217,12 @@ function QuestionsTab({ bankVersion, canChange, onError, onBankChanged }: {
   )
 }
 
-function StateBadge({ state, eligible }: { state: string; eligible: boolean }) {
-  const tone = state === 'APPROVED' ? 'text-ink-green' : state === 'DRAFT' || state === 'IN_REVIEW' ? 'text-ochre' : 'text-pen-red'
+function StateBadge({ state, eligible }: { state: AdminState; eligible: boolean }) {
+  const tone = state === 'APPROVED' ? 'text-ink-green' : state === 'DRAFT' ? 'text-ochre' : 'text-pen-red'
   return <span className={tone}>{state}{state === 'APPROVED' && !eligible ? ' (superseded)' : ''}</span>
 }
 
-const ACTION_LABELS: Record<QuestionAction, string> = { PUBLISH: 'Publish', WITHHOLD: 'Withhold', RESTORE: 'Restore', MOVE: 'Move' }
+const ACTION_LABELS: Record<QuestionAction, string> = { PUBLISH: 'Publish', WITHHOLD: 'Withhold', RESTORE: 'Back to draft', MOVE: 'Move' }
 
 // One question at a time: check (writes nothing), then confirm with the printed phrase. Versions are immutable, so a
 // move adds a new version; the Bank is backed up before every change.
@@ -220,7 +232,7 @@ function QuestionActions({ detail, onError, onBankChanged }: { detail: QuestionD
   const [target, setTarget] = useState<Section>(SECTIONS.find((value) => value !== detail.section) ?? 'MATH')
   const [pending, setPending] = useState<{ action: QuestionAction; section?: Section; reason?: string } | null>(null)
   const [result, setResult] = useState<JobResult | null>(null)
-  const active = ['DRAFT', 'IN_REVIEW', 'APPROVED'].includes(detail.state)
+  const active = detail.state === 'DRAFT' || detail.state === 'APPROVED'
   const run = async (request: { action: QuestionAction; section?: Section; reason?: string }, confirm?: string) => {
     setBusy(true)
     try {
@@ -234,11 +246,11 @@ function QuestionActions({ detail, onError, onBankChanged }: { detail: QuestionD
     <section className="mt-4 border border-rule rounded-[3px] p-3" aria-label="Change status or section" data-testid="admin-question-actions">
       <h2 className="text-xs font-semibold text-ink-secondary">Change status or section</h2>
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        {['DRAFT', 'IN_REVIEW'].includes(detail.state) && (
+        {detail.state === 'DRAFT' && (
           <button type="button" className={buttonClass.secondary} disabled={busy} onClick={() => run({ action: 'PUBLISH' })} data-testid="admin-action-publish">Publish</button>
         )}
         {detail.state === 'QUARANTINED' && (
-          <button type="button" className={buttonClass.secondary} disabled={busy} onClick={() => run({ action: 'RESTORE' })} data-testid="admin-action-restore">Restore (publish again)</button>
+          <button type="button" className={buttonClass.secondary} disabled={busy} onClick={() => run({ action: 'RESTORE' })} data-testid="admin-action-restore">Back to draft</button>
         )}
         {active && (
           <>
@@ -278,15 +290,18 @@ function QuestionPanel({ versionId, bankVersion, canChange, onError, onBankChang
   // The panel is keyed by version; after a Bank change the details are re-read in place, keeping the change's result.
   useEffect(() => { loadQuestion(versionId).then(setDetail, onError) }, [versionId, bankVersion, onError])
   if (!detail) return <p role="status" className="text-sm text-ink-secondary">Loading the question…</p>
-  const blocks = (value: ContentBlock[] | null | undefined) => <ContentBlocks blocks={value} attemptId="" apiVersion="v1" imageSource={adminImageUrl} />
+  const blocks = (value: ContentBlock[] | null | undefined) => <ContentBlocks blocks={labelImages(value, detail.imageCodes)} attemptId="" apiVersion="v1" imageSource={adminImageUrl} />
+  const codes = [...new Set(Object.values(detail.imageCodes))]
   return (
     <article className="border border-rule-strong rounded-[3px] bg-paper-sheet p-4 sm:p-5 xl:sticky xl:top-20 max-h-none xl:max-h-[calc(100dvh-6rem)] overflow-y-auto" data-testid="admin-question">
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+        <dt className="font-semibold">ID</dt><dd className="font-mono" data-testid="admin-detail-id">{detail.displayId}</dd>
         <dt className="font-semibold">State</dt><dd><StateBadge state={detail.state} eligible={detail.eligible} />{detail.quarantineReason ? ` · ${detail.quarantineReason}` : ''}</dd>
         <dt className="font-semibold">Section</dt><dd>{SECTION_NAMES[detail.section]} · {detail.domainId} · {detail.skillIds.join(', ')}</dd>
         <dt className="font-semibold">Type</dt><dd>{detail.interactionType} · {detail.schemaVersion}{detail.difficulty?.target ? ` · ${detail.difficulty.target}` : ''}</dd>
         <dt className="font-semibold">Taxonomy</dt><dd>{detail.taxonomy}</dd>
         {detail.exchangeId && <><dt className="font-semibold">Exchange id</dt><dd className="font-mono">{detail.exchangeId} ({detail.batchId})</dd></>}
+        {codes.length > 0 && <><dt className="font-semibold">Images</dt><dd className="font-mono" data-testid="admin-detail-images">{codes.join(', ')}</dd></>}
         <dt className="font-semibold">Sources</dt><dd>{detail.sources.join('; ') || '—'}</dd>
         <dt className="font-semibold">Version</dt><dd className="font-mono break-all">v{detail.versionNo} · {detail.versionId}</dd>
       </dl>
@@ -314,7 +329,7 @@ function AnswerView({ detail }: { detail: QuestionDetail }) {
   const key = detail.answerKey
   const interaction = detail.interaction
   const options: { id: string; content: ContentBlock[] }[] = Array.isArray(interaction.options) ? interaction.options : []
-  const blocks = (value: ContentBlock[]) => <ContentBlocks blocks={value} attemptId="" apiVersion="v1" imageSource={adminImageUrl} />
+  const blocks = (value: ContentBlock[]) => <ContentBlocks blocks={labelImages(value, detail.imageCodes)} attemptId="" apiVersion="v1" imageSource={adminImageUrl} />
   const correct = new Set<string>(key?.type === 'SINGLE_CHOICE' ? [key.optionId] : key?.type === 'MULTIPLE_CHOICE' ? key.optionIds : [])
   return (
     <section className="mt-4" data-testid="admin-answer">
@@ -592,17 +607,25 @@ function AiTab({ overview, onError, onGoToInbox }: { overview: Overview; onError
   const [count, setCount] = useState(10)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<GenerateResult | null>(null)
-  if (!overview.generation.configured) return <ChatGptSteps />
+  const available = overview.generation.providers.filter((provider) => provider.available)
+  const [providerId, setProviderId] = useState(available.find((provider) => provider.id !== 'openai')?.id ?? available[0]?.id ?? '')
+  if (available.length === 0) return <ChatGptSteps />
+  const provider = available.find((item) => item.id === providerId) ?? available[0]
   const run = async () => {
     setBusy(true); setResult(null)
-    try { setResult(await generate(section, topic, count)) } catch (failure) { onError(failure) } finally { setBusy(false) }
+    try { setResult(await generate(section, topic, count, provider.id)) } catch (failure) { onError(failure) } finally { setBusy(false) }
   }
   return (
     <section className="border border-rule-strong rounded-[3px] bg-paper-sheet p-4 max-w-[760px]" data-testid="admin-ai">
-      <h2 className="font-semibold">Write new questions with OpenAI</h2>
-      <p className="mt-1 text-sm text-ink-secondary">Uses OPENAI_API_KEY (model {overview.generation.model}). Each run is one CREATE batch of up to 10 original questions, written with the same instructions as the ChatGPT Projects. The answer is saved to the inbox; nothing is imported or published until you check, import and publish it.</p>
+      <h2 className="font-semibold">Write new questions with AI</h2>
+      <p className="mt-1 text-sm text-ink-secondary">Codex, Claude Code and Antigravity run on this computer with the account they are signed in to (your subscription, no API cost). OpenAI needs OPENAI_API_KEY. Each run is one CREATE batch of up to 10 original questions, written with the same instructions as the ChatGPT Projects. The answer is saved to the inbox; nothing is imported or published until you check, import and publish it.</p>
       {!overview.jobs.available && <div className="mt-3"><Notice tone="info">Rehearsal mode has no real Bank; start the real demo with npm start.</Notice></div>}
       <div className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="grid gap-1 text-sm font-semibold">Writer
+          <select className={inputClass} value={provider.id} onChange={(e) => setProviderId(e.target.value)} data-testid="admin-ai-provider">
+            {available.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        </label>
         <label className="grid gap-1 text-sm font-semibold">Subject
           <select className={inputClass} value={section} onChange={(e) => setSection(e.target.value as Section)}>
             {SECTIONS.map((value) => <option key={value} value={value}>{SECTION_NAMES[value]}</option>)}
@@ -616,7 +639,7 @@ function AiTab({ overview, onError, onGoToInbox }: { overview: Overview; onError
         </label>
         <button type="button" className={buttonClass.primary} disabled={busy || !overview.jobs.available} onClick={run} data-testid="admin-ai-generate">Generate</button>
       </div>
-      {busy && <p role="status" className="mt-3 text-sm text-ink-secondary">Waiting for OpenAI… this can take a few minutes.</p>}
+      {busy && <p role="status" className="mt-3 text-sm text-ink-secondary">Waiting for {provider.label}… this can take several minutes.</p>}
       {result && (
         <div className="mt-4 grid gap-2">
           {result.ok ? (
@@ -625,7 +648,7 @@ function AiTab({ overview, onError, onGoToInbox }: { overview: Overview; onError
               {result.problems?.length ? ` The validator found ${result.problems.length} problem(s); the inbox check will list them.` : ' The validator found no problem.'}
             </Notice>
           ) : (
-            <Notice tone="error">{result.code === 'PROVIDER_ERROR' ? `OpenAI refused the request (${result.status}): ${result.message}` : `${result.code}${result.message ? `: ${result.message}` : ''}`}</Notice>
+            <Notice tone="error">{result.code === 'PROVIDER_ERROR' ? `${provider.label} did not finish (${result.status}): ${result.message}` : `${result.code}${result.message ? `: ${result.message}` : ''}`}</Notice>
           )}
           {result.report && <pre className="text-xs whitespace-pre-wrap bg-paper-recessed border border-rule rounded-[3px] p-3">{result.report}</pre>}
           {result.problems && result.problems.length > 0 && <pre className="text-xs whitespace-pre-wrap bg-paper-recessed border border-rule rounded-[3px] p-3">{result.problems.join('\n')}</pre>}
@@ -639,8 +662,8 @@ function AiTab({ overview, onError, onGoToInbox }: { overview: Overview; onError
 function ChatGptSteps() {
   return (
     <section className="border border-rule-strong rounded-[3px] bg-paper-sheet p-4 max-w-[860px] text-sm leading-relaxed" data-testid="admin-ai-steps">
-      <h2 className="font-semibold text-base">No API key: use a ChatGPT Project in the browser</h2>
-      <p className="mt-1 text-ink-secondary">AI generation through the API needs an OpenAI API key. Set it before starting the demo, then restart:
+      <h2 className="font-semibold text-base">No AI writer found: use a ChatGPT Project in the browser</h2>
+      <p className="mt-1 text-ink-secondary">The page runs Codex (<code>codex</code>), Claude Code (<code>claude</code>) or Antigravity (<code>agy</code>) when one is installed and signed in on this computer; restart the demo after installing one. An OpenAI API key works too:
         <code className="block mt-1 p-2 bg-paper-recessed border border-rule rounded-[3px]">OPENAI_API_KEY=sk-... npm start</code>
         (optional: <code>OPENAI_MODEL=...</code>). Without a key you can do the same work for free with your ChatGPT subscription:</p>
       <ol className="mt-3 list-decimal pl-5 grid gap-2">

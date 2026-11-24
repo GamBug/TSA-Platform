@@ -30,9 +30,32 @@ const SNAPSHOT_SQL = `
    ORDER BY v.section, v.created_at, v.question_id, v.version_no`;
 
 const IMAGE_SQL = `
-  SELECT a.id, a.content_hash, a.mime, a.byte_size
+  SELECT a.id, a.content_hash, a.mime, a.byte_size, l.asset_code
     FROM tsa.asset_versions a
+    LEFT JOIN tsa.image_asset_versions l ON l.asset_version_id = a.id
    WHERE a.mime IN ('image/png', 'image/jpeg', 'image/webp')`;
+
+// The owner works with three states (decision 2026-11-24). IN_REVIEW is a draft waiting for Publish; REJECTED and
+// RETIRED versions are out of service like a withheld one. The Bank keeps its own states underneath.
+const ADMIN_STATES = Object.freeze({ DRAFT: 'DRAFT', IN_REVIEW: 'DRAFT', APPROVED: 'APPROVED', QUARANTINED: 'QUARANTINED',
+  REJECTED: 'QUARANTINED', RETIRED: 'QUARANTINED' });
+export const adminState = (state) => ADMIN_STATES[state] ?? 'QUARANTINED';
+
+/** The short id the owner searches for: the exchange id of an imported question, else Q- and its first 8 hex digits. Pure. */
+export const displayId = (exchangeId, questionId) => exchangeId ?? `Q-${String(questionId).slice(0, 8).toUpperCase()}`;
+
+/** Every image asset version id used anywhere in a version (stem, options, passage, explanation). Pure. */
+export function imageIds(...values) {
+  const found = new Set();
+  const walk = (value) => {
+    if (Array.isArray(value)) { value.forEach(walk); return; }
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'image' && typeof value.assetVersionId === 'string') found.add(value.assetVersionId);
+    Object.values(value).forEach(walk);
+  };
+  values.forEach(walk);
+  return [...found];
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -56,7 +79,9 @@ function toDetail(row) {
     versionNo: row.version_no,
     schemaVersion: row.schema_version,
     section: row.section,
-    state: row.state,
+    state: adminState(row.state),
+    workflowState: row.state,
+    displayId: displayId(row.exchange_question_id ?? null, row.question_id),
     eligible: row.eligible === true,
     quarantineReason: row.quarantine_reason ?? null,
     domainId: row.domain_id,
@@ -87,6 +112,8 @@ export function toSummary(detail) {
     versionId: detail.versionId,
     questionId: detail.questionId,
     versionNo: detail.versionNo,
+    displayId: detail.displayId,
+    imageCodes: Object.values(detail.imageCodes),
     section: detail.section,
     state: detail.state,
     eligible: detail.eligible,
@@ -106,7 +133,14 @@ export function toSummary(detail) {
 export async function readBankSnapshot(pool) {
   const [versions, images, practicePoolTaxonomyId] = await Promise.all([pool.query(SNAPSHOT_SQL), pool.query(IMAGE_SQL),
     findPracticePool(pool)]);
-  const details = versions.rows.map(toDetail);
+  const codeOf = new Map(images.rows.map((row) => [row.id, row.asset_code ?? `IMG-${row.id.slice(0, 8).toUpperCase()}`]));
+  // Each version carries the readable code of every image it shows, keyed by asset version id.
+  const details = versions.rows.map((row) => {
+    const detail = toDetail(row);
+    const codes = Object.fromEntries(imageIds(detail.content, detail.interaction, detail.passage, detail.explanation)
+      .map((id) => [id, codeOf.get(id) ?? `IMG-${id.slice(0, 8).toUpperCase()}`]));
+    return Object.freeze({ ...detail, imageCodes: Object.freeze(codes) });
+  });
   const byId = new Map(details.map((detail) => [detail.versionId, detail]));
   const imageMeta = new Map(images.rows.map((row) => [row.id,
     Object.freeze({ contentHash: row.content_hash, mediaType: row.mime, byteSize: Number(row.byte_size) })]));

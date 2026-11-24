@@ -131,13 +131,14 @@ test('public mode serves the student app only, to one guest per browser', { time
   const source = await buildRehearsalSource({ counts: { MATH: 6, READING: 3, SCIENCE: 5 } });
   t.after(() => source.close());
   const demo = await startUniDemo({ mode: 'REHEARSAL', port: 0, sourceArchive: source,
-    publicOrigin: PUBLIC_ORIGIN, guestPool: 3, guestsPerHour: 100 });
+    publicOrigin: PUBLIC_ORIGIN, guestPool: 3, guestsPerHour: 100, adminEnv: { DEMO_ADMIN_PASSWORD: 'public-secret' } });
   let closed = false;
   t.after(async () => { if (!closed) await demo.close(); });
 
   assert.equal(demo.publicOrigin, PUBLIC_ORIGIN);
   assert.deepEqual([demo.urls.student, demo.urls.staff], [`${PUBLIC_ORIGIN}/student/`, null]);
-  assert.match(formatDemoSummary(demo), /PUBLIC MODE: student app and candidate APIs only/);
+  assert.match(formatDemoSummary(demo), /PUBLIC MODE: student app, candidate APIs and the view-only admin page/);
+  assert.equal(demo.urls.admin, `${PUBLIC_ORIGIN}/student/?page=admin`);
   assert.doesNotMatch(formatDemoSummary(demo), /Staff workspace/);
 
   await t.test('health, notice flag and security headers', async () => {
@@ -172,8 +173,6 @@ test('public mode serves the student app only, to one guest per browser', { time
       ['GET', '/app/staff.js'], ['GET', '/vendor/katex.mjs'], ['GET', '/fonts.css'], ['GET', '/mock/api'], ['POST', '/mock/api'],
       ['POST', '/'], ['GET', '/local/workspace/template'], ['GET', '/local/anything'],
       ['POST', '/local-auth/bootstrap'], ['POST', '/local-auth/login'], ['POST', '/local-auth/logout'],
-      // The admin page exists only on the loopback demo.
-      ['GET', '/local/admin/session'], ['POST', '/local/admin/login'], ['GET', '/local/admin/questions'], ['GET', '/local/admin/overview'],
       ['GET', '/api/v1/questions'], ['GET', '/api/v1/sources'], ['GET', '/api/v1/bank'], ['POST', '/api/v1/questions'],
       ['GET', '/api/v2/questions'], ['GET', '/api/v4/questions'], ['GET', '/api/v1'], ['GET', '/api/v5/anything'],
     ]) {
@@ -187,6 +186,39 @@ test('public mode serves the student app only, to one guest per browser', { time
     assert.notEqual(student.status, 404, '/student/ is served (or reports that the app is not built)');
     assert.equal((await call(demo, '/student')).status, 308);
     assert.equal((await call(demo, '/student/../package.json')).status, 404);
+  });
+
+  await t.test('the admin signs in over https and can only view the Bank', async () => {
+    const admin = (pathname, options = {}) => call(demo, `/local/admin/${pathname}`, options);
+    assert.deepEqual((await admin('session')).json(), { authenticated: false });
+    assert.equal((await admin('questions')).status, 401);
+    assert.equal((await admin('login', { method: 'POST', body: { username: 'AdminBao', password: 'wrong' } })).status, 401);
+    assert.equal((await admin('login', { method: 'POST', body: { username: 'AdminBao', password: 'public-secret' }, origin: 'https://evil.example' })).status, 403);
+    const login = await admin('login', { method: 'POST', body: { username: 'AdminBao', password: 'public-secret' } });
+    assert.equal(login.status, 200, login.text);
+    const cookie = login.setCookies.find((value) => value.startsWith('tsa_admin_session='));
+    assert.match(cookie, /; Secure/, 'the session cookie is https-only');
+    assert.match(cookie, /HttpOnly/);
+    const headers = { cookie: cookie.split(';', 1)[0] };
+    const overview = (await admin('overview', { headers })).json();
+    assert.equal(overview.readOnly, true);
+    assert.deepEqual(overview.generation.providers, [], 'no AI writer is offered on the server');
+    const items = (await admin('questions', { headers })).json().items;
+    assert.ok(items.length > 0);
+    assert.ok(items.every((item) => ['DRAFT', 'APPROVED', 'QUARANTINED'].includes(item.state) && item.displayId));
+    const detail = (await admin(`question?id=${items[0].versionId}`, { headers })).json();
+    assert.ok(detail.answerKey, 'the owner sees the key');
+    assert.equal(detail.displayId, items[0].displayId);
+
+    const mutation = { ...headers, 'x-admin-csrf': login.json().csrf };
+    assert.equal((await admin('inbox', { headers })).status, 404);
+    for (const route of ['inbox/run', 'inbox/file', 'inbox/figure', 'inbox/archive', 'inbox/retry', 'publish', 'pool/setup', 'refresh',
+      'generate', 'question/change']) {
+      const response = await admin(route, { method: 'POST', headers: mutation, body: { versionId: items[0].versionId, action: 'WITHHOLD', reason: 'not here', section: 'MATH' } });
+      assert.equal(response.status, 404, route);
+    }
+    assert.equal((await admin('logout', { method: 'POST', headers: mutation, body: {} })).status, 200);
+    assert.equal((await admin('questions', { headers })).status, 401, 'the session ended');
   });
 
   await t.test('a wrong Host or Origin is rejected', async () => {

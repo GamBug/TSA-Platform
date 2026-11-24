@@ -90,12 +90,13 @@ export function formatDemoSummary(demo) {
     `Numeric practice:  ${demo.urls.numeric}`,
     `Cloze/matching:    ${demo.urls.clozeMatching}`,
     `Full simulation:   ${demo.urls.simulation}`,
-    demo.publicOrigin ? `Reverse proxy target: ${demo.urls.listen} (forward the original Host header; health check: ${demo.urls.listen}/healthz)`
-      : `Admin (AdminBao):  ${demo.urls.admin}   (this computer only: full Bank, inbox import, publication, AI questions)`,
+    ...(demo.publicOrigin ? [`Reverse proxy target: ${demo.urls.listen} (forward the original Host header; health check: ${demo.urls.listen}/healthz)`,
+      `Admin (AdminBao):  ${demo.urls.admin}   (view only: the Bank this server serves, with keys; nothing can be changed)`]
+      : [`Admin (AdminBao):  ${demo.urls.admin}   (this computer only: full Bank, inbox import, publication, AI questions)`]),
     '',
     'Student links open the React student app (npm run build:student). Topic practice is paused until it is rebuilt.',
     '',
-    ...(demo.publicOrigin ? ['PUBLIC MODE: student app and candidate APIs only. Every visitor browser gets its own synthetic guest; staff paths answer 404.']
+    ...(demo.publicOrigin ? ['PUBLIC MODE: student app, candidate APIs and the view-only admin page. Every visitor browser gets its own synthetic guest; staff paths answer 404.']
       : ['Students press "Bắt đầu luyện tập" and get their own guest; only the admin page asks for a password.']),
     `Keep this terminal running. Ctrl+C stops the server and database and deletes the demo copy${mode === 'PUBLISHED' ? '; the private Bank gets no schema or data change' : ''}.`,
     'Guide: docs/guides/TRACK_B_SUPERVISOR_RUN_OF_SHOW.md',

@@ -1,4 +1,25 @@
-# Current handoff — one ZIP upload on the admin page; Math corrections confirmed (2026-11-24)
+# Current handoff — question ids, identical images, three states, AI writers, view-only public admin (2026-11-24)
+
+- Implementer: Claude Code (Opus 5.5), single agent, on the owner's request of 2026-11-24. Branch
+  `feat/track-b-data-auth`. [Decision](../decisions/OPEN_DECISIONS.md#question-ids-identical-images-three-states-ai-writers-and-the-view-only-public-admin--2026-11-24),
+  [guide](../guides/ADMIN_PAGE.md).
+- Done: admin list and detail show a question id (exchange id or `Q-` + 8 hex) and image library codes, all searchable
+  (`admin-bank.mjs`, `AdminScreen.tsx`); `registerImage` reuses a pixel-identical active asset of the same size; the
+  admin page shows DRAFT/APPROVED/QUARANTINED and **Back to draft** (`bank:question --restore`) now stops at the Bank's
+  IN_REVIEW, with **Publish** approving it through the confirmed-singleton path; `admin-generate.mjs` runs `codex`,
+  `claude` or `agy` found on PATH (no shell, empty temp directory) besides OpenAI; public mode serves the admin routes
+  read-only with a Secure cookie and a per-address lockout.
+- Verification: `test:admin` 10, `test:question-change` 2, `test:image-library` 6, `test:question-inbox` 5,
+  `test:demo:uni` 20, `test:student-web` 8, `test:b0` 112, `test:auth` 5, `test:critical:privacy` 2,
+  `test:demo:uni:browser` PASS, candidate-web typecheck and build. `uni-demo-public` 13 of 15 with the new view-only
+  admin subtest passing; the 2 failures are the known `blueprintVersionId` guest test and its parent. Real runs: one
+  question each from Codex (28 s), Claude Code (21 s) and Antigravity (89 s), all valid with no validator problem; on a
+  copy of the retained Bank a quarantined Math question went Back to draft, Publish, Withhold; the 65 library images
+  have no pixel-identical pair.
+- Open: a restored (IN_REVIEW) practice-pool question is published one at a time with **Publish**; the bulk Publish of
+  the Import tab was not tried on one.
+
+# Previous handoff — one ZIP upload on the admin page; Math corrections confirmed (2026-11-24)
 
 - Implementer: Claude Code (Opus 5.5), single agent, on the owner's request to finish and commit the ZIP upload and to
   apply the seven prepared Math corrections if they are correct. Branch `feat/track-b-data-auth`.

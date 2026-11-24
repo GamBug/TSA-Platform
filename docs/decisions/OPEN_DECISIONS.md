@@ -1,5 +1,33 @@
 # Architectural decisions and open questions
 
+## Question ids, identical images, three states, AI writers and the view-only public admin — 2026-11-24
+
+Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-24.
+Evidence: the owner asked that "Questions/Images of ques need ID so I could find it on admin panel", "Prevent Duplicate
+images of ques" (clarified: "100% the same, look-alike may be they just slightly change a small detail but make very
+different questions"), "Only need 3 grade of state: APPROVED, DRAFT, QUARANTINED; QUARANTINED can't go up straight into
+APPROVED -> need go to DRAFT first", "connect AI Gen Func with code agent like codex, agy, claude code", and that the
+admin account "could enter in live url, but only can view FULL question but CAN NOT modify them, import/publish ques,
+AI gen func". Chosen in the same conversation: the live site uses the same AdminBao password; deploy after the checks.
+
+1. **Ids.** Every question shows an id in the admin list and detail: its exchange id when it was imported
+   (`MATH-S261122A-000031`), otherwise `Q-` and the first 8 hex digits of its question id. Every image shows its
+   library code (`IMG-GEO-000123`) as a caption and in the detail. Both are searchable. Display only; no stored change.
+2. **Identical images are one image.** Registration reuses the library asset whose decoded pixels are exactly the same
+   (another file of the same picture: other compression, format or an alpha channel), besides byte-identical files. A
+   picture that differs in a single pixel stays a separate image. This replaces the earlier byte-only rule.
+3. **Three states for the owner.** The admin page shows DRAFT (the Bank's DRAFT and IN_REVIEW), APPROVED and
+   QUARANTINED (with REJECTED and RETIRED, none present). **Back to draft** returns a QUARANTINED question to the Bank's
+   IN_REVIEW, not served; a separate **Publish** approves it with the usual checks. The Bank's workflow enum is unchanged.
+4. **AI writers on the owner's computer.** The AI questions tab runs Codex (`codex exec`, read-only sandbox), Claude
+   Code (`claude -p`, no tools) or Antigravity (`agy --print`) when installed and signed in, using the owner's
+   subscriptions, in an empty temporary directory and without a shell. OpenAI with `OPENAI_API_KEY` remains an option.
+   The output goes to the inbox for the normal check, import and owner publication.
+5. **View-only admin on the public site.** `/student/?page=admin` signs AdminBao in over https (Secure cookie; wrong
+   passwords lock one address after 5, and all sign-ins after 50 in 15 minutes) and shows the Bank the server serves,
+   with keys and explanations. Every route that imports, publishes, changes or generates answers 404 there.
+   Guide: [admin page](../guides/ADMIN_PAGE.md).
+
 ## Clear math, figures from ChatGPT, and single-question changes — 2026-11-23
 
 Approval identity: human project owner in a Claude Code conversation, Asia/Bangkok, 2026-11-23.

@@ -187,11 +187,12 @@ export async function startUniDemo({
       publicDemo: publicOrigin === undefined ? null : { origin: publicOrigin, guestPool, guestsPerHour },
       localGuests: local ? {} : null,
       homeRedirect: local ? '/student/' : null,
-      localRoutePrefix: local ? ADMIN_ROUTE_PREFIX : null,
+      // The admin page: full on the loopback demo, view-only on the public site.
+      localRoutePrefix: ADMIN_ROUTE_PREFIX,
       localPostBodyLimits: local ? ADMIN_POST_BODY_LIMITS : {},
       prepareDatabase: async (ownerPool) => {
         // The admin page reads the whole Bank once here, while the migration-owner connection is still open.
-        if (local) snapshot = await readBankSnapshot(ownerPool);
+        snapshot = await readBankSnapshot(ownerPool);
         // Public mode freezes the content for the life of this copy, so test creation can use cached checks.
         const speedups = publicOrigin === undefined ? null : await applyPublicDemoSpeedups(ownerPool);
         const report = await seedUniDemoOfferings(ownerPool, { offeringDays });
@@ -204,7 +205,7 @@ export async function startUniDemo({
         ? Response.json(local ? { ...notice, localGuests: { guestPath: PUBLIC_DEMO_GUEST_PATH, adminPath: ADMIN_PAGE_PATH } }
           : { ...notice, publicDemo: { enabled: true, guestPath: PUBLIC_DEMO_GUEST_PATH } }, { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
         : Response.json({ error: 'METHOD_NOT_ALLOWED' }, { status: 405 }),
-      ...(local ? { [ADMIN_ROUTE_PREFIX]: (request) => (adminHandler ? adminHandler(request) : ADMIN_UNAVAILABLE()) } : {}) },
+      [ADMIN_ROUTE_PREFIX]: (request, context) => (adminHandler ? adminHandler(request, context) : ADMIN_UNAVAILABLE()) },
     });
     if (local) {
       // Admin jobs write the owner's retained Bank (PUBLISHED mode only); this demo keeps serving its start-time copy.
@@ -217,6 +218,10 @@ export async function startUniDemo({
         ...(adminRunCommand ? { runCommand: adminRunCommand } : {}), onBankChanged: refreshSnapshot ?? undefined });
       adminHandler = createAdminRoutes({ auth: createAdminAuth({ trustedOrigin: runtime.origin, env: adminEnv }), jobs,
         getSnapshot: () => snapshot, refreshSnapshot, imageStore, contentMode: mode, inboxDirectory, env: adminEnv });
+    } else {
+      // Public site: the owner signs in over https to look at the Bank this copy serves; nothing can be changed here.
+      adminHandler = createAdminRoutes({ auth: createAdminAuth({ trustedOrigin: runtime.origin, env: adminEnv, secureCookie: true }),
+        getSnapshot: () => snapshot, imageStore, contentMode: mode, env: adminEnv, readOnly: true });
     }
   } catch (error) {
     // A failed database stop may leave a live postmaster; keep its directory for inspection then.
@@ -243,7 +248,7 @@ export async function startUniDemo({
     }) : Object.freeze({
       // No staff workspace exists in public mode; the proxy reaches the loopback listener at `listen`.
       staff: null,
-      admin: null,
+      admin: `${publicOrigin}${ADMIN_PAGE_PATH}`,
       student: `${publicOrigin}/student/`,
       simulation: `${publicOrigin}/student/?mode=simulation`,
       numeric: `${publicOrigin}/student/?mode=numeric`,

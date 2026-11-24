@@ -1,10 +1,11 @@
 // Reusable image library: stable readable codes (IMG-GEO-000123) over the Bank's content-addressed asset versions.
-// Registration decodes the file, deduplicates by SHA-256 only (visually similar images are never merged), stores the
+// Registration decodes the file, deduplicates identical files and pixel-identical pictures (the same picture saved again
+// as a different file; a picture that differs in even one pixel stays separate), stores the
 // bytes in the private image store and records one library asset. Functions take an owner/maintenance client or pool;
 // questions keep referencing asset versions by UUID, so published content and student delivery are unchanged.
 import { createHash, randomUUID } from 'node:crypto';
 import { inspectImage } from '../media/image-inspection.mjs';
-import { copyImageBytes, MAX_IMAGE_BYTES } from '../media/image-containers.mjs';
+import { copyImageBytes, MAX_IMAGE_BYTES, MAX_IMAGE_PIXELS } from '../media/image-containers.mjs';
 import { withTransaction } from '../database/pool.mjs';
 
 export const ASSET_CODE_PATTERN = /^IMG-[A-Z][A-Z0-9]{1,7}-[0-9]{6}$/;
@@ -43,6 +44,32 @@ export async function describeImage(input) {
   try { receipt = await inspectImage(bytes, { mediaType, contentHash: digest(bytes) }); }
   catch { fail('IMAGE_NOT_SUPPORTED', 'The image could not be decoded safely (corrupt, too large or too many pixels)'); }
   return { bytes, receipt };
+}
+
+/**
+ * Fingerprint of the decoded pixels, normalised to RGBA, so the same picture saved as PNG, WebP or with other metadata
+ * gives the same value. Called only for files the bounded inspection worker has already decoded within the limits.
+ */
+export async function pixelDigest(bytes) {
+  const { default: sharp } = await import('sharp');
+  const { data, info } = await sharp(bytes, { failOn: 'warning', limitInputPixels: MAX_IMAGE_PIXELS, animated: false })
+    .toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return `pixels:${info.width}x${info.height}:${createHash('sha256').update(data).digest('hex')}`;
+}
+
+/** An active library image with exactly the same pixels as this file (other bytes), or null. */
+async function findPixelTwin(client, imageStore, bytes, receipt) {
+  const candidates = (await client.query(`SELECT * FROM tsa.image_assets WHERE width = $1 AND height = $2 AND status = 'ACTIVE'
+    AND content_hash <> $3 ORDER BY asset_code`, [receipt.width, receipt.height, receipt.contentHash])).rows;
+  if (candidates.length === 0) return null;
+  const mine = await pixelDigest(bytes);
+  for (const candidate of candidates) {
+    let stored;
+    try { stored = await imageStore.read({ contentHash: candidate.content_hash, mediaType: candidate.media_type, byteSize: Number(candidate.byte_size) }); }
+    catch { continue; }
+    if (await pixelDigest(stored.bytes) === mine) return row(candidate);
+  }
+  return null;
 }
 
 export async function findByHash(client, contentHash) {
@@ -113,7 +140,7 @@ export async function registerImage(ownerPool, imageStore, { bytes, area, alt, t
   if (typeof sourceVersionId !== 'string' || !UUID.test(sourceVersionId)) fail('SOURCE_VERSION_REQUIRED', 'an existing source version id is required');
   if (!imageStore?.status?.().enabled) fail('IMAGE_STORE_DISABLED', 'The private image store is not enabled');
   const { bytes: image, receipt } = await describeImage(bytes);
-  const existing = await findByHash(ownerPool, receipt.contentHash);
+  const existing = await findByHash(ownerPool, receipt.contentHash) ?? await findPixelTwin(ownerPool, imageStore, image, receipt);
   if (existing) return { created: false, duplicateOf: existing.assetCode, ...existing };
   // Check the source before any bytes are stored, so a mistake leaves no orphaned object.
   if ((await ownerPool.query('SELECT 1 FROM tsa.source_versions WHERE id = $1', [sourceVersionId])).rowCount !== 1) {

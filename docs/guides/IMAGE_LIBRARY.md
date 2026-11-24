@@ -9,7 +9,7 @@ image delivery and answer privacy are unchanged. Migration `032_image_library.sq
 
 | Piece | Role |
 |---|---|
-| `tsa.image_assets` | One row per distinct file: code, SHA-256 `content_hash` (unique), media type, size, width, height, title, alt text, `status` (`ACTIVE`/`RETIRED`). |
+| `tsa.image_assets` | One row per distinct picture: code, SHA-256 `content_hash` (unique), media type, size, width, height, title, alt text, `status` (`ACTIVE`/`RETIRED`). |
 | `tsa.image_asset_versions` | Links a code to its existing `tsa.asset_versions` rows, one per purpose (`QUESTION`, `EXPLANATION`). |
 | `tsa.asset_versions` (existing) | What questions actually reference, by UUID, in `image` blocks and `question_assets`. |
 | Private image store (existing) | Content-addressed files under a private directory; never inside the public web root. |
@@ -46,7 +46,10 @@ npm run images -- retire IMG-GEO-000123 [--apply]
 dimensions and hash, stores the bytes and creates the asset. It also records the inspection the Bank requires, so the
 image is immediately usable by questions.
 
-- **Duplicates**: a byte-identical file returns the existing asset and writes nothing, whatever title or area is given.
+- **Duplicates**: a byte-identical file, or another file of exactly the same picture (same decoded pixels in another
+  compression, format or with an alpha channel), returns the existing asset and writes nothing, whatever title or area
+  is given. A picture that differs in a single pixel is a new asset. Only active assets of the same width and height are
+  compared ([decision](../decisions/OPEN_DECISIONS.md#question-ids-identical-images-three-states-ai-writers-and-the-view-only-public-admin--2026-11-24)).
   Only identical bytes are merged. A re-encoded or visually similar image is a different file and gets its own code.
 - **Rejected before any write**: SVG and any other format, corrupt or truncated files, oversized images, missing or
   blank alt text, an invalid area, a missing or unknown source version, and a disabled image store.

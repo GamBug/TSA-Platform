@@ -1,5 +1,6 @@
-// HTTP routes of the local admin page, all under /local/admin/. Loopback demo only: the public demo never creates them.
-import { generateQuestions, generationStatus } from './admin-generate.mjs';
+// HTTP routes of the admin page, all under /local/admin/. The loopback demo serves every route; the public demo serves
+// them read-only (`readOnly`): sign-in, sign-out and the GET views of the Bank, nothing that changes or imports.
+import { generateQuestions, generationStatus, PROVIDERS } from './admin-generate.mjs';
 import { INBOX_FOLDERS, MAX_ARCHIVE_BYTES } from './admin-jobs.mjs';
 
 export const ADMIN_ROUTE_PREFIX = '/local/admin/';
@@ -33,16 +34,19 @@ const section = (value) => (Object.hasOwn(INBOX_FOLDERS, value) ? value : null);
  * One handler for every /local/admin/ path. `getSnapshot()` returns the current Bank snapshot; `refreshSnapshot()`
  * re-reads it from the retained Bank (null in rehearsal). `imageStore` reads library images for the question view.
  */
-export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = null, imageStore = null, contentMode,
-  inboxDirectory, env = process.env }) {
-  const overview = () => {
+export function createAdminRoutes({ auth, jobs = null, getSnapshot, refreshSnapshot = null, imageStore = null, contentMode,
+  inboxDirectory, env = process.env, readOnly = false }) {
+  if (!readOnly && !jobs) throw new TypeError('The writable admin routes need the admin jobs');
+  const overview = async () => {
     const snapshot = getSnapshot();
-    return { contentMode, readAt: snapshot.readAt, total: snapshot.total, counts: snapshot.counts,
-      practicePoolTaxonomyId: snapshot.practicePoolTaxonomyId, jobs: jobs.status(), generation: generationStatus(env),
-      canRefresh: refreshSnapshot !== null };
+    const common = { contentMode, readAt: snapshot.readAt, total: snapshot.total, counts: snapshot.counts, readOnly };
+    if (readOnly) return { ...common, practicePoolTaxonomyId: null, jobs: { available: false, running: null },
+      generation: { configured: false, model: null, providers: [] }, canRefresh: false };
+    return { ...common, practicePoolTaxonomyId: snapshot.practicePoolTaxonomyId, jobs: jobs.status(),
+      generation: await generationStatus(env), canRefresh: refreshSnapshot !== null };
   };
 
-  return async function handleAdmin(request) {
+  return async function handleAdmin(request, context = {}) {
     const url = new URL(request.url);
     const route = url.pathname.slice(ADMIN_ROUTE_PREFIX.length);
     const method = request.method;
@@ -55,7 +59,7 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       const body = await readBody(request);
       if (body.tooLarge) return error(413, 'PAYLOAD_TOO_LARGE');
       if (!body.ok) return error(400, 'INVALID_REQUEST');
-      const result = auth.login(request, { username: body.value.username, password: body.value.password });
+      const result = auth.login(request, { username: body.value.username, password: body.value.password }, context.clientIp);
       if (!result.ok) {
         if (result.code === 'LOCKED') return json(429, { error: 'LOCKED', message: 'Too many wrong passwords. Try again later.' }, { 'retry-after': String(result.retryAfterSeconds) });
         if (result.code === 'ORIGIN_REJECTED') return error(403, 'ORIGIN_REJECTED');
@@ -69,7 +73,7 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
     if (!session) return error(method === 'GET' ? 401 : 403, method === 'GET' ? 'UNAUTHENTICATED' : 'FORBIDDEN');
 
     if (method === 'GET') {
-      if (route === 'overview') return json(200, overview());
+      if (route === 'overview') return json(200, await overview());
       if (route === 'questions') return json(200, { readAt: getSnapshot().readAt, items: getSnapshot().summaries });
       if (route === 'question') {
         const detail = getSnapshot().detail(url.searchParams.get('id'));
@@ -83,7 +87,7 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
           return new Response(object.bytes, { status: 200, headers: { 'content-type': meta.mediaType, 'cache-control': 'private, max-age=300', 'x-content-type-options': 'nosniff' } });
         } catch { return error(404, 'NOT_FOUND'); }
       }
-      if (route === 'inbox') return json(200, await jobs.listInbox());
+      if (route === 'inbox' && !readOnly) return json(200, await jobs.listInbox());
       return error(404, 'NOT_FOUND');
     }
 
@@ -92,6 +96,8 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
       auth.logout(session);
       return json(200, { authenticated: false }, { 'set-cookie': auth.clearedCookie() });
     }
+    // The public site only shows the Bank: every route that writes, imports, publishes or generates is absent there.
+    if (readOnly) return error(404, 'NOT_FOUND');
     const body = await readBody(request, BODY_LIMITS[route] ?? MAX_BODY_BYTES);
     if (body.tooLarge) return error(413, 'PAYLOAD_TOO_LARGE');
     if (!body.ok) return error(400, 'INVALID_REQUEST');
@@ -128,12 +134,13 @@ export function createAdminRoutes({ auth, jobs, getSnapshot, refreshSnapshot = n
     if (route === 'refresh') {
       if (!refreshSnapshot) return error(409, 'NO_RETAINED_BANK');
       await refreshSnapshot();
-      return json(200, overview());
+      return json(200, await overview());
     }
     if (route === 'generate') {
       if (!jobs.available) return error(409, 'NO_RETAINED_BANK', 'Rehearsal mode has no real Bank to import into.');
+      const provider = PROVIDERS.includes(input.provider) ? input.provider : 'openai';
       const result = await generateQuestions({ section: section(input.section), topic: input.topic, count: Number(input.count),
-        inboxDirectory, env });
+        provider, inboxDirectory, env });
       return json(result.ok ? 200 : 400, result);
     }
     return error(404, 'NOT_FOUND');

@@ -237,16 +237,21 @@ try {
   await typeInto('admin-password', ADMIN_CHECK_PASSWORD);
   await click('admin-submit');
   await waitFor(`Boolean(${query('admin-question-list')})&&${query('admin-question-list')}.querySelectorAll('[data-testid="admin-question-item"]').length>0`, 'admin question list');
-  await chooseOption('admin-filter-state', 'IN_REVIEW');
-  await waitFor(`${query('admin-question-list')}.querySelectorAll('[data-testid="admin-question-item"]').length===3`, 'three unpublished versions');
+  await chooseOption('admin-filter-state', 'DRAFT');
+  await waitFor(`${query('admin-question-list')}.querySelectorAll('[data-testid="admin-question-item"]').length===5`, 'five unpublished versions (drafts and versions in review)');
+  const listedId = await evaluate(`${query('admin-question-id')}?.innerText??''`);
+  assert.match(listedId, /^(Q-[0-9A-F]{8}|[A-Z]+-[A-Z0-9]+-\d{6})$/, 'each listed question shows its id');
   await click('admin-question-item');
   await waitFor(`Boolean(${query('admin-answer')}?.querySelector('[data-correct="true"]'))`, 'question with its marked answer key');
+  assert.equal(await evaluate(`${query('admin-detail-id')}?.innerText??''`), listedId, 'the open question shows the same id');
+  await typeInto('admin-search', listedId);
+  await waitFor(`${query('admin-question-list')}.querySelectorAll('[data-testid="admin-question-item"]').length>=1`, 'search by question id');
   await capture('07-admin-unpublished-question');
   await click('admin-tab-inbox');
   await waitFor(`Boolean(${query('admin-no-bank')})`, 'rehearsal has no real Bank to import into');
   await click('admin-tab-ai');
   await waitFor(`Boolean(${query('admin-ai-steps')})||Boolean(${query('admin-ai')})`, 'AI questions tab');
-  report.checks.push('Admin page: AdminBao signs in (a wrong password is refused), sees all versions including the 3 IN_REVIEW ones with the marked answer key; rehearsal blocks imports');
+  report.checks.push('Admin page: AdminBao signs in (a wrong password is refused), sees all versions in three states (the 3 in review count as DRAFT) with ids, finds one by its id and sees the marked answer key; rehearsal blocks imports');
   await click('admin-logout');
   await waitFor(`Boolean(${query('admin-login')})`, 'admin signed out');
 } catch (error) {

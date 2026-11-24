@@ -10,7 +10,7 @@ import sharp from 'sharp';
 import { ADMIN_USERNAME, createAdminAuth, hashPassword, verifyPassword } from '../../../src/local/admin/admin-auth.mjs';
 import { blocksText } from '../../../src/local/admin/admin-bank.mjs';
 import { confirmationFromOutput, createAdminJobs, inboxFileName } from '../../../src/local/admin/admin-jobs.mjs';
-import { batchDate, createMessage, generateQuestions, nextBatchLetter } from '../../../src/local/admin/admin-generate.mjs';
+import { batchDate, createMessage, generateQuestions, generationStatus, nextBatchLetter } from '../../../src/local/admin/admin-generate.mjs';
 import { startUniDemo } from '../../../src/local/uni-demo.mjs';
 import { startPersistentPostgres } from '../../../src/local/postgres.mjs';
 import { migrate } from '../../../src/modules/database/migrate.mjs';
@@ -45,10 +45,17 @@ test('the admin account checks the password, origin, session and CSRF, and locks
   clock += 9 * 60 * 60 * 1000;
   assert.equal(auth.session(new Request(`${ORIGIN}/local/admin/overview`, { headers: jar })), null, 'sessions expire after 8 hours');
 
-  for (let attempt = 0; attempt < 5; attempt++) auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'bad' });
-  assert.equal(auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'test-secret' }).code, 'LOCKED');
+  for (let attempt = 0; attempt < 5; attempt++) auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'bad' }, '203.0.113.9');
+  assert.equal(auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'test-secret' }, '203.0.113.9').code, 'LOCKED');
+  assert.equal(auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'test-secret' }, '198.51.100.7').ok, true,
+    'wrong passwords from one address do not lock out the owner elsewhere');
   clock += 16 * 60 * 1000;
-  assert.equal(auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'test-secret' }).ok, true, 'the lock ends');
+  assert.equal(auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'test-secret' }, '203.0.113.9').ok, true, 'the lock ends');
+  for (let attempt = 0; attempt < 50; attempt++) auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'bad' }, `10.0.${attempt >> 2}.${attempt}`);
+  assert.equal(auth.login(post(`${ORIGIN}/local/admin/login`), { username: ADMIN_USERNAME, password: 'test-secret' }, '198.51.100.7').code, 'LOCKED',
+    'many addresses together lock every sign-in');
+  assert.doesNotMatch(auth.cookie('t', clock + 1000), /Secure/);
+  assert.match(createAdminAuth({ trustedOrigin: ORIGIN, secureCookie: true }).cookie('t', clock + 1000), /; Secure/);
 
   const stored = hashPassword('another');
   assert.equal(verifyPassword('another', stored), true);
@@ -188,6 +195,49 @@ test('AI generation needs a key, sends the Project instructions and saves the re
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+// A coding-agent CLI signed in on the owner's computer writes the batch instead of the paid API.
+test('AI generation runs a signed-in agent CLI without a shell and saves its reply into the inbox', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tsa-admin-agent-'));
+  try {
+    const inboxDirectory = path.join(root, 'inbox');
+    const bin = path.join(root, 'bin');
+    await mkdir(bin);
+    for (const command of ['codex', 'claude']) await writeFile(path.join(bin, command), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+    const env = { PATH: bin };
+    const status = await generationStatus(env);
+    assert.deepEqual(status.providers.map((provider) => [provider.id, provider.available]),
+      [['openai', false], ['codex', true], ['claude', true], ['agy', false]]);
+    assert.equal(status.configured, true);
+    assert.equal((await generateQuestions({ section: 'MATH', provider: 'agy', inboxDirectory, env })).code, 'PROVIDER_NOT_INSTALLED');
+    assert.equal((await generateQuestions({ section: 'MATH', provider: 'gemini-web', inboxDirectory, env })).code, 'INVALID_PROVIDER');
+
+    const now = new Date('2026-11-24T10:00:00Z');
+    const document = { schema_version: 'tsa-question-set/1', batch_id: 'GPT-MATH-261124-A', questions: [] };
+    const calls = [];
+    const runAgentImpl = async (executable, args, options) => {
+      calls.push({ executable, args, options });
+      if (executable.endsWith('codex')) await writeFile(args[args.indexOf('-o') + 1], `Report.\n\n\`\`\`json\n${JSON.stringify(document)}\n\`\`\``);
+      return { exitCode: 0, timedOut: false, stdout: executable.endsWith('claude') ? `\`\`\`json\n${JSON.stringify({ ...document, batch_id: 'GPT-MATH-261124-B' })}\n\`\`\`` : '', stderr: '' };
+    };
+    const codex = await generateQuestions({ section: 'MATH', provider: 'codex', count: 2, inboxDirectory, env, now, runAgentImpl });
+    assert.equal(codex.ok, true, JSON.stringify(codex));
+    assert.equal(codex.file, 'math/GPT-MATH-261124-A-codex.json');
+    assert.deepEqual(calls[0].args.slice(0, 5), ['exec', '--skip-git-repo-check', '--sandbox', 'read-only', '--ephemeral']);
+    assert.match(calls[0].options.stdin, /===== AGENT\.md =====[\s\S]*CREATE · topic any topic of the subject · 2 questions/);
+    assert.notEqual(calls[0].options.cwd, process.cwd(), 'the agent runs in an empty temporary directory');
+    const claude = await generateQuestions({ section: 'MATH', provider: 'claude', inboxDirectory, env, now, runAgentImpl });
+    assert.equal(claude.file, 'math/GPT-MATH-261124-B-claude.json');
+    assert.deepEqual(calls[1].args.slice(0, 3), ['-p', '--tools', '']);
+
+    const failed = await generateQuestions({ section: 'MATH', provider: 'claude', inboxDirectory, env, now,
+      runAgentImpl: async () => ({ exitCode: 1, timedOut: false, stdout: '', stderr: 'Not logged in' }) });
+    assert.deepEqual([failed.ok, failed.code, failed.message], [false, 'PROVIDER_ERROR', 'Claude Code stopped: Not logged in']);
+    const slow = await generateQuestions({ section: 'MATH', provider: 'codex', inboxDirectory, env, now,
+      runAgentImpl: async () => ({ exitCode: null, timedOut: true, stdout: '', stderr: '' }) });
+    assert.equal(slow.code, 'PROVIDER_TIMEOUT');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('the local demo starts guests, hides the old staff home and serves the whole Bank to AdminBao only', { timeout: 240_000 }, async (t) => {
   const source = await buildRehearsalSource({});
   t.after(() => source.close());
@@ -226,7 +276,8 @@ test('the local demo starts guests, hides the old staff home and serves the whol
 
   const overview = await (await fetch(`${origin}/local/admin/overview`, { headers: admin })).json();
   assert.equal(overview.contentMode, 'REHEARSAL');
-  assert.deepEqual(overview.counts.MATH, { APPROVED: 100, IN_REVIEW: 3, DRAFT: 2 }, 'drafts and versions in review are included');
+  assert.deepEqual(overview.counts.MATH, { APPROVED: 100, DRAFT: 5 }, 'drafts and versions in review count as the owner\'s DRAFT');
+  assert.equal(overview.readOnly, false);
   assert.equal(overview.jobs.available, false);
   const { items } = await (await fetch(`${origin}/local/admin/questions`, { headers: admin })).json();
   assert.equal(items.length, overview.total);
@@ -235,6 +286,9 @@ test('the local demo starts guests, hides the old staff home and serves the whol
   const detail = await (await fetch(`${origin}/local/admin/question?id=${draft.versionId}`, { headers: admin })).json();
   assert.equal(detail.state, 'DRAFT');
   assert.ok(detail.answerKey?.type, 'the admin sees the private key');
+  assert.match(detail.displayId, /^(Q-[0-9A-F]{8}|[A-Z]+-[A-Z0-9]+-\d{6})$/);
+  assert.equal(items.find((item) => item.versionId === draft.versionId).displayId, detail.displayId);
+  assert.ok(items.some((item) => item.state === 'DRAFT' && detail.workflowState) && items.every((item) => ['DRAFT', 'APPROVED', 'QUARANTINED'].includes(item.state)));
   assert.equal((await fetch(`${origin}/local/admin/question?id=not-a-uuid`, { headers: admin })).status, 404);
 
   const mutate = (route, body, headers = {}) => fetch(`${origin}/local/admin/${route}`, { method: 'POST',

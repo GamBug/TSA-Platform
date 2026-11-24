@@ -61,7 +61,7 @@ async function createLibraryFixture(t) {
 const register = (f, bytes, overrides = {}) => registerImage(f.pool, f.imageStore, {
   bytes, area: 'GEO', alt: 'Hình minh hoạ tổng hợp', sourceVersionId: f.source.sourceVersionId, ...overrides });
 
-test('registration assigns stable codes per area, records dimensions and deduplicates byte-identical files only', { timeout: 120_000 }, async (t) => {
+test('registration assigns stable codes per area, records dimensions and deduplicates identical pictures only', { timeout: 120_000 }, async (t) => {
   const f = await createLibraryFixture(t);
   const red = await png('#84292b');
   const first = await register(f, red, { title: 'Hình đỏ' });
@@ -80,10 +80,19 @@ test('registration assigns stable codes per area, records dimensions and dedupli
   const algebra = await register(f, await png('#2f6b3a'), { area: 'ALG' });
   assert.equal(algebra.assetCode, 'IMG-ALG-000001');
 
-  // The same picture encoded differently is a different file: similarity is never assumed to be identity.
+  // The same picture saved as another file (other compression, WebP, an alpha channel) is the same image.
   const reencoded = await sharp({ create: { width: 64, height: 48, channels: 3, background: '#84292b' } }).png({ compressionLevel: 0 }).toBuffer();
   assert.notEqual(reencoded.toString('hex'), red.toString('hex'));
-  assert.equal((await register(f, reencoded)).created, true);
+  const lossless = await sharp(red).ensureAlpha().webp({ lossless: true }).toBuffer();
+  for (const copy of [reencoded, lossless]) {
+    const twin = await register(f, copy);
+    assert.deepEqual([twin.created, twin.duplicateOf], [false, 'IMG-GEO-000001']);
+  }
+  // A picture that differs in a single pixel is a different image, however similar it looks.
+  const raw = await sharp(red).raw().toBuffer({ resolveWithObject: true });
+  raw.data[0] ^= 1;
+  const onePixel = await sharp(raw.data, { raw: raw.info }).png().toBuffer();
+  assert.equal((await register(f, onePixel)).created, true);
 
   assert.deepEqual((await listImageAssets(f.pool)).map((asset) => asset.assetCode), ['IMG-ALG-000001', 'IMG-GEO-000001', 'IMG-GEO-000002', 'IMG-GEO-000003']);
   assert.deepEqual(await activeAssetCodes(f.pool), ['IMG-ALG-000001', 'IMG-GEO-000001', 'IMG-GEO-000002', 'IMG-GEO-000003']);

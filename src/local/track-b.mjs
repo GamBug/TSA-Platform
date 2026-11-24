@@ -304,6 +304,10 @@ export async function createTrackBRuntime({
         // Allow-list: guest session routes, the notice, and the candidate APIs. Everything else is a 404.
         if (pathname.startsWith('/local-auth/')) return routeHandlers.authHandler(request, context);
         if (pathname === '/local/demo-notice' && Object.hasOwn(localRoutes, pathname)) return localRoutes[pathname](request);
+        // The caller's own prefix (the view-only admin page), when it gives one in public mode.
+        if (localRoutePrefix && pathname.startsWith(localRoutePrefix) && Object.hasOwn(localRoutes, localRoutePrefix)) {
+          return localRoutes[localRoutePrefix](request, context);
+        }
         if (isStudentApiPath(pathname)) return routeHandlers.attemptHandler(request);
         return notFoundResponse(pathname);
       }
@@ -311,7 +315,7 @@ export async function createTrackBRuntime({
       if (pathname === TEMPLATE_PATH) return routeHandlers.templateHandler(request);
       if (Object.hasOwn(localRoutes, pathname)) return localRoutes[pathname](request);
       if (localRoutePrefix && pathname.startsWith(localRoutePrefix) && Object.hasOwn(localRoutes, localRoutePrefix)) {
-        return localRoutes[localRoutePrefix](request);
+        return localRoutes[localRoutePrefix](request, context);
       }
       if (isStudentApiPath(pathname)) return routeHandlers.attemptHandler(request);
       if (clozeMatchingEnabled && pathname.startsWith('/api/v4/')) return routeHandlers.clozeMatchingBankHandler(request);

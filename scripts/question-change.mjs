@@ -1,7 +1,7 @@
 // Owner command: change the status or section of one question in the retained Bank (the admin page runs it).
 //   npm run bank:question -- --version <uuid> --publish                    DRAFT or IN_REVIEW -> published
 //   npm run bank:question -- --version <uuid> --withhold --reason "..."    any active state -> QUARANTINED (not served)
-//   npm run bank:question -- --version <uuid> --restore                    QUARANTINED -> published again
+//   npm run bank:question -- --version <uuid> --restore                    QUARANTINED -> DRAFT (waits for --publish)
 //   npm run bank:question -- --version <uuid> --section SCIENCE            a new version of the question in that section
 // Without --confirm it is a dry run that prints the plan and the confirmation phrase; nothing is written. Versions are
 // immutable: a section move adds a version (it replaces a published one at once; a draft stays a draft for the normal
@@ -214,7 +214,7 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
   const plan = {
     PUBLISH: 'Approve and publish this question as the owner (rights, checks and approval as in Publish).',
     WITHHOLD: 'Withhold this question: it is no longer served, and tests already built with it are held.',
-    RESTORE: 'Publish this withheld question again (submitted, confirmed and approved by the owner).',
+    RESTORE: 'Return this withheld question to DRAFT. It is not served until you publish it in a separate step.',
   }[action];
   log(plan);
   if (confirm === undefined) {
@@ -229,6 +229,14 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
   const prefix = ROUTE_PREFIX[version.schema_version];
   const key = (step) => `question-change-${action.toLowerCase()}-${versionId}-${version.revision}-${step}`;
   if (action === 'PUBLISH') {
+    if (version.state === 'IN_REVIEW') {
+      // A withheld question returned to DRAFT is already submitted: confirm it as a single question and approve it,
+      // with the same publication checks as the original approval.
+      await approve(dataDirectory, versionId, 'Published again by the project owner on the admin page after it was withheld and '
+        + 'returned to draft. The owner is responsible for the stored key.', imageStoreDirectory);
+      log(`Published ${versionId}.`);
+      return { ok: true, phrase, applied: true };
+    }
     const preview = await ownerPublish({ dataDirectory, versionIds: [versionId], imageStoreDirectory, log: () => {} });
     if (preview.phrase !== 'PUBLISH 1 ALL') throw new Error('This version is not a publishable practice-pool or corpus draft (its source is not one the owner publication accepts)');
     await ownerPublish({ dataDirectory, versionIds: [versionId], imageStoreDirectory, confirm: preview.phrase, log: () => {} });
@@ -244,13 +252,12 @@ export async function changeQuestion({ dataDirectory, versionId, action, section
     log(`Withheld ${versionId}.`);
     return { ok: true, phrase, applied: true };
   }
+  // QUARANTINED never goes straight to APPROVED: it returns to a draft (the Bank's IN_REVIEW) and waits for Publish.
   await withRuntime(dataDirectory, version.schema_version, async (origin) => {
     const author = await session(origin, 'author');
     await author(`/api/${prefix}/question-versions/${versionId}/submit-review`, { expectedRevision: version.revision }, key('submit'));
   });
-  await approve(dataDirectory, versionId, 'Restored by the project owner on the local admin page after it had been withheld. '
-    + 'The owner is responsible for the stored key.', imageStoreDirectory);
-  log(`Restored ${versionId}; it is published again.`);
+  log(`Returned ${versionId} to DRAFT. Check it, then press Publish to serve it again.`);
   return { ok: true, phrase, applied: true };
 }
 
