@@ -16,6 +16,11 @@
   question each from Codex (28 s), Claude Code (21 s) and Antigravity (89 s), all valid with no validator problem; on a
   copy of the retained Bank a quarantined Math question went Back to draft, Publish, Withhold; the 65 library images
   have no pixel-identical pair.
+- Deployed: release `demo-261124-rc1` went live on 2026-11-24 at 17:31 Asia/Bangkok (previous `demo-261123-rc1` kept
+  for rollback). Live: the admin page loads, `/local/admin/session` answers, the question list needs a sign-in, a wrong
+  password gets 401, a foreign Origin 403, `generate` without a session 403 and `inbox` 401;
+  `verify-public-live.mjs --skip-load` passed every check (guest isolation, full test, no key leakage, no 5xx). A real
+  AdminBao sign-in on the live site was not tried by the agent (owner's password).
 - Open: a restored (IN_REVIEW) practice-pool question is published one at a time with **Publish**; the bulk Publish of
   the Import tab was not tried on one.
 
