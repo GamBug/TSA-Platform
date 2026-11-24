@@ -21,6 +21,10 @@
   studio and the question list on that copy: no console errors.
 - Found and fixed during the real runs: a drawn figure was lost when the run folder was removed; unexpected errors now
   read as a sentence.
+- Deployed: release `demo-261125-rc1` (`f3dc8db`) went live on 2026-11-25 at about 00:41 Asia/Bangkok (previous
+  `demo-261124-rc1` kept for rollback); `/healthz` ok, `verify-public-live.mjs --skip-load` passed every check, the
+  studio routes need a session (401) and refuse a POST without the CSRF token (403); in public mode they are absent.
+  `main` fast-forwarded to `f3dc8db` on the owner's request. The server Bank was not changed.
 - Open: the owner restarts `npm start` to get the studio (the running demo has the old server); Claude Code draws
   figures only after `sudo apt install bubblewrap socat`; the owner should avoid choosing Antigravity for now; Claude
   Code's sign-in on this computer expires between 2026-11-30 and 2026-12-03 (`claude auth login`). The live site is
